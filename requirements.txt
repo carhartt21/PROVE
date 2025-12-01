@@ -1,0 +1,38 @@
+# Requirements file for PROVE Pipeline
+
+# Core dependencies
+torch>=1.6.0
+torchvision>=0.7.0
+mmcv>=2.0.0rc4,<2.1.0
+mmdet>=3.0.0rc6,<3.1.0
+mmengine>=0.6.0
+
+# Data processing
+numpy>=1.19.0
+opencv-python>=4.5.0
+pillow>=8.0.0
+scipy>=1.5.0
+
+# Configuration and utilities
+pyyaml>=5.4.0
+tqdm>=4.60.0
+termcolor>=1.1.0
+
+# Logging and monitoring
+tensorboard>=2.4.0
+wandb>=0.12.0  # Optional for experiment tracking
+
+# Dataset handling
+pycocotools>=2.0.2
+cityscapesscripts>=2.2.0  # For Cityscapes dataset
+
+# Development and testing
+pytest>=6.0.0
+black>=21.0.0
+flake8>=3.8.0
+isort>=5.8.0
+
+# Optional GPU acceleration
+# Uncomment if using specific CUDA versions
+# torch==1.12.0+cu116
+# torchvision==0.13.0+cu116

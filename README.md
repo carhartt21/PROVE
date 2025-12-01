@@ -1,0 +1,508 @@
+# PROVE: Pipeline for Recognition & Object Vision Evaluation
+
+## Overview
+
+PROVE (Pipeline for Recognition & Object Vision Evaluation) is a comprehensive, streamlined pipeline for training and testing object detection and semantic segmentation approaches using the MMDetection framework. The pipeline provides standardized configuration management and supports multiple dataset formats with easy reproducibility.
+
+## Features
+
+### Supported Tasks
+- **Object Detection**: Real-time detection and localization of objects in images
+- **Semantic Segmentation**: Pixel-level classification of image regions
+
+### Supported Dataset Formats
+- **Object Detection**: BDD100k JSON format, COCO JSON format
+- **Semantic Segmentation**: Cityscapes, Mapillary Vistas, OUTSIDE15k formats
+
+### Key Benefits
+- **Reproducible Experiments**: Config-driven approach ensures consistent results
+- **Format Standardization**: Automatic conversion between dataset formats
+- **Model Flexibility**: Support for multiple state-of-the-art architectures
+- **Easy Configuration**: Template-based configuration generation
+- **Comprehensive Logging**: Detailed logging and experiment tracking
+
+## Installation
+
+### Prerequisites
+- Python 3.7+
+- PyTorch 1.6+
+- CUDA (recommended for GPU acceleration)
+
+### Step 1: Install MMDetection Dependencies
+
+```bash
+# Install MMEngine
+pip install -U openmim
+mim install mmengine
+
+# Install MMCV
+mim install "mmcv>=2.0.0rc4,<2.1.0"
+
+# Install MMDetection
+mim install "mmdet>=3.0.0rc6,<3.1.0"
+```
+
+### Step 2: Clone PROVE Pipeline
+
+```bash
+git clone <repository-url>
+cd prove
+```
+
+### Step 3: Install Additional Dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+## Quick Start
+
+### 1. Dataset Preparation
+
+Convert your dataset to the appropriate format:
+
+```bash
+# For BDD100k object detection dataset
+python prove.py prepare \
+    --dataset-path ./data/bdd100k/labels/train.json \
+    --dataset-format bdd100k_json \
+    --output-path ./data/bdd100k_coco/
+
+# For Cityscapes semantic segmentation dataset
+python prove.py prepare \
+    --dataset-path ./data/cityscapes/ \
+    --dataset-format cityscapes \
+    --output-path ./data/cityscapes_processed/
+```
+
+### 2. Generate Configuration
+
+Create a configuration file for your specific task:
+
+```bash
+# Object detection configuration
+python prove.py config \
+    --task-type object_detection \
+    --dataset-format bdd100k_json \
+    --dataset-path ./data/bdd100k_coco/ \
+    --model-name faster_rcnn_r50_fpn_1x
+
+# Semantic segmentation configuration
+python prove.py config \
+    --task-type semantic_segmentation \
+    --dataset-format cityscapes \
+    --dataset-path ./data/cityscapes_processed/ \
+    --model-name deeplabv3plus_r50
+```
+
+### 3. Training
+
+Start training your model:
+
+```bash
+# Train object detection model
+python prove.py train \
+    --config-path prove_object_detection_bdd100k_json_config.py \
+    --work-dir ./work_dirs/od_experiment_001/
+
+# Train semantic segmentation model
+python prove.py train \
+    --config-path prove_semantic_segmentation_cityscapes_config.py \
+    --work-dir ./work_dirs/seg_experiment_001/
+```
+
+### 4. Testing and Evaluation
+
+Evaluate your trained model:
+
+```bash
+# Test object detection model
+python prove.py test \
+    --config-path prove_object_detection_bdd100k_json_config.py \
+    --checkpoint-path ./work_dirs/od_experiment_001/latest.pth \
+    --output-path ./results/od_results/
+
+# Test semantic segmentation model
+python prove.py test \
+    --config-path prove_semantic_segmentation_cityscapes_config.py \
+    --checkpoint-path ./work_dirs/seg_experiment_001/latest.pth \
+    --output-path ./results/seg_results/
+```
+
+### 5. Inference
+
+Run inference on individual images:
+
+```bash
+# Object detection inference
+python prove.py inference \
+    --config-path prove_object_detection_bdd100k_json_config.py \
+    --checkpoint-path ./work_dirs/od_experiment_001/latest.pth \
+    --image-path ./test_images/sample.jpg \
+    --output-path ./results/inference_result.jpg
+```
+
+## Detailed Usage
+
+### Configuration System
+
+PROVE uses a hierarchical configuration system that allows for easy customization and reproducibility:
+
+```python
+from mmdet_pipeline_config import MOVADETPipelineConfig
+
+# Initialize configuration generator
+config_gen = MOVADETPipelineConfig()
+
+# Generate custom configuration
+config = config_gen.generate_config(
+    task_type='object_detection',
+    dataset_format='bdd100k_json',
+    dataset_path='./data/bdd100k/',
+    model_name='yolox_l'
+)
+```
+
+### Supported Models
+
+#### Object Detection Models
+- **Faster R-CNN**: `faster_rcnn_r50_fpn_1x`
+- **YOLOX**: `yolox_l`, `yolox_m`, `yolox_s`
+- **RTMDet**: `rtmdet_l`, `rtmdet_m`, `rtmdet_s`
+- **DETR**: `detr_r50`
+- **Mask R-CNN**: `mask_rcnn_r50_fpn_1x`
+
+#### Semantic Segmentation Models
+- **DeepLabV3+**: `deeplabv3plus_r50`, `deeplabv3plus_r101`
+- **PSPNet**: `pspnet_r50`, `pspnet_r101`
+- **SegFormer**: `segformer_mit-b5`
+- **UperNet**: `upernet_swin`
+
+### Dataset Format Specifications
+
+#### BDD100k JSON Format
+```json
+{
+  "name": "image_name.jpg",
+  "labels": [
+    {
+      "category": "car",
+      "box2d": {
+        "x1": 100,
+        "y1": 200,
+        "x2": 300,
+        "y2": 400
+      }
+    }
+  ]
+}
+```
+
+#### Cityscapes Format
+```
+cityscapes/
+├── leftImg8bit/
+│   ├── train/
+│   ├── val/
+│   └── test/
+└── gtFine/
+    ├── train/
+    ├── val/
+    └── test/
+```
+
+### Advanced Configuration
+
+#### Custom Training Parameters
+
+```python
+# Modify training configuration
+config = {
+    'training': {
+        'gpu_ids': [0, 1],  # Multi-GPU training
+        'seed': 42,
+        'lr': 0.01,
+        'max_epochs': 24,
+        'samples_per_gpu': 4,
+        'workers_per_gpu': 8
+    }
+}
+```
+
+#### Learning Rate Scheduling
+
+```python
+# Custom learning rate policy
+lr_config = dict(
+    policy='CosineAnnealing',
+    min_lr=1e-7,
+    warmup='linear',
+    warmup_iters=1000,
+    warmup_ratio=0.001
+)
+```
+
+#### Data Augmentation
+
+```python
+# Training pipeline with augmentation
+train_pipeline = [
+    dict(type='LoadImageFromFile'),
+    dict(type='LoadAnnotations', with_bbox=True),
+    dict(type='Resize', img_scale=(1333, 800), keep_ratio=True),
+    dict(type='RandomFlip', flip_ratio=0.5),
+    dict(type='PhotoMetricDistortion'),
+    dict(type='Normalize', **img_norm_cfg),
+    dict(type='Pad', size_divisor=32),
+    dict(type='DefaultFormatBundle'),
+    dict(type='Collect', keys=['img', 'gt_bboxes', 'gt_labels'])
+]
+```
+
+## Reproducibility Features
+
+### Deterministic Training
+- Fixed random seeds across all components
+- Deterministic CUDA operations
+- Version-controlled configurations
+
+### Experiment Tracking
+- Automatic logging of hyperparameters
+- Model checkpoint versioning
+- Performance metrics logging
+- TensorBoard integration
+
+### Configuration Management
+```bash
+# Save experiment configuration
+python movadet-pipeline.py config \
+    --task-type object_detection \
+    --dataset-format bdd100k_json \
+    --dataset-path ./data/bdd100k/ \
+    --config-path ./experiments/exp_001_config.py
+```
+
+## Performance Optimization
+
+### Multi-GPU Training
+
+```bash
+# Distributed training across multiple GPUs
+export CUDA_VISIBLE_DEVICES=0,1,2,3
+python -m torch.distributed.launch \
+    --nproc_per_node=4 \
+    movadet-pipeline.py train \
+    --config-path config.py \
+    --launcher pytorch
+```
+
+### Mixed Precision Training
+
+```python
+# Enable mixed precision in config
+fp16 = dict(loss_scale=512.)
+```
+
+### Memory Optimization
+
+```python
+# Gradient checkpointing for large models
+model = dict(
+    backbone=dict(
+        with_cp=True  # Enable gradient checkpointing
+    )
+)
+```
+
+## Troubleshooting
+
+### Common Issues
+
+#### CUDA Out of Memory
+```python
+# Reduce batch size
+data = dict(
+    samples_per_gpu=1,  # Reduce from default 2
+    workers_per_gpu=2   # Reduce workers if needed
+)
+```
+
+#### Dataset Loading Errors
+```bash
+# Verify dataset format
+python movadet-pipeline.py prepare \
+    --dataset-path ./data/your_dataset/ \
+    --dataset-format your_format \
+    --output-path ./data/converted/ \
+    --verbose
+```
+
+#### Configuration Errors
+```python
+# Validate configuration
+from mmcv import Config
+cfg = Config.fromfile('your_config.py')
+print(cfg.pretty_text)
+```
+
+### Debug Mode
+
+```bash
+# Run with debug logging
+export PYTHONPATH=$PWD:$PYTHONPATH
+python movadet-pipeline.py train \
+    --config-path config.py \
+    --work-dir ./debug_run/ \
+    --debug
+```
+
+## Examples
+
+### Complete Object Detection Workflow
+
+```bash
+# 1. Prepare BDD100k dataset
+python movadet-pipeline.py prepare \
+    --dataset-path ./data/bdd100k/labels/bdd100k_labels_images_train.json \
+    --dataset-format bdd100k_json \
+    --output-path ./data/bdd100k_coco/
+
+# 2. Generate configuration
+python movadet-pipeline.py config \
+    --task-type object_detection \
+    --dataset-format bdd100k_json \
+    --dataset-path ./data/bdd100k_coco/ \
+    --model-name faster_rcnn_r50_fpn_1x \
+    --config-path ./configs/bdd100k_faster_rcnn.py
+
+# 3. Train model
+python movadet-pipeline.py train \
+    --config-path ./configs/bdd100k_faster_rcnn.py \
+    --work-dir ./work_dirs/bdd100k_faster_rcnn/ \
+    --load-from ./checkpoints/faster_rcnn_r50_fpn_1x_coco.pth
+
+# 4. Evaluate model
+python movadet-pipeline.py test \
+    --config-path ./configs/bdd100k_faster_rcnn.py \
+    --checkpoint-path ./work_dirs/bdd100k_faster_rcnn/latest.pth \
+    --output-path ./results/bdd100k_evaluation/
+
+# 5. Run inference
+python movadet-pipeline.py inference \
+    --config-path ./configs/bdd100k_faster_rcnn.py \
+    --checkpoint-path ./work_dirs/bdd100k_faster_rcnn/latest.pth \
+    --image-path ./test_images/driving_scene.jpg \
+    --output-path ./results/detection_result.jpg
+```
+
+### Complete Semantic Segmentation Workflow
+
+```bash
+# 1. Prepare Cityscapes dataset
+python movadet-pipeline.py prepare \
+    --dataset-path ./data/cityscapes/ \
+    --dataset-format cityscapes \
+    --output-path ./data/cityscapes_processed/
+
+# 2. Generate configuration
+python movadet-pipeline.py config \
+    --task-type semantic_segmentation \
+    --dataset-format cityscapes \
+    --dataset-path ./data/cityscapes_processed/ \
+    --model-name deeplabv3plus_r50 \
+    --config-path ./configs/cityscapes_deeplabv3plus.py
+
+# 3. Train model
+python movadet-pipeline.py train \
+    --config-path ./configs/cityscapes_deeplabv3plus.py \
+    --work-dir ./work_dirs/cityscapes_deeplabv3plus/ \
+    --load-from ./checkpoints/deeplabv3plus_r50-d8_cityscapes.pth
+
+# 4. Evaluate model
+python movadet-pipeline.py test \
+    --config-path ./configs/cityscapes_deeplabv3plus.py \
+    --checkpoint-path ./work_dirs/cityscapes_deeplabv3plus/latest.pth \
+    --output-path ./results/cityscapes_evaluation/
+```
+
+## Contributing
+
+### Adding New Dataset Formats
+
+1. Implement converter in `DatasetConverter` class:
+```python
+@staticmethod
+def convert_your_format_to_coco(input_path: str, output_path: str) -> bool:
+    # Implementation here
+    pass
+```
+
+2. Update supported formats in configuration:
+```python
+'supported_formats': {
+    'object_detection': ['bdd100k_json', 'coco_json', 'your_format'],
+    # ...
+}
+```
+
+3. Add format-specific configuration:
+```python
+def _get_your_format_config(self, base_config, dataset_path):
+    # Implementation here
+    pass
+```
+
+### Adding New Models
+
+1. Update model configurations:
+```python
+'models': {
+    'object_detection': {
+        'available': [
+            'existing_models',
+            'your_new_model'
+        ]
+    }
+}
+```
+
+2. Add model-specific configuration:
+```python
+def _get_detection_config(self, model_name):
+    configs = {
+        'your_new_model': {
+            '_base_': ['path/to/your/model/config.py']
+        }
+    }
+    # ...
+```
+
+## License
+
+This project is licensed under the Apache License 2.0 - see the LICENSE file for details.
+
+## Citation
+
+If you use MOVADET in your research, please cite:
+
+```bibtex
+@misc{movadet2024,
+  title={MOVADET: Modular Vision Analytics Detection Pipeline},
+  author={Your Name},
+  year={2024},
+  howpublished={\url{https://github.com/your-repo/movadet}}
+}
+```
+
+## Support
+
+For questions and support:
+- Create an issue on GitHub
+- Check the troubleshooting section
+- Review MMDetection documentation: https://mmdetection.readthedocs.io/
+
+## Acknowledgments
+
+- Built on top of OpenMMLab's MMDetection framework
+- Inspired by reproducible ML practices
+- Dataset format support based on community contributions
