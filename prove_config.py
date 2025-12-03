@@ -334,7 +334,7 @@ class PROVEConfig:
 # Example usage
 if __name__ == "__main__":
     # Initialize pipeline config
-    pipeline = MOVADETPipelineConfig()
+    pipeline = PROVEConfig()
     
     # Generate config for object detection with BDD100k
     od_config = pipeline.generate_config(
@@ -352,4 +352,4 @@ if __name__ == "__main__":
         model_name='deeplabv3plus_r50'
     )
     
-    print("MOVADET Pipeline Configuration Generated Successfully!")
+    print("PROVE Configuration Generated Successfully!")

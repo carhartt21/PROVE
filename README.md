@@ -149,10 +149,10 @@ python prove.py inference \
 PROVE uses a hierarchical configuration system that allows for easy customization and reproducibility:
 
 ```python
-from mmdet_pipeline_config import MOVADETPipelineConfig
+from prove_config import PROVEConfig
 
 # Initialize configuration generator
-config_gen = MOVADETPipelineConfig()
+config_gen = PROVEConfig()
 
 # Generate custom configuration
 config = config_gen.generate_config(
@@ -275,7 +275,7 @@ train_pipeline = [
 ### Configuration Management
 ```bash
 # Save experiment configuration
-python movadet-pipeline.py config \
+python prove.py config \
     --task-type object_detection \
     --dataset-format bdd100k_json \
     --dataset-path ./data/bdd100k/ \
@@ -291,7 +291,7 @@ python movadet-pipeline.py config \
 export CUDA_VISIBLE_DEVICES=0,1,2,3
 python -m torch.distributed.launch \
     --nproc_per_node=4 \
-    movadet-pipeline.py train \
+    prove.py train \
     --config-path config.py \
     --launcher pytorch
 ```
@@ -330,7 +330,7 @@ data = dict(
 #### Dataset Loading Errors
 ```bash
 # Verify dataset format
-python movadet-pipeline.py prepare \
+python prove.py prepare \
     --dataset-path ./data/your_dataset/ \
     --dataset-format your_format \
     --output-path ./data/converted/ \
@@ -350,7 +350,7 @@ print(cfg.pretty_text)
 ```bash
 # Run with debug logging
 export PYTHONPATH=$PWD:$PYTHONPATH
-python movadet-pipeline.py train \
+python prove.py train \
     --config-path config.py \
     --work-dir ./debug_run/ \
     --debug
@@ -362,13 +362,13 @@ python movadet-pipeline.py train \
 
 ```bash
 # 1. Prepare BDD100k dataset
-python movadet-pipeline.py prepare \
+python prove.py prepare \
     --dataset-path ./data/bdd100k/labels/bdd100k_labels_images_train.json \
     --dataset-format bdd100k_json \
     --output-path ./data/bdd100k_coco/
 
 # 2. Generate configuration
-python movadet-pipeline.py config \
+python prove.py config \
     --task-type object_detection \
     --dataset-format bdd100k_json \
     --dataset-path ./data/bdd100k_coco/ \
@@ -376,19 +376,19 @@ python movadet-pipeline.py config \
     --config-path ./configs/bdd100k_faster_rcnn.py
 
 # 3. Train model
-python movadet-pipeline.py train \
+python prove.py train \
     --config-path ./configs/bdd100k_faster_rcnn.py \
     --work-dir ./work_dirs/bdd100k_faster_rcnn/ \
     --load-from ./checkpoints/faster_rcnn_r50_fpn_1x_coco.pth
 
 # 4. Evaluate model
-python movadet-pipeline.py test \
+python prove.py test \
     --config-path ./configs/bdd100k_faster_rcnn.py \
     --checkpoint-path ./work_dirs/bdd100k_faster_rcnn/latest.pth \
     --output-path ./results/bdd100k_evaluation/
 
 # 5. Run inference
-python movadet-pipeline.py inference \
+python prove.py inference \
     --config-path ./configs/bdd100k_faster_rcnn.py \
     --checkpoint-path ./work_dirs/bdd100k_faster_rcnn/latest.pth \
     --image-path ./test_images/driving_scene.jpg \
@@ -399,13 +399,13 @@ python movadet-pipeline.py inference \
 
 ```bash
 # 1. Prepare Cityscapes dataset
-python movadet-pipeline.py prepare \
+python prove.py prepare \
     --dataset-path ./data/cityscapes/ \
     --dataset-format cityscapes \
     --output-path ./data/cityscapes_processed/
 
 # 2. Generate configuration
-python movadet-pipeline.py config \
+python prove.py config \
     --task-type semantic_segmentation \
     --dataset-format cityscapes \
     --dataset-path ./data/cityscapes_processed/ \
@@ -413,13 +413,13 @@ python movadet-pipeline.py config \
     --config-path ./configs/cityscapes_deeplabv3plus.py
 
 # 3. Train model
-python movadet-pipeline.py train \
+python prove.py train \
     --config-path ./configs/cityscapes_deeplabv3plus.py \
     --work-dir ./work_dirs/cityscapes_deeplabv3plus/ \
     --load-from ./checkpoints/deeplabv3plus_r50-d8_cityscapes.pth
 
 # 4. Evaluate model
-python movadet-pipeline.py test \
+python prove.py test \
     --config-path ./configs/cityscapes_deeplabv3plus.py \
     --checkpoint-path ./work_dirs/cityscapes_deeplabv3plus/latest.pth \
     --output-path ./results/cityscapes_evaluation/
@@ -483,14 +483,14 @@ This project is licensed under the Apache License 2.0 - see the LICENSE file for
 
 ## Citation
 
-If you use MOVADET in your research, please cite:
+If you use PROVE in your research, please cite:
 
 ```bibtex
-@misc{movadet2024,
-  title={MOVADET: Modular Vision Analytics Detection Pipeline},
+@misc{prove2024,
+  title={PROVE: Pipeline for Recognition \& Object Vision Evaluation},
   author={Your Name},
   year={2024},
-  howpublished={\url{https://github.com/your-repo/movadet}}
+  howpublished={\url{https://github.com/carhartt21/PROVE}}
 }
 ```
 

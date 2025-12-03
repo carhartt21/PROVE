@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-MOVADET Pipeline Manager
-Modular Vision Analytics Detection Pipeline for MMDetection
+PROVE Manager
+Pipeline for Recognition & Object Vision Evaluation for MMDetection
 
 This script provides a comprehensive pipeline for training and testing 
 object detection and semantic segmentation models using MMDetection framework.
@@ -141,11 +141,11 @@ class PROVE:
             level=logging.INFO,
             format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
             handlers=[
-                logging.FileHandler('movadet_pipeline.log'),
+                logging.FileHandler('prove.log'),
                 logging.StreamHandler(sys.stdout)
             ]
         )
-        return logging.getLogger('MOVADET')
+        return logging.getLogger('PROVE')
     
     def prepare_dataset(self, dataset_path: str, dataset_format: str, 
                        output_path: str) -> bool:
