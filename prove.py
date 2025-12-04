@@ -9,6 +9,7 @@ object detection and semantic segmentation models using MMDetection framework.
 Supports:
 - Object Detection: BDD100k JSON format
 - Semantic Segmentation: Cityscapes, Mapillary Vistas, OUTSIDE15k formats
+- Joint Training: Unified Cityscapes + Mapillary Vistas training
 """
 
 import os
@@ -30,6 +31,20 @@ from mmdet.utils import collect_env, get_root_logger
 
 # Import our configuration class
 from prove_config import PROVEConfig
+
+# Import label unification module
+try:
+    from label_unification import (
+        LabelUnificationManager,
+        MapillarytoCityscapes,
+        MapillaryToUnified,
+        CityscapesToUnified,
+        convert_mapillary_labels_to_cityscapes,
+    )
+    LABEL_UNIFICATION_AVAILABLE = True
+except ImportError:
+    LABEL_UNIFICATION_AVAILABLE = False
+    print("Warning: label_unification module not available. Joint training features disabled.")
 
 
 class DatasetConverter:
@@ -132,8 +147,14 @@ class PROVE:
     """Main class for managing the PROVE pipeline"""
     
     def __init__(self):
-        self.logger = self._setup_logger()
+        self.logger = self._setup_logging()
         self.config_generator = PROVEConfig()
+        
+        # Initialize label unification manager if available
+        if LABEL_UNIFICATION_AVAILABLE:
+            self.label_manager = LabelUnificationManager()
+        else:
+            self.label_manager = None
         
     def _setup_logging(self) -> logging.Logger:
         """Setup logging configuration"""
@@ -148,7 +169,7 @@ class PROVE:
         return logging.getLogger('MOVADET')
     
     def prepare_dataset(self, dataset_path: str, dataset_format: str, 
-                       output_path: str) -> bool:
+                       output_path: str, label_space: str = 'cityscapes') -> bool:
         """Prepare dataset by converting to appropriate format"""
         
         self.logger.info(f"Preparing {dataset_format} dataset from {dataset_path}")
@@ -171,11 +192,111 @@ class PROVE:
             success = converter.convert_cityscapes_to_coco(dataset_path, output_path)
             if not success:
                 return False
+        
+        elif dataset_format == 'mapillary_vistas':
+            # Convert Mapillary labels to target space
+            if LABEL_UNIFICATION_AVAILABLE and label_space in ['cityscapes', 'unified']:
+                self.logger.info(f"Converting Mapillary labels to {label_space} label space")
+                success = self._convert_mapillary_labels(dataset_path, output_path, label_space)
+                if not success:
+                    return False
+            else:
+                self.logger.warning("Label unification not available, skipping label conversion")
+        
+        elif dataset_format == 'joint_cityscapes_mapillary':
+            # Prepare both datasets for joint training
+            success = self._prepare_joint_dataset(dataset_path, output_path, label_space)
+            if not success:
+                return False
                 
         # Add more converters as needed
         
         self.logger.info("Dataset preparation completed successfully")
         return True
+    
+    def _convert_mapillary_labels(self, input_path: str, output_path: str, 
+                                   label_space: str = 'cityscapes') -> bool:
+        """Convert Mapillary Vistas labels to target label space"""
+        try:
+            import numpy as np
+            from PIL import Image
+            
+            # Select mapper based on target label space
+            if label_space == 'unified':
+                mapper = MapillaryToUnified()
+            else:
+                mapper = MapillarytoCityscapes()
+            
+            # Find label directories
+            label_dirs = ['training/v1.2/labels', 'validation/v1.2/labels', 'testing/v1.2/labels']
+            
+            for label_dir in label_dirs:
+                input_label_dir = os.path.join(input_path, label_dir)
+                if not os.path.exists(input_label_dir):
+                    # Try alternative structure
+                    input_label_dir = os.path.join(input_path, label_dir.replace('/v1.2', ''))
+                
+                if os.path.exists(input_label_dir):
+                    output_label_dir = os.path.join(output_path, label_dir)
+                    os.makedirs(output_label_dir, exist_ok=True)
+                    
+                    label_files = list(Path(input_label_dir).glob('*.png'))
+                    self.logger.info(f"Converting {len(label_files)} labels from {input_label_dir}")
+                    
+                    for label_file in label_files:
+                        # Load and transform label
+                        label = np.array(Image.open(str(label_file)))
+                        transformed = mapper.transform_label(label)
+                        
+                        # Save transformed label
+                        output_file = os.path.join(output_label_dir, label_file.name)
+                        Image.fromarray(transformed).save(output_file)
+            
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Error converting Mapillary labels: {str(e)}")
+            return False
+    
+    def _prepare_joint_dataset(self, dataset_path: str, output_path: str,
+                                label_space: str = 'cityscapes') -> bool:
+        """Prepare joint Cityscapes + Mapillary dataset"""
+        try:
+            # Parse dataset paths
+            if isinstance(dataset_path, str):
+                # Assume it's a parent directory containing both datasets
+                cityscapes_path = os.path.join(dataset_path, 'cityscapes')
+                mapillary_path = os.path.join(dataset_path, 'mapillary_vistas')
+            elif isinstance(dataset_path, dict):
+                cityscapes_path = dataset_path.get('cityscapes')
+                mapillary_path = dataset_path.get('mapillary_vistas')
+            else:
+                self.logger.error("Invalid dataset_path format for joint dataset")
+                return False
+            
+            # Verify paths exist
+            if not os.path.exists(cityscapes_path):
+                self.logger.error(f"Cityscapes path not found: {cityscapes_path}")
+                return False
+            if not os.path.exists(mapillary_path):
+                self.logger.error(f"Mapillary Vistas path not found: {mapillary_path}")
+                return False
+            
+            # Convert Mapillary labels if needed
+            mapillary_output = os.path.join(output_path, 'mapillary_vistas_converted')
+            self._convert_mapillary_labels(mapillary_path, mapillary_output, label_space)
+            
+            # Create symlinks or copy Cityscapes data
+            cityscapes_output = os.path.join(output_path, 'cityscapes')
+            if not os.path.exists(cityscapes_output):
+                os.symlink(cityscapes_path, cityscapes_output)
+            
+            self.logger.info(f"Joint dataset prepared at {output_path}")
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Error preparing joint dataset: {str(e)}")
+            return False
     
     def generate_config(self, task_type: str, dataset_format: str, 
                        dataset_path: str, model_name: str = None,
@@ -347,15 +468,22 @@ def main():
     """Main function to handle command line arguments"""
     
     parser = argparse.ArgumentParser(description='PROVE Manager')
-    parser.add_argument('command', choices=['prepare', 'config', 'train', 'test', 'inference'],
+    parser.add_argument('command', choices=['prepare', 'config', 'train', 'test', 'inference', 'joint-config'],
                        help='Pipeline command to execute')
     
     # Dataset preparation arguments
     parser.add_argument('--dataset-path', type=str, help='Path to input dataset')
     parser.add_argument('--dataset-format', type=str, 
-                       choices=['bdd100k_json', 'cityscapes', 'mapillary_vistas', 'outside15k'],
+                       choices=['bdd100k_json', 'cityscapes', 'mapillary_vistas', 'outside15k', 'joint_cityscapes_mapillary'],
                        help='Dataset format')
     parser.add_argument('--output-path', type=str, help='Output path for processed data')
+    
+    # Label unification arguments
+    parser.add_argument('--label-space', type=str, choices=['cityscapes', 'unified'],
+                       default='cityscapes',
+                       help='Target label space for unification (default: cityscapes)')
+    parser.add_argument('--cityscapes-path', type=str, help='Path to Cityscapes dataset (for joint training)')
+    parser.add_argument('--mapillary-path', type=str, help='Path to Mapillary Vistas dataset (for joint training)')
     
     # Configuration arguments
     parser.add_argument('--task-type', type=str, 
@@ -368,6 +496,9 @@ def main():
     parser.add_argument('--work-dir', type=str, help='Working directory for training')
     parser.add_argument('--resume-from', type=str, help='Resume training from checkpoint')
     parser.add_argument('--load-from', type=str, help='Load pretrained weights')
+    parser.add_argument('--crop-size', type=int, nargs=2, default=[512, 1024],
+                       help='Crop size for training (height width)')
+    parser.add_argument('--batch-size', type=int, default=2, help='Batch size per GPU')
     
     # Testing arguments
     parser.add_argument('--checkpoint-path', type=str, help='Path to model checkpoint')
@@ -389,7 +520,8 @@ def main():
         success = pipeline.prepare_dataset(
             args.dataset_path, 
             args.dataset_format, 
-            args.output_path
+            args.output_path,
+            args.label_space
         )
         
     elif args.command == 'config':
@@ -405,6 +537,33 @@ def main():
             args.config_path
         )
         print(f"Configuration generated: {config_path}")
+        success = True
+    
+    elif args.command == 'joint-config':
+        # Generate configuration for joint Cityscapes + Mapillary training
+        if not all([args.cityscapes_path, args.mapillary_path]):
+            print("Error: joint-config command requires --cityscapes-path, --mapillary-path")
+            return 1
+        
+        config = pipeline.config_generator.generate_joint_training_config(
+            cityscapes_path=args.cityscapes_path,
+            mapillary_path=args.mapillary_path,
+            model_name=args.model_name or 'deeplabv3plus_r50',
+            label_space=args.label_space,
+            crop_size=tuple(args.crop_size),
+            batch_size=args.batch_size
+        )
+        
+        # Save configuration
+        output_config_path = args.config_path or f"prove_joint_{args.label_space}_config.py"
+        config_content = pipeline._dict_to_config_file(config)
+        
+        with open(output_config_path, 'w') as f:
+            f.write(config_content)
+        
+        print(f"Joint training configuration generated: {output_config_path}")
+        print(f"Label space: {args.label_space}")
+        print(f"Number of classes: {config['num_classes']}")
         success = True
         
     elif args.command == 'train':

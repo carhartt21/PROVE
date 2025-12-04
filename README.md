@@ -9,14 +9,23 @@ PROVE (Pipeline for Recognition & Object Vision Evaluation) is a comprehensive, 
 ### Supported Tasks
 - **Object Detection**: Real-time detection and localization of objects in images
 - **Semantic Segmentation**: Pixel-level classification of image regions
+- **Joint Training**: Unified training on multiple datasets (Cityscapes + Mapillary Vistas)
 
 ### Supported Dataset Formats
 - **Object Detection**: BDD100k JSON format, COCO JSON format
 - **Semantic Segmentation**: Cityscapes, Mapillary Vistas, OUTSIDE15k formats
+- **Joint Training**: Combined Cityscapes + Mapillary Vistas with label unification
+
+### Label Unification
+PROVE includes a comprehensive label unification strategy that enables joint training of Cityscapes and Mapillary Vistas datasets:
+
+- **Cityscapes Label Space (19 classes)**: Standard Cityscapes format, ideal for benchmarking
+- **Unified Label Space (42 classes)**: Extended format preserving more semantic information from both datasets
 
 ### Key Benefits
 - **Reproducible Experiments**: Config-driven approach ensures consistent results
 - **Format Standardization**: Automatic conversion between dataset formats
+- **Label Unification**: Seamless joint training across different datasets
 - **Model Flexibility**: Support for multiple state-of-the-art architectures
 - **Easy Configuration**: Template-based configuration generation
 - **Comprehensive Logging**: Detailed logging and experiment tracking
@@ -111,7 +120,41 @@ python prove.py train \
     --work-dir ./work_dirs/seg_experiment_001/
 ```
 
-### 4. Testing and Evaluation
+### 4. Joint Training (Cityscapes + Mapillary Vistas)
+
+PROVE supports joint training on multiple datasets with automatic label unification:
+
+```bash
+# Generate joint training configuration (Cityscapes label space - 19 classes)
+python prove.py joint-config \
+    --cityscapes-path ./data/cityscapes/ \
+    --mapillary-path ./data/mapillary_vistas/ \
+    --label-space cityscapes \
+    --model-name deeplabv3plus_r50 \
+    --config-path ./configs/joint_cityscapes_config.py
+
+# Generate joint training configuration (Unified label space - 42 classes)
+python prove.py joint-config \
+    --cityscapes-path ./data/cityscapes/ \
+    --mapillary-path ./data/mapillary_vistas/ \
+    --label-space unified \
+    --model-name deeplabv3plus_r50 \
+    --config-path ./configs/joint_unified_config.py
+
+# Prepare Mapillary labels for joint training
+python prove.py prepare \
+    --dataset-path ./data/mapillary_vistas/ \
+    --dataset-format mapillary_vistas \
+    --output-path ./data/mapillary_vistas_converted/ \
+    --label-space cityscapes
+
+# Train with joint dataset
+python prove.py train \
+    --config-path ./configs/joint_cityscapes_config.py \
+    --work-dir ./work_dirs/joint_experiment_001/
+```
+
+### 5. Testing and Evaluation
 
 Evaluate your trained model:
 
@@ -129,7 +172,7 @@ python prove.py test \
     --output-path ./results/seg_results/
 ```
 
-### 5. Inference
+### 6. Inference
 
 Run inference on individual images:
 
@@ -143,6 +186,65 @@ python prove.py inference \
 ```
 
 ## Detailed Usage
+
+### Label Unification System
+
+PROVE includes a comprehensive label unification module (`label_unification.py`) that enables seamless joint training of Cityscapes and Mapillary Vistas datasets.
+
+#### Label Space Options
+
+1. **Cityscapes (19 classes)**: Maps Mapillary's 66 classes to Cityscapes' 19 evaluation classes
+   - Best for: Benchmarking on Cityscapes test set
+   - Pros: Compatible with existing Cityscapes benchmarks
+   - Cons: Some Mapillary-specific classes are merged or ignored
+
+2. **Unified (42 classes)**: Extended label space preserving more semantic granularity
+   - Best for: Maximum information preservation during training
+   - Pros: Retains more fine-grained distinctions from both datasets
+   - Cons: Requires mapping back to Cityscapes for standard benchmarking
+
+#### Class Mapping Overview
+
+| Unified Class | Cityscapes | Mapillary Sources |
+|--------------|------------|-------------------|
+| road | road | Road, Bike Lane, Service Lane |
+| sidewalk | sidewalk | Sidewalk, Curb Cut, Pedestrian Area |
+| building | building | Building |
+| wall | wall | Wall, Barrier |
+| fence | fence | Fence |
+| pole | pole | Pole, Traffic Sign Frame |
+| traffic light | traffic light | Traffic Light |
+| traffic sign | traffic sign | Traffic Sign (Front/Back) |
+| vegetation | vegetation | Vegetation |
+| terrain | terrain | Terrain, Sand |
+| sky | sky | Sky |
+| person | person | Person |
+| rider | rider | Bicyclist, Motorcyclist, Other Rider |
+| car | car | Car |
+| truck | truck | Truck |
+| bus | bus | Bus |
+| train | train | On Rails |
+| motorcycle | motorcycle | Motorcycle |
+| bicycle | bicycle | Bicycle |
+
+#### Programmatic Usage
+
+```python
+from label_unification import LabelUnificationManager, MapillarytoCityscapes
+
+# Initialize manager
+manager = LabelUnificationManager()
+
+# Transform Mapillary label to Cityscapes format
+cityscapes_label = manager.transform_label(mapillary_label, 'mapillary', 'cityscapes')
+
+# Transform to unified format
+unified_label = manager.transform_label(mapillary_label, 'mapillary', 'unified')
+
+# Get class names and palettes
+classes = manager.get_cityscapes_classes()  # or get_unified_classes()
+palette = manager.get_cityscapes_palette()  # or get_unified_palette()
+```
 
 ### Configuration System
 

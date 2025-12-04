@@ -5,25 +5,41 @@
 import os
 from mmcv import Config
 
+# Import label unification module
+try:
+    from label_unification import (
+        LabelUnificationManager,
+        CITYSCAPES_CLASSES,
+        MAPILLARY_CLASSES,
+        UNIFIED_CLASSES,
+        CityscapesTrainID,
+        UnifiedTrainID,
+    )
+    LABEL_UNIFICATION_AVAILABLE = True
+except ImportError:
+    LABEL_UNIFICATION_AVAILABLE = False
+
+
 class PROVEConfig:
     """
     Configuration class for PROVE pipeline supporting:
     - Object Detection with BDD100k JSON format
     - Semantic Segmentation with Cityscapes, Mapillary Vistas, OUTSIDE15k formats
+    - Joint training with unified label spaces
     """
     
     def __init__(self):
         self.base_config = {
             # Pipeline metadata
             'pipeline_name': 'PROVE',
-            'version': '1.0.0',
+            'version': '1.1.0',
             'description': 'Pipeline for Recognition & Object Vision Evaluation',
             
             # Supported tasks and formats
             'supported_tasks': ['object_detection', 'semantic_segmentation'],
             'supported_formats': {
                 'object_detection': ['bdd100k_json', 'coco_json'],
-                'semantic_segmentation': ['cityscapes', 'mapillary_vistas', 'outside15k']
+                'semantic_segmentation': ['cityscapes', 'mapillary_vistas', 'outside15k', 'joint_cityscapes_mapillary']
             },
             
             # Base paths
@@ -84,22 +100,48 @@ class PROVEConfig:
                     'annotation_format': 'png',
                     'image_format': ['png'],
                     'required_files': ['gtFine', 'leftImg8bit'],
-                    'converter': 'cityscapes_to_coco'
+                    'converter': 'cityscapes_to_coco',
+                    'num_classes': 19
                 },
                 'mapillary_vistas': {
                     'annotation_format': 'png',
                     'image_format': ['jpg', 'png'],
                     'required_files': ['labels', 'images'],
-                    'converter': 'mapillary_to_coco'
+                    'converter': 'mapillary_to_coco',
+                    'num_classes': 66
                 },
                 'outside15k': {
                     'annotation_format': 'png',
                     'image_format': ['jpg', 'png'],
                     'required_files': ['labels', 'images'],
                     'converter': 'outside15k_to_coco'
+                },
+                'joint_cityscapes_mapillary': {
+                    'annotation_format': 'png',
+                    'image_format': ['jpg', 'png'],
+                    'required_files': ['cityscapes', 'mapillary_vistas'],
+                    'converter': 'joint_unified',
+                    'label_spaces': ['cityscapes', 'unified'],
+                    'default_label_space': 'cityscapes'
                 }
+            },
+            
+            # Label unification settings
+            'label_unification': {
+                'enabled': True,
+                'strategies': ['cityscapes', 'unified'],
+                'default_strategy': 'cityscapes',
+                'cityscapes_num_classes': 19,
+                'unified_num_classes': 42,
+                'mapillary_num_classes': 66
             }
         }
+        
+        # Initialize label unification manager if available
+        if LABEL_UNIFICATION_AVAILABLE:
+            self.label_manager = LabelUnificationManager()
+        else:
+            self.label_manager = None
     
     def generate_config(self, task_type, dataset_format, dataset_path, model_name=None):
         """Generate MMDetection config for specific task and dataset"""
@@ -210,6 +252,8 @@ class PROVEConfig:
             return self._get_mapillary_config(base_dataset_config, dataset_path)
         elif dataset_format == 'outside15k':
             return self._get_outside15k_config(base_dataset_config, dataset_path)
+        elif dataset_format == 'joint_cityscapes_mapillary':
+            return self._get_joint_config(base_dataset_config, dataset_path)
         
         return base_dataset_config
     
@@ -279,6 +323,257 @@ class PROVEConfig:
         })
         return base_config
     
+    def _get_mapillary_config(self, base_config, dataset_path):
+        """Mapillary Vistas dataset configuration"""
+        base_config.update({
+            'dataset_type': 'MapillaryUnifiedDataset',
+            'num_classes': 66,
+            'data': {
+                **base_config['data'],
+                'train': dict(
+                    type='MapillaryUnifiedDataset',
+                    data_root=dataset_path,
+                    img_dir='training/images',
+                    ann_dir='training/v1.2/labels',
+                    target_space='cityscapes'
+                ),
+                'val': dict(
+                    type='MapillaryUnifiedDataset',
+                    data_root=dataset_path,
+                    img_dir='validation/images',
+                    ann_dir='validation/v1.2/labels',
+                    target_space='cityscapes'
+                ),
+                'test': dict(
+                    type='MapillaryUnifiedDataset',
+                    data_root=dataset_path,
+                    img_dir='testing/images',
+                    ann_dir='testing/v1.2/labels',
+                    target_space='cityscapes'
+                )
+            }
+        })
+        return base_config
+    
+    def _get_outside15k_config(self, base_config, dataset_path):
+        """OUTSIDE15k dataset configuration"""
+        base_config.update({
+            'dataset_type': 'CustomDataset',
+            'data': {
+                **base_config['data'],
+                'train': dict(
+                    type='CustomDataset',
+                    data_root=dataset_path,
+                    img_dir='images/train',
+                    ann_dir='labels/train'
+                ),
+                'val': dict(
+                    type='CustomDataset',
+                    data_root=dataset_path,
+                    img_dir='images/val',
+                    ann_dir='labels/val'
+                ),
+                'test': dict(
+                    type='CustomDataset',
+                    data_root=dataset_path,
+                    img_dir='images/test',
+                    ann_dir='labels/test'
+                )
+            }
+        })
+        return base_config
+    
+    def _get_joint_config(self, base_config, dataset_path, label_space='cityscapes'):
+        """
+        Joint Cityscapes + Mapillary Vistas dataset configuration.
+        
+        Args:
+            base_config: Base configuration dictionary
+            dataset_path: Dictionary with 'cityscapes' and 'mapillary_vistas' paths
+                         or string path to parent directory containing both
+            label_space: Target label space ('cityscapes' or 'unified')
+            
+        Returns:
+            Updated configuration dictionary
+        """
+        # Handle dataset path input
+        if isinstance(dataset_path, dict):
+            cityscapes_path = dataset_path.get('cityscapes', './data/cityscapes')
+            mapillary_path = dataset_path.get('mapillary_vistas', './data/mapillary_vistas')
+        else:
+            cityscapes_path = os.path.join(dataset_path, 'cityscapes')
+            mapillary_path = os.path.join(dataset_path, 'mapillary_vistas')
+        
+        # Set number of classes based on label space
+        if label_space == 'unified':
+            num_classes = self.base_config['label_unification']['unified_num_classes']
+            classes = (
+                'road', 'sidewalk', 'parking', 'rail track', 'bike lane',
+                'building', 'wall', 'fence', 'guard rail', 'bridge', 'tunnel', 'barrier',
+                'pole', 'traffic light', 'traffic sign', 'street light', 'utility pole', 'other object',
+                'vegetation', 'terrain', 'sky', 'water', 'snow', 'mountain',
+                'person', 'bicyclist', 'motorcyclist', 'other rider',
+                'car', 'truck', 'bus', 'train', 'motorcycle', 'bicycle',
+                'caravan', 'trailer', 'boat', 'other vehicle', 'wheeled slow', 'animal',
+                'lane marking', 'crosswalk'
+            )
+            cityscapes_type = 'UnifiedCityscapesDataset'
+        else:
+            num_classes = self.base_config['label_unification']['cityscapes_num_classes']
+            classes = (
+                'road', 'sidewalk', 'building', 'wall', 'fence', 'pole',
+                'traffic light', 'traffic sign', 'vegetation', 'terrain',
+                'sky', 'person', 'rider', 'car', 'truck', 'bus', 'train',
+                'motorcycle', 'bicycle'
+            )
+            cityscapes_type = 'CityscapesDataset'
+        
+        base_config.update({
+            'dataset_type': 'ConcatDataset',
+            'num_classes': num_classes,
+            'classes': classes,
+            'label_space': label_space,
+            'data': {
+                **base_config['data'],
+                'train': dict(
+                    type='ConcatDataset',
+                    datasets=[
+                        # Cityscapes training data
+                        dict(
+                            type=cityscapes_type,
+                            data_root=cityscapes_path,
+                            img_dir='leftImg8bit/train',
+                            ann_dir='gtFine/train',
+                            seg_map_suffix='_gtFine_labelTrainIds.png'
+                        ),
+                        # Mapillary Vistas training data
+                        dict(
+                            type='MapillaryUnifiedDataset',
+                            data_root=mapillary_path,
+                            img_dir='training/images',
+                            ann_dir='training/v1.2/labels',
+                            target_space=label_space
+                        )
+                    ]
+                ),
+                'val': dict(
+                    type='CityscapesDataset',
+                    data_root=cityscapes_path,
+                    img_dir='leftImg8bit/val',
+                    ann_dir='gtFine/val',
+                    seg_map_suffix='_gtFine_labelTrainIds.png'
+                ),
+                'test': dict(
+                    type='CityscapesDataset',
+                    data_root=cityscapes_path,
+                    img_dir='leftImg8bit/val',
+                    ann_dir='gtFine/val',
+                    seg_map_suffix='_gtFine_labelTrainIds.png'
+                )
+            }
+        })
+        return base_config
+    
+    def generate_joint_training_config(self, 
+                                        cityscapes_path: str,
+                                        mapillary_path: str,
+                                        model_name: str = 'deeplabv3plus_r50',
+                                        label_space: str = 'cityscapes',
+                                        crop_size: tuple = (512, 1024),
+                                        batch_size: int = 2) -> dict:
+        """
+        Generate a complete configuration for joint Cityscapes + Mapillary training.
+        
+        Args:
+            cityscapes_path: Path to Cityscapes dataset
+            mapillary_path: Path to Mapillary Vistas dataset
+            model_name: Model architecture name
+            label_space: Target label space ('cityscapes' or 'unified')
+            crop_size: Training crop size (height, width)
+            batch_size: Batch size per GPU
+            
+        Returns:
+            Complete configuration dictionary
+        """
+        # Get base model config
+        config = self._get_segmentation_config(model_name)
+        
+        # Set up dataset paths
+        dataset_paths = {
+            'cityscapes': cityscapes_path,
+            'mapillary_vistas': mapillary_path
+        }
+        
+        # Build dataset config
+        base_dataset_config = {
+            'data_root': '',
+            'img_norm_cfg': dict(
+                mean=[123.675, 116.28, 103.53],
+                std=[58.395, 57.12, 57.375],
+                to_rgb=True
+            ),
+            'train_pipeline': [],
+            'test_pipeline': [],
+            'data': {
+                'samples_per_gpu': batch_size,
+                'workers_per_gpu': self.base_config['training']['workers_per_gpu']
+            }
+        }
+        
+        dataset_config = self._get_joint_config(base_dataset_config, dataset_paths, label_space)
+        config.update(dataset_config)
+        
+        # Update model num_classes
+        if label_space == 'unified':
+            config['num_classes'] = self.base_config['label_unification']['unified_num_classes']
+        else:
+            config['num_classes'] = self.base_config['label_unification']['cityscapes_num_classes']
+        
+        # Add training config
+        config.update(self._build_training_config())
+        
+        # Add pipeline configurations
+        config['crop_size'] = crop_size
+        config['train_pipeline'] = self._build_train_pipeline(crop_size, label_space)
+        config['test_pipeline'] = self._build_test_pipeline()
+        
+        return config
+    
+    def _build_train_pipeline(self, crop_size, label_space='cityscapes'):
+        """Build training data pipeline with label transformation"""
+        pipeline = [
+            dict(type='LoadImageFromFile'),
+            dict(type='LoadAnnotations'),
+        ]
+        
+        # Add label transformation for joint training
+        if label_space == 'unified':
+            pipeline.append(dict(type='CityscapesLabelTransform', target_space='unified'))
+        
+        pipeline.extend([
+            dict(
+                type='RandomResize',
+                scale=(2048, 1024),
+                ratio_range=(0.5, 2.0),
+                keep_ratio=True
+            ),
+            dict(type='RandomCrop', crop_size=crop_size, cat_max_ratio=0.75),
+            dict(type='RandomFlip', prob=0.5),
+            dict(type='PhotoMetricDistortion'),
+            dict(type='PackSegInputs'),
+        ])
+        
+        return pipeline
+    
+    def _build_test_pipeline(self):
+        """Build test/validation data pipeline"""
+        return [
+            dict(type='LoadImageFromFile'),
+            dict(type='Resize', scale=(2048, 1024), keep_ratio=True),
+            dict(type='LoadAnnotations'),
+            dict(type='PackSegInputs'),
+        ]
+    
     def _build_training_config(self):
         """Build training configuration"""
         training_cfg = self.base_config['training']
@@ -334,7 +629,7 @@ class PROVEConfig:
 # Example usage
 if __name__ == "__main__":
     # Initialize pipeline config
-    pipeline = MOVADETPipelineConfig()
+    pipeline = PROVEConfig()
     
     # Generate config for object detection with BDD100k
     od_config = pipeline.generate_config(
@@ -352,4 +647,13 @@ if __name__ == "__main__":
         model_name='deeplabv3plus_r50'
     )
     
-    print("MOVADET Pipeline Configuration Generated Successfully!")
+    # Generate config for joint training
+    joint_config = pipeline.generate_joint_training_config(
+        cityscapes_path='./data/cityscapes/',
+        mapillary_path='./data/mapillary_vistas/',
+        model_name='deeplabv3plus_r50',
+        label_space='cityscapes'
+    )
+    
+    print("PROVE Pipeline Configuration Generated Successfully!")
+    print(f"Joint training config has {joint_config['num_classes']} classes")
