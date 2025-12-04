@@ -3,7 +3,7 @@
 # Compatible with Object Detection & Semantic Segmentation
 
 import os
-from mmcv import Config
+from mmengine import Config
 
 # Import label unification module
 try:
@@ -143,24 +143,38 @@ class PROVEConfig:
         else:
             self.label_manager = None
     
-    def generate_config(self, task_type, dataset_format, dataset_path, model_name=None):
-        """Generate MMDetection config for specific task and dataset"""
-        
-        if task_type not in self.base_config['supported_tasks']:
-            raise ValueError(f"Unsupported task: {task_type}")
-        
-        if dataset_format not in self.base_config['supported_formats'][task_type]:
-            raise ValueError(f"Unsupported format for {task_type}: {dataset_format}")
-        
-        # Select model
-        if model_name is None:
-            model_name = self.base_config['models'][task_type]['default']
-        
-        config = self._build_base_config(task_type, model_name)
-        config.update(self._build_dataset_config(dataset_format, dataset_path))
-        config.update(self._build_training_config())
-        
-        return config
+    def generate_multi_model_config(self, task_type, dataset_format, dataset_path, model_names=None):
+        """
+        Generate configurations for multiple models with the same dataset setup.
+
+        Args:
+            task_type: 'object_detection' or 'semantic_segmentation'
+            dataset_format: Dataset format (e.g., 'bdd100k_json', 'cityscapes')
+            dataset_path: Path to dataset
+            model_names: List of model names to generate configs for
+
+        Returns:
+            Dictionary with model names as keys and their configs as values
+        """
+        if model_names is None:
+            model_names = self.base_config['models'][task_type]['available']
+
+        # Generate shared dataset and training config once
+        shared_config = self._build_dataset_config(dataset_format, dataset_path)
+        shared_config.update(self._build_training_config())
+
+        # Generate individual configs for each model
+        configs = {}
+        for model_name in model_names:
+            if model_name not in self.base_config['models'][task_type]['available']:
+                print(f"Warning: {model_name} not in available models, skipping")
+                continue
+
+            config = self._build_base_config(task_type, model_name)
+            config.update(shared_config.copy())  # Use shared dataset/training config
+            configs[model_name] = config
+
+        return configs
     
     def _build_base_config(self, task_type, model_name):
         """Build base configuration for the specified task and model"""
@@ -631,7 +645,15 @@ if __name__ == "__main__":
     # Initialize pipeline config
     pipeline = PROVEConfig()
     
-    # Generate config for object detection with BDD100k
+    # Generate configs for multiple models with the same dataset
+    multi_model_configs = pipeline.generate_multi_model_config(
+        task_type='object_detection',
+        dataset_format='bdd100k_json',
+        dataset_path='./data/bdd100k/',
+        model_names=['faster_rcnn_r50_fpn_1x', 'yolox_l', 'rtmdet_l']
+    )
+    
+    # Generate config for single model (existing functionality)
     od_config = pipeline.generate_config(
         task_type='object_detection',
         dataset_format='bdd100k_json',
@@ -656,4 +678,5 @@ if __name__ == "__main__":
     )
     
     print("PROVE Pipeline Configuration Generated Successfully!")
+    print(f"Generated configs for {len(multi_model_configs)} models: {list(multi_model_configs.keys())}")
     print(f"Joint training config has {joint_config['num_classes']} classes")
