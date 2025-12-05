@@ -1,0 +1,857 @@
+#!/usr/bin/env python3
+"""
+PROVE Unified Training Configuration System
+
+This module provides a centralized configuration system that eliminates
+redundant config files by parameterizing:
+- Base model (deeplabv3plus_r50, pspnet_r50, segformer_mit-b5, etc.)
+- Dataset (ACDC, BDD10k, BDD100k, IDD-AW, MapillaryVistas, OUTSIDE15k)
+- Augmentation strategy (baseline, photometric_distort, gen_<model>)
+- Real-to-generated image ratio for mixed training
+
+Usage:
+    # Command line
+    python unified_training_config.py --dataset ACDC --model deeplabv3plus_r50 \
+        --strategy gen_cycleGAN --real-gen-ratio 0.5
+    
+    # As module
+    from unified_training_config import UnifiedTrainingConfig
+    config = UnifiedTrainingConfig()
+    cfg = config.build(dataset='ACDC', model='deeplabv3plus_r50', 
+                       strategy='gen_cycleGAN', real_gen_ratio=0.5)
+"""
+
+import os
+import argparse
+from pathlib import Path
+from typing import Dict, List, Optional, Any, Union
+from dataclasses import dataclass, field
+
+
+# ============================================================================
+# Constants
+# ============================================================================
+
+# Base paths - can be overridden via environment variables
+DEFAULT_DATA_ROOT = os.environ.get('PROVE_DATA_ROOT', '/scratch/aaa_exchange/AWARE/FINAL_SPLITS')
+DEFAULT_GEN_ROOT = os.environ.get('PROVE_GEN_ROOT', '/scratch/aaa_exchange/AWARE/GENERATED_IMAGES')
+DEFAULT_WEIGHTS_ROOT = os.environ.get('PROVE_WEIGHTS_ROOT', '/scratch/aaa_exchange/AWARE/WEIGHTS')
+DEFAULT_CONFIG_ROOT = os.environ.get('PROVE_CONFIG_ROOT', './multi_model_configs')
+
+# Adverse weather conditions
+ADVERSE_CONDITIONS = ['cloudy', 'dawn_dusk', 'fog', 'night', 'rainy', 'snowy']
+
+# Available generative models
+GENERATIVE_MODELS = [
+    'cycleGAN', 'CUT', 'stargan_v2', 'SUSTechGAN', 'EDICT', 'Img2Img',
+    'IP2P', 'UniControl', 'step1x_new', 'StyleID', 'NST', 'albumentations',
+    'automold', 'imgaug_weather', 'Weather_Effect_Generator',
+    'Attribute_Hallucination', 'cnet_seg', '2stageMultipleAdverseWeatherRemoval',
+    'maxim', 'MPRNet', 'weatherformer', 'tunit',
+]
+
+
+# ============================================================================
+# Dataset Configurations
+# ============================================================================
+
+@dataclass
+class DatasetConfig:
+    """Configuration for a specific dataset"""
+    name: str
+    task: str  # 'segmentation' or 'detection'
+    format: str
+    data_root: str = DEFAULT_DATA_ROOT
+    train_img_dir: str = ''
+    train_ann_dir: str = ''
+    val_img_dir: str = ''
+    val_ann_dir: str = ''
+    test_img_dir: str = ''
+    test_ann_dir: str = ''
+    num_classes: int = 19
+    classes: tuple = field(default_factory=tuple)
+    
+
+# Cityscapes-style classes (used by most segmentation datasets)
+CITYSCAPES_CLASSES = (
+    'road', 'sidewalk', 'building', 'wall', 'fence', 'pole',
+    'traffic light', 'traffic sign', 'vegetation', 'terrain',
+    'sky', 'person', 'rider', 'car', 'truck', 'bus', 'train',
+    'motorcycle', 'bicycle',
+)
+
+# Detection classes for BDD100k
+BDD100K_DET_CLASSES = (
+    'pedestrian', 'rider', 'car', 'truck', 'bus', 'train',
+    'motorcycle', 'bicycle', 'traffic light', 'traffic sign',
+)
+
+
+DATASET_CONFIGS = {
+    'ACDC': DatasetConfig(
+        name='ACDC',
+        task='segmentation',
+        format='cityscapes',
+        train_img_dir='leftImg8bit/train',
+        train_ann_dir='gtFine/train',
+        val_img_dir='leftImg8bit/val',
+        val_ann_dir='gtFine/val',
+        test_img_dir='leftImg8bit/test',
+        test_ann_dir='gtFine/test',
+        num_classes=19,
+        classes=CITYSCAPES_CLASSES,
+    ),
+    'BDD10k': DatasetConfig(
+        name='BDD10k',
+        task='segmentation',
+        format='cityscapes',
+        train_img_dir='leftImg8bit/train',
+        train_ann_dir='gtFine/train',
+        val_img_dir='leftImg8bit/val',
+        val_ann_dir='gtFine/val',
+        test_img_dir='leftImg8bit/test',
+        test_ann_dir='gtFine/test',
+        num_classes=19,
+        classes=CITYSCAPES_CLASSES,
+    ),
+    'BDD100k': DatasetConfig(
+        name='BDD100k',
+        task='detection',
+        format='bdd100k_json',
+        train_img_dir='images/100k/train',
+        train_ann_dir='labels/bdd100k_labels_images_train.json',
+        val_img_dir='images/100k/val',
+        val_ann_dir='labels/bdd100k_labels_images_val.json',
+        test_img_dir='images/100k/val',
+        test_ann_dir='labels/bdd100k_labels_images_val.json',
+        num_classes=10,
+        classes=BDD100K_DET_CLASSES,
+    ),
+    'IDD-AW': DatasetConfig(
+        name='IDD-AW',
+        task='segmentation',
+        format='cityscapes',
+        train_img_dir='leftImg8bit/train',
+        train_ann_dir='gtFine/train',
+        val_img_dir='leftImg8bit/val',
+        val_ann_dir='gtFine/val',
+        test_img_dir='leftImg8bit/test',
+        test_ann_dir='gtFine/test',
+        num_classes=19,
+        classes=CITYSCAPES_CLASSES,
+    ),
+    'MapillaryVistas': DatasetConfig(
+        name='MapillaryVistas',
+        task='segmentation',
+        format='mapillary_vistas',
+        train_img_dir='training/images',
+        train_ann_dir='training/labels',
+        val_img_dir='validation/images',
+        val_ann_dir='validation/labels',
+        test_img_dir='validation/images',
+        test_ann_dir='validation/labels',
+        num_classes=66,
+        classes=CITYSCAPES_CLASSES,  # Using unified labels
+    ),
+    'OUTSIDE15k': DatasetConfig(
+        name='OUTSIDE15k',
+        task='segmentation',
+        format='cityscapes',
+        train_img_dir='leftImg8bit/train',
+        train_ann_dir='gtFine/train',
+        val_img_dir='leftImg8bit/val',
+        val_ann_dir='gtFine/val',
+        test_img_dir='leftImg8bit/test',
+        test_ann_dir='gtFine/test',
+        num_classes=19,
+        classes=CITYSCAPES_CLASSES,
+    ),
+}
+
+
+# ============================================================================
+# Model Configurations
+# ============================================================================
+
+@dataclass
+class ModelConfig:
+    """Configuration for a specific model"""
+    name: str
+    task: str  # 'segmentation' or 'detection'
+    base_config: str  # Path to base model config
+    optimizer: str = 'SGD'
+    lr: float = 0.01
+    weight_decay: float = 0.0005
+
+
+SEGMENTATION_MODELS = {
+    'deeplabv3plus_r50': ModelConfig(
+        name='deeplabv3plus_r50',
+        task='segmentation',
+        base_config='_base_/models/deeplabv3plus_r50-d8.py',
+        optimizer='SGD',
+        lr=0.01,
+        weight_decay=0.0005,
+    ),
+    'pspnet_r50': ModelConfig(
+        name='pspnet_r50',
+        task='segmentation',
+        base_config='_base_/models/pspnet_r50-d8.py',
+        optimizer='SGD',
+        lr=0.01,
+        weight_decay=0.0005,
+    ),
+    'segformer_mit-b5': ModelConfig(
+        name='segformer_mit-b5',
+        task='segmentation',
+        base_config='_base_/models/segformer_mit-b5.py',
+        optimizer='AdamW',
+        lr=0.00006,
+        weight_decay=0.01,
+    ),
+}
+
+DETECTION_MODELS = {
+    'faster_rcnn_r50_fpn_1x': ModelConfig(
+        name='faster_rcnn_r50_fpn_1x',
+        task='detection',
+        base_config='_base_/models/faster_rcnn_r50_fpn.py',
+        optimizer='SGD',
+        lr=0.02,
+        weight_decay=0.0001,
+    ),
+    'yolox_l': ModelConfig(
+        name='yolox_l',
+        task='detection',
+        base_config='_base_/models/yolox_l.py',
+        optimizer='SGD',
+        lr=0.01,
+        weight_decay=0.0005,
+    ),
+    'rtmdet_l': ModelConfig(
+        name='rtmdet_l',
+        task='detection',
+        base_config='_base_/models/rtmdet_l.py',
+        optimizer='AdamW',
+        lr=0.004,
+        weight_decay=0.05,
+    ),
+}
+
+ALL_MODELS = {**SEGMENTATION_MODELS, **DETECTION_MODELS}
+
+
+# ============================================================================
+# Training Configuration Templates
+# ============================================================================
+
+@dataclass
+class TrainingConfig:
+    """Training hyperparameters"""
+    max_iters: int = 80000
+    batch_size: int = 2
+    workers_per_gpu: int = 4
+    checkpoint_interval: int = 10000
+    eval_interval: int = 6666
+    log_interval: int = 50
+    warmup_iters: int = 500
+    warmup_ratio: float = 0.001
+    seed: int = 42
+    deterministic: bool = True
+
+
+TRAINING_CONFIGS = {
+    'segmentation': TrainingConfig(
+        max_iters=80000,
+        batch_size=2,
+        checkpoint_interval=10000,
+        eval_interval=6666,
+    ),
+    'detection': TrainingConfig(
+        max_iters=40000,
+        batch_size=2,
+        checkpoint_interval=5000,
+        eval_interval=3333,
+    ),
+}
+
+
+# ============================================================================
+# Augmentation Strategies
+# ============================================================================
+
+@dataclass
+class AugmentationStrategy:
+    """Configuration for an augmentation strategy"""
+    name: str
+    type: str  # 'none', 'transform', 'generated'
+    transforms: List[dict] = field(default_factory=list)
+    generative_model: Optional[str] = None
+    conditions: List[str] = field(default_factory=lambda: ADVERSE_CONDITIONS.copy())
+    
+    def get_pipeline_transforms(self) -> List[dict]:
+        """Get the transforms for this strategy"""
+        return self.transforms.copy()
+
+
+AUGMENTATION_STRATEGIES = {
+    'baseline': AugmentationStrategy(
+        name='baseline',
+        type='none',
+        transforms=[],
+    ),
+    'photometric_distort': AugmentationStrategy(
+        name='photometric_distort',
+        type='transform',
+        transforms=[dict(type='PhotoMetricDistortion')],
+    ),
+}
+
+# Add generative model strategies dynamically
+for gen_model in GENERATIVE_MODELS:
+    AUGMENTATION_STRATEGIES[f'gen_{gen_model}'] = AugmentationStrategy(
+        name=f'gen_{gen_model}',
+        type='generated',
+        transforms=[],
+        generative_model=gen_model,
+    )
+
+
+# ============================================================================
+# Unified Training Configuration Builder
+# ============================================================================
+
+class UnifiedTrainingConfig:
+    """
+    Unified configuration builder for PROVE training pipeline.
+    
+    This class generates complete training configurations from high-level
+    parameters, eliminating the need for separate config files for each
+    dataset/model/strategy combination.
+    """
+    
+    def __init__(
+        self,
+        data_root: str = DEFAULT_DATA_ROOT,
+        gen_root: str = DEFAULT_GEN_ROOT,
+        weights_root: str = DEFAULT_WEIGHTS_ROOT,
+    ):
+        self.data_root = data_root
+        self.gen_root = gen_root
+        self.weights_root = weights_root
+    
+    def build(
+        self,
+        dataset: str,
+        model: str,
+        strategy: str = 'baseline',
+        real_gen_ratio: float = 1.0,
+        custom_training_config: Optional[Dict] = None,
+        custom_conditions: Optional[List[str]] = None,
+    ) -> Dict[str, Any]:
+        """
+        Build a complete training configuration.
+        
+        Args:
+            dataset: Dataset name (e.g., 'ACDC', 'BDD10k')
+            model: Model name (e.g., 'deeplabv3plus_r50')
+            strategy: Augmentation strategy (e.g., 'baseline', 'gen_cycleGAN')
+            real_gen_ratio: Ratio of real images in mixed training (0.0-1.0)
+                           1.0 = only real images, 0.0 = only generated images
+                           0.5 = 50% real, 50% generated
+            custom_training_config: Optional custom training parameters
+            custom_conditions: Optional custom list of weather conditions
+            
+        Returns:
+            Complete configuration dictionary
+        """
+        # Validate inputs
+        if dataset not in DATASET_CONFIGS:
+            raise ValueError(f"Unknown dataset: {dataset}. Available: {list(DATASET_CONFIGS.keys())}")
+        if model not in ALL_MODELS:
+            raise ValueError(f"Unknown model: {model}. Available: {list(ALL_MODELS.keys())}")
+        if strategy not in AUGMENTATION_STRATEGIES:
+            raise ValueError(f"Unknown strategy: {strategy}. Available: {list(AUGMENTATION_STRATEGIES.keys())}")
+        
+        dataset_cfg = DATASET_CONFIGS[dataset]
+        model_cfg = ALL_MODELS[model]
+        aug_strategy = AUGMENTATION_STRATEGIES[strategy]
+        training_cfg = TRAINING_CONFIGS.get(dataset_cfg.task, TRAINING_CONFIGS['segmentation'])
+        
+        # Apply custom training config if provided
+        if custom_training_config:
+            for key, value in custom_training_config.items():
+                if hasattr(training_cfg, key):
+                    setattr(training_cfg, key, value)
+        
+        # Apply custom conditions if provided
+        conditions = custom_conditions or aug_strategy.conditions
+        
+        # Build configuration
+        config = self._build_base_config(dataset_cfg, model_cfg, training_cfg)
+        config = self._add_dataset_config(config, dataset_cfg)
+        config = self._add_training_pipeline(config, dataset_cfg.task, aug_strategy)
+        config = self._add_augmentation_config(config, aug_strategy, conditions, real_gen_ratio)
+        config = self._add_mixed_dataloader_config(config, dataset_cfg, aug_strategy, real_gen_ratio)
+        config = self._set_work_dir(config, dataset, model, strategy, real_gen_ratio)
+        
+        return config
+    
+    def _build_base_config(
+        self,
+        dataset_cfg: DatasetConfig,
+        model_cfg: ModelConfig,
+        training_cfg: TrainingConfig,
+    ) -> Dict[str, Any]:
+        """Build base configuration structure"""
+        
+        metric = 'mIoU' if dataset_cfg.task == 'segmentation' else 'bbox'
+        
+        return {
+            # Metadata
+            '_prove_config': {
+                'version': '2.0.0',
+                'dataset': dataset_cfg.name,
+                'model': model_cfg.name,
+                'task': dataset_cfg.task,
+            },
+            
+            # Base model config
+            '_base_': [f'../{model_cfg.base_config}'],
+            
+            # Runner
+            'runner': dict(
+                type='IterBasedRunner',
+                max_iters=training_cfg.max_iters,
+            ),
+            
+            # Checkpointing
+            'checkpoint_config': dict(interval=training_cfg.checkpoint_interval),
+            
+            # Evaluation
+            'evaluation': dict(
+                interval=training_cfg.eval_interval,
+                metric=metric,
+            ),
+            
+            # Logging
+            'log_config': dict(
+                interval=training_cfg.log_interval,
+                hooks=[
+                    dict(type='TextLoggerHook'),
+                    dict(type='TensorboardLoggerHook'),
+                ],
+            ),
+            
+            # Optimizer
+            'optimizer': dict(
+                type=model_cfg.optimizer,
+                lr=model_cfg.lr,
+                weight_decay=model_cfg.weight_decay,
+                **(dict(momentum=0.9) if model_cfg.optimizer == 'SGD' else dict(betas=(0.9, 0.999))),
+            ),
+            'optimizer_config': dict(grad_clip=None),
+            
+            # LR schedule
+            'lr_config': dict(
+                policy='poly',
+                power=0.9,
+                min_lr=1e-6,
+                by_epoch=False,
+                warmup='linear',
+                warmup_iters=training_cfg.warmup_iters,
+                warmup_ratio=training_cfg.warmup_ratio,
+            ),
+            
+            # Reproducibility
+            'seed': training_cfg.seed,
+            'deterministic': training_cfg.deterministic,
+            'gpu_ids': [0],
+        }
+    
+    def _add_dataset_config(
+        self,
+        config: Dict[str, Any],
+        dataset_cfg: DatasetConfig,
+    ) -> Dict[str, Any]:
+        """Add dataset-specific configuration"""
+        
+        config['data_root'] = os.path.join(self.data_root, dataset_cfg.name)
+        config['dataset_type'] = 'CityscapesDataset' if dataset_cfg.format == 'cityscapes' else 'CocoDataset'
+        config['classes'] = dataset_cfg.classes
+        
+        if dataset_cfg.task == 'segmentation':
+            config['data'] = dict(
+                samples_per_gpu=2,
+                workers_per_gpu=4,
+                train=dict(
+                    type='CityscapesDataset',
+                    data_root=self.data_root,
+                    img_dir=dataset_cfg.train_img_dir,
+                    ann_dir=dataset_cfg.train_ann_dir,
+                ),
+                val=dict(
+                    type='CityscapesDataset',
+                    data_root=self.data_root,
+                    img_dir=dataset_cfg.val_img_dir,
+                    ann_dir=dataset_cfg.val_ann_dir,
+                ),
+                test=dict(
+                    type='CityscapesDataset',
+                    data_root=self.data_root,
+                    img_dir=dataset_cfg.test_img_dir,
+                    ann_dir=dataset_cfg.test_ann_dir,
+                ),
+            )
+        else:  # detection
+            config['data'] = dict(
+                samples_per_gpu=2,
+                workers_per_gpu=4,
+                train=dict(
+                    type='CocoDataset',
+                    ann_file=os.path.join(self.data_root, dataset_cfg.train_ann_dir),
+                    img_prefix=os.path.join(self.data_root, dataset_cfg.train_img_dir),
+                ),
+                val=dict(
+                    type='CocoDataset',
+                    ann_file=os.path.join(self.data_root, dataset_cfg.val_ann_dir),
+                    img_prefix=os.path.join(self.data_root, dataset_cfg.val_img_dir),
+                ),
+                test=dict(
+                    type='CocoDataset',
+                    ann_file=os.path.join(self.data_root, dataset_cfg.test_ann_dir),
+                    img_prefix=os.path.join(self.data_root, dataset_cfg.test_img_dir),
+                ),
+            )
+        
+        # Image normalization
+        config['img_norm_cfg'] = dict(
+            mean=[123.675, 116.28, 103.53],
+            std=[58.395, 57.12, 57.375],
+            to_rgb=True,
+        )
+        
+        return config
+    
+    def _add_training_pipeline(
+        self,
+        config: Dict[str, Any],
+        task: str,
+        aug_strategy: AugmentationStrategy,
+    ) -> Dict[str, Any]:
+        """Add training data pipeline"""
+        
+        pipeline = [
+            dict(type='LoadImageFromFile'),
+            dict(type='LoadAnnotations'),
+            dict(type='Resize', scale=(512, 512), keep_ratio=True),
+        ]
+        
+        # Add augmentation transforms
+        pipeline.extend(aug_strategy.get_pipeline_transforms())
+        
+        # Add final packing
+        if task == 'segmentation':
+            pipeline.append(dict(type='PackSegInputs'))
+        else:
+            pipeline.append(dict(type='PackDetInputs'))
+        
+        config['train_pipeline'] = pipeline
+        
+        # Test pipeline (no augmentation)
+        test_pipeline = [
+            dict(type='LoadImageFromFile'),
+            dict(type='Resize', scale=(512, 512), keep_ratio=True),
+        ]
+        if task == 'segmentation':
+            test_pipeline.append(dict(type='PackSegInputs'))
+        else:
+            test_pipeline.append(dict(type='PackDetInputs'))
+        
+        config['test_pipeline'] = test_pipeline
+        
+        return config
+    
+    def _add_augmentation_config(
+        self,
+        config: Dict[str, Any],
+        aug_strategy: AugmentationStrategy,
+        conditions: List[str],
+        real_gen_ratio: float,
+    ) -> Dict[str, Any]:
+        """Add augmentation-specific configuration"""
+        
+        if aug_strategy.type == 'generated' and aug_strategy.generative_model:
+            gen_model = aug_strategy.generative_model
+            config['generated_augmentation'] = {
+                'enabled': True,
+                'generative_model': gen_model,
+                'manifest_path': os.path.join(self.gen_root, gen_model, 'manifest.csv'),
+                'gen_root': os.path.join(self.gen_root, gen_model),
+                'conditions': conditions,
+                'augmentation_multiplier': 1 + len(conditions),
+                'real_gen_ratio': real_gen_ratio,
+            }
+        
+        return config
+    
+    def _add_mixed_dataloader_config(
+        self,
+        config: Dict[str, Any],
+        dataset_cfg: DatasetConfig,
+        aug_strategy: AugmentationStrategy,
+        real_gen_ratio: float,
+    ) -> Dict[str, Any]:
+        """
+        Add configuration for mixed real/generated dataloader.
+        
+        This enables sampling from both real and generated images according
+        to the specified ratio during training.
+        """
+        
+        if aug_strategy.type != 'generated' or real_gen_ratio == 1.0:
+            # No mixed dataloader needed
+            config['mixed_dataloader'] = {'enabled': False}
+            return config
+        
+        gen_model = aug_strategy.generative_model
+        
+        config['mixed_dataloader'] = {
+            'enabled': True,
+            'real_gen_ratio': real_gen_ratio,
+            'real_dataset': {
+                'type': config['data']['train']['type'],
+                'data_root': config['data']['train'].get('data_root', self.data_root),
+                'img_dir': dataset_cfg.train_img_dir,
+                'ann_dir': dataset_cfg.train_ann_dir,
+            },
+            'generated_dataset': {
+                'type': 'GeneratedAugmentedDataset',
+                'data_root': self.data_root,
+                'generated_root': os.path.join(self.gen_root, gen_model),
+                'manifest_path': os.path.join(self.gen_root, gen_model, 'manifest.csv'),
+                'conditions': aug_strategy.conditions,
+                'include_original': False,  # Only generated images
+            },
+            'sampling_strategy': 'ratio',  # 'ratio', 'alternating', 'batch_split'
+            'batch_composition': {
+                'total_batch_size': config['data']['samples_per_gpu'],
+                'real_samples': int(config['data']['samples_per_gpu'] * real_gen_ratio),
+                'generated_samples': int(config['data']['samples_per_gpu'] * (1 - real_gen_ratio)),
+            },
+        }
+        
+        return config
+    
+    def _set_work_dir(
+        self,
+        config: Dict[str, Any],
+        dataset: str,
+        model: str,
+        strategy: str,
+        real_gen_ratio: float,
+    ) -> Dict[str, Any]:
+        """Set the output work directory"""
+        
+        # Include ratio in directory name if not 1.0
+        if real_gen_ratio < 1.0:
+            ratio_str = f'_ratio{real_gen_ratio:.2f}'.replace('.', 'p')
+        else:
+            ratio_str = ''
+        
+        config['work_dir'] = os.path.join(
+            self.weights_root,
+            strategy,
+            dataset.lower(),
+            f'{model}{ratio_str}',
+        )
+        
+        return config
+    
+    def save_config(self, config: Dict[str, Any], filepath: str) -> str:
+        """
+        Save configuration to a Python file.
+        
+        Args:
+            config: Configuration dictionary
+            filepath: Output file path
+            
+        Returns:
+            Saved file path
+        """
+        os.makedirs(os.path.dirname(filepath), exist_ok=True)
+        
+        with open(filepath, 'w') as f:
+            # Header
+            f.write("# PROVE Unified Training Configuration\n")
+            f.write(f"# Generated by unified_training_config.py\n")
+            if '_prove_config' in config:
+                meta = config['_prove_config']
+                f.write(f"# Dataset: {meta.get('dataset', 'unknown')}\n")
+                f.write(f"# Model: {meta.get('model', 'unknown')}\n")
+                f.write(f"# Task: {meta.get('task', 'unknown')}\n")
+            f.write("\n")
+            
+            # Write config
+            for key, value in config.items():
+                if key.startswith('_'):
+                    continue
+                f.write(f"{key} = {repr(value)}\n")
+        
+        return filepath
+    
+    def get_available_options(self) -> Dict[str, List[str]]:
+        """Get all available configuration options"""
+        return {
+            'datasets': list(DATASET_CONFIGS.keys()),
+            'segmentation_models': list(SEGMENTATION_MODELS.keys()),
+            'detection_models': list(DETECTION_MODELS.keys()),
+            'strategies': list(AUGMENTATION_STRATEGIES.keys()),
+            'conditions': ADVERSE_CONDITIONS,
+        }
+
+
+# ============================================================================
+# Command Line Interface
+# ============================================================================
+
+def parse_args():
+    """Parse command line arguments"""
+    parser = argparse.ArgumentParser(
+        description='PROVE Unified Training Configuration Generator',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  # Generate config for baseline training
+  python unified_training_config.py --dataset ACDC --model deeplabv3plus_r50 --strategy baseline
+
+  # Generate config with cycleGAN augmentation
+  python unified_training_config.py --dataset ACDC --model deeplabv3plus_r50 --strategy gen_cycleGAN
+
+  # Generate config with 50% real, 50% generated images
+  python unified_training_config.py --dataset ACDC --model deeplabv3plus_r50 --strategy gen_cycleGAN --real-gen-ratio 0.5
+
+  # List available options
+  python unified_training_config.py --list
+
+  # Generate all configs for a strategy
+  python unified_training_config.py --generate-all --strategy gen_cycleGAN
+        """
+    )
+    
+    parser.add_argument('--dataset', type=str, help='Dataset name')
+    parser.add_argument('--model', type=str, help='Model name')
+    parser.add_argument('--strategy', type=str, default='baseline', help='Augmentation strategy')
+    parser.add_argument('--real-gen-ratio', type=float, default=1.0,
+                       help='Ratio of real images (0.0-1.0). 1.0=only real, 0.5=50%% each')
+    parser.add_argument('--output', '-o', type=str, help='Output config file path')
+    parser.add_argument('--output-dir', type=str, default='./multi_model_configs',
+                       help='Output directory for generated configs')
+    parser.add_argument('--list', action='store_true', help='List available options')
+    parser.add_argument('--generate-all', action='store_true',
+                       help='Generate configs for all dataset/model combinations')
+    parser.add_argument('--print', action='store_true', help='Print config to stdout')
+    parser.add_argument('--conditions', type=str, nargs='+',
+                       help='Custom weather conditions to use')
+    
+    return parser.parse_args()
+
+
+def main():
+    """Main entry point"""
+    args = parse_args()
+    
+    config_builder = UnifiedTrainingConfig()
+    
+    if args.list:
+        options = config_builder.get_available_options()
+        print("PROVE Unified Training Configuration - Available Options")
+        print("=" * 60)
+        print("\nDatasets:")
+        for ds in options['datasets']:
+            task = DATASET_CONFIGS[ds].task
+            print(f"  - {ds} ({task})")
+        print("\nSegmentation Models:")
+        for m in options['segmentation_models']:
+            print(f"  - {m}")
+        print("\nDetection Models:")
+        for m in options['detection_models']:
+            print(f"  - {m}")
+        print("\nAugmentation Strategies:")
+        for s in options['strategies']:
+            print(f"  - {s}")
+        print("\nAdverse Conditions:")
+        for c in options['conditions']:
+            print(f"  - {c}")
+        return
+    
+    if args.generate_all:
+        if not args.strategy:
+            print("Error: --strategy required with --generate-all")
+            return
+        
+        print(f"Generating all configs for strategy: {args.strategy}")
+        print("=" * 60)
+        
+        generated = 0
+        for dataset_name, dataset_cfg in DATASET_CONFIGS.items():
+            # Get models for this task
+            if dataset_cfg.task == 'segmentation':
+                models = SEGMENTATION_MODELS.keys()
+            else:
+                models = DETECTION_MODELS.keys()
+            
+            for model in models:
+                try:
+                    config = config_builder.build(
+                        dataset=dataset_name,
+                        model=model,
+                        strategy=args.strategy,
+                        real_gen_ratio=args.real_gen_ratio,
+                        custom_conditions=args.conditions,
+                    )
+                    
+                    # Determine output path
+                    output_path = Path(args.output_dir) / args.strategy / dataset_name.upper()
+                    output_file = output_path / f'{dataset_name.lower()}_{model}_config.py'
+                    
+                    config_builder.save_config(config, str(output_file))
+                    print(f"✓ {output_file}")
+                    generated += 1
+                    
+                except Exception as e:
+                    print(f"✗ {dataset_name}/{model}: {str(e)}")
+        
+        print(f"\nGenerated {generated} config files in {args.output_dir}")
+        return
+    
+    # Generate single config
+    if not args.dataset or not args.model:
+        print("Error: --dataset and --model required (or use --list, --generate-all)")
+        return
+    
+    config = config_builder.build(
+        dataset=args.dataset,
+        model=args.model,
+        strategy=args.strategy,
+        real_gen_ratio=args.real_gen_ratio,
+        custom_conditions=args.conditions,
+    )
+    
+    if args.print:
+        import pprint
+        pprint.pprint(config)
+    
+    if args.output:
+        config_builder.save_config(config, args.output)
+        print(f"Config saved to: {args.output}")
+    elif not args.print:
+        # Default output
+        output_path = Path(args.output_dir) / args.strategy / args.dataset.upper()
+        output_file = output_path / f'{args.dataset.lower()}_{args.model}_config.py'
+        config_builder.save_config(config, str(output_file))
+        print(f"Config saved to: {output_file}")
+
+
+if __name__ == '__main__':
+    main()

@@ -66,95 +66,30 @@ pip install -r requirements.txt
 
 ## Quick Start
 
-### 1. Dataset Preparation
+### 1. Training with Unified System (Recommended)
 
-Convert your dataset to the appropriate format:
-
-```bash
-# For BDD100k object detection dataset
-python prove.py prepare \
-    --dataset-path ./data/bdd100k/labels/train.json \
-    --dataset-format bdd100k_json \
-    --output-path ./data/bdd100k_coco/
-
-# For Cityscapes semantic segmentation dataset
-python prove.py prepare \
-    --dataset-path ./data/cityscapes/ \
-    --dataset-format cityscapes \
-    --output-path ./data/cityscapes_processed/
-```
-
-### 2. Generate Configuration
-
-Create a configuration file for your specific task:
+PROVE now includes a unified training system that simplifies configuration management and supports mixed real/generated image training:
 
 ```bash
-# Object detection configuration
-python prove.py config \
-    --task-type object_detection \
-    --dataset-format bdd100k_json \
-    --dataset-path ./data/bdd100k_coco/ \
-    --model-name faster_rcnn_r50_fpn_1x
+# Basic training with baseline (no augmentation)
+python unified_training.py --dataset ACDC --model deeplabv3plus_r50 --strategy baseline
 
-# Semantic segmentation configuration
-python prove.py config \
-    --task-type semantic_segmentation \
-    --dataset-format cityscapes \
-    --dataset-path ./data/cityscapes_processed/ \
-    --model-name deeplabv3plus_r50
+# Training with generated image augmentation (cycleGAN)
+python unified_training.py --dataset ACDC --model deeplabv3plus_r50 --strategy gen_cycleGAN
+
+# Mixed training with 50% real, 50% generated images
+python unified_training.py --dataset ACDC --model deeplabv3plus_r50 --strategy gen_cycleGAN --real-gen-ratio 0.5
+
+# Batch training for multiple configurations
+python unified_training.py --batch --datasets ACDC BDD10k --strategies baseline gen_cycleGAN
+
+# List all available options
+python unified_training.py --list
 ```
 
-### 3. Training
+See [docs/UNIFIED_TRAINING.md](docs/UNIFIED_TRAINING.md) for comprehensive documentation.
 
-Start training your model:
-
-```bash
-# Train object detection model
-python prove.py train \
-    --config-path prove_object_detection_bdd100k_json_config.py \
-    --work-dir ./work_dirs/od_experiment_001/
-
-# Train semantic segmentation model
-python prove.py train \
-    --config-path prove_semantic_segmentation_cityscapes_config.py \
-    --work-dir ./work_dirs/seg_experiment_001/
-```
-
-### 4. Joint Training (Cityscapes + Mapillary Vistas)
-
-PROVE supports joint training on multiple datasets with automatic label unification:
-
-```bash
-# Generate joint training configuration (Cityscapes label space - 19 classes)
-python prove.py joint-config \
-    --cityscapes-path ./data/cityscapes/ \
-    --mapillary-path ./data/mapillary_vistas/ \
-    --label-space cityscapes \
-    --model-name deeplabv3plus_r50 \
-    --config-path ./configs/joint_cityscapes_config.py
-
-# Generate joint training configuration (Unified label space - 42 classes)
-python prove.py joint-config \
-    --cityscapes-path ./data/cityscapes/ \
-    --mapillary-path ./data/mapillary_vistas/ \
-    --label-space unified \
-    --model-name deeplabv3plus_r50 \
-    --config-path ./configs/joint_unified_config.py
-
-# Prepare Mapillary labels for joint training
-python prove.py prepare \
-    --dataset-path ./data/mapillary_vistas/ \
-    --dataset-format mapillary_vistas \
-    --output-path ./data/mapillary_vistas_converted/ \
-    --label-space cityscapes
-
-# Train with joint dataset
-python prove.py train \
-    --config-path ./configs/joint_cityscapes_config.py \
-    --work-dir ./work_dirs/joint_experiment_001/
-```
-
-### 5. Testing and Evaluation
+### 2. Testing and Evaluation
 
 Evaluate your trained model:
 
@@ -172,7 +107,7 @@ python prove.py test \
     --output-path ./results/seg_results/
 ```
 
-### 6. Inference
+### 3. Inference
 
 Run inference on individual images:
 
