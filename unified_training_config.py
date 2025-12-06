@@ -46,8 +46,11 @@ GENERATIVE_MODELS = [
     'cycleGAN', 'CUT', 'stargan_v2', 'SUSTechGAN', 'EDICT', 'Img2Img',
     'IP2P', 'UniControl', 'step1x_new', 'StyleID', 'NST', 'albumentations',
     'automold', 'imgaug_weather', 'Weather_Effect_Generator',
-    'Attribute_Hallucination', 'cnet_seg', '2stageMultipleAdverseWeatherRemoval',
-    'maxim', 'MPRNet', 'weatherformer', 'tunit',
+    'Attribute_Hallucination', 'cnet_seg', 'tunit', 'flux1_kontext'
+]
+
+DATA_RESTORATION_MODELS = [
+    'maxim', 'MPRNet', 'weatherformer', '2stageMultipleAdverseWeatherRemoval',
 ]
 
 
@@ -348,6 +351,7 @@ class UnifiedTrainingConfig:
         real_gen_ratio: float = 1.0,
         custom_training_config: Optional[Dict] = None,
         custom_conditions: Optional[List[str]] = None,
+        domain_filter: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Build a complete training configuration.
@@ -361,6 +365,9 @@ class UnifiedTrainingConfig:
                            0.5 = 50% real, 50% generated
             custom_training_config: Optional custom training parameters
             custom_conditions: Optional custom list of weather conditions
+            domain_filter: Optional domain to filter training data (e.g., 'clear_day')
+                          When specified, only images from this domain subdirectory
+                          will be used for training.
             
         Returns:
             Complete configuration dictionary
@@ -389,11 +396,11 @@ class UnifiedTrainingConfig:
         
         # Build configuration
         config = self._build_base_config(dataset_cfg, model_cfg, training_cfg)
-        config = self._add_dataset_config(config, dataset_cfg)
+        config = self._add_dataset_config(config, dataset_cfg, domain_filter)
         config = self._add_training_pipeline(config, dataset_cfg.task, aug_strategy)
         config = self._add_augmentation_config(config, aug_strategy, conditions, real_gen_ratio)
-        config = self._add_mixed_dataloader_config(config, dataset_cfg, aug_strategy, real_gen_ratio)
-        config = self._set_work_dir(config, dataset, model, strategy, real_gen_ratio)
+        config = self._add_mixed_dataloader_config(config, dataset_cfg, aug_strategy, real_gen_ratio, domain_filter)
+        config = self._set_work_dir(config, dataset, model, strategy, real_gen_ratio, domain_filter)
         
         return config
     
@@ -473,12 +480,34 @@ class UnifiedTrainingConfig:
         self,
         config: Dict[str, Any],
         dataset_cfg: DatasetConfig,
+        domain_filter: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """Add dataset-specific configuration"""
+        """
+        Add dataset-specific configuration.
+        
+        Args:
+            config: Configuration dictionary to update
+            dataset_cfg: Dataset configuration object
+            domain_filter: Optional domain to filter training data (e.g., 'clear_day')
+        """
         
         config['data_root'] = os.path.join(self.data_root, dataset_cfg.name)
         config['dataset_type'] = 'CityscapesDataset' if dataset_cfg.format == 'cityscapes' else 'CocoDataset'
         config['classes'] = dataset_cfg.classes
+        
+        # Apply domain filter to training directories if specified
+        train_img_dir = dataset_cfg.train_img_dir
+        train_ann_dir = dataset_cfg.train_ann_dir
+        
+        if domain_filter:
+            # Append domain subdirectory to training paths
+            # e.g., 'leftImg8bit/train' -> 'leftImg8bit/train/clear_day'
+            train_img_dir = os.path.join(train_img_dir, domain_filter)
+            train_ann_dir = os.path.join(train_ann_dir, domain_filter)
+            config['domain_filter'] = domain_filter
+            print(f"[INFO] Training data filtered to domain: {domain_filter}")
+            print(f"[INFO] Using train_img_dir: {train_img_dir}")
+            print(f"[INFO] Using train_ann_dir: {train_ann_dir}")
         
         if dataset_cfg.task == 'segmentation':
             config['data'] = dict(
@@ -487,8 +516,8 @@ class UnifiedTrainingConfig:
                 train=dict(
                     type='CityscapesDataset',
                     data_root=self.data_root,
-                    img_dir=dataset_cfg.train_img_dir,
-                    ann_dir=dataset_cfg.train_ann_dir,
+                    img_dir=train_img_dir,
+                    ann_dir=train_ann_dir,
                 ),
                 val=dict(
                     type='CityscapesDataset',
@@ -601,12 +630,20 @@ class UnifiedTrainingConfig:
         dataset_cfg: DatasetConfig,
         aug_strategy: AugmentationStrategy,
         real_gen_ratio: float,
+        domain_filter: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Add configuration for mixed real/generated dataloader.
         
         This enables sampling from both real and generated images according
         to the specified ratio during training.
+        
+        Args:
+            config: Configuration dictionary to update
+            dataset_cfg: Dataset configuration object
+            aug_strategy: Augmentation strategy object
+            real_gen_ratio: Ratio of real images (0.0-1.0)
+            domain_filter: Optional domain to filter training data (e.g., 'clear_day')
         """
         
         if aug_strategy.type != 'generated' or real_gen_ratio == 1.0:
@@ -616,14 +653,23 @@ class UnifiedTrainingConfig:
         
         gen_model = aug_strategy.generative_model
         
+        # Apply domain filter to training directories if specified
+        train_img_dir = dataset_cfg.train_img_dir
+        train_ann_dir = dataset_cfg.train_ann_dir
+        
+        if domain_filter:
+            train_img_dir = os.path.join(train_img_dir, domain_filter)
+            train_ann_dir = os.path.join(train_ann_dir, domain_filter)
+        
         config['mixed_dataloader'] = {
             'enabled': True,
             'real_gen_ratio': real_gen_ratio,
+            'domain_filter': domain_filter,
             'real_dataset': {
                 'type': config['data']['train']['type'],
                 'data_root': config['data']['train'].get('data_root', self.data_root),
-                'img_dir': dataset_cfg.train_img_dir,
-                'ann_dir': dataset_cfg.train_ann_dir,
+                'img_dir': train_img_dir,
+                'ann_dir': train_ann_dir,
             },
             'generated_dataset': {
                 'type': 'GeneratedAugmentedDataset',
@@ -650,8 +696,19 @@ class UnifiedTrainingConfig:
         model: str,
         strategy: str,
         real_gen_ratio: float,
+        domain_filter: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """Set the output work directory"""
+        """
+        Set the output work directory.
+        
+        Args:
+            config: Configuration dictionary to update
+            dataset: Dataset name
+            model: Model name
+            strategy: Augmentation strategy name
+            real_gen_ratio: Ratio of real images (0.0-1.0)
+            domain_filter: Optional domain filter (e.g., 'clear_day')
+        """
         
         # Include ratio in directory name if not 1.0
         if real_gen_ratio < 1.0:
@@ -659,11 +716,17 @@ class UnifiedTrainingConfig:
         else:
             ratio_str = ''
         
+        # Include domain filter in directory name if specified
+        if domain_filter:
+            domain_str = f'_{domain_filter}'
+        else:
+            domain_str = ''
+        
         config['work_dir'] = os.path.join(
             self.weights_root,
             strategy,
             dataset.lower(),
-            f'{model}{ratio_str}',
+            f'{model}{ratio_str}{domain_str}',
         )
         
         return config
@@ -731,6 +794,9 @@ Examples:
   # Generate config with 50% real, 50% generated images
   python unified_training_config.py --dataset ACDC --model deeplabv3plus_r50 --strategy gen_cycleGAN --real-gen-ratio 0.5
 
+  # Train only on clear_day images
+  python unified_training_config.py --dataset ACDC --model deeplabv3plus_r50 --domain-filter clear_day
+
   # List available options
   python unified_training_config.py --list
 
@@ -744,6 +810,9 @@ Examples:
     parser.add_argument('--strategy', type=str, default='baseline', help='Augmentation strategy')
     parser.add_argument('--real-gen-ratio', type=float, default=1.0,
                        help='Ratio of real images (0.0-1.0). 1.0=only real, 0.5=50%% each')
+    parser.add_argument('--domain-filter', type=str, default=None,
+                       help='Filter training data to specific domain (e.g., clear_day). '
+                            'Only images from this domain subdirectory will be used.')
     parser.add_argument('--output', '-o', type=str, help='Output config file path')
     parser.add_argument('--output-dir', type=str, default='./multi_model_configs',
                        help='Output directory for generated configs')
@@ -809,6 +878,7 @@ def main():
                         strategy=args.strategy,
                         real_gen_ratio=args.real_gen_ratio,
                         custom_conditions=args.conditions,
+                        domain_filter=args.domain_filter,
                     )
                     
                     # Determine output path
@@ -836,6 +906,7 @@ def main():
         strategy=args.strategy,
         real_gen_ratio=args.real_gen_ratio,
         custom_conditions=args.conditions,
+        domain_filter=args.domain_filter,
     )
     
     if args.print:

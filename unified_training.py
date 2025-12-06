@@ -75,6 +75,7 @@ class UnifiedTrainer:
         strategy: str = 'baseline',
         real_gen_ratio: float = 1.0,
         custom_conditions: Optional[List[str]] = None,
+        domain_filter: Optional[str] = None,
         work_dir: Optional[str] = None,
         resume_from: Optional[str] = None,
         load_from: Optional[str] = None,
@@ -88,6 +89,7 @@ class UnifiedTrainer:
         self.strategy = strategy
         self.real_gen_ratio = real_gen_ratio
         self.custom_conditions = custom_conditions
+        self.domain_filter = domain_filter
         self.work_dir = work_dir
         self.resume_from = resume_from
         self.load_from = load_from
@@ -110,6 +112,7 @@ class UnifiedTrainer:
             strategy=self.strategy,
             real_gen_ratio=self.real_gen_ratio,
             custom_conditions=self.custom_conditions,
+            domain_filter=self.domain_filter,
         )
         
         # Override work_dir if specified
@@ -503,6 +506,9 @@ Examples:
   # Train with 50%% real, 50%% generated
   python unified_training.py --dataset ACDC --model deeplabv3plus_r50 --strategy gen_cycleGAN --real-gen-ratio 0.5
 
+  # Train only on clear_day images
+  python unified_training.py --dataset ACDC --model deeplabv3plus_r50 --domain-filter clear_day
+
   # Generate config only
   python unified_training.py --dataset ACDC --model deeplabv3plus_r50 --config-only
 
@@ -523,6 +529,8 @@ Examples:
                        help='Augmentation strategy')
     parser.add_argument('--real-gen-ratio', type=float, default=1.0,
                        help='Ratio of real images (0.0-1.0)')
+    parser.add_argument('--domain-filter', type=str, default=None,
+                       help='Filter training data to specific domain (e.g., clear_day)')
     parser.add_argument('--conditions', type=str, nargs='+',
                        help='Weather conditions to use')
     
@@ -647,6 +655,7 @@ def main():
         strategy=args.strategy,
         real_gen_ratio=args.real_gen_ratio,
         custom_conditions=args.conditions,
+        domain_filter=args.domain_filter,
         work_dir=args.work_dir,
         resume_from=args.resume_from,
         load_from=args.load_from,

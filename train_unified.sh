@@ -25,7 +25,7 @@ DETECTION_MODELS="faster_rcnn_r50_fpn_1x yolox_l rtmdet_l"
 STRATEGIES="baseline photometric_distort gen_cycleGAN gen_CUT gen_stargan_v2"
 
 # Real-to-generated ratios to try
-RATIOS="1.0 0.75 0.5 0.25 0.0"
+RATIOS="1.0 0.875 0.625 0.5 0.375 0.25 0.125 0.0"
 
 # ============================================================================
 # Helper Functions
@@ -45,8 +45,12 @@ print_usage() {
     echo "  list        List available options"
     echo "  help        Show this help message"
     echo ""
+    echo "Options:"
+    echo "  --domain-filter <domain>  Filter training data to specific domain (e.g., clear_day)"
+    echo ""
     echo "Examples:"
     echo "  $0 single --dataset ACDC --model deeplabv3plus_r50 --strategy baseline"
+    echo "  $0 single --dataset ACDC --model deeplabv3plus_r50 --domain-filter clear_day"
     echo "  $0 batch --datasets ACDC BDD10k --strategy gen_cycleGAN"
     echo "  $0 ratio-exp --dataset ACDC --model deeplabv3plus_r50 --strategy gen_cycleGAN"
     echo "  $0 generate --strategy baseline --all"
@@ -57,13 +61,24 @@ train_single() {
     local model=$2
     local strategy=$3
     local ratio=${4:-1.0}
+    local domain_filter=${5:-}
     
     echo "Training: $dataset / $model / $strategy (ratio=$ratio)"
-    python unified_training.py \
-        --dataset "$dataset" \
-        --model "$model" \
-        --strategy "$strategy" \
-        --real-gen-ratio "$ratio"
+    if [ -n "$domain_filter" ]; then
+        echo "Domain filter: $domain_filter"
+        python unified_training.py \
+            --dataset "$dataset" \
+            --model "$model" \
+            --strategy "$strategy" \
+            --real-gen-ratio "$ratio" \
+            --domain-filter "$domain_filter"
+    else
+        python unified_training.py \
+            --dataset "$dataset" \
+            --model "$model" \
+            --strategy "$strategy" \
+            --real-gen-ratio "$ratio"
+    fi
 }
 
 # ============================================================================
@@ -76,6 +91,7 @@ cmd_single() {
     local model=""
     local strategy="baseline"
     local ratio="1.0"
+    local domain_filter=""
     
     while [[ $# -gt 0 ]]; do
         case $1 in
@@ -83,6 +99,7 @@ cmd_single() {
             --model) model="$2"; shift 2 ;;
             --strategy) strategy="$2"; shift 2 ;;
             --ratio) ratio="$2"; shift 2 ;;
+            --domain-filter) domain_filter="$2"; shift 2 ;;
             *) echo "Unknown option: $1"; exit 1 ;;
         esac
     done
@@ -92,7 +109,7 @@ cmd_single() {
         exit 1
     fi
     
-    train_single "$dataset" "$model" "$strategy" "$ratio"
+    train_single "$dataset" "$model" "$strategy" "$ratio" "$domain_filter"
 }
 
 cmd_batch() {
