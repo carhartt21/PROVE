@@ -46,6 +46,14 @@ except ImportError:
     LABEL_UNIFICATION_AVAILABLE = False
     print("Warning: label_unification module not available. Joint training features disabled.")
 
+# Import standard augmentation module
+try:
+    from tools.standard_augmentations import StandardAugmentationFamily
+    STANDARD_AUGMENTATION_AVAILABLE = True
+except ImportError:
+    STANDARD_AUGMENTATION_AVAILABLE = False
+    print("Warning: standard_augmentations module not available. Standard augmentation features disabled.")
+
 
 class DatasetConverter:
     """Handles conversion between different dataset formats"""

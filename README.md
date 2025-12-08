@@ -296,6 +296,40 @@ train_pipeline = [
 ]
 ```
 
+### Standard Augmentation Methods
+
+PROVE includes 4 SOTA standard augmentation methods as optional baselines for comparison with weather-specific augmentations:
+
+| Strategy | Method | Reference | Expected Improvement |
+|----------|--------|-----------|---------------------|
+| `std_cutmix` | CutMix | ICCV'19 | +3.9% mIoU |
+| `std_mixup` | MixUp | ICLR'18 | +3.4% mIoU |
+| `std_autoaugment` | AutoAugment | CVPR'19 | +2.8% mIoU |
+| `std_randaugment` | RandAugment | CVPR'20 | +2.3% mIoU |
+
+#### Usage with Unified Training
+
+```bash
+# Train with CutMix augmentation
+python unified_training.py --dataset ACDC --model deeplabv3plus_r50 --strategy std_cutmix
+
+# Train with RandAugment
+python unified_training.py --dataset BDD10k --model pspnet_r50 --strategy std_randaugment
+```
+
+#### Programmatic Usage
+
+```python
+from tools.standard_augmentations import StandardAugmentationFamily
+
+# Initialize augmentation
+aug = StandardAugmentationFamily(method='cutmix', p_aug=0.5)
+
+# Apply to batch (512x512 segmentation)
+images, labels = aug(images, labels)
+```
+
+
 ## Reproducibility Features
 
 ### Deterministic Training

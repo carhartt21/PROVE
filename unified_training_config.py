@@ -287,10 +287,13 @@ TRAINING_CONFIGS = {
 class AugmentationStrategy:
     """Configuration for an augmentation strategy"""
     name: str
-    type: str  # 'none', 'transform', 'generated'
+    type: str  # 'none', 'transform', 'generated', 'standard'
     transforms: List[dict] = field(default_factory=list)
     generative_model: Optional[str] = None
     conditions: List[str] = field(default_factory=lambda: ADVERSE_CONDITIONS.copy())
+    # Standard augmentation parameters
+    standard_method: Optional[str] = None  # 'cutmix', 'mixup', 'autoaugment', 'randaugment'
+    p_aug: float = 0.5  # Probability of applying augmentation
     
     def get_pipeline_transforms(self) -> List[dict]:
         """Get the transforms for this strategy"""
@@ -319,6 +322,41 @@ for gen_model in GENERATIVE_MODELS:
         generative_model=gen_model,
     )
 
+# Add standard augmentation strategies (SOTA baselines)
+# Reference: tools/standard_augmentations.py
+STANDARD_AUGMENTATION_METHODS = ['cutmix', 'mixup', 'autoaugment', 'randaugment']
+
+AUGMENTATION_STRATEGIES['std_cutmix'] = AugmentationStrategy(
+    name='std_cutmix',
+    type='standard',
+    transforms=[],
+    standard_method='cutmix',
+    p_aug=0.5,
+)
+
+AUGMENTATION_STRATEGIES['std_mixup'] = AugmentationStrategy(
+    name='std_mixup',
+    type='standard',
+    transforms=[],
+    standard_method='mixup',
+    p_aug=0.5,
+)
+
+AUGMENTATION_STRATEGIES['std_autoaugment'] = AugmentationStrategy(
+    name='std_autoaugment',
+    type='standard',
+    transforms=[],
+    standard_method='autoaugment',
+    p_aug=0.5,
+)
+
+AUGMENTATION_STRATEGIES['std_randaugment'] = AugmentationStrategy(
+    name='std_randaugment',
+    type='standard',
+    transforms=[],
+    standard_method='randaugment',
+    p_aug=0.5,
+)
 
 # ============================================================================
 # Unified Training Configuration Builder
@@ -620,6 +658,14 @@ class UnifiedTrainingConfig:
                 'conditions': conditions,
                 'augmentation_multiplier': 1 + len(conditions),
                 'real_gen_ratio': real_gen_ratio,
+            }
+        
+        elif aug_strategy.type == 'standard' and aug_strategy.standard_method:
+            # Standard augmentation (CutMix, MixUp, AutoAugment, RandAugment)
+            config['standard_augmentation'] = {
+                'enabled': True,
+                'method': aug_strategy.standard_method,
+                'p_aug': aug_strategy.p_aug,
             }
         
         return config
