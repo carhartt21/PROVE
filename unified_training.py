@@ -141,33 +141,19 @@ class UnifiedTrainer:
         
         return self.config_builder.save_config(self.config, filepath)
     
-    def train(self):
-        """Execute training"""
+    def train(self, method: str = 'subprocess'):
+        """
+        Execute training.
+        
+        Args:
+            method: Training method to use. Options:
+                - 'subprocess': Run training in subprocess (recommended, avoids import conflicts)
+                - 'mim': Use OpenMMLab's mim tool
+                - 'direct': Direct import (may have compatibility issues)
+        """
         # Save config first
         config_path = self.save_config()
         print(f"Configuration saved to: {config_path}")
-        
-        # Check if MMSeg/MMDet is available
-        try:
-            from mmengine.runner import Runner
-            from mmengine.config import Config
-            USE_MMENGINE = True
-        except ImportError:
-            USE_MMENGINE = False
-        
-        if not USE_MMENGINE:
-            print("Warning: MMEngine not available. Attempting legacy MMSeg/MMDet import...")
-            try:
-                from mmseg.apis import train_segmentor
-                from mmcv import Config
-                USE_MMSEG = True
-            except ImportError:
-                USE_MMSEG = False
-            
-            if not USE_MMSEG:
-                print("Error: Neither MMEngine nor MMSeg available.")
-                print("Please install mmsegmentation: pip install mmsegmentation")
-                return False
         
         # Create work directory
         work_dir = Path(self.config['work_dir'])
@@ -186,12 +172,42 @@ class UnifiedTrainer:
         print(f"Strategy: {self.strategy}")
         print(f"Real/Gen Ratio: {self.real_gen_ratio}")
         print(f"Work Dir: {self.config['work_dir']}")
+        print(f"Training Method: {method}")
         print("=" * 60 + "\n")
         
-        if USE_MMENGINE:
+        if method == 'subprocess':
             return self._train_with_mmengine(config_path)
+        elif method == 'mim':
+            return self._train_with_mim(config_path)
+        elif method == 'mmseg_tools':
+            return self._train_with_mmseg_tools(config_path)
+        elif method == 'direct':
+            # Direct import - may have compatibility issues
+            return self._train_direct(config_path)
         else:
-            return self._train_with_mmseg(config_path)
+            print(f"Unknown training method: {method}")
+            print("Using subprocess method as fallback...")
+            return self._train_with_mmengine(config_path)
+    
+    def _train_direct(self, config_path: str) -> bool:
+        """Train with direct imports (may have compatibility issues)"""
+        try:
+            from mmengine.runner import Runner
+            from mmengine.config import Config
+            
+            # Import mmsegmentation to register all components
+            import mmseg.models
+            import mmseg.datasets  
+            import mmseg.evaluation
+            
+            cfg = Config.fromfile(config_path)
+            runner = Runner.from_cfg(cfg)
+            runner.train()
+            return True
+        except Exception as e:
+            print(f"Direct training failed: {e}")
+            print("Falling back to subprocess method...")
+            return self._train_with_mmengine(config_path)
     
     def _setup_mixed_training(self):
         """Setup mixed dataloader for training"""
@@ -205,20 +221,114 @@ class UnifiedTrainer:
         print(f"  Sampling strategy: {mixed_cfg['sampling_strategy']}")
     
     def _train_with_mmengine(self, config_path: str) -> bool:
-        """Train using MMEngine (newer API)"""
-        from mmengine.runner import Runner
-        from mmengine.config import Config
+        """Train using MMEngine via subprocess to avoid import conflicts"""
+        import subprocess
+        import sys
         
-        cfg = Config.fromfile(config_path)
+        # Create a minimal training script that will be run in a subprocess
+        # This avoids all the import compatibility issues between mmcv/mmseg/mmdet
+        train_script = f'''
+import sys
+sys.path.insert(0, "{Path(__file__).parent}")
+
+# Import mmsegmentation first to register all components
+import mmseg.models
+import mmseg.datasets  
+import mmseg.evaluation
+
+from mmengine.runner import Runner
+from mmengine.config import Config
+
+cfg = Config.fromfile("{config_path}")
+runner = Runner.from_cfg(cfg)
+runner.train()
+'''
         
-        # Build runner
-        runner = Runner.from_cfg(cfg)
+        # Write temporary training script
+        script_path = Path(self.config['work_dir']) / 'train_script.py'
+        script_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(script_path, 'w') as f:
+            f.write(train_script)
         
-        # Start training
-        runner.train()
+        # Run training in subprocess
+        print(f"Starting training via subprocess...")
+        print(f"Config: {config_path}")
+        print(f"Work dir: {self.config['work_dir']}")
         
-        return True
+        env = os.environ.copy()
+        # Ensure CUDA is visible
+        if 'CUDA_VISIBLE_DEVICES' not in env and self.gpu_ids:
+            env['CUDA_VISIBLE_DEVICES'] = ','.join(map(str, self.gpu_ids))
+        
+        result = subprocess.run(
+            [sys.executable, str(script_path)],
+            env=env,
+            cwd=str(Path(__file__).parent),
+        )
+        
+        return result.returncode == 0
     
+    def _train_with_mmseg_tools(self, config_path: str) -> bool:
+        """Train using mmsegmentation's train.py script directly"""
+        import subprocess
+        import sys
+        
+        # Find mmseg installation path
+        try:
+            import mmseg
+            mmseg_path = Path(mmseg.__file__).parent.parent
+        except ImportError:
+            # Fallback: try to use mim
+            print("Using mim to run training...")
+            cmd = [
+                sys.executable, '-m', 'mim', 'train', 'mmsegmentation',
+                config_path,
+                '--work-dir', self.config['work_dir'],
+            ]
+            if self.gpu_ids:
+                cmd.extend(['--gpus', str(len(self.gpu_ids))])
+            
+            result = subprocess.run(cmd, cwd=str(Path(__file__).parent))
+            return result.returncode == 0
+        
+        # Use mmseg tools/train.py
+        train_script = mmseg_path / 'tools' / 'train.py'
+        if not train_script.exists():
+            print(f"Warning: mmseg train.py not found at {train_script}")
+            print("Falling back to mim...")
+            return self._train_with_mim(config_path)
+        
+        cmd = [
+            sys.executable, str(train_script),
+            config_path,
+            '--work-dir', self.config['work_dir'],
+        ]
+        
+        env = os.environ.copy()
+        if 'CUDA_VISIBLE_DEVICES' not in env and self.gpu_ids:
+            env['CUDA_VISIBLE_DEVICES'] = ','.join(map(str, self.gpu_ids))
+        
+        result = subprocess.run(cmd, env=env, cwd=str(Path(__file__).parent))
+        return result.returncode == 0
+    
+    def _train_with_mim(self, config_path: str) -> bool:
+        """Train using mim (OpenMMLab package manager)"""
+        import subprocess
+        import sys
+        
+        cmd = [
+            sys.executable, '-m', 'mim', 'train', 'mmsegmentation',
+            config_path,
+            '--work-dir', self.config['work_dir'],
+        ]
+        
+        if self.gpu_ids:
+            cmd.extend(['--gpus', str(len(self.gpu_ids))])
+        
+        print(f"Running: {' '.join(cmd)}")
+        result = subprocess.run(cmd, cwd=str(Path(__file__).parent))
+        return result.returncode == 0
+
     def _train_with_mmseg(self, config_path: str) -> bool:
         """Train using MMSegmentation (legacy API)"""
         from mmseg.apis import train_segmentor, init_segmentor
@@ -543,6 +653,9 @@ Examples:
                        help='GPU IDs to use')
     parser.add_argument('--distributed', action='store_true',
                        help='Use distributed training')
+    parser.add_argument('--train-method', type=str, default='subprocess',
+                       choices=['subprocess', 'mim', 'mmseg_tools', 'direct'],
+                       help='Training method: subprocess (recommended), mim, mmseg_tools, or direct')
     
     # Output options
     parser.add_argument('--config-only', action='store_true',
@@ -694,7 +807,7 @@ def main():
         return
     
     # Run training
-    trainer.train()
+    trainer.train(method=args.train_method)
 
 
 if __name__ == '__main__':

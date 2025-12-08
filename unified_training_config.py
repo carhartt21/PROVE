@@ -1205,6 +1205,10 @@ class UnifiedTrainingConfig:
                 f.write(f"# Task: {meta.get('task', 'unknown')}\n")
             f.write("\n")
             
+            # Add default_scope for mmsegmentation
+            f.write("# MMSegmentation default scope\n")
+            f.write("default_scope = 'mmseg'\n\n")
+            
             # Write config
             for key, value in config.items():
                 if key.startswith('_'):
