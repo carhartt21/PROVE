@@ -176,12 +176,401 @@ DATASET_CONFIGS = {
 # Model Configurations
 # ============================================================================
 
+# Full model definitions for MMEngine/MMSeg
+MODEL_DEFINITIONS = {
+    'deeplabv3plus_r50': {
+        'type': 'EncoderDecoder',
+        'data_preprocessor': {
+            'type': 'SegDataPreProcessor',
+            'mean': [123.675, 116.28, 103.53],
+            'std': [58.395, 57.12, 57.375],
+            'bgr_to_rgb': True,
+            'pad_val': 0,
+            'seg_pad_val': 255,
+        },
+        'pretrained': 'open-mmlab://resnet50_v1c',
+        'backbone': {
+            'type': 'ResNetV1c',
+            'depth': 50,
+            'num_stages': 4,
+            'out_indices': (0, 1, 2, 3),
+            'dilations': (1, 1, 2, 4),
+            'strides': (1, 2, 1, 1),
+            'norm_cfg': {'type': 'SyncBN', 'requires_grad': True},
+            'norm_eval': False,
+            'style': 'pytorch',
+            'contract_dilation': True,
+        },
+        'decode_head': {
+            'type': 'DepthwiseSeparableASPPHead',
+            'in_channels': 2048,
+            'in_index': 3,
+            'channels': 512,
+            'dilations': (1, 12, 24, 36),
+            'c1_in_channels': 256,
+            'c1_channels': 48,
+            'dropout_ratio': 0.1,
+            'num_classes': 19,
+            'norm_cfg': {'type': 'SyncBN', 'requires_grad': True},
+            'align_corners': False,
+            'loss_decode': {'type': 'CrossEntropyLoss', 'use_sigmoid': False, 'loss_weight': 1.0},
+        },
+        'auxiliary_head': {
+            'type': 'FCNHead',
+            'in_channels': 1024,
+            'in_index': 2,
+            'channels': 256,
+            'num_convs': 1,
+            'concat_input': False,
+            'dropout_ratio': 0.1,
+            'num_classes': 19,
+            'norm_cfg': {'type': 'SyncBN', 'requires_grad': True},
+            'align_corners': False,
+            'loss_decode': {'type': 'CrossEntropyLoss', 'use_sigmoid': False, 'loss_weight': 0.4},
+        },
+        'train_cfg': {},
+        'test_cfg': {'mode': 'whole'},
+    },
+    'pspnet_r50': {
+        'type': 'EncoderDecoder',
+        'data_preprocessor': {
+            'type': 'SegDataPreProcessor',
+            'mean': [123.675, 116.28, 103.53],
+            'std': [58.395, 57.12, 57.375],
+            'bgr_to_rgb': True,
+            'pad_val': 0,
+            'seg_pad_val': 255,
+        },
+        'pretrained': 'open-mmlab://resnet50_v1c',
+        'backbone': {
+            'type': 'ResNetV1c',
+            'depth': 50,
+            'num_stages': 4,
+            'out_indices': (0, 1, 2, 3),
+            'dilations': (1, 1, 2, 4),
+            'strides': (1, 2, 1, 1),
+            'norm_cfg': {'type': 'SyncBN', 'requires_grad': True},
+            'norm_eval': False,
+            'style': 'pytorch',
+            'contract_dilation': True,
+        },
+        'decode_head': {
+            'type': 'PSPHead',
+            'in_channels': 2048,
+            'in_index': 3,
+            'channels': 512,
+            'pool_scales': (1, 2, 3, 6),
+            'dropout_ratio': 0.1,
+            'num_classes': 19,
+            'norm_cfg': {'type': 'SyncBN', 'requires_grad': True},
+            'align_corners': False,
+            'loss_decode': {'type': 'CrossEntropyLoss', 'use_sigmoid': False, 'loss_weight': 1.0},
+        },
+        'auxiliary_head': {
+            'type': 'FCNHead',
+            'in_channels': 1024,
+            'in_index': 2,
+            'channels': 256,
+            'num_convs': 1,
+            'concat_input': False,
+            'dropout_ratio': 0.1,
+            'num_classes': 19,
+            'norm_cfg': {'type': 'SyncBN', 'requires_grad': True},
+            'align_corners': False,
+            'loss_decode': {'type': 'CrossEntropyLoss', 'use_sigmoid': False, 'loss_weight': 0.4},
+        },
+        'train_cfg': {},
+        'test_cfg': {'mode': 'whole'},
+    },
+    'segformer_mit-b5': {
+        'type': 'EncoderDecoder',
+        'data_preprocessor': {
+            'type': 'SegDataPreProcessor',
+            'mean': [123.675, 116.28, 103.53],
+            'std': [58.395, 57.12, 57.375],
+            'bgr_to_rgb': True,
+            'pad_val': 0,
+            'seg_pad_val': 255,
+        },
+        'pretrained': 'pretrain/mit_b5.pth',
+        'backbone': {
+            'type': 'MixVisionTransformer',
+            'in_channels': 3,
+            'embed_dims': 64,
+            'num_stages': 4,
+            'num_layers': [3, 6, 40, 3],
+            'num_heads': [1, 2, 5, 8],
+            'patch_sizes': [7, 3, 3, 3],
+            'sr_ratios': [8, 4, 2, 1],
+            'out_indices': (0, 1, 2, 3),
+            'mlp_ratio': 4,
+            'qkv_bias': True,
+            'drop_rate': 0.0,
+            'attn_drop_rate': 0.0,
+            'drop_path_rate': 0.1,
+        },
+        'decode_head': {
+            'type': 'SegformerHead',
+            'in_channels': [64, 128, 320, 512],
+            'in_index': [0, 1, 2, 3],
+            'channels': 256,
+            'dropout_ratio': 0.1,
+            'num_classes': 19,
+            'norm_cfg': {'type': 'SyncBN', 'requires_grad': True},
+            'align_corners': False,
+            'loss_decode': {'type': 'CrossEntropyLoss', 'use_sigmoid': False, 'loss_weight': 1.0},
+        },
+        'train_cfg': {},
+        'test_cfg': {'mode': 'whole'},
+    },
+    'faster_rcnn_r50_fpn_1x': {
+        'type': 'FasterRCNN',
+        'data_preprocessor': {
+            'type': 'DetDataPreprocessor',
+            'mean': [123.675, 116.28, 103.53],
+            'std': [58.395, 57.12, 57.375],
+            'bgr_to_rgb': True,
+            'pad_size_divisor': 32,
+        },
+        'backbone': {
+            'type': 'ResNet',
+            'depth': 50,
+            'num_stages': 4,
+            'out_indices': (0, 1, 2, 3),
+            'frozen_stages': 1,
+            'norm_cfg': {'type': 'BN', 'requires_grad': True},
+            'norm_eval': True,
+            'style': 'pytorch',
+            'init_cfg': {'type': 'Pretrained', 'checkpoint': 'torchvision://resnet50'},
+        },
+        'neck': {
+            'type': 'FPN',
+            'in_channels': [256, 512, 1024, 2048],
+            'out_channels': 256,
+            'num_outs': 5,
+        },
+        'rpn_head': {
+            'type': 'RPNHead',
+            'in_channels': 256,
+            'feat_channels': 256,
+            'anchor_generator': {
+                'type': 'AnchorGenerator',
+                'scales': [8],
+                'ratios': [0.5, 1.0, 2.0],
+                'strides': [4, 8, 16, 32, 64],
+            },
+            'bbox_coder': {
+                'type': 'DeltaXYWHBBoxCoder',
+                'target_means': [0.0, 0.0, 0.0, 0.0],
+                'target_stds': [1.0, 1.0, 1.0, 1.0],
+            },
+            'loss_cls': {'type': 'CrossEntropyLoss', 'use_sigmoid': True, 'loss_weight': 1.0},
+            'loss_bbox': {'type': 'L1Loss', 'loss_weight': 1.0},
+        },
+        'roi_head': {
+            'type': 'StandardRoIHead',
+            'bbox_roi_extractor': {
+                'type': 'SingleRoIExtractor',
+                'roi_layer': {'type': 'RoIAlign', 'output_size': 7, 'sampling_ratio': 0},
+                'out_channels': 256,
+                'featmap_strides': [4, 8, 16, 32],
+            },
+            'bbox_head': {
+                'type': 'Shared2FCBBoxHead',
+                'in_channels': 256,
+                'fc_out_channels': 1024,
+                'roi_feat_size': 7,
+                'num_classes': 10,
+                'bbox_coder': {
+                    'type': 'DeltaXYWHBBoxCoder',
+                    'target_means': [0.0, 0.0, 0.0, 0.0],
+                    'target_stds': [0.1, 0.1, 0.2, 0.2],
+                },
+                'reg_class_agnostic': False,
+                'loss_cls': {'type': 'CrossEntropyLoss', 'use_sigmoid': False, 'loss_weight': 1.0},
+                'loss_bbox': {'type': 'L1Loss', 'loss_weight': 1.0},
+            },
+        },
+        'train_cfg': {
+            'rpn': {
+                'assigner': {
+                    'type': 'MaxIoUAssigner',
+                    'pos_iou_thr': 0.7,
+                    'neg_iou_thr': 0.3,
+                    'min_pos_iou': 0.3,
+                    'match_low_quality': True,
+                    'ignore_iof_thr': -1,
+                },
+                'sampler': {
+                    'type': 'RandomSampler',
+                    'num': 256,
+                    'pos_fraction': 0.5,
+                    'neg_pos_ub': -1,
+                    'add_gt_as_proposals': False,
+                },
+                'allowed_border': -1,
+                'pos_weight': -1,
+                'debug': False,
+            },
+            'rpn_proposal': {
+                'nms_pre': 2000,
+                'max_per_img': 1000,
+                'nms': {'type': 'nms', 'iou_threshold': 0.7},
+                'min_bbox_size': 0,
+            },
+            'rcnn': {
+                'assigner': {
+                    'type': 'MaxIoUAssigner',
+                    'pos_iou_thr': 0.5,
+                    'neg_iou_thr': 0.5,
+                    'min_pos_iou': 0.5,
+                    'match_low_quality': False,
+                    'ignore_iof_thr': -1,
+                },
+                'sampler': {
+                    'type': 'RandomSampler',
+                    'num': 512,
+                    'pos_fraction': 0.25,
+                    'neg_pos_ub': -1,
+                    'add_gt_as_proposals': True,
+                },
+                'pos_weight': -1,
+                'debug': False,
+            },
+        },
+        'test_cfg': {
+            'rpn': {
+                'nms_pre': 1000,
+                'max_per_img': 1000,
+                'nms': {'type': 'nms', 'iou_threshold': 0.7},
+                'min_bbox_size': 0,
+            },
+            'rcnn': {
+                'score_thr': 0.05,
+                'nms': {'type': 'nms', 'iou_threshold': 0.5},
+                'max_per_img': 100,
+            },
+        },
+    },
+    'yolox_l': {
+        'type': 'YOLOX',
+        'data_preprocessor': {
+            'type': 'DetDataPreprocessor',
+            'pad_size_divisor': 32,
+            'batch_augments': [
+                {'type': 'BatchSyncRandomResize', 'random_size_range': (480, 800), 'size_divisor': 32, 'interval': 10}
+            ],
+        },
+        'backbone': {
+            'type': 'CSPDarknet',
+            'deepen_factor': 1.0,
+            'widen_factor': 1.0,
+            'out_indices': (2, 3, 4),
+            'use_depthwise': False,
+            'spp_kernal_sizes': (5, 9, 13),
+            'norm_cfg': {'type': 'BN', 'momentum': 0.03, 'eps': 0.001},
+            'act_cfg': {'type': 'SiLU', 'inplace': True},
+        },
+        'neck': {
+            'type': 'YOLOXPAFPN',
+            'in_channels': [256, 512, 1024],
+            'out_channels': 256,
+            'num_csp_blocks': 3,
+            'use_depthwise': False,
+            'upsample_cfg': {'scale_factor': 2, 'mode': 'nearest'},
+            'norm_cfg': {'type': 'BN', 'momentum': 0.03, 'eps': 0.001},
+            'act_cfg': {'type': 'SiLU', 'inplace': True},
+        },
+        'bbox_head': {
+            'type': 'YOLOXHead',
+            'num_classes': 10,
+            'in_channels': 256,
+            'feat_channels': 256,
+            'stacked_convs': 2,
+            'strides': (8, 16, 32),
+            'use_depthwise': False,
+            'norm_cfg': {'type': 'BN', 'momentum': 0.03, 'eps': 0.001},
+            'act_cfg': {'type': 'SiLU', 'inplace': True},
+            'loss_cls': {'type': 'CrossEntropyLoss', 'use_sigmoid': True, 'reduction': 'sum', 'loss_weight': 1.0},
+            'loss_bbox': {'type': 'IoULoss', 'mode': 'square', 'eps': 1e-16, 'reduction': 'sum', 'loss_weight': 5.0},
+            'loss_obj': {'type': 'CrossEntropyLoss', 'use_sigmoid': True, 'reduction': 'sum', 'loss_weight': 1.0},
+            'loss_l1': {'type': 'L1Loss', 'reduction': 'sum', 'loss_weight': 1.0},
+        },
+        'train_cfg': {'assigner': {'type': 'SimOTAAssigner', 'center_radius': 2.5}},
+        'test_cfg': {'score_thr': 0.01, 'nms': {'type': 'nms', 'iou_threshold': 0.65}},
+    },
+    'rtmdet_l': {
+        'type': 'RTMDet',
+        'data_preprocessor': {
+            'type': 'DetDataPreprocessor',
+            'mean': [103.53, 116.28, 123.675],
+            'std': [57.375, 57.12, 58.395],
+            'bgr_to_rgb': False,
+            'batch_augments': None,
+        },
+        'backbone': {
+            'type': 'CSPNeXt',
+            'arch': 'P5',
+            'expand_ratio': 0.5,
+            'deepen_factor': 1.0,
+            'widen_factor': 1.0,
+            'channel_attention': True,
+            'norm_cfg': {'type': 'SyncBN'},
+            'act_cfg': {'type': 'SiLU', 'inplace': True},
+        },
+        'neck': {
+            'type': 'CSPNeXtPAFPN',
+            'in_channels': [256, 512, 1024],
+            'out_channels': 256,
+            'num_csp_blocks': 3,
+            'expand_ratio': 0.5,
+            'norm_cfg': {'type': 'SyncBN'},
+            'act_cfg': {'type': 'SiLU', 'inplace': True},
+        },
+        'bbox_head': {
+            'type': 'RTMDetSepBNHead',
+            'num_classes': 10,
+            'in_channels': 256,
+            'stacked_convs': 2,
+            'feat_channels': 256,
+            'anchor_generator': {
+                'type': 'MlvlPointGenerator',
+                'offset': 0,
+                'strides': [8, 16, 32],
+            },
+            'bbox_coder': {'type': 'DistancePointBBoxCoder'},
+            'loss_cls': {'type': 'QualityFocalLoss', 'use_sigmoid': True, 'beta': 2.0, 'loss_weight': 1.0},
+            'loss_bbox': {'type': 'GIoULoss', 'loss_weight': 2.0},
+            'with_objectness': False,
+            'exp_on_reg': True,
+            'share_conv': True,
+            'pred_kernel_size': 1,
+            'norm_cfg': {'type': 'SyncBN'},
+            'act_cfg': {'type': 'SiLU', 'inplace': True},
+        },
+        'train_cfg': {
+            'assigner': {'type': 'DynamicSoftLabelAssigner', 'topk': 13},
+            'allowed_border': -1,
+            'pos_weight': -1,
+            'debug': False,
+        },
+        'test_cfg': {
+            'nms_pre': 30000,
+            'min_bbox_size': 0,
+            'score_thr': 0.001,
+            'nms': {'type': 'nms', 'iou_threshold': 0.65},
+            'max_per_img': 300,
+        },
+    },
+}
+
+
 @dataclass
 class ModelConfig:
     """Configuration for a specific model"""
     name: str
     task: str  # 'segmentation' or 'detection'
-    base_config: str  # Path to base model config
+    base_config: str  # Path to base model config (legacy, kept for reference)
     optimizer: str = 'SGD'
     lr: float = 0.01
     weight_decay: float = 0.0005
@@ -452,6 +841,21 @@ class UnifiedTrainingConfig:
         
         metric = 'mIoU' if dataset_cfg.task == 'segmentation' else 'bbox'
         
+        # Get model definition and update num_classes
+        import copy
+        model_def = copy.deepcopy(MODEL_DEFINITIONS.get(model_cfg.name, {}))
+        if model_def:
+            # Update num_classes in decode_head for segmentation models
+            if 'decode_head' in model_def:
+                model_def['decode_head']['num_classes'] = dataset_cfg.num_classes
+            if 'auxiliary_head' in model_def:
+                model_def['auxiliary_head']['num_classes'] = dataset_cfg.num_classes
+            # Update num_classes for detection models
+            if 'roi_head' in model_def and 'bbox_head' in model_def['roi_head']:
+                model_def['roi_head']['bbox_head']['num_classes'] = len(BDD100K_DET_CLASSES)
+            if 'bbox_head' in model_def and 'num_classes' in model_def['bbox_head']:
+                model_def['bbox_head']['num_classes'] = len(BDD100K_DET_CLASSES)
+        
         return {
             # Metadata
             '_prove_config': {
@@ -461,8 +865,8 @@ class UnifiedTrainingConfig:
                 'task': dataset_cfg.task,
             },
             
-            # Base model config
-            '_base_': [f'../{model_cfg.base_config}'],
+            # Model definition (inline, not inherited from _base_)
+            'model': model_def,
             
             # Runner
             'runner': dict(
