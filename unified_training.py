@@ -231,6 +231,9 @@ class UnifiedTrainer:
 import sys
 sys.path.insert(0, "{Path(__file__).parent}")
 
+# Import custom transforms to register them BEFORE loading config
+import custom_transforms  # Registers ReduceToSingleChannel transform
+
 # Import mmsegmentation components carefully to avoid mmcv._ext issues
 try:
     import mmseg.datasets  
@@ -362,14 +365,29 @@ runner.train()
     
     def get_training_summary(self) -> Dict[str, Any]:
         """Get summary of training configuration"""
+        # Handle both old and new config formats
+        if 'train_cfg' in self.config and 'max_iters' in self.config['train_cfg']:
+            max_iters = self.config['train_cfg']['max_iters']
+        elif 'runner' in self.config:
+            max_iters = self.config['runner']['max_iters']
+        else:
+            max_iters = 80000  # default
+            
+        if 'train_dataloader' in self.config:
+            batch_size = self.config['train_dataloader']['batch_size']
+        elif 'data' in self.config:
+            batch_size = self.config['data']['samples_per_gpu']
+        else:
+            batch_size = 2  # default
+            
         return {
             'dataset': self.dataset,
             'model': self.model,
             'strategy': self.strategy,
             'real_gen_ratio': self.real_gen_ratio,
             'work_dir': self.config['work_dir'],
-            'max_iters': self.config['runner']['max_iters'],
-            'batch_size': self.config['data']['samples_per_gpu'],
+            'max_iters': max_iters,
+            'batch_size': batch_size,
             'mixed_training': self.config.get('mixed_dataloader', {}).get('enabled', False),
             'conditions': self.custom_conditions or ADVERSE_CONDITIONS,
         }

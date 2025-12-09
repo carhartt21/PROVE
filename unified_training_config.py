@@ -27,6 +27,36 @@ from pathlib import Path
 from typing import Dict, List, Optional, Any, Union
 from dataclasses import dataclass, field
 
+# Register custom transforms for handling 3-channel labels stored as class IDs
+try:
+    import numpy as np
+    from mmcv.transforms import BaseTransform
+    from mmseg.registry import TRANSFORMS
+    
+    @TRANSFORMS.register_module()
+    class ReduceToSingleChannel(BaseTransform):
+        """Convert 3-channel label images (where all channels are identical class IDs) to single channel.
+        
+        Some datasets store labels as RGB PNGs where all 3 channels contain the same class ID values.
+        This transform extracts only the first channel for proper training.
+        """
+        
+        def transform(self, results: dict) -> dict:
+            """Take first channel of gt_seg_map if it has 3 channels."""
+            if 'gt_seg_map' in results:
+                seg_map = results['gt_seg_map']
+                if seg_map.ndim == 3 and seg_map.shape[-1] == 3:
+                    # Take first channel (all channels should be identical)
+                    results['gt_seg_map'] = seg_map[:, :, 0]
+            return results
+        
+        def __repr__(self) -> str:
+            return f'{self.__class__.__name__}()'
+            
+except ImportError:
+    # MMSeg not installed yet, skip registration (will be registered when imported during training)
+    pass
+
 
 # ============================================================================
 # Constants
@@ -90,17 +120,19 @@ BDD100K_DET_CLASSES = (
 )
 
 
+# Updated DATASET_CONFIGS matching actual data structure at:
+# /scratch/aaa_exchange/AWARE/FINAL_SPLITS/{train,test}/{images,labels}/{DATASET}/{condition}/
 DATASET_CONFIGS = {
     'ACDC': DatasetConfig(
         name='ACDC',
         task='segmentation',
         format='cityscapes',
-        train_img_dir='leftImg8bit/train',
-        train_ann_dir='gtFine/train',
-        val_img_dir='leftImg8bit/val',
-        val_ann_dir='gtFine/val',
-        test_img_dir='leftImg8bit/test',
-        test_ann_dir='gtFine/test',
+        train_img_dir='train/images/ACDC',
+        train_ann_dir='train/labels/ACDC',
+        val_img_dir='test/images/ACDC',
+        val_ann_dir='test/labels/ACDC',
+        test_img_dir='test/images/ACDC',
+        test_ann_dir='test/labels/ACDC',
         num_classes=19,
         classes=CITYSCAPES_CLASSES,
     ),
@@ -108,12 +140,12 @@ DATASET_CONFIGS = {
         name='BDD10k',
         task='segmentation',
         format='cityscapes',
-        train_img_dir='leftImg8bit/train',
-        train_ann_dir='gtFine/train',
-        val_img_dir='leftImg8bit/val',
-        val_ann_dir='gtFine/val',
-        test_img_dir='leftImg8bit/test',
-        test_ann_dir='gtFine/test',
+        train_img_dir='train/images/BDD10k',
+        train_ann_dir='train/labels/BDD10k',
+        val_img_dir='test/images/BDD10k',
+        val_ann_dir='test/labels/BDD10k',
+        test_img_dir='test/images/BDD10k',
+        test_ann_dir='test/labels/BDD10k',
         num_classes=19,
         classes=CITYSCAPES_CLASSES,
     ),
@@ -121,12 +153,12 @@ DATASET_CONFIGS = {
         name='BDD100k',
         task='detection',
         format='bdd100k_json',
-        train_img_dir='images/100k/train',
-        train_ann_dir='labels/bdd100k_labels_images_train.json',
-        val_img_dir='images/100k/val',
-        val_ann_dir='labels/bdd100k_labels_images_val.json',
-        test_img_dir='images/100k/val',
-        test_ann_dir='labels/bdd100k_labels_images_val.json',
+        train_img_dir='train/images/BDD100k',
+        train_ann_dir='train/labels/BDD100k',
+        val_img_dir='test/images/BDD100k',
+        val_ann_dir='test/labels/BDD100k',
+        test_img_dir='test/images/BDD100k',
+        test_ann_dir='test/labels/BDD100k',
         num_classes=10,
         classes=BDD100K_DET_CLASSES,
     ),
@@ -134,38 +166,38 @@ DATASET_CONFIGS = {
         name='IDD-AW',
         task='segmentation',
         format='cityscapes',
-        train_img_dir='leftImg8bit/train',
-        train_ann_dir='gtFine/train',
-        val_img_dir='leftImg8bit/val',
-        val_ann_dir='gtFine/val',
-        test_img_dir='leftImg8bit/test',
-        test_ann_dir='gtFine/test',
+        train_img_dir='train/images/IDD-AW',
+        train_ann_dir='train/labels/IDD-AW',
+        val_img_dir='test/images/IDD-AW',
+        val_ann_dir='test/labels/IDD-AW',
+        test_img_dir='test/images/IDD-AW',
+        test_ann_dir='test/labels/IDD-AW',
         num_classes=19,
         classes=CITYSCAPES_CLASSES,
     ),
     'MapillaryVistas': DatasetConfig(
         name='MapillaryVistas',
         task='segmentation',
-        format='mapillary_vistas',
-        train_img_dir='training/images',
-        train_ann_dir='training/labels',
-        val_img_dir='validation/images',
-        val_ann_dir='validation/labels',
-        test_img_dir='validation/images',
-        test_ann_dir='validation/labels',
-        num_classes=66,
+        format='cityscapes',
+        train_img_dir='train/images/MapillaryVistas',
+        train_ann_dir='train/labels/MapillaryVistas',
+        val_img_dir='test/images/MapillaryVistas',
+        val_ann_dir='test/labels/MapillaryVistas',
+        test_img_dir='test/images/MapillaryVistas',
+        test_ann_dir='test/labels/MapillaryVistas',
+        num_classes=19,
         classes=CITYSCAPES_CLASSES,  # Using unified labels
     ),
     'OUTSIDE15k': DatasetConfig(
         name='OUTSIDE15k',
         task='segmentation',
         format='cityscapes',
-        train_img_dir='leftImg8bit/train',
-        train_ann_dir='gtFine/train',
-        val_img_dir='leftImg8bit/val',
-        val_ann_dir='gtFine/val',
-        test_img_dir='leftImg8bit/test',
-        test_ann_dir='gtFine/test',
+        train_img_dir='train/images/OUTSIDE15k',
+        train_ann_dir='train/labels/OUTSIDE15k',
+        val_img_dir='test/images/OUTSIDE15k',
+        val_ann_dir='test/labels/OUTSIDE15k',
+        test_img_dir='test/images/OUTSIDE15k',
+        test_ann_dir='test/labels/OUTSIDE15k',
         num_classes=19,
         classes=CITYSCAPES_CLASSES,
     ),
@@ -187,6 +219,7 @@ MODEL_DEFINITIONS = {
             'bgr_to_rgb': True,
             'pad_val': 0,
             'seg_pad_val': 255,
+            'size': (512, 512),
         },
         'pretrained': 'open-mmlab://resnet50_v1c',
         'backbone': {
@@ -240,6 +273,7 @@ MODEL_DEFINITIONS = {
             'bgr_to_rgb': True,
             'pad_val': 0,
             'seg_pad_val': 255,
+            'size': (512, 512),
         },
         'pretrained': 'open-mmlab://resnet50_v1c',
         'backbone': {
@@ -291,6 +325,7 @@ MODEL_DEFINITIONS = {
             'bgr_to_rgb': True,
             'pad_val': 0,
             'seg_pad_val': 255,
+            'size': (512, 512),
         },
         'pretrained': 'pretrain/mit_b5.pth',
         'backbone': {
@@ -837,7 +872,7 @@ class UnifiedTrainingConfig:
         model_cfg: ModelConfig,
         training_cfg: TrainingConfig,
     ) -> Dict[str, Any]:
-        """Build base configuration structure"""
+        """Build base configuration structure for MMEngine Runner"""
         
         metric = 'mIoU' if dataset_cfg.task == 'segmentation' else 'bbox'
         
@@ -856,6 +891,49 @@ class UnifiedTrainingConfig:
             if 'bbox_head' in model_def and 'num_classes' in model_def['bbox_head']:
                 model_def['bbox_head']['num_classes'] = len(BDD100K_DET_CLASSES)
         
+        # Build optimizer wrapper (new MMEngine format)
+        optim_wrapper = dict(
+            type='OptimWrapper',
+            optimizer=dict(
+                type=model_cfg.optimizer,
+                lr=model_cfg.lr,
+                weight_decay=model_cfg.weight_decay,
+                **(dict(momentum=0.9) if model_cfg.optimizer == 'SGD' else dict(betas=(0.9, 0.999))),
+            ),
+        )
+        
+        # Build param scheduler (new MMEngine format)
+        param_scheduler = [
+            dict(
+                type='LinearLR',
+                start_factor=training_cfg.warmup_ratio,
+                by_epoch=False,
+                begin=0,
+                end=training_cfg.warmup_iters,
+            ),
+            dict(
+                type='PolyLR',
+                eta_min=1e-6,
+                power=0.9,
+                begin=training_cfg.warmup_iters,
+                end=training_cfg.max_iters,
+                by_epoch=False,
+            ),
+        ]
+        
+        # Build train_cfg (new MMEngine format)
+        train_cfg = dict(
+            type='IterBasedTrainLoop',
+            max_iters=training_cfg.max_iters,
+            val_interval=training_cfg.eval_interval,
+        )
+        
+        # Build val_cfg
+        val_cfg = dict(type='ValLoop')
+        
+        # Build test_cfg
+        test_cfg = dict(type='TestLoop')
+        
         return {
             # Metadata
             '_prove_config': {
@@ -868,54 +946,56 @@ class UnifiedTrainingConfig:
             # Model definition (inline, not inherited from _base_)
             'model': model_def,
             
-            # Runner
-            'runner': dict(
-                type='IterBasedRunner',
-                max_iters=training_cfg.max_iters,
+            # MMEngine Runner configuration
+            'train_cfg': train_cfg,
+            'val_cfg': val_cfg,
+            'test_cfg': test_cfg,
+            
+            # Optimizer and scheduler (new MMEngine format)
+            'optim_wrapper': optim_wrapper,
+            'param_scheduler': param_scheduler,
+            
+            # Checkpointing (new format)
+            'default_hooks': dict(
+                timer=dict(type='IterTimerHook'),
+                logger=dict(type='LoggerHook', interval=training_cfg.log_interval),
+                param_scheduler=dict(type='ParamSchedulerHook'),
+                checkpoint=dict(
+                    type='CheckpointHook',
+                    interval=training_cfg.checkpoint_interval,
+                    by_epoch=False,
+                ),
+                sampler_seed=dict(type='DistSamplerSeedHook'),
             ),
             
-            # Checkpointing
-            'checkpoint_config': dict(interval=training_cfg.checkpoint_interval),
-            
-            # Evaluation
-            'evaluation': dict(
-                interval=training_cfg.eval_interval,
-                metric=metric,
-            ),
+            # Evaluation (new format)
+            'val_evaluator': dict(type='IoUMetric', iou_metrics=['mIoU']) if dataset_cfg.task == 'segmentation' else dict(type='CocoMetric', metric='bbox'),
+            'test_evaluator': dict(type='IoUMetric', iou_metrics=['mIoU']) if dataset_cfg.task == 'segmentation' else dict(type='CocoMetric', metric='bbox'),
             
             # Logging
-            'log_config': dict(
-                interval=training_cfg.log_interval,
-                hooks=[
-                    dict(type='TextLoggerHook'),
-                    dict(type='TensorboardLoggerHook'),
-                ],
+            'log_processor': dict(by_epoch=False),
+            
+            # Reproducibility - disable deterministic for CUDA compatibility
+            'randomness': dict(seed=training_cfg.seed, deterministic=False),
+            
+            # Environment
+            'env_cfg': dict(
+                cudnn_benchmark=True,
+                mp_cfg=dict(mp_start_method='fork', opencv_num_threads=0),
+                dist_cfg=dict(backend='nccl'),
             ),
             
-            # Optimizer
-            'optimizer': dict(
-                type=model_cfg.optimizer,
-                lr=model_cfg.lr,
-                weight_decay=model_cfg.weight_decay,
-                **(dict(momentum=0.9) if model_cfg.optimizer == 'SGD' else dict(betas=(0.9, 0.999))),
+            # Visualization
+            'vis_backends': [dict(type='LocalVisBackend')],
+            'visualizer': dict(
+                type='SegLocalVisualizer',
+                vis_backends=[dict(type='LocalVisBackend')],
+                name='visualizer',
+            ) if dataset_cfg.task == 'segmentation' else dict(
+                type='DetLocalVisualizer',
+                vis_backends=[dict(type='LocalVisBackend')],
+                name='visualizer',
             ),
-            'optimizer_config': dict(grad_clip=None),
-            
-            # LR schedule
-            'lr_config': dict(
-                policy='poly',
-                power=0.9,
-                min_lr=1e-6,
-                by_epoch=False,
-                warmup='linear',
-                warmup_iters=training_cfg.warmup_iters,
-                warmup_ratio=training_cfg.warmup_ratio,
-            ),
-            
-            # Reproducibility
-            'seed': training_cfg.seed,
-            'deterministic': training_cfg.deterministic,
-            'gpu_ids': [0],
         }
     
     def _add_dataset_config(
@@ -933,7 +1013,9 @@ class UnifiedTrainingConfig:
             domain_filter: Optional domain to filter training data (e.g., 'clear_day')
         """
         
-        config['data_root'] = os.path.join(self.data_root, dataset_cfg.name)
+        # Use base data root - dataset paths already include the dataset name
+        data_root = self.data_root
+        config['data_root'] = data_root
         config['dataset_type'] = 'CityscapesDataset' if dataset_cfg.format == 'cityscapes' else 'CocoDataset'
         config['classes'] = dataset_cfg.classes
         
@@ -943,7 +1025,7 @@ class UnifiedTrainingConfig:
         
         if domain_filter:
             # Append domain subdirectory to training paths
-            # e.g., 'leftImg8bit/train' -> 'leftImg8bit/train/clear_day'
+            # e.g., 'train/images/ACDC' -> 'train/images/ACDC/clear_day'
             train_img_dir = os.path.join(train_img_dir, domain_filter)
             train_ann_dir = os.path.join(train_ann_dir, domain_filter)
             config['domain_filter'] = domain_filter
@@ -951,51 +1033,90 @@ class UnifiedTrainingConfig:
             print(f"[INFO] Using train_img_dir: {train_img_dir}")
             print(f"[INFO] Using train_ann_dir: {train_ann_dir}")
         
-        if dataset_cfg.task == 'segmentation':
-            config['data'] = dict(
-                samples_per_gpu=2,
-                workers_per_gpu=4,
-                train=dict(
-                    type='CityscapesDataset',
-                    data_root=self.data_root,
-                    img_dir=train_img_dir,
-                    ann_dir=train_ann_dir,
-                ),
-                val=dict(
-                    type='CityscapesDataset',
-                    data_root=self.data_root,
-                    img_dir=dataset_cfg.val_img_dir,
-                    ann_dir=dataset_cfg.val_ann_dir,
-                ),
-                test=dict(
-                    type='CityscapesDataset',
-                    data_root=self.data_root,
-                    img_dir=dataset_cfg.test_img_dir,
-                    ann_dir=dataset_cfg.test_ann_dir,
-                ),
-            )
-        else:  # detection
-            config['data'] = dict(
-                samples_per_gpu=2,
-                workers_per_gpu=4,
-                train=dict(
-                    type='CocoDataset',
-                    ann_file=os.path.join(self.data_root, dataset_cfg.train_ann_dir),
-                    img_prefix=os.path.join(self.data_root, dataset_cfg.train_img_dir),
-                ),
-                val=dict(
-                    type='CocoDataset',
-                    ann_file=os.path.join(self.data_root, dataset_cfg.val_ann_dir),
-                    img_prefix=os.path.join(self.data_root, dataset_cfg.val_img_dir),
-                ),
-                test=dict(
-                    type='CocoDataset',
-                    ann_file=os.path.join(self.data_root, dataset_cfg.test_ann_dir),
-                    img_prefix=os.path.join(self.data_root, dataset_cfg.test_img_dir),
-                ),
-            )
+        # New MMEngine dataloader format
+        batch_size = 2
+        num_workers = 4
         
-        # Image normalization
+        if dataset_cfg.task == 'segmentation':
+            # Train dataloader
+            # Use CityscapesDataset with custom suffixes for our data format
+            config['train_dataloader'] = dict(
+                batch_size=batch_size,
+                num_workers=num_workers,
+                persistent_workers=True,
+                sampler=dict(type='InfiniteSampler', shuffle=True),
+                dataset=dict(
+                    type='CityscapesDataset',
+                    data_root=data_root,
+                    data_prefix=dict(
+                        img_path=train_img_dir,
+                        seg_map_path=train_ann_dir,
+                    ),
+                    # Custom suffixes for non-standard Cityscapes format
+                    img_suffix='.png',
+                    seg_map_suffix='.png',
+                    pipeline='{{train_pipeline}}',
+                ),
+            )
+            
+            # Val dataloader
+            config['val_dataloader'] = dict(
+                batch_size=1,
+                num_workers=num_workers,
+                persistent_workers=True,
+                sampler=dict(type='DefaultSampler', shuffle=False),
+                dataset=dict(
+                    type='CityscapesDataset',
+                    data_root=data_root,
+                    data_prefix=dict(
+                        img_path=dataset_cfg.val_img_dir,
+                        seg_map_path=dataset_cfg.val_ann_dir,
+                    ),
+                    # Custom suffixes for non-standard Cityscapes format
+                    img_suffix='.png',
+                    seg_map_suffix='.png',
+                    pipeline='{{test_pipeline}}',
+                ),
+            )
+            
+            # Test dataloader (same as val for now)
+            config['test_dataloader'] = config['val_dataloader'].copy()
+            
+        else:  # detection
+            # Train dataloader
+            config['train_dataloader'] = dict(
+                batch_size=batch_size,
+                num_workers=num_workers,
+                persistent_workers=True,
+                sampler=dict(type='InfiniteSampler', shuffle=True),
+                dataset=dict(
+                    type='CocoDataset',
+                    data_root=data_root,
+                    ann_file=dataset_cfg.train_ann_dir,
+                    data_prefix=dict(img=dataset_cfg.train_img_dir),
+                    pipeline='{{train_pipeline}}',
+                ),
+            )
+            
+            # Val dataloader
+            config['val_dataloader'] = dict(
+                batch_size=1,
+                num_workers=num_workers,
+                persistent_workers=True,
+                sampler=dict(type='DefaultSampler', shuffle=False),
+                dataset=dict(
+                    type='CocoDataset',
+                    data_root=data_root,
+                    ann_file=dataset_cfg.val_ann_dir,
+                    data_prefix=dict(img=dataset_cfg.val_img_dir),
+                    pipeline='{{test_pipeline}}',
+                ),
+            )
+            
+            # Test dataloader
+            config['test_dataloader'] = config['val_dataloader'].copy()
+        
+        # Image normalization (for reference)
         config['img_norm_cfg'] = dict(
             mean=[123.675, 116.28, 103.53],
             std=[58.395, 57.12, 57.375],
@@ -1012,13 +1133,22 @@ class UnifiedTrainingConfig:
     ) -> Dict[str, Any]:
         """Add training data pipeline"""
         
+        crop_size = (512, 512)
+        
         pipeline = [
             dict(type='LoadImageFromFile'),
-            dict(type='LoadAnnotations'),
-            dict(type='Resize', scale=(512, 512), keep_ratio=True),
+            dict(type='LoadAnnotations', reduce_zero_label=False),
+            # Handle labels stored as 3-channel PNGs (all channels identical class IDs)
+            dict(type='ReduceToSingleChannel'),
+            # Convert Cityscapes full label IDs (0-33) to trainIds (0-18)
+            dict(type='CityscapesLabelIdToTrainId'),
+            dict(type='Resize', scale=(1024, 512), keep_ratio=True),
+            dict(type='RandomCrop', crop_size=crop_size, cat_max_ratio=0.75),
+            dict(type='RandomFlip', prob=0.5),
+            dict(type='PhotoMetricDistortion'),
         ]
         
-        # Add augmentation transforms
+        # Add augmentation transforms from strategy
         pipeline.extend(aug_strategy.get_pipeline_transforms())
         
         # Add final packing
@@ -1032,7 +1162,12 @@ class UnifiedTrainingConfig:
         # Test pipeline (no augmentation)
         test_pipeline = [
             dict(type='LoadImageFromFile'),
-            dict(type='Resize', scale=(512, 512), keep_ratio=True),
+            dict(type='LoadAnnotations', reduce_zero_label=False),
+            # Handle labels stored as 3-channel PNGs (all channels identical class IDs)
+            dict(type='ReduceToSingleChannel'),
+            # Convert Cityscapes full label IDs (0-33) to trainIds (0-18)
+            dict(type='CityscapesLabelIdToTrainId'),
+            dict(type='Resize', scale=(1024, 512), keep_ratio=True),
         ]
         if task == 'segmentation':
             test_pipeline.append(dict(type='PackSegInputs'))
@@ -1040,6 +1175,9 @@ class UnifiedTrainingConfig:
             test_pipeline.append(dict(type='PackDetInputs'))
         
         config['test_pipeline'] = test_pipeline
+        
+        # Add crop_size to config for use elsewhere
+        config['crop_size'] = crop_size
         
         return config
     
@@ -1209,11 +1347,31 @@ class UnifiedTrainingConfig:
             f.write("# MMSegmentation default scope\n")
             f.write("default_scope = 'mmseg'\n\n")
             
-            # Write config
+            # Define order of keys to ensure pipelines are defined before dataloaders
+            priority_keys = ['train_pipeline', 'test_pipeline', 'val_pipeline']
+            dataloader_keys = ['train_dataloader', 'val_dataloader', 'test_dataloader']
+            
+            # Write pipelines first
+            for key in priority_keys:
+                if key in config:
+                    f.write(f"{key} = {repr(config[key])}\n")
+            
+            # Write other config items (except dataloaders and pipelines)
             for key, value in config.items():
-                if key.startswith('_'):
+                if key.startswith('_') or key in priority_keys or key in dataloader_keys:
                     continue
-                f.write(f"{key} = {repr(value)}\n")
+                value_str = repr(value)
+                f.write(f"{key} = {value_str}\n")
+            
+            # Write dataloaders last with pipeline references
+            for key in dataloader_keys:
+                if key in config:
+                    value_str = repr(config[key])
+                    # Replace pipeline placeholders with actual variable references
+                    value_str = value_str.replace("'{{train_pipeline}}'", "train_pipeline")
+                    value_str = value_str.replace("'{{test_pipeline}}'", "test_pipeline")
+                    value_str = value_str.replace("'{{val_pipeline}}'", "val_pipeline")
+                    f.write(f"{key} = {value_str}\n")
         
         return filepath
     
