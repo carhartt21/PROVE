@@ -35,21 +35,43 @@ PROVE includes a comprehensive label unification strategy that enables joint tra
 ### Prerequisites
 - Python 3.7+
 - PyTorch 1.6+
+- GCC > 9.3.0
 - CUDA (recommended for GPU acceleration)
 
-### Step 1: Install MMDetection Dependencies
+### Step 1: Install OpenMMLab Dependencies
+
+**Important**: OpenMMLab packages have complex version interdependencies. The versions below represent a known working combination, but you may need to adjust based on your specific requirements.
 
 ```bash
-# Install MMEngine
+# Install OpenMIM (OpenMMLab package manager)
 pip install -U openmim
+
+pip install torch torchvision
+
+# Install MMEngine (latest stable)
 mim install mmengine
 
-# Install MMCV
-mim install "mmcv>=2.0.0rc4,<2.1.0"
+# Option 1: Latest versions (recommended for new projects)
+# MMCV 2.2.0 with compiled extensions (requires conda/mamba)
+mamba install -c conda-forge mmcv=2.2.0 
+pip install mmsegmentation==1.2.2 mmdet==3.3.0
 
-# Install MMDetection
-mim install "mmdet>=3.0.0rc6,<3.1.0"
+# Option 2: Compatible versions (if conda installation fails)
+# MMCV 2.0.1 with MMSegmentation 1.1.2
+mim install "mmcv>=2.0.0,<2.1.0"
+pip install mmsegmentation==1.1.2 mmdet==3.1.0
+
+# Option 3: Legacy versions (most compatible but older)
+# MMCV 1.7.2 with older MMSegmentation
+pip install mmcv-full==1.7.2
+pip install mmsegmentation==0.30.0 mmdet==3.0.0
 ```
+
+**Version Compatibility Notes:**
+- **MMCV 2.x**: Requires compiled CUDA extensions not available in pip. Use conda for full functionality.
+- **MMSegmentation 1.2.x**: Latest features but requires MMCV 2.x
+- **MMDetection 3.3.x**: Latest object detection models and features
+- **Legacy versions**: More stable but missing newer architectures and optimizations
 
 ### Step 2: Clone PROVE Pipeline
 
@@ -388,6 +410,37 @@ model = dict(
 ## Troubleshooting
 
 ### Common Issues
+
+#### Version Compatibility Issues
+
+**Problem**: `ModuleNotFoundError: No module named 'mmcv._ext'` or import errors with MMCV.
+
+**Cause**: MMCV 2.x requires compiled CUDA extensions that aren't included in pip packages. This affects operations like focal loss, deformable convolutions, etc.
+
+**Solutions**:
+1. **Use conda (recommended)**:
+   ```bash
+   conda install -c conda-forge mmcv=2.2.0
+   ```
+
+2. **Use compatible older versions**:
+   ```bash
+   pip install mmcv-full==1.7.2 mmsegmentation==0.30.0
+   ```
+
+3. **Use subprocess training** (avoids import conflicts):
+   ```bash
+   python unified_training.py --train-method subprocess
+   ```
+
+**Problem**: `AssertionError: MMCV==X.X.X is used but incompatible`
+
+**Cause**: Different versions of MMSegmentation/MMDetection require specific MMCV versions.
+
+**Solutions**:
+- MMSegmentation 1.2.x → MMCV 2.2.0
+- MMSegmentation 1.1.x → MMCV 2.0.x  
+- MMSegmentation 0.30.0 → MMCV 1.7.x
 
 #### CUDA Out of Memory
 ```python
