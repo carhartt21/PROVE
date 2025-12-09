@@ -221,7 +221,6 @@ MODEL_DEFINITIONS = {
             'seg_pad_val': 255,
             'size': (512, 512),
         },
-        'pretrained': 'open-mmlab://resnet50_v1c',
         'backbone': {
             'type': 'ResNetV1c',
             'depth': 50,
@@ -233,6 +232,7 @@ MODEL_DEFINITIONS = {
             'norm_eval': False,
             'style': 'pytorch',
             'contract_dilation': True,
+            'init_cfg': {'type': 'Pretrained', 'checkpoint': 'open-mmlab://resnet50_v1c'},
         },
         'decode_head': {
             'type': 'DepthwiseSeparableASPPHead',
@@ -246,7 +246,7 @@ MODEL_DEFINITIONS = {
             'num_classes': 19,
             'norm_cfg': {'type': 'SyncBN', 'requires_grad': True},
             'align_corners': False,
-            'loss_decode': {'type': 'CrossEntropyLoss', 'use_sigmoid': False, 'loss_weight': 1.0},
+            'loss_decode': {'type': 'CrossEntropyLoss', 'use_sigmoid': False, 'loss_weight': 1.0, 'avg_non_ignore': True},
         },
         'auxiliary_head': {
             'type': 'FCNHead',
@@ -259,7 +259,7 @@ MODEL_DEFINITIONS = {
             'num_classes': 19,
             'norm_cfg': {'type': 'SyncBN', 'requires_grad': True},
             'align_corners': False,
-            'loss_decode': {'type': 'CrossEntropyLoss', 'use_sigmoid': False, 'loss_weight': 0.4},
+            'loss_decode': {'type': 'CrossEntropyLoss', 'use_sigmoid': False, 'loss_weight': 0.4, 'avg_non_ignore': True},
         },
         'train_cfg': {},
         'test_cfg': {'mode': 'whole'},
@@ -275,7 +275,6 @@ MODEL_DEFINITIONS = {
             'seg_pad_val': 255,
             'size': (512, 512),
         },
-        'pretrained': 'open-mmlab://resnet50_v1c',
         'backbone': {
             'type': 'ResNetV1c',
             'depth': 50,
@@ -287,6 +286,7 @@ MODEL_DEFINITIONS = {
             'norm_eval': False,
             'style': 'pytorch',
             'contract_dilation': True,
+            'init_cfg': {'type': 'Pretrained', 'checkpoint': 'open-mmlab://resnet50_v1c'},
         },
         'decode_head': {
             'type': 'PSPHead',
@@ -298,7 +298,7 @@ MODEL_DEFINITIONS = {
             'num_classes': 19,
             'norm_cfg': {'type': 'SyncBN', 'requires_grad': True},
             'align_corners': False,
-            'loss_decode': {'type': 'CrossEntropyLoss', 'use_sigmoid': False, 'loss_weight': 1.0},
+            'loss_decode': {'type': 'CrossEntropyLoss', 'use_sigmoid': False, 'loss_weight': 1.0, 'avg_non_ignore': True},
         },
         'auxiliary_head': {
             'type': 'FCNHead',
@@ -311,7 +311,7 @@ MODEL_DEFINITIONS = {
             'num_classes': 19,
             'norm_cfg': {'type': 'SyncBN', 'requires_grad': True},
             'align_corners': False,
-            'loss_decode': {'type': 'CrossEntropyLoss', 'use_sigmoid': False, 'loss_weight': 0.4},
+            'loss_decode': {'type': 'CrossEntropyLoss', 'use_sigmoid': False, 'loss_weight': 0.4, 'avg_non_ignore': True},
         },
         'train_cfg': {},
         'test_cfg': {'mode': 'whole'},
@@ -353,7 +353,7 @@ MODEL_DEFINITIONS = {
             'num_classes': 19,
             'norm_cfg': {'type': 'SyncBN', 'requires_grad': True},
             'align_corners': False,
-            'loss_decode': {'type': 'CrossEntropyLoss', 'use_sigmoid': False, 'loss_weight': 1.0},
+            'loss_decode': {'type': 'CrossEntropyLoss', 'use_sigmoid': False, 'loss_weight': 1.0, 'avg_non_ignore': True},
         },
         'train_cfg': {},
         'test_cfg': {'mode': 'whole'},
@@ -969,8 +969,8 @@ class UnifiedTrainingConfig:
             ),
             
             # Evaluation (new format)
-            'val_evaluator': dict(type='IoUMetric', iou_metrics=['mIoU']) if dataset_cfg.task == 'segmentation' else dict(type='CocoMetric', metric='bbox'),
-            'test_evaluator': dict(type='IoUMetric', iou_metrics=['mIoU']) if dataset_cfg.task == 'segmentation' else dict(type='CocoMetric', metric='bbox'),
+            'val_evaluator': dict(type='IoUMetric', iou_metrics=['mIoU'], prefix='val') if dataset_cfg.task == 'segmentation' else dict(type='CocoMetric', metric='bbox'),
+            'test_evaluator': dict(type='IoUMetric', iou_metrics=['mIoU'], prefix='test') if dataset_cfg.task == 'segmentation' else dict(type='CocoMetric', metric='bbox'),
             
             # Logging
             'log_processor': dict(by_epoch=False),
@@ -1055,6 +1055,7 @@ class UnifiedTrainingConfig:
                     # Custom suffixes for non-standard Cityscapes format
                     img_suffix='.png',
                     seg_map_suffix='.png',
+                    reduce_zero_label=False,  # Set here instead of LoadAnnotations
                     pipeline='{{train_pipeline}}',
                 ),
             )
@@ -1075,6 +1076,7 @@ class UnifiedTrainingConfig:
                     # Custom suffixes for non-standard Cityscapes format
                     img_suffix='.png',
                     seg_map_suffix='.png',
+                    reduce_zero_label=False,  # Set here instead of LoadAnnotations
                     pipeline='{{test_pipeline}}',
                 ),
             )
@@ -1137,7 +1139,7 @@ class UnifiedTrainingConfig:
         
         pipeline = [
             dict(type='LoadImageFromFile'),
-            dict(type='LoadAnnotations', reduce_zero_label=False),
+            dict(type='LoadAnnotations'),  # reduce_zero_label set in dataset config
             # Handle labels stored as 3-channel PNGs (all channels identical class IDs)
             dict(type='ReduceToSingleChannel'),
             # Convert Cityscapes full label IDs (0-33) to trainIds (0-18)
@@ -1162,7 +1164,7 @@ class UnifiedTrainingConfig:
         # Test pipeline (no augmentation)
         test_pipeline = [
             dict(type='LoadImageFromFile'),
-            dict(type='LoadAnnotations', reduce_zero_label=False),
+            dict(type='LoadAnnotations'),  # reduce_zero_label set in dataset config
             # Handle labels stored as 3-channel PNGs (all channels identical class IDs)
             dict(type='ReduceToSingleChannel'),
             # Convert Cityscapes full label IDs (0-33) to trainIds (0-18)
