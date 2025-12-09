@@ -685,6 +685,10 @@ class TrainingConfig:
     warmup_ratio: float = 0.001
     seed: int = 42
     deterministic: bool = True
+    # Early stopping configuration
+    early_stop: bool = True
+    early_stop_patience: int = 5
+    early_stop_min_delta: float = 0.001
 
 
 TRAINING_CONFIGS = {
@@ -693,12 +697,18 @@ TRAINING_CONFIGS = {
         batch_size=2,
         checkpoint_interval=10000,
         eval_interval=6666,
+        early_stop=True,
+        early_stop_patience=5,
+        early_stop_min_delta=0.001,  # mIoU improvement threshold
     ),
     'detection': TrainingConfig(
         max_iters=40000,
         batch_size=2,
         checkpoint_interval=5000,
         eval_interval=3333,
+        early_stop=True,
+        early_stop_patience=5,
+        early_stop_min_delta=0.001,  # mAP improvement threshold
     ),
 }
 
@@ -793,6 +803,20 @@ class UnifiedTrainingConfig:
     This class generates complete training configurations from high-level
     parameters, eliminating the need for separate config files for each
     dataset/model/strategy combination.
+    
+    Args:
+        data_root: Root directory for training data. Default: from PROVE_DATA_ROOT env
+        gen_root: Root directory for generated images. Default: from PROVE_GEN_ROOT env
+        weights_root: Root directory for saving model weights. Default: from PROVE_WEIGHTS_ROOT env
+        cache_dir: Directory for caching pretrained weights. When specified:
+            - Sets TORCH_HOME environment variable to redirect PyTorch/MMEngine downloads
+            - Updates relative pretrained paths to use cache_dir
+            - Creates necessary subdirectories automatically
+    
+    Example:
+        >>> config_builder = UnifiedTrainingConfig(cache_dir='/data/pretrained')
+        >>> config = config_builder.build(dataset='ACDC', model='deeplabv3plus_r50')
+        >>> # Pretrained weights will be stored in /data/pretrained/
     """
     
     def __init__(
@@ -800,10 +824,12 @@ class UnifiedTrainingConfig:
         data_root: str = DEFAULT_DATA_ROOT,
         gen_root: str = DEFAULT_GEN_ROOT,
         weights_root: str = DEFAULT_WEIGHTS_ROOT,
+        cache_dir: Optional[str] = None,
     ):
         self.data_root = data_root
         self.gen_root = gen_root
         self.weights_root = weights_root
+        self.cache_dir = cache_dir
     
     def build(
         self,
@@ -866,6 +892,103 @@ class UnifiedTrainingConfig:
         
         return config
     
+    def _update_pretrained_paths(self, model_def: Dict[str, Any]) -> Dict[str, Any]:
+        """Update pretrained model paths to use cache_dir if specified.
+        
+        This modifies init_cfg.checkpoint and pretrained paths to use the cache directory
+        for storing downloaded pretrained weights.
+        
+        Args:
+            model_def: Model definition dictionary
+            
+        Returns:
+            Updated model definition with cache_dir-aware paths
+        """
+        if not self.cache_dir or not model_def:
+            return model_def
+        
+        import os
+        
+        # Create cache directory if it doesn't exist
+        os.makedirs(self.cache_dir, exist_ok=True)
+        
+        # Update backbone init_cfg if present
+        if 'backbone' in model_def and 'init_cfg' in model_def['backbone']:
+            init_cfg = model_def['backbone']['init_cfg']
+            if isinstance(init_cfg, dict) and 'checkpoint' in init_cfg:
+                checkpoint = init_cfg['checkpoint']
+                # Map open-mmlab and torchvision URLs to local cache paths
+                if checkpoint.startswith('open-mmlab://'):
+                    model_name = checkpoint.replace('open-mmlab://', '')
+                    local_path = os.path.join(self.cache_dir, 'open-mmlab', f'{model_name}.pth')
+                    # Only use local path if file exists, otherwise keep URL for download
+                    if os.path.exists(local_path):
+                        model_def['backbone']['init_cfg']['checkpoint'] = local_path
+                    else:
+                        # Set TORCH_HOME to cache_dir so MMEngine downloads to cache_dir
+                        os.environ['TORCH_HOME'] = self.cache_dir
+                elif checkpoint.startswith('torchvision://'):
+                    model_name = checkpoint.replace('torchvision://', '')
+                    local_path = os.path.join(self.cache_dir, 'torchvision', f'{model_name}.pth')
+                    if os.path.exists(local_path):
+                        model_def['backbone']['init_cfg']['checkpoint'] = local_path
+                    else:
+                        os.environ['TORCH_HOME'] = self.cache_dir
+        
+        # Update top-level pretrained path if present (e.g., for SegFormer)
+        if 'pretrained' in model_def:
+            pretrained = model_def['pretrained']
+            if pretrained and not os.path.isabs(pretrained):
+                # Convert relative path to cache_dir-relative path
+                local_path = os.path.join(self.cache_dir, pretrained)
+                if os.path.exists(local_path):
+                    model_def['pretrained'] = local_path
+                else:
+                    # Create pretrain subdirectory in cache_dir
+                    pretrain_dir = os.path.join(self.cache_dir, os.path.dirname(pretrained))
+                    os.makedirs(pretrain_dir, exist_ok=True)
+                    model_def['pretrained'] = os.path.join(self.cache_dir, pretrained)
+        
+        return model_def
+    
+    def _build_custom_hooks(
+        self,
+        dataset_cfg: 'DatasetConfig',
+        training_cfg: TrainingConfig,
+    ) -> List[Dict[str, Any]]:
+        """Build custom hooks configuration, including early stopping.
+        
+        Args:
+            dataset_cfg: Dataset configuration
+            training_cfg: Training configuration
+            
+        Returns:
+            List of custom hook configurations
+        """
+        hooks = []
+        
+        # Early stopping hook
+        if training_cfg.early_stop:
+            # Determine monitor metric based on task
+            if dataset_cfg.task == 'segmentation':
+                monitor = 'val/mIoU'  # Monitor validation mIoU for segmentation
+                rule = 'greater'  # Higher is better
+            else:
+                monitor = 'coco/bbox_mAP'  # Monitor bbox mAP for detection
+                rule = 'greater'
+            
+            hooks.append(dict(
+                type='EarlyStoppingHook',
+                monitor=monitor,
+                rule=rule,
+                patience=training_cfg.early_stop_patience,
+                min_delta=training_cfg.early_stop_min_delta,
+                strict=False,  # Don't crash if metric not found
+                check_finite=True,  # Stop if NaN/Inf
+            ))
+        
+        return hooks
+    
     def _build_base_config(
         self,
         dataset_cfg: DatasetConfig,
@@ -890,6 +1013,9 @@ class UnifiedTrainingConfig:
                 model_def['roi_head']['bbox_head']['num_classes'] = len(BDD100K_DET_CLASSES)
             if 'bbox_head' in model_def and 'num_classes' in model_def['bbox_head']:
                 model_def['bbox_head']['num_classes'] = len(BDD100K_DET_CLASSES)
+            
+            # Update pretrained paths with cache_dir
+            model_def = self._update_pretrained_paths(model_def)
         
         # Build optimizer wrapper (new MMEngine format)
         optim_wrapper = dict(
@@ -967,6 +1093,9 @@ class UnifiedTrainingConfig:
                 ),
                 sampler_seed=dict(type='DistSamplerSeedHook'),
             ),
+            
+            # Early stopping hook (custom hooks)
+            'custom_hooks': self._build_custom_hooks(dataset_cfg, training_cfg),
             
             # Evaluation (new format)
             'val_evaluator': dict(type='IoUMetric', iou_metrics=['mIoU'], prefix='val') if dataset_cfg.task == 'segmentation' else dict(type='CocoMetric', metric='bbox'),

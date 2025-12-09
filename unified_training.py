@@ -66,6 +66,28 @@ class UnifiedTrainer:
     - Training execution with MMSeg/MMDet
     - Mixed dataloader setup
     - Logging and checkpointing
+    - Pretrained weight caching
+    - Early stopping
+    
+    Args:
+        dataset: Dataset name (e.g., 'ACDC', 'BDD10k', 'BDD100k')
+        model: Model name (e.g., 'deeplabv3plus_r50', 'segformer_mit-b5')
+        strategy: Augmentation strategy (e.g., 'baseline', 'gen_cycleGAN')
+        real_gen_ratio: Ratio of real images (0.0-1.0). Default: 1.0
+        custom_conditions: Optional list of weather conditions to use
+        domain_filter: Optional domain to filter training data (e.g., 'clear_day')
+        work_dir: Output directory for checkpoints and logs
+        cache_dir: Directory for caching pretrained weights. When specified,
+            pretrained backbone weights are downloaded/stored in this directory
+            instead of the default ~/.cache/torch location.
+        resume_from: Checkpoint path to resume training from
+        load_from: Pretrained weights path to initialize model
+        seed: Random seed for reproducibility. Default: 42
+        deterministic: Whether to enable deterministic mode. Default: True
+        early_stop: Whether to enable early stopping. Default: True
+        early_stop_patience: Number of validations without improvement before stopping. Default: 5
+        gpu_ids: List of GPU IDs to use. Default: [0]
+        distributed: Whether to use distributed training. Default: False
     """
     
     def __init__(
@@ -77,10 +99,13 @@ class UnifiedTrainer:
         custom_conditions: Optional[List[str]] = None,
         domain_filter: Optional[str] = None,
         work_dir: Optional[str] = None,
+        cache_dir: Optional[str] = None,
         resume_from: Optional[str] = None,
         load_from: Optional[str] = None,
         seed: int = 42,
         deterministic: bool = True,
+        early_stop: bool = True,
+        early_stop_patience: int = 5,
         gpu_ids: List[int] = None,
         distributed: bool = False,
     ):
@@ -91,21 +116,30 @@ class UnifiedTrainer:
         self.custom_conditions = custom_conditions
         self.domain_filter = domain_filter
         self.work_dir = work_dir
+        self.cache_dir = cache_dir
         self.resume_from = resume_from
         self.load_from = load_from
         self.seed = seed
         self.deterministic = deterministic
+        self.early_stop = early_stop
+        self.early_stop_patience = early_stop_patience
         self.gpu_ids = gpu_ids or [0]
         self.distributed = distributed
         
         # Initialize config builder
-        self.config_builder = UnifiedTrainingConfig()
+        self.config_builder = UnifiedTrainingConfig(cache_dir=cache_dir)
         
         # Build configuration
         self.config = self._build_config()
     
     def _build_config(self) -> Dict[str, Any]:
         """Build training configuration"""
+        # Build custom training config to override early stopping settings
+        custom_training_config = {
+            'early_stop': self.early_stop,
+            'early_stop_patience': self.early_stop_patience,
+        }
+        
         config = self.config_builder.build(
             dataset=self.dataset,
             model=self.model,
@@ -113,6 +147,7 @@ class UnifiedTrainer:
             real_gen_ratio=self.real_gen_ratio,
             custom_conditions=self.custom_conditions,
             domain_filter=self.domain_filter,
+            custom_training_config=custom_training_config,
         )
         
         # Override work_dir if specified
@@ -669,9 +704,15 @@ Examples:
     
     # Training options
     parser.add_argument('--work-dir', type=str, help='Output directory')
+    parser.add_argument('--cache-dir', type=str, 
+                       help='Directory for caching pretrained weights and checkpoints')
     parser.add_argument('--resume-from', type=str, help='Checkpoint to resume from')
     parser.add_argument('--load-from', type=str, help='Pretrained weights to load')
     parser.add_argument('--seed', type=int, default=42, help='Random seed')
+    parser.add_argument('--no-early-stop', action='store_true',
+                       help='Disable early stopping (enabled by default)')
+    parser.add_argument('--early-stop-patience', type=int, default=5,
+                       help='Early stopping patience (number of validations without improvement)')
     parser.add_argument('--gpu-ids', type=int, nargs='+', default=[0],
                        help='GPU IDs to use')
     parser.add_argument('--distributed', action='store_true',
@@ -697,6 +738,14 @@ Examples:
                        help='Strategies for batch training')
     parser.add_argument('--ratios', type=float, nargs='+',
                        help='Ratios for batch training')
+    parser.add_argument('--all-seg-datasets', action='store_true',
+                       help='Use all segmentation datasets for batch training')
+    parser.add_argument('--all-det-datasets', action='store_true',
+                       help='Use all detection datasets for batch training')
+    parser.add_argument('--all-seg-models', action='store_true',
+                       help='Use all segmentation models for batch training')
+    parser.add_argument('--all-det-models', action='store_true',
+                       help='Use all detection models for batch training')
     parser.add_argument('--parallel', action='store_true',
                        help='Run batch jobs in parallel')
     parser.add_argument('--dry-run', action='store_true',
@@ -743,9 +792,33 @@ def main():
     
     # Batch training
     if args.batch:
+        # Expand --all-* options
+        datasets = args.datasets or []
+        models = args.models or []
+        
+        # Handle segmentation datasets and models
+        if args.all_seg_datasets:
+            seg_datasets = [name for name, cfg in DATASET_CONFIGS.items() if cfg.task == 'segmentation']
+            datasets.extend(seg_datasets)
+        
+        if args.all_seg_models:
+            models.extend(list(SEGMENTATION_MODELS.keys()))
+        
+        # Handle detection datasets and models
+        if args.all_det_datasets:
+            det_datasets = [name for name, cfg in DATASET_CONFIGS.items() if cfg.task == 'detection']
+            datasets.extend(det_datasets)
+        
+        if args.all_det_models:
+            models.extend(list(DETECTION_MODELS.keys()))
+        
+        # Remove duplicates while preserving order
+        datasets = list(dict.fromkeys(datasets)) if datasets else None
+        models = list(dict.fromkeys(models)) if models else None
+        
         results = run_batch_training(
-            datasets=args.datasets,
-            models=args.models,
+            datasets=datasets,
+            models=models,
             strategies=args.strategies,
             ratios=args.ratios,
             parallel=args.parallel,
@@ -793,9 +866,12 @@ def main():
         custom_conditions=args.conditions,
         domain_filter=args.domain_filter,
         work_dir=args.work_dir,
+        cache_dir=args.cache_dir,
         resume_from=args.resume_from,
         load_from=args.load_from,
         seed=args.seed,
+        early_stop=not args.no_early_stop,
+        early_stop_patience=args.early_stop_patience,
         gpu_ids=args.gpu_ids,
         distributed=args.distributed,
     )

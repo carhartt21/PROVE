@@ -134,12 +134,72 @@ python unified_training.py --dataset ACDC --model deeplabv3plus_r50 --strategy g
 # Training with standard augmentation (CutMix, MixUp, etc.)
 python unified_training.py --dataset ACDC --model deeplabv3plus_r50 --strategy std_cutmix
 
+# Specify custom cache directory for pretrained weights
+python unified_training.py --dataset ACDC --model deeplabv3plus_r50 --strategy baseline --cache-dir /path/to/cache
+
 # Batch training for multiple configurations
 python unified_training.py --batch --datasets ACDC BDD10k --strategies baseline gen_cycleGAN
+
+# Batch training for all segmentation datasets and models
+python unified_training.py --batch --all-seg-datasets --all-seg-models --strategies baseline
+
+# Batch training for all detection datasets and models
+python unified_training.py --batch --all-det-datasets --all-det-models --strategies baseline
+
+# Dry run to preview batch training commands
+python unified_training.py --batch --all-seg-datasets --all-seg-models --dry-run
 
 # List all available options
 python unified_training.py --list
 ```
+
+#### Training Options
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `--dataset` | Dataset name (ACDC, BDD10k, BDD100k, IDD-AW, MapillaryVistas, OUTSIDE15k) | Required |
+| `--model` | Model name (deeplabv3plus_r50, pspnet_r50, segformer_mit-b5, etc.) | Required |
+| `--strategy` | Augmentation strategy (baseline, std_cutmix, gen_cycleGAN, etc.) | baseline |
+| `--real-gen-ratio` | Ratio of real to generated images (0.0 to 1.0) | 1.0 |
+| `--domain-filter` | Filter training data to specific domain (e.g., clear_day) | None |
+| `--work-dir` | Output directory for checkpoints and logs | Auto-generated |
+| `--cache-dir` | Directory for caching pretrained weights and checkpoints | ~/.cache/torch |
+| `--load-from` | Path to pretrained weights to initialize model | None |
+| `--resume-from` | Path to checkpoint to resume training from | None |
+| `--no-early-stop` | Disable early stopping (stops when no improvement for 5 validations) | Enabled |
+| `--early-stop-patience` | Number of validations without improvement before stopping | 5 |
+
+#### Early Stopping
+
+Early stopping is enabled by default to prevent overfitting and save training time. It monitors:
+- **Segmentation**: `val/mIoU` (validation mean Intersection over Union)
+- **Detection**: `coco/bbox_mAP` (COCO bounding box mean Average Precision)
+
+Training stops when the monitored metric doesn't improve by at least 0.001 for 5 consecutive validation steps.
+
+```bash
+# Disable early stopping
+python unified_training.py --dataset ACDC --model deeplabv3plus_r50 --no-early-stop
+
+# Custom patience (stop after 10 validations without improvement)
+python unified_training.py --dataset ACDC --model deeplabv3plus_r50 --early-stop-patience 10
+```
+
+#### Batch Training Options
+
+| Option | Description |
+|--------|-------------|
+| `--batch` | Enable batch training mode |
+| `--datasets` | List of datasets for batch training |
+| `--models` | List of models for batch training |
+| `--all-seg-datasets` | Use all segmentation datasets (ACDC, BDD10k, IDD-AW, MapillaryVistas, OUTSIDE15k) |
+| `--all-det-datasets` | Use all detection datasets (BDD100k) |
+| `--all-seg-models` | Use all segmentation models (deeplabv3plus_r50, pspnet_r50, segformer_mit-b5) |
+| `--all-det-models` | Use all detection models (faster_rcnn_r50_fpn_1x, yolox_l, rtmdet_l) |
+| `--strategies` | List of augmentation strategies for batch training |
+| `--ratios` | List of real-to-generated ratios for batch training |
+| `--parallel` | Run batch jobs in parallel |
+| `--dry-run` | Preview commands without executing |
 
 #### Using train_unified.sh (Alternative)
 
@@ -149,6 +209,9 @@ bash train_unified.sh single --dataset ACDC --model deeplabv3plus_r50 --strategy
 
 # With domain filter
 bash train_unified.sh single --dataset ACDC --model deeplabv3plus_r50 --strategy baseline --domain-filter clear_day
+
+# Batch training for all segmentation
+bash train_unified.sh batch --all-seg-datasets --all-seg-models --strategy baseline --dry-run
 ```
 
 See [docs/UNIFIED_TRAINING.md](docs/UNIFIED_TRAINING.md) for comprehensive documentation.
