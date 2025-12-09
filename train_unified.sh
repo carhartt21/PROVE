@@ -22,7 +22,14 @@ SEGMENTATION_MODELS="deeplabv3plus_r50 pspnet_r50 segformer_mit-b5"
 DETECTION_MODELS="faster_rcnn_r50_fpn_1x yolox_l rtmdet_l"
 
 # Available strategies
-STRATEGIES="baseline photometric_distort gen_cycleGAN gen_CUT gen_stargan_v2"
+# - Base strategies: baseline, photometric_distort
+# - Standard augmentations: std_cutmix, std_mixup, std_autoaugment, std_randaugment
+# - Generative models: gen_cycleGAN, gen_CUT, gen_stargan_v2, gen_SUSTechGAN, gen_EDICT,
+#                      gen_Img2Img, gen_IP2P, gen_UniControl, gen_step1x_new, gen_StyleID,
+#                      gen_NST, gen_albumentations, gen_automold, gen_imgaug_weather,
+#                      gen_Weather_Effect_Generator, gen_Attribute_Hallucination, 
+#                      gen_cnet_seg, gen_tunit, gen_flux1_kontext
+STRATEGIES="baseline photometric_distort std_cutmix std_mixup std_autoaugment std_randaugment gen_cycleGAN gen_CUT gen_stargan_v2 gen_SUSTechGAN gen_EDICT gen_Img2Img gen_IP2P gen_UniControl gen_step1x_new gen_StyleID gen_NST gen_albumentations gen_automold gen_imgaug_weather gen_Weather_Effect_Generator gen_Attribute_Hallucination gen_cnet_seg gen_tunit gen_flux1_kontext"
 
 # Real-to-generated ratios to try
 RATIOS="1.0 0.875 0.625 0.5 0.375 0.25 0.125 0.0"
@@ -46,7 +53,20 @@ print_usage() {
     echo "  help        Show this help message"
     echo ""
     echo "Options:"
+    echo "  --dataset <name>          Dataset name (ACDC, BDD10k, BDD100k, IDD-AW, MapillaryVistas, OUTSIDE15k)"
+    echo "  --model <name>            Model name (deeplabv3plus_r50, pspnet_r50, segformer_mit-b5, etc.)"
+    echo "  --strategy <name>         Augmentation strategy (see below)"
+    echo "  --real-gen-ratio <ratio>  Ratio of real to generated images (0.0 to 1.0)"
     echo "  --domain-filter <domain>  Filter training data to specific domain (e.g., clear_day)"
+    echo ""
+    echo "Strategies:"
+    echo "  Base:        baseline, photometric_distort"
+    echo "  Standard:    std_cutmix, std_mixup, std_autoaugment, std_randaugment"
+    echo "  Generative:  gen_cycleGAN, gen_CUT, gen_stargan_v2, gen_SUSTechGAN, gen_EDICT,"
+    echo "               gen_Img2Img, gen_IP2P, gen_UniControl, gen_step1x_new, gen_StyleID,"
+    echo "               gen_NST, gen_albumentations, gen_automold, gen_imgaug_weather,"
+    echo "               gen_Weather_Effect_Generator, gen_Attribute_Hallucination,"
+    echo "               gen_cnet_seg, gen_tunit, gen_flux1_kontext"
     echo ""
     echo "Examples:"
     echo "  $0 single --dataset ACDC --model deeplabv3plus_r50 --strategy baseline"
@@ -54,6 +74,8 @@ print_usage() {
     echo "  $0 batch --datasets ACDC BDD10k --strategy gen_cycleGAN"
     echo "  $0 ratio-exp --dataset ACDC --model deeplabv3plus_r50 --strategy gen_cycleGAN"
     echo "  $0 generate --strategy baseline --all"
+    echo ""
+    echo "Run '$0 list' for detailed available options."
 }
 
 train_single() {

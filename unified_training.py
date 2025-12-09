@@ -371,14 +371,14 @@ runner.train()
         elif 'runner' in self.config:
             max_iters = self.config['runner']['max_iters']
         else:
-            max_iters = 80000  # default
+            max_iters = 40000  # default
             
         if 'train_dataloader' in self.config:
             batch_size = self.config['train_dataloader']['batch_size']
         elif 'data' in self.config:
             batch_size = self.config['data']['samples_per_gpu']
         else:
-            batch_size = 2  # default
+            batch_size = 16  # default
             
         return {
             'dataset': self.dataset,
