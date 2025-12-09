@@ -231,10 +231,15 @@ class UnifiedTrainer:
 import sys
 sys.path.insert(0, "{Path(__file__).parent}")
 
-# Import mmsegmentation first to register all components
-import mmseg.models
-import mmseg.datasets  
-import mmseg.evaluation
+# Import mmsegmentation components carefully to avoid mmcv._ext issues
+try:
+    import mmseg.datasets  
+    import mmseg.evaluation
+    # Import specific model classes to register them
+    from mmseg.models.segmentors import EncoderDecoder
+    from mmseg.models.segmentors import CascadeEncoderDecoder
+except ImportError as e:
+    print(f"Warning: Some mmseg imports failed: {{e}}")
 
 from mmengine.runner import Runner
 from mmengine.config import Config
