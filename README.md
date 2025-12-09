@@ -177,6 +177,16 @@ Early stopping is enabled by default to prevent overfitting and save training ti
 
 Training stops when the monitored metric doesn't improve by at least 0.001 for 5 consecutive validation steps.
 
+#### Evaluation Metrics
+
+For segmentation tasks, the following metrics are computed during validation and testing:
+- **mIoU**: Mean Intersection over Union (standard metric)
+- **fwIoU**: Frequency Weighted IoU - weights each class IoU by its frequency in ground truth
+
+The fwIoU formula is: `fwIoU = Σ(freq_i × IoU_i)` where `freq_i = area_label_i / total_area`
+
+This gives more importance to common classes and is useful when class distribution matters.
+
 ```bash
 # Disable early stopping
 python unified_training.py --dataset ACDC --model deeplabv3plus_r50 --no-early-stop

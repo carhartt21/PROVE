@@ -27,11 +27,12 @@ from pathlib import Path
 from typing import Dict, List, Optional, Any, Union
 from dataclasses import dataclass, field
 
-# Register custom transforms for handling 3-channel labels stored as class IDs
+# Register custom transforms and metrics for handling 3-channel labels and fwIoU
 try:
     import numpy as np
     from mmcv.transforms import BaseTransform
-    from mmseg.registry import TRANSFORMS
+    from mmseg.registry import TRANSFORMS, METRICS
+    from mmseg.evaluation.metrics import IoUMetric
     
     @TRANSFORMS.register_module()
     class ReduceToSingleChannel(BaseTransform):
@@ -52,6 +53,65 @@ try:
         
         def __repr__(self) -> str:
             return f'{self.__class__.__name__}()'
+    
+    @METRICS.register_module()
+    class FWIoUMetric(IoUMetric):
+        """IoU Metric with additional Frequency Weighted IoU (fwIoU) computation.
+        
+        Extends IoUMetric to include fwIoU = sum(freq_i * IoU_i) where
+        freq_i = area_label_i / total_area.
+        
+        Args:
+            iou_metrics: List of metrics to compute. Supports 'mIoU', 'mDice', 'mFscore', 'fwIoU'.
+        """
+        
+        ALLOWED_METRICS = ['mIoU', 'mDice', 'mFscore', 'fwIoU']
+        
+        def __init__(self, iou_metrics=['mIoU'], **kwargs):
+            # Validate and separate fwIoU
+            for metric in iou_metrics:
+                if metric not in self.ALLOWED_METRICS:
+                    raise KeyError(f"metric {metric} not in {self.ALLOWED_METRICS}")
+            
+            self.compute_fwiou = 'fwIoU' in iou_metrics
+            parent_metrics = [m for m in iou_metrics if m != 'fwIoU']
+            if not parent_metrics:
+                parent_metrics = ['mIoU']
+            
+            super().__init__(iou_metrics=parent_metrics, **kwargs)
+        
+        def compute_metrics(self, results):
+            """Compute metrics including fwIoU."""
+            metrics = super().compute_metrics(results)
+            
+            if self.compute_fwiou:
+                # Aggregate areas
+                total_area_intersect = np.zeros((self.num_classes,), dtype=np.float64)
+                total_area_union = np.zeros((self.num_classes,), dtype=np.float64)
+                total_area_label = np.zeros((self.num_classes,), dtype=np.float64)
+                
+                for result in results:
+                    total_area_intersect += result['area_intersect']
+                    total_area_union += result['area_union']
+                    total_area_label += result['area_label']
+                
+                # Compute fwIoU: sum(freq_i * IoU_i)
+                iou = total_area_intersect / total_area_union
+                total_area = total_area_label.sum()
+                if total_area > 0:
+                    freq = total_area_label / total_area
+                    valid_mask = ~np.isnan(iou)
+                    iou = np.nan_to_num(iou, nan=0.0)
+                    freq = freq * valid_mask
+                    if freq.sum() > 0:
+                        freq = freq / freq.sum()
+                    fwiou = (freq * iou).sum()
+                else:
+                    fwiou = 0.0
+                
+                metrics['fwIoU'] = fwiou * 100  # Percentage like other metrics
+            
+            return metrics
             
 except ImportError:
     # MMSeg not installed yet, skip registration (will be registered when imported during training)
@@ -1097,9 +1157,9 @@ class UnifiedTrainingConfig:
             # Early stopping hook (custom hooks)
             'custom_hooks': self._build_custom_hooks(dataset_cfg, training_cfg),
             
-            # Evaluation (new format)
-            'val_evaluator': dict(type='IoUMetric', iou_metrics=['mIoU'], prefix='val') if dataset_cfg.task == 'segmentation' else dict(type='CocoMetric', metric='bbox'),
-            'test_evaluator': dict(type='IoUMetric', iou_metrics=['mIoU'], prefix='test') if dataset_cfg.task == 'segmentation' else dict(type='CocoMetric', metric='bbox'),
+            # Evaluation (new format) - use FWIoUMetric for both mIoU and fwIoU
+            'val_evaluator': dict(type='FWIoUMetric', iou_metrics=['mIoU', 'fwIoU'], prefix='val') if dataset_cfg.task == 'segmentation' else dict(type='CocoMetric', metric='bbox'),
+            'test_evaluator': dict(type='FWIoUMetric', iou_metrics=['mIoU', 'fwIoU'], prefix='test') if dataset_cfg.task == 'segmentation' else dict(type='CocoMetric', metric='bbox'),
             
             # Logging
             'log_processor': dict(by_epoch=False),
