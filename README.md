@@ -33,39 +33,60 @@ PROVE includes a comprehensive label unification strategy that enables joint tra
 ## Installation
 
 ### Prerequisites
-- Python 3.7+
-- PyTorch 1.6+
-- GCC > 9.3.0
-- CUDA (recommended for GPU acceleration)
+- Python 3.10+
+- PyTorch 2.1+
+- CUDA 11.8+ (recommended for GPU acceleration)
+- Mamba or Conda package manager
 
-### Step 1: Install OpenMMLab Dependencies
+### Quick Setup with Mamba (Recommended)
 
-**Important**: OpenMMLab packages have complex version interdependencies. The versions below represent a known working combination, but you may need to adjust based on your specific requirements.
+The easiest way to set up PROVE is using the provided environment file:
 
 ```bash
-# Install OpenMIM (OpenMMLab package manager)
-pip install -U openmim
+# Clone repository
+git clone https://github.com/carhartt21/PROVE.git
+cd PROVE
 
-pip install torch torchvision
+# Create mamba environment
+mamba env create -f environment.yml
 
-# Install MMEngine (latest stable)
-mim install mmengine
+# Activate environment
+mamba activate prove
 
-# Option 1: Latest versions (recommended for new projects)
-# MMCV 2.2.0 with compiled extensions (requires conda/mamba)
-mamba install -c conda-forge mmcv=2.2.0 
+# Verify installation
+python -c "import torch; print(f'PyTorch: {torch.__version__}')"
+python -c "import mmseg; print(f'MMSeg: {mmseg.__version__}')"
+```
+
+### Manual Installation
+
+**Important**: OpenMMLab packages have complex version interdependencies. The versions below represent a known working combination.
+
+```bash
+# Create environment
+mamba create -n prove python=3.10 -y
+mamba activate prove
+
+# Install PyTorch with CUDA 11.8
+mamba install pytorch=2.1.2 torchvision pytorch-cuda=11.8 -c pytorch -c nvidia -y
+
+# Install MMCV with compiled extensions (requires conda/mamba)
+mamba install -c conda-forge mmcv=2.1.0 -y
+
+# Install MMEngine and OpenMMLab packages
+pip install mmengine==0.10.7
 pip install mmsegmentation==1.2.2 mmdet==3.3.0
 
-# Option 2: Compatible versions (if conda installation fails)
-# MMCV 2.0.1 with MMSegmentation 1.1.2
-mim install "mmcv>=2.0.0,<2.1.0"
-pip install mmsegmentation==1.1.2 mmdet==3.1.0
-
-# Option 3: Legacy versions (most compatible but older)
-# MMCV 1.7.2 with older MMSegmentation
-pip install mmcv-full==1.7.2
-pip install mmsegmentation==0.30.0 mmdet==3.0.0
+# Install additional dependencies
+pip install ftfy regex tqdm
 ```
+
+**Tested Working Versions:**
+- PyTorch 2.1.2 with CUDA 11.8
+- MMCV 2.1.0
+- MMEngine 0.10.7
+- MMSegmentation 1.2.2
+- MMDetection 3.3.0
 
 **Version Compatibility Notes:**
 - **MMCV 2.x**: Requires compiled CUDA extensions not available in pip. Use conda for full functionality.
@@ -73,17 +94,22 @@ pip install mmsegmentation==0.30.0 mmdet==3.0.0
 - **MMDetection 3.3.x**: Latest object detection models and features
 - **Legacy versions**: More stable but missing newer architectures and optimizations
 
-### Step 2: Clone PROVE Pipeline
+### Verify Installation
 
 ```bash
-git clone <repository-url>
-cd prove
-```
-
-### Step 3: Install Additional Dependencies
-
-```bash
-pip install -r requirements.txt
+# Test that all components work
+python -c "
+import torch
+import mmcv
+import mmseg
+import mmdet
+print('All imports successful!')
+print(f'PyTorch: {torch.__version__}')
+print(f'CUDA available: {torch.cuda.is_available()}')
+print(f'MMCV: {mmcv.__version__}')
+print(f'MMSeg: {mmseg.__version__}')
+print(f'MMDet: {mmdet.__version__}')
+"
 ```
 
 ## Quick Start
@@ -96,17 +122,33 @@ PROVE now includes a unified training system that simplifies configuration manag
 # Basic training with baseline (no augmentation)
 python unified_training.py --dataset ACDC --model deeplabv3plus_r50 --strategy baseline
 
+# Training on specific domain (e.g., clear weather only)
+python unified_training.py --dataset ACDC --model deeplabv3plus_r50 --strategy baseline --domain-filter clear_day
+
 # Training with generated image augmentation (cycleGAN)
 python unified_training.py --dataset ACDC --model deeplabv3plus_r50 --strategy gen_cycleGAN
 
 # Mixed training with 50% real, 50% generated images
 python unified_training.py --dataset ACDC --model deeplabv3plus_r50 --strategy gen_cycleGAN --real-gen-ratio 0.5
 
+# Training with standard augmentation (CutMix, MixUp, etc.)
+python unified_training.py --dataset ACDC --model deeplabv3plus_r50 --strategy std_cutmix
+
 # Batch training for multiple configurations
 python unified_training.py --batch --datasets ACDC BDD10k --strategies baseline gen_cycleGAN
 
 # List all available options
 python unified_training.py --list
+```
+
+#### Using train_unified.sh (Alternative)
+
+```bash
+# Single training run
+bash train_unified.sh single --dataset ACDC --model deeplabv3plus_r50 --strategy baseline
+
+# With domain filter
+bash train_unified.sh single --dataset ACDC --model deeplabv3plus_r50 --strategy baseline --domain-filter clear_day
 ```
 
 See [docs/UNIFIED_TRAINING.md](docs/UNIFIED_TRAINING.md) for comprehensive documentation.
@@ -224,6 +266,12 @@ config = config_gen.generate_config(
 
 ### Supported Models
 
+#### Semantic Segmentation Models
+- **DeepLabV3+**: `deeplabv3plus_r50`, `deeplabv3plus_r101`
+- **PSPNet**: `pspnet_r50`, `pspnet_r101`
+- **SegFormer**: `segformer_mit-b5`
+- **UperNet**: `upernet_swin`
+
 #### Object Detection Models
 - **Faster R-CNN**: `faster_rcnn_r50_fpn_1x`
 - **YOLOX**: `yolox_l`, `yolox_m`, `yolox_s`
@@ -231,11 +279,16 @@ config = config_gen.generate_config(
 - **DETR**: `detr_r50`
 - **Mask R-CNN**: `mask_rcnn_r50_fpn_1x`
 
-#### Semantic Segmentation Models
-- **DeepLabV3+**: `deeplabv3plus_r50`, `deeplabv3plus_r101`
-- **PSPNet**: `pspnet_r50`, `pspnet_r101`
-- **SegFormer**: `segformer_mit-b5`
-- **UperNet**: `upernet_swin`
+### Supported Datasets
+
+| Dataset | Task | Conditions |
+|---------|------|------------|
+| ACDC | Segmentation | clear_day, fog, night, rain, snow |
+| BDD10k | Segmentation | Various weather conditions |
+| BDD100k | Segmentation/Detection | Large-scale diverse conditions |
+| IDD-AW | Segmentation | Indian driving with adverse weather |
+| MapillaryVistas | Segmentation | Global street-level imagery |
+| OUTSIDE15k | Segmentation | Outdoor scenes |
 
 ### Dataset Format Specifications
 
@@ -269,6 +322,40 @@ cityscapes/
     ├── val/
     └── test/
 ```
+
+#### PROVE Data Structure (AWARE Format)
+
+The PROVE pipeline expects data in the following structure:
+
+```
+FINAL_SPLITS/
+├── train/
+│   ├── images/
+│   │   ├── ACDC/
+│   │   │   ├── clear_day/
+│   │   │   ├── fog/
+│   │   │   ├── night/
+│   │   │   ├── rainy/
+│   │   │   └── snowy/
+│   │   ├── BDD10k/
+│   │   ├── BDD100k/
+│   │   ├── IDD-AW/
+│   │   ├── MapillaryVistas/
+│   │   └── OUTSIDE15k/
+│   └── labels/
+│       ├── ACDC/
+│       │   ├── clear_day/
+│       │   └── ...
+│       └── ...
+└── test/
+    ├── images/
+    └── labels/
+```
+
+**Label Format Notes:**
+- Labels are stored as PNG images with Cityscapes label IDs (0-33)
+- The pipeline automatically converts to trainIds (0-18) using `CityscapesLabelIdToTrainId` transform
+- 3-channel label PNGs are supported via `ReduceToSingleChannel` transform
 
 ### Advanced Configuration
 
@@ -328,6 +415,17 @@ PROVE includes 4 SOTA standard augmentation methods as optional baselines for co
 | `std_mixup` | MixUp | ICLR'18 | +3.4% mIoU |
 | `std_autoaugment` | AutoAugment | CVPR'19 | +2.8% mIoU |
 | `std_randaugment` | RandAugment | CVPR'20 | +2.3% mIoU |
+
+### Custom Transforms
+
+PROVE includes custom transforms for handling various label formats:
+
+| Transform | Purpose |
+|-----------|--------|
+| `ReduceToSingleChannel` | Converts 3-channel label PNGs to single channel |
+| `CityscapesLabelIdToTrainId` | Maps Cityscapes label IDs (0-33) to trainIds (0-18) |
+
+These transforms are automatically applied in the training pipeline when using datasets with non-standard label formats.
 
 #### Usage with Unified Training
 
