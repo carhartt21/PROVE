@@ -40,15 +40,18 @@ print_usage() {
     echo "Usage: $0 <command> [options]"
     echo ""
     echo "Commands:"
-    echo "  single       Test a single checkpoint"
-    echo "  detailed     Fine-grained test with per-domain and per-class results"
-    echo "  batch        Test multiple checkpoints"
-    echo "  submit       Submit single test job to LSF cluster"
-    echo "  submit-batch Submit multiple test jobs to LSF cluster"
-    echo "  find         Find available checkpoints"
-    echo "  results      Show test results summary"
-    echo "  list         List available options"
-    echo "  help         Show this help message"
+    echo "  single              Test a single checkpoint"
+    echo "  detailed            Fine-grained test with per-domain and per-class results"
+    echo "  batch               Test multiple checkpoints"
+    echo "  detailed-batch      Fine-grained test for multiple checkpoints"
+    echo "  submit              Submit single test job to LSF cluster"
+    echo "  submit-batch        Submit multiple test jobs to LSF cluster"
+    echo "  submit-detailed     Submit single detailed test job to LSF cluster"
+    echo "  submit-detailed-batch Submit multiple detailed test jobs to LSF cluster"
+    echo "  find                Find available checkpoints"
+    echo "  results             Show test results summary"
+    echo "  list                List available options"
+    echo "  help                Show this help message"
     echo ""
     echo "Single Test Options:"
     echo "  --dataset <name>          Dataset name (ACDC, BDD10k, BDD100k, IDD-AW, MapillaryVistas, OUTSIDE15k)"
@@ -88,10 +91,12 @@ print_usage() {
     echo "  $0 single --checkpoint /path/to/checkpoint.pth --dataset ACDC --model deeplabv3plus_r50"
     echo "  $0 detailed --dataset ACDC --model deeplabv3plus_r50 --strategy baseline"
     echo "  $0 detailed --dataset ACDC --model deeplabv3plus_r50 --strategy baseline --mode full"
+    echo "  $0 detailed-batch --all-seg-datasets --all-seg-models --strategy baseline --dry-run"
     echo "  $0 batch --all-seg-datasets --all-seg-models --strategy baseline --dry-run"
     echo "  $0 find --dataset ACDC --model deeplabv3plus_r50"
     echo "  $0 find --all"
     echo "  $0 submit --dataset ACDC --model deeplabv3plus_r50 --strategy baseline"
+    echo "  $0 submit-detailed --dataset ACDC --model deeplabv3plus_r50 --strategy baseline"
     echo "  $0 results --dataset ACDC"
     echo ""
 }
@@ -508,6 +513,146 @@ cmd_detailed() {
     
     echo ""
     echo "Fine-grained testing complete. Results saved to: $output_dir"
+}
+
+cmd_detailed_batch() {
+    local datasets=""
+    local models=""
+    local strategies=""
+    local ratio="1.0"
+    local checkpoint_type="best"
+    local work_dir="$DEFAULT_WEIGHTS_ROOT"
+    local test_split="test"
+    local mode="per-domain"
+    local data_root="${PROVE_DATA_ROOT:-/scratch/aaa_exchange/AWARE/FINAL_SPLITS}"
+    local all_seg_datasets=false
+    local all_det_datasets=false
+    local all_seg_models=false
+    local all_det_models=false
+    local dry_run=false
+    
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            --dataset) datasets="$datasets $2"; shift 2 ;;
+            --datasets) shift;
+                while [[ $# -gt 0 && ! "$1" =~ ^-- ]]; do
+                    datasets="$datasets $1"
+                    shift
+                done
+                ;;
+            --model) models="$models $2"; shift 2 ;;
+            --models) shift;
+                while [[ $# -gt 0 && ! "$1" =~ ^-- ]]; do
+                    models="$models $1"
+                    shift
+                done
+                ;;
+            --strategies) shift;
+                while [[ $# -gt 0 && ! "$1" =~ ^-- ]]; do
+                    strategies="$strategies $1"
+                    shift
+                done
+                ;;
+            --strategy) strategies="$2"; shift 2 ;;
+            --ratio) ratio="$2"; shift 2 ;;
+            --checkpoint-type) checkpoint_type="$2"; shift 2 ;;
+            --work-dir) work_dir="$2"; shift 2 ;;
+            --test-split) test_split="$2"; shift 2 ;;
+            --mode) mode="$2"; shift 2 ;;
+            --data-root) data_root="$2"; shift 2 ;;
+            --all-seg-datasets) all_seg_datasets=true; shift ;;
+            --all-det-datasets) all_det_datasets=true; shift ;;
+            --all-seg-models) all_seg_models=true; shift ;;
+            --all-det-models) all_det_models=true; shift ;;
+            --dry-run) dry_run=true; shift ;;
+            *) shift ;;
+        esac
+    done
+    
+    # Expand all-* options
+    if [ "$all_seg_datasets" = true ]; then
+        datasets="$datasets $SEGMENTATION_DATASETS"
+    fi
+    if [ "$all_det_datasets" = true ]; then
+        datasets="$datasets $DETECTION_DATASETS"
+    fi
+    if [ "$all_seg_models" = true ]; then
+        models="$models $SEGMENTATION_MODELS"
+    fi
+    if [ "$all_det_models" = true ]; then
+        models="$models $DETECTION_MODELS"
+    fi
+    
+    # Set default strategy if not specified
+    if [ -z "$strategies" ]; then
+        strategies="baseline"
+    fi
+    
+    # Trim leading spaces
+    datasets=$(echo $datasets | xargs)
+    models=$(echo $models | xargs)
+    strategies=$(echo $strategies | xargs)
+    
+    if [ -z "$datasets" ] || [ -z "$models" ]; then
+        echo "Error: Must specify datasets and models"
+        exit 1
+    fi
+    
+    echo "PROVE Batch Detailed Testing"
+    echo "============================"
+    echo "Datasets:   $datasets"
+    echo "Models:     $models"
+    echo "Strategies: $strategies"
+    echo "Ratio:      $ratio"
+    echo "Mode:       $mode"
+    echo ""
+    
+    local test_count=0
+    local success_count=0
+    local fail_count=0
+    
+    for dataset in $datasets; do
+        for model in $models; do
+            for strategy in $strategies; do
+                test_count=$((test_count + 1))
+                
+                local checkpoint=$(get_checkpoint_path "$work_dir" "$dataset" "$model" "$strategy" "$ratio" "$checkpoint_type")
+                
+                if [ "$dry_run" = true ]; then
+                    if [ -f "$checkpoint" ]; then
+                        echo "[$test_count] [DRY RUN] Would run detailed test: $dataset / $model / $strategy"
+                        echo "    Checkpoint: $checkpoint"
+                    else
+                        echo "[$test_count] [SKIP] Checkpoint not found: $dataset / $model / $strategy"
+                    fi
+                else
+                    if [ -f "$checkpoint" ]; then
+                        echo ""
+                        echo "[$test_count] Detailed testing: $dataset / $model / $strategy"
+                        if cmd_detailed --dataset "$dataset" --model "$model" --strategy "$strategy" \
+                                        --ratio "$ratio" --checkpoint "$checkpoint" \
+                                        --work-dir "$work_dir" --test-split "$test_split" \
+                                        --mode "$mode" --data-root "$data_root"; then
+                            success_count=$((success_count + 1))
+                        else
+                            fail_count=$((fail_count + 1))
+                        fi
+                    else
+                        echo "[$test_count] [SKIP] Checkpoint not found: $dataset / $model / $strategy"
+                        fail_count=$((fail_count + 1))
+                    fi
+                fi
+            done
+        done
+    done
+    
+    echo ""
+    echo "Batch detailed testing complete."
+    if [ "$dry_run" = false ]; then
+        echo "  Success: $success_count"
+        echo "  Failed/Skipped: $fail_count"
+        echo "  Total: $test_count"
+    fi
 }
 
 cmd_batch() {
@@ -961,6 +1106,216 @@ cmd_submit_batch() {
     fi
 }
 
+cmd_submit_detailed() {
+    local dataset=""
+    local model=""
+    local strategy="baseline"
+    local ratio="1.0"
+    local checkpoint_type="best"
+    local work_dir="$DEFAULT_WEIGHTS_ROOT"
+    local queue="BatchGPU"
+    local gpu_mem="16G"
+    local num_cpus="4"
+    local mode="per-domain"
+    local data_root="${PROVE_DATA_ROOT:-/scratch/aaa_exchange/AWARE/FINAL_SPLITS}"
+    local dry_run=false
+    
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            --dataset) dataset="$2"; shift 2 ;;
+            --model) model="$2"; shift 2 ;;
+            --strategy) strategy="$2"; shift 2 ;;
+            --ratio) ratio="$2"; shift 2 ;;
+            --checkpoint-type) checkpoint_type="$2"; shift 2 ;;
+            --work-dir) work_dir="$2"; shift 2 ;;
+            --queue) queue="$2"; shift 2 ;;
+            --gpu-mem) gpu_mem="$2"; shift 2 ;;
+            --num-cpus) num_cpus="$2"; shift 2 ;;
+            --mode) mode="$2"; shift 2 ;;
+            --data-root) data_root="$2"; shift 2 ;;
+            --dry-run) dry_run=true; shift ;;
+            *) echo "Unknown option: $1"; exit 1 ;;
+        esac
+    done
+    
+    if [ -z "$dataset" ] || [ -z "$model" ]; then
+        echo "Error: --dataset and --model are required"
+        exit 1
+    fi
+    
+    local job_name="prove_detailed_${dataset}_${model}_${strategy}"
+    local test_cmd="./test_unified.sh detailed --dataset $dataset --model $model --strategy $strategy --ratio $ratio --work-dir $work_dir --mode $mode --data-root $data_root"
+    
+    mkdir -p logs
+    
+    local bsub_cmd="bsub -gpu \"num=1:mode=exclusive_process:gmem=${gpu_mem}\" \
+        -q ${queue} \
+        -R \"span[hosts=1]\" \
+        -n ${num_cpus} \
+        -oo \"logs/${job_name}_%J.log\" \
+        -eo \"logs/${job_name}_%J.err\" \
+        -L /bin/bash \
+        -J \"${job_name}\" \
+        \"${test_cmd}\""
+    
+    echo "LSF Detailed Test Job Submission"
+    echo "================================="
+    echo "Job name:  $job_name"
+    echo "Dataset:   $dataset"
+    echo "Model:     $model"
+    echo "Strategy:  $strategy"
+    echo "Mode:      $mode"
+    echo "Queue:     $queue"
+    echo "GPU mem:   $gpu_mem"
+    echo ""
+    
+    if [ "$dry_run" = true ]; then
+        echo "[DRY RUN] Would execute:"
+        echo "$bsub_cmd"
+    else
+        echo "Submitting job..."
+        eval $bsub_cmd
+    fi
+}
+
+cmd_submit_detailed_batch() {
+    local datasets=""
+    local models=""
+    local strategies=""
+    local ratio="1.0"
+    local work_dir="$DEFAULT_WEIGHTS_ROOT"
+    local queue="BatchGPU"
+    local gpu_mem="16G"
+    local num_cpus="4"
+    local mode="per-domain"
+    local data_root="${PROVE_DATA_ROOT:-/scratch/aaa_exchange/AWARE/FINAL_SPLITS}"
+    local all_seg_datasets=false
+    local all_det_datasets=false
+    local all_seg_models=false
+    local all_det_models=false
+    local dry_run=false
+    
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            --dataset) datasets="$datasets $2"; shift 2 ;;
+            --datasets) shift;
+                while [[ $# -gt 0 && ! "$1" =~ ^-- ]]; do
+                    datasets="$datasets $1"
+                    shift
+                done
+                ;;
+            --model) models="$models $2"; shift 2 ;;
+            --models) shift;
+                while [[ $# -gt 0 && ! "$1" =~ ^-- ]]; do
+                    models="$models $1"
+                    shift
+                done
+                ;;
+            --strategies) shift;
+                while [[ $# -gt 0 && ! "$1" =~ ^-- ]]; do
+                    strategies="$strategies $1"
+                    shift
+                done
+                ;;
+            --strategy) strategies="$2"; shift 2 ;;
+            --ratio) ratio="$2"; shift 2 ;;
+            --work-dir) work_dir="$2"; shift 2 ;;
+            --queue) queue="$2"; shift 2 ;;
+            --gpu-mem) gpu_mem="$2"; shift 2 ;;
+            --num-cpus) num_cpus="$2"; shift 2 ;;
+            --mode) mode="$2"; shift 2 ;;
+            --data-root) data_root="$2"; shift 2 ;;
+            --all-seg-datasets) all_seg_datasets=true; shift ;;
+            --all-det-datasets) all_det_datasets=true; shift ;;
+            --all-seg-models) all_seg_models=true; shift ;;
+            --all-det-models) all_det_models=true; shift ;;
+            --dry-run) dry_run=true; shift ;;
+            *) shift ;;
+        esac
+    done
+    
+    # Expand all-* options
+    if [ "$all_seg_datasets" = true ]; then
+        datasets="$datasets $SEGMENTATION_DATASETS"
+    fi
+    if [ "$all_det_datasets" = true ]; then
+        datasets="$datasets $DETECTION_DATASETS"
+    fi
+    if [ "$all_seg_models" = true ]; then
+        models="$models $SEGMENTATION_MODELS"
+    fi
+    if [ "$all_det_models" = true ]; then
+        models="$models $DETECTION_MODELS"
+    fi
+    
+    if [ -z "$strategies" ]; then
+        strategies="baseline"
+    fi
+    
+    datasets=$(echo $datasets | xargs)
+    models=$(echo $models | xargs)
+    strategies=$(echo $strategies | xargs)
+    
+    if [ -z "$datasets" ] || [ -z "$models" ]; then
+        echo "Error: Must specify datasets and models"
+        exit 1
+    fi
+    
+    mkdir -p logs
+    
+    echo "LSF Batch Detailed Test Submission"
+    echo "==================================="
+    echo "Datasets:   $datasets"
+    echo "Models:     $models"
+    echo "Strategies: $strategies"
+    echo "Mode:       $mode"
+    echo "Queue:      $queue"
+    echo ""
+    
+    local job_count=0
+    for dataset in $datasets; do
+        for model in $models; do
+            for strategy in $strategies; do
+                job_count=$((job_count + 1))
+                
+                local checkpoint=$(get_checkpoint_path "$work_dir" "$dataset" "$model" "$strategy" "$ratio" "best")
+                
+                if [ -f "$checkpoint" ] || [ "$dry_run" = true ]; then
+                    local job_name="prove_detailed_${dataset}_${model}_${strategy}"
+                    local test_cmd="./test_unified.sh detailed --dataset $dataset --model $model --strategy $strategy --ratio $ratio --work-dir $work_dir --mode $mode --data-root $data_root"
+                    
+                    local bsub_cmd="bsub -gpu \"num=1:mode=exclusive_process:gmem=${gpu_mem}\" \
+                        -q ${queue} \
+                        -R \"span[hosts=1]\" \
+                        -n ${num_cpus} \
+                        -oo \"logs/${job_name}_%J.log\" \
+                        -eo \"logs/${job_name}_%J.err\" \
+                        -L /bin/bash \
+                        -J \"${job_name}\" \
+                        \"${test_cmd}\""
+                    
+                    if [ "$dry_run" = true ]; then
+                        echo "[$job_count] [DRY RUN] $job_name"
+                        echo "    Command: $test_cmd"
+                    else
+                        echo "[$job_count] Submitting: $job_name"
+                        eval $bsub_cmd
+                    fi
+                else
+                    echo "[$job_count] [SKIP] Checkpoint not found: $dataset / $model / $strategy"
+                fi
+            done
+        done
+    done
+    
+    echo ""
+    if [ "$dry_run" = true ]; then
+        echo "[DRY RUN] Would submit $job_count jobs"
+    else
+        echo "Submitted $job_count detailed test jobs to LSF"
+    fi
+}
+
 cmd_list() {
     echo "Available Options"
     echo "================="
@@ -994,6 +1349,10 @@ case "${1:-help}" in
         shift
         cmd_batch "$@"
         ;;
+    detailed-batch)
+        shift
+        cmd_detailed_batch "$@"
+        ;;
     submit)
         shift
         cmd_submit "$@"
@@ -1001,6 +1360,14 @@ case "${1:-help}" in
     submit-batch)
         shift
         cmd_submit_batch "$@"
+        ;;
+    submit-detailed)
+        shift
+        cmd_submit_detailed "$@"
+        ;;
+    submit-detailed-batch)
+        shift
+        cmd_submit_detailed_batch "$@"
         ;;
     find)
         shift

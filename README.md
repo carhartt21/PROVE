@@ -300,7 +300,83 @@ The unified testing script provides a streamlined interface for evaluating train
 - `mAP_50` / `mAP_75` - mAP at IoU thresholds 0.50/0.75
 - `mAP_s` / `mAP_m` / `mAP_l` - mAP by object size
 
+#### Fine-Grained Testing (Per-Domain/Per-Class)
+
+For detailed analysis of model performance across weather domains and semantic classes:
+
+```bash
+# Per-domain testing (breakdown by weather condition)
+./test_unified.sh detailed --dataset ACDC --model deeplabv3plus_r50 --strategy baseline --mode per-domain
+
+# Per-class testing
+./test_unified.sh detailed --dataset ACDC --model deeplabv3plus_r50 --strategy baseline --mode per-class
+
+# Full detailed testing (both per-domain and per-class)
+./test_unified.sh detailed --dataset ACDC --model deeplabv3plus_r50 --strategy baseline --mode full
+
+# Batch detailed testing
+./test_unified.sh detailed-batch --all-seg-models --dataset ACDC --strategy baseline --dry-run
+
+# Submit detailed test to LSF cluster
+./test_unified.sh submit-detailed --dataset ACDC --model deeplabv3plus_r50 --strategy baseline
+
+# Submit batch detailed tests
+./test_unified.sh submit-detailed-batch --all-seg-datasets --all-seg-models --strategy baseline --dry-run
+```
+
+**Detailed Test Output Files:**
+| File | Description |
+|------|-------------|
+| `metrics_summary.json` | Overall metrics and configuration |
+| `metrics_per_domain.json` | Metrics by weather domain (clear_day, foggy, night, etc.) |
+| `metrics_per_class.json` | IoU and Accuracy for each semantic class |
+| `metrics_full.json` | Complete breakdown with per-domain per-class metrics |
+| `test_report.txt` | Human-readable summary report |
+| `per_domain_metrics.csv` | CSV for spreadsheet import |
+| `per_class_metrics.csv` | CSV with per-class metrics |
+
+**Available Domains by Dataset:**
+
+| Dataset | Domains |
+|---------|---------|
+| ACDC | clear_day, cloudy, dawn_dusk, foggy, night, rainy, snowy |
+| BDD10k | clear, overcast, partly_cloudy, rainy, snowy, foggy |
+| BDD100k | clear, overcast, partly_cloudy, rainy, snowy, foggy, undefined |
+| IDD-AW | clear, foggy, rainy |
+| MapillaryVistas | (no domain split) |
+| OUTSIDE15k | (no domain split) |
+
 See [docs/UNIFIED_TESTING.md](docs/UNIFIED_TESTING.md) for comprehensive testing documentation.
+
+#### Result Visualization
+
+Generate publication-quality visualizations from test results:
+
+```bash
+# Generate all visualizations for test results
+python test_result_visualizer.py --results-dir /path/to/test_results_detailed/timestamp/
+
+# Generate specific plot types
+python test_result_visualizer.py --results-dir /path/to/results --plots domain class radar
+
+# Compare multiple models
+python test_result_visualizer.py --compare --results-dirs baseline_results cycleGAN_results --labels "Baseline" "CycleGAN"
+```
+
+**Visualization Types:**
+| Plot | Description |
+|------|-------------|
+| `domain_metrics.png` | Bar chart of mIoU/fwIoU by weather domain |
+| `class_iou.png` | Per-class IoU horizontal bar chart |
+| `domain_radar.png` | Radar chart comparing domains |
+| `heatmap_iou.png` | Per-domain per-class IoU heatmap |
+| `dashboard.png` | Comprehensive 6-panel summary |
+
+Example dashboard visualization:
+
+![Dashboard Example](docs/examples/dashboard.png)
+
+See [docs/RESULT_VISUALIZATION.md](docs/RESULT_VISUALIZATION.md) for comprehensive visualization documentation.
 
 #### Legacy Testing (prove.py)
 
