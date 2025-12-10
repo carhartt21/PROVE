@@ -199,6 +199,73 @@ Submit multiple test jobs to LSF cluster:
 ./test_unified.sh submit-batch --all-seg-datasets --all-seg-models --strategy baseline --dry-run
 ```
 
+### `detailed-batch` - Batch Detailed Testing
+
+Run fine-grained (per-domain, per-class) tests on multiple configurations locally:
+
+```bash
+./test_unified.sh detailed-batch --all-seg-models --dataset ACDC --strategy baseline --dry-run
+```
+
+**Options:**
+
+| Option | Description |
+|--------|-------------|
+| `--dataset <name>` | Single dataset |
+| `--datasets <names...>` | Multiple datasets |
+| `--model <name>` | Single model |
+| `--models <names...>` | Multiple models |
+| `--strategy <name>` | Training strategy |
+| `--mode <mode>` | Test mode: `per-domain`, `per-class`, `full` |
+| `--all-seg-datasets` | Use all segmentation datasets |
+| `--all-seg-models` | Use all segmentation models |
+| `--dry-run` | Show commands without executing |
+
+**Examples:**
+
+```bash
+# Detailed test for all models on ACDC
+./test_unified.sh detailed-batch --dataset ACDC --all-seg-models --strategy baseline
+
+# Detailed test for specific strategy variants
+./test_unified.sh detailed-batch --dataset ACDC --model deeplabv3plus_r50 --strategies baseline gen_cycleGAN
+```
+
+### `submit-detailed` - Submit Detailed Test to LSF
+
+Submit a single detailed test job to LSF cluster:
+
+```bash
+./test_unified.sh submit-detailed --dataset ACDC --model deeplabv3plus_r50 --strategy baseline
+```
+
+**Options:**
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--mode <mode>` | `per-domain` | Test mode: `per-domain`, `per-class`, `full` |
+| `--queue <name>` | `BatchGPU` | LSF queue name |
+| `--gpu-mem <size>` | `16G` | GPU memory requirement |
+| `--dry-run` | - | Show bsub command without executing |
+
+### `submit-detailed-batch` - Submit Batch Detailed Tests to LSF
+
+Submit multiple detailed test jobs to LSF cluster:
+
+```bash
+./test_unified.sh submit-detailed-batch --all-seg-datasets --all-seg-models --strategy baseline --dry-run
+```
+
+**Examples:**
+
+```bash
+# Submit detailed tests for all segmentation models
+./test_unified.sh submit-detailed-batch --dataset ACDC --all-seg-models --strategy baseline
+
+# Submit detailed tests for all datasets and models
+./test_unified.sh submit-detailed-batch --all-seg-datasets --all-seg-models --strategy baseline --mode full
+```
+
 ### `find` - Find Checkpoints
 
 Search for available checkpoints:

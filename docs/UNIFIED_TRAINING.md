@@ -85,6 +85,35 @@ The `--real-gen-ratio` parameter controls the proportion of real vs. generated i
 - `0.25` - 25% real, 75% generated
 - `0.0` - 100% generated images
 
+### Domain Filtering
+
+The `--domain-filter` parameter allows training on a specific weather/lighting domain within a dataset:
+
+```bash
+# Train only on clear day images from ACDC
+python unified_training.py --dataset ACDC --model deeplabv3plus_r50 --strategy baseline --domain-filter clear_day
+
+# Train only on foggy images
+python unified_training.py --dataset ACDC --model deeplabv3plus_r50 --strategy baseline --domain-filter foggy
+```
+
+**Available domains by dataset:**
+
+| Dataset | Available Domains |
+|---------|-------------------|
+| ACDC | `clear_day`, `cloudy`, `dawn_dusk`, `foggy`, `night`, `rainy`, `snowy` |
+| BDD10k | `clear`, `overcast`, `partly_cloudy`, `rainy`, `snowy`, `foggy` |
+| BDD100k | `clear`, `overcast`, `partly_cloudy`, `rainy`, `snowy`, `foggy`, `undefined` |
+| IDD-AW | `clear`, `foggy`, `rainy` |
+| MapillaryVistas | (no domain split) |
+| OUTSIDE15k | (no domain split) |
+
+**Use cases for domain filtering:**
+- Domain-specific model training
+- Ablation studies on weather robustness
+- Understanding per-domain model performance
+- Creating domain-specific baselines
+
 ## Mixed Dataloader System
 
 The mixed dataloader enables fine-grained control over training data composition.
@@ -185,6 +214,9 @@ The `train_unified.sh` script provides convenient shortcuts:
 ```bash
 # Single training
 ./train_unified.sh single --dataset ACDC --model deeplabv3plus_r50 --strategy baseline
+
+# Domain-specific training
+./train_unified.sh single --dataset ACDC --model deeplabv3plus_r50 --strategy baseline --domain-filter clear_day
 
 # Batch training
 ./train_unified.sh batch --datasets ACDC BDD10k --strategy gen_cycleGAN

@@ -122,3 +122,5 @@ ehthumbs.db
 
 # Misc
 *~
+logs/
+tasksync/
