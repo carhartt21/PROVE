@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 """
-Custom MMSegmentation transforms for PROVE training.
+Custom MMSegmentation transforms and metrics for PROVE training.
 
-This module registers custom transforms needed for the PROVE dataset.
+This module registers custom transforms and metrics needed for the PROVE dataset.
 Import this module before building configs to ensure transforms are registered.
 """
 
 import numpy as np
 from mmcv.transforms import BaseTransform
-from mmseg.registry import TRANSFORMS
+from mmseg.registry import TRANSFORMS, METRICS
+from mmseg.evaluation.metrics import IoUMetric
 
 
 # Cityscapes label ID to trainId mapping
@@ -117,3 +118,75 @@ class CityscapesLabelIdToTrainId(BaseTransform):
     
     def __repr__(self) -> str:
         return f'{self.__class__.__name__}()'
+
+
+@METRICS.register_module()
+class FWIoUMetric(IoUMetric):
+    """IoU Metric with additional Frequency Weighted IoU (fwIoU) computation.
+    
+    Extends IoUMetric to include fwIoU = sum(freq_i * IoU_i) where
+    freq_i = area_label_i / total_area.
+    
+    Args:
+        iou_metrics: List of metrics to compute. Supports 'mIoU', 'mDice', 'mFscore', 'fwIoU'.
+    """
+    
+    ALLOWED_METRICS = ['mIoU', 'mDice', 'mFscore', 'fwIoU']
+    
+    def __init__(self, iou_metrics=['mIoU'], **kwargs):
+        # Validate and separate fwIoU
+        for metric in iou_metrics:
+            if metric not in self.ALLOWED_METRICS:
+                raise KeyError(f"metric {metric} not in {self.ALLOWED_METRICS}")
+        
+        self.compute_fwiou = 'fwIoU' in iou_metrics
+        parent_metrics = [m for m in iou_metrics if m != 'fwIoU']
+        if not parent_metrics:
+            parent_metrics = ['mIoU']
+        
+        super().__init__(iou_metrics=parent_metrics, **kwargs)
+    
+    def compute_metrics(self, results: list):
+        """Compute metrics including fwIoU.
+        
+        Args:
+            results: List of tuples (area_intersect, area_union, area_pred_label, area_label)
+        """
+        # Get parent metrics first
+        metrics = super().compute_metrics(results)
+        
+        if self.compute_fwiou:
+            # Results are list of tuples: [(intersect, union, pred, label), ...]
+            # Convert to tuple of lists and sum
+            results_tuple = tuple(zip(*results))
+            assert len(results_tuple) == 4
+            
+            total_area_intersect = sum(results_tuple[0])
+            total_area_union = sum(results_tuple[1])
+            total_area_label = sum(results_tuple[3])  # Index 3 is area_label
+            
+            # Compute fwIoU: sum(freq_i * IoU_i)
+            # Avoid division by zero
+            with np.errstate(divide='ignore', invalid='ignore'):
+                iou = total_area_intersect / total_area_union
+            
+            total_area = total_area_label.sum()
+            if total_area > 0:
+                freq = total_area_label / total_area
+                # Handle NaN values in IoU
+                valid_mask = ~np.isnan(iou)
+                iou = np.nan_to_num(iou, nan=0.0)
+                freq = freq * valid_mask
+                # Normalize frequencies
+                freq_sum = freq.sum()
+                if freq_sum > 0:
+                    freq = freq / freq_sum
+                fwiou = (freq * iou).sum()
+            else:
+                fwiou = 0.0
+            
+            metrics['fwIoU'] = np.round(fwiou * 100, 2)  # Percentage like other metrics
+        
+        return metrics
+
+

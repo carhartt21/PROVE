@@ -163,6 +163,7 @@ class DatasetConfig:
     test_ann_dir: str = ''
     num_classes: int = 19
     classes: tuple = field(default_factory=tuple)
+    img_suffix: str = '.png'  # Image file extension (labels always use .png)
     
 
 # Cityscapes-style classes (used by most segmentation datasets)
@@ -195,6 +196,7 @@ DATASET_CONFIGS = {
         test_ann_dir='test/labels/ACDC',
         num_classes=19,
         classes=CITYSCAPES_CLASSES,
+        img_suffix='.png',  # ACDC images are PNG
     ),
     'BDD10k': DatasetConfig(
         name='BDD10k',
@@ -208,6 +210,7 @@ DATASET_CONFIGS = {
         test_ann_dir='test/labels/BDD10k',
         num_classes=19,
         classes=CITYSCAPES_CLASSES,
+        img_suffix='.jpg',  # BDD10k images are JPEG
     ),
     'BDD100k': DatasetConfig(
         name='BDD100k',
@@ -221,6 +224,7 @@ DATASET_CONFIGS = {
         test_ann_dir='test/labels/BDD100k',
         num_classes=10,
         classes=BDD100K_DET_CLASSES,
+        img_suffix='.jpg',  # BDD100k images are JPEG
     ),
     'IDD-AW': DatasetConfig(
         name='IDD-AW',
@@ -234,6 +238,7 @@ DATASET_CONFIGS = {
         test_ann_dir='test/labels/IDD-AW',
         num_classes=19,
         classes=CITYSCAPES_CLASSES,
+        img_suffix='.png',  # IDD-AW images are PNG
     ),
     'MapillaryVistas': DatasetConfig(
         name='MapillaryVistas',
@@ -247,6 +252,7 @@ DATASET_CONFIGS = {
         test_ann_dir='test/labels/MapillaryVistas',
         num_classes=19,
         classes=CITYSCAPES_CLASSES,  # Using unified labels
+        img_suffix='.jpg',  # MapillaryVistas images are JPEG
     ),
     'OUTSIDE15k': DatasetConfig(
         name='OUTSIDE15k',
@@ -260,6 +266,7 @@ DATASET_CONFIGS = {
         test_ann_dir='test/labels/OUTSIDE15k',
         num_classes=19,
         classes=CITYSCAPES_CLASSES,
+        img_suffix='.jpg',  # OUTSIDE15k images are JPEG
     ),
 }
 
@@ -387,7 +394,6 @@ MODEL_DEFINITIONS = {
             'seg_pad_val': 255,
             'size': (512, 512),
         },
-        'pretrained': 'pretrain/mit_b5.pth',
         'backbone': {
             'type': 'MixVisionTransformer',
             'in_channels': 3,
@@ -403,6 +409,10 @@ MODEL_DEFINITIONS = {
             'drop_rate': 0.0,
             'attn_drop_rate': 0.0,
             'drop_path_rate': 0.1,
+            'init_cfg': {
+                'type': 'Pretrained',
+                'checkpoint': 'https://download.openmmlab.com/mmsegmentation/v0.5/pretrain/segformer/mit_b5_20220624-658746d9.pth',
+            },
         },
         'decode_head': {
             'type': 'SegformerHead',
@@ -1242,7 +1252,7 @@ class UnifiedTrainingConfig:
                         seg_map_path=train_ann_dir,
                     ),
                     # Custom suffixes for non-standard Cityscapes format
-                    img_suffix='.png',
+                    img_suffix=dataset_cfg.img_suffix,
                     seg_map_suffix='.png',
                     reduce_zero_label=False,  # Set here instead of LoadAnnotations
                     pipeline='{{train_pipeline}}',
@@ -1263,7 +1273,7 @@ class UnifiedTrainingConfig:
                         seg_map_path=dataset_cfg.val_ann_dir,
                     ),
                     # Custom suffixes for non-standard Cityscapes format
-                    img_suffix='.png',
+                    img_suffix=dataset_cfg.img_suffix,
                     seg_map_suffix='.png',
                     reduce_zero_label=False,  # Set here instead of LoadAnnotations
                     pipeline='{{test_pipeline}}',

@@ -45,8 +45,10 @@ print_usage() {
     echo "Usage: $0 <command> [options]"
     echo ""
     echo "Commands:"
-    echo "  single      Train a single configuration"
-    echo "  batch       Train multiple configurations"
+    echo "  single       Train a single configuration"
+    echo "  batch        Train multiple configurations"
+    echo "  submit       Submit single job to LSF cluster"
+    echo "  submit-batch Submit multiple jobs to LSF cluster"
     echo "  ratio-exp   Run ratio experiment for one model"
     echo "  generate    Generate configs without training"
     echo "  list        List available options"
@@ -61,6 +63,12 @@ print_usage() {
     echo "  --cache-dir <path>        Directory for caching pretrained weights"
     echo "  --no-early-stop           Disable early stopping (enabled by default)"
     echo "  --early-stop-patience <n> Number of validations without improvement before stopping (default: 5)"
+    echo ""
+    echo "LSF Submit Options:"
+    echo "  --queue <name>            LSF queue name (default: BatchGPU)"
+    echo "  --gpu-mem <size>          GPU memory requirement (default: 24G)"
+    echo "  --num-cpus <n>            Number of CPUs per job (default: 8)"
+    echo "  --dry-run                 Show bsub command without executing"
     echo ""
     echo "Batch Training Options:"
     echo "  --datasets <names...>     List of datasets for batch training"
@@ -85,6 +93,10 @@ print_usage() {
     echo "  $0 single --dataset ACDC --model deeplabv3plus_r50 --strategy baseline"
     echo "  $0 single --dataset ACDC --model deeplabv3plus_r50 --domain-filter clear_day"
     echo "  $0 single --dataset ACDC --model deeplabv3plus_r50 --cache-dir /data/pretrained"
+    echo "  $0 submit --dataset ACDC --model deeplabv3plus_r50 --strategy baseline"
+    echo "  $0 submit --dataset ACDC --model deeplabv3plus_r50 --strategy gen_cycleGAN --queue BatchGPU"
+    echo "  $0 submit-batch --all-seg-datasets --all-seg-models --strategy baseline"
+    echo "  $0 submit-batch --datasets ACDC BDD10k --models deeplabv3plus_r50 --strategy gen_cycleGAN --dry-run"
     echo "  $0 batch --all-seg-datasets --all-seg-models --strategy baseline"
     echo "  $0 batch --all-det-datasets --all-det-models --strategy baseline --dry-run"
     echo "  $0 batch --datasets ACDC BDD10k --strategy gen_cycleGAN"
@@ -104,14 +116,14 @@ train_single() {
     echo "Training: $dataset / $model / $strategy (ratio=$ratio)"
     if [ -n "$domain_filter" ]; then
         echo "Domain filter: $domain_filter"
-        python unified_training.py \
+        mamba run -n prove python unified_training.py \
             --dataset "$dataset" \
             --model "$model" \
             --strategy "$strategy" \
             --real-gen-ratio "$ratio" \
             --domain-filter "$domain_filter"
     else
-        python unified_training.py \
+        mamba run -n prove python unified_training.py \
             --dataset "$dataset" \
             --model "$model" \
             --strategy "$strategy" \
@@ -154,7 +166,7 @@ cmd_single() {
     fi
     
     # Build command with optional parameters
-    local cmd="python unified_training.py --dataset $dataset --model $model --strategy $strategy --real-gen-ratio $ratio"
+    local cmd="mamba run -n prove python unified_training.py --dataset $dataset --model $model --strategy $strategy --real-gen-ratio $ratio"
     
     if [ -n "$domain_filter" ]; then
         cmd="$cmd --domain-filter $domain_filter"
@@ -313,6 +325,244 @@ cmd_list() {
     python unified_training_config.py --list
 }
 
+cmd_submit_batch() {
+    # Submit multiple jobs to LSF cluster
+    local datasets=""
+    local models=""
+    local strategy="baseline"
+    local ratio="1.0"
+    local queue="BatchGPU"
+    local gpu_mem="24G"
+    local num_cpus="8"
+    local dry_run=false
+    local all_seg_datasets=false
+    local all_det_datasets=false
+    local all_seg_models=false
+    local all_det_models=false
+    local cache_dir=""
+    local no_early_stop=false
+    local early_stop_patience=""
+    
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            --datasets) shift; 
+                while [[ $# -gt 0 && ! "$1" =~ ^-- ]]; do
+                    datasets="$datasets $1"
+                    shift
+                done
+                ;;
+            --models) shift;
+                while [[ $# -gt 0 && ! "$1" =~ ^-- ]]; do
+                    models="$models $1"
+                    shift
+                done
+                ;;
+            --strategy) strategy="$2"; shift 2 ;;
+            --ratio) ratio="$2"; shift 2 ;;
+            --queue) queue="$2"; shift 2 ;;
+            --gpu-mem) gpu_mem="$2"; shift 2 ;;
+            --num-cpus) num_cpus="$2"; shift 2 ;;
+            --cache-dir) cache_dir="$2"; shift 2 ;;
+            --no-early-stop) no_early_stop=true; shift ;;
+            --early-stop-patience) early_stop_patience="$2"; shift 2 ;;
+            --all-seg-datasets) all_seg_datasets=true; shift ;;
+            --all-det-datasets) all_det_datasets=true; shift ;;
+            --all-seg-models) all_seg_models=true; shift ;;
+            --all-det-models) all_det_models=true; shift ;;
+            --dry-run) dry_run=true; shift ;;
+            *) shift ;;
+        esac
+    done
+    
+    # Expand all-* options
+    if [ "$all_seg_datasets" = true ]; then
+        datasets="$datasets $SEGMENTATION_DATASETS"
+    fi
+    if [ "$all_det_datasets" = true ]; then
+        datasets="$datasets $DETECTION_DATASETS"
+    fi
+    if [ "$all_seg_models" = true ]; then
+        models="$models $SEGMENTATION_MODELS"
+    fi
+    if [ "$all_det_models" = true ]; then
+        models="$models $DETECTION_MODELS"
+    fi
+    
+    # Trim leading spaces
+    datasets=$(echo $datasets | xargs)
+    models=$(echo $models | xargs)
+    
+    if [ -z "$datasets" ] || [ -z "$models" ]; then
+        echo "Error: Must specify datasets and models (use --datasets/--models or --all-seg-datasets/--all-seg-models etc.)"
+        exit 1
+    fi
+    
+    # Create logs directory
+    mkdir -p logs
+    
+    echo "LSF Batch Job Submission"
+    echo "========================"
+    echo "Datasets:  $datasets"
+    echo "Models:    $models"
+    echo "Strategy:  $strategy"
+    echo "Ratio:     $ratio"
+    echo "Queue:     $queue"
+    echo "GPU mem:   $gpu_mem"
+    echo "CPUs:      $num_cpus"
+    echo ""
+    
+    local job_count=0
+    for dataset in $datasets; do
+        for model in $models; do
+            job_count=$((job_count + 1))
+            
+            # Build job name
+            local job_name="prove_${dataset}_${model}_${strategy}"
+            if [[ "$ratio" != "1.0" ]]; then
+                local ratio_int=$(echo "$ratio * 100" | bc | cut -d. -f1)
+                job_name="${job_name}_r${ratio_int}"
+            fi
+            
+            # Build training command
+            local train_cmd="./train_unified.sh single --dataset $dataset --model $model --strategy $strategy --ratio $ratio"
+            
+            if [ -n "$cache_dir" ]; then
+                train_cmd="$train_cmd --cache-dir $cache_dir"
+            fi
+            if [ "$no_early_stop" = true ]; then
+                train_cmd="$train_cmd --no-early-stop"
+            fi
+            if [ -n "$early_stop_patience" ]; then
+                train_cmd="$train_cmd --early-stop-patience $early_stop_patience"
+            fi
+            
+            # Build bsub command
+            local bsub_cmd="bsub -gpu \"num=1:mode=exclusive_process:gmem=${gpu_mem}\" \
+                -q ${queue} \
+                -R \"span[hosts=1]\" \
+                -n ${num_cpus} \
+                -oo \"logs/${job_name}_%J.log\" \
+                -eo \"logs/${job_name}_%J.err\" \
+                -L /bin/bash \
+                -J \"${job_name}\" \
+                \"${train_cmd}\""
+            
+            if [ "$dry_run" = true ]; then
+                echo "[$job_count] [DRY RUN] $job_name"
+                echo "    Command: $train_cmd"
+            else
+                echo "[$job_count] Submitting: $job_name"
+                eval $bsub_cmd
+            fi
+        done
+    done
+    
+    echo ""
+    if [ "$dry_run" = true ]; then
+        echo "[DRY RUN] Would submit $job_count jobs"
+    else
+        echo "Submitted $job_count jobs to LSF"
+    fi
+}
+
+cmd_submit() {
+    # Submit job to LSF cluster
+    local dataset=""
+    local model=""
+    local strategy="baseline"
+    local ratio="1.0"
+    local domain_filter=""
+    local cache_dir=""
+    local no_early_stop=false
+    local early_stop_patience=""
+    local queue="BatchGPU"
+    local gpu_mem="24G"
+    local num_cpus="8"
+    local dry_run=false
+    
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            --dataset) dataset="$2"; shift 2 ;;
+            --model) model="$2"; shift 2 ;;
+            --strategy) strategy="$2"; shift 2 ;;
+            --ratio) ratio="$2"; shift 2 ;;
+            --domain-filter) domain_filter="$2"; shift 2 ;;
+            --cache-dir) cache_dir="$2"; shift 2 ;;
+            --no-early-stop) no_early_stop=true; shift ;;
+            --early-stop-patience) early_stop_patience="$2"; shift 2 ;;
+            --queue) queue="$2"; shift 2 ;;
+            --gpu-mem) gpu_mem="$2"; shift 2 ;;
+            --num-cpus) num_cpus="$2"; shift 2 ;;
+            --dry-run) dry_run=true; shift ;;
+            *) echo "Unknown option: $1"; exit 1 ;;
+        esac
+    done
+    
+    if [ -z "$dataset" ] || [ -z "$model" ]; then
+        echo "Error: --dataset and --model are required"
+        exit 1
+    fi
+    
+    # Build job name
+    local job_name="prove_${dataset}_${model}_${strategy}"
+    if [[ "$ratio" != "1.0" ]]; then
+        local ratio_int=$(echo "$ratio * 100" | bc | cut -d. -f1)
+        job_name="${job_name}_r${ratio_int}"
+    fi
+    
+    # Build training command
+    local train_cmd="./train_unified.sh single --dataset $dataset --model $model --strategy $strategy --ratio $ratio"
+    
+    if [ -n "$domain_filter" ]; then
+        train_cmd="$train_cmd --domain-filter $domain_filter"
+    fi
+    if [ -n "$cache_dir" ]; then
+        train_cmd="$train_cmd --cache-dir $cache_dir"
+    fi
+    if [ "$no_early_stop" = true ]; then
+        train_cmd="$train_cmd --no-early-stop"
+    fi
+    if [ -n "$early_stop_patience" ]; then
+        train_cmd="$train_cmd --early-stop-patience $early_stop_patience"
+    fi
+    
+    # Create logs directory
+    mkdir -p logs
+    
+    # Build bsub command
+    local bsub_cmd="bsub -gpu \"num=1:mode=exclusive_process:gmem=${gpu_mem}\" \
+        -q ${queue} \
+        -R \"span[hosts=1]\" \
+        -n ${num_cpus} \
+        -oo \"logs/${job_name}_%J.log\" \
+        -eo \"logs/${job_name}_%J.err\" \
+        -L /bin/bash \
+        -J \"${job_name}\" \
+        \"${train_cmd}\""
+    
+    echo "LSF Job Submission"
+    echo "=================="
+    echo "Job name:  $job_name"
+    echo "Dataset:   $dataset"
+    echo "Model:     $model"
+    echo "Strategy:  $strategy"
+    echo "Ratio:     $ratio"
+    echo "Queue:     $queue"
+    echo "GPU mem:   $gpu_mem"
+    echo "CPUs:      $num_cpus"
+    echo ""
+    echo "Command:   $train_cmd"
+    echo ""
+    
+    if [ "$dry_run" = true ]; then
+        echo "[DRY RUN] Would execute:"
+        echo "$bsub_cmd"
+    else
+        echo "Submitting job..."
+        eval $bsub_cmd
+    fi
+}
+
 # ============================================================================
 # Main
 # ============================================================================
@@ -325,6 +575,14 @@ case "${1:-help}" in
     batch)
         shift
         cmd_batch "$@"
+        ;;
+    submit)
+        shift
+        cmd_submit "$@"
+        ;;
+    submit-batch)
+        shift
+        cmd_submit_batch "$@"
         ;;
     ratio-exp)
         shift

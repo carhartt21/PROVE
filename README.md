@@ -224,9 +224,85 @@ bash train_unified.sh single --dataset ACDC --model deeplabv3plus_r50 --strategy
 bash train_unified.sh batch --all-seg-datasets --all-seg-models --strategy baseline --dry-run
 ```
 
+#### LSF Cluster Submission
+
+Submit training jobs directly to LSF cluster:
+
+```bash
+# Submit single job
+bash train_unified.sh submit --dataset ACDC --model deeplabv3plus_r50 --strategy baseline
+
+# Submit with custom queue and GPU memory
+bash train_unified.sh submit --dataset ACDC --model deeplabv3plus_r50 --strategy gen_cycleGAN \
+    --queue BatchGPU --gpu-mem 32G --num-cpus 8
+
+# Preview bsub command without submitting (dry run)
+bash train_unified.sh submit --dataset ACDC --model deeplabv3plus_r50 --strategy baseline --dry-run
+```
+
+**LSF Submit Options:**
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--queue` | BatchGPU | LSF queue name |
+| `--gpu-mem` | 24G | GPU memory requirement |
+| `--num-cpus` | 8 | Number of CPUs per job |
+| `--dry-run` | - | Show bsub command without executing |
+
 See [docs/UNIFIED_TRAINING.md](docs/UNIFIED_TRAINING.md) for comprehensive documentation.
 
 ### 2. Testing and Evaluation
+
+#### Using test_unified.sh (Recommended)
+
+The unified testing script provides a streamlined interface for evaluating trained models:
+
+```bash
+# Test a single trained model
+./test_unified.sh single --dataset ACDC --model deeplabv3plus_r50 --strategy baseline
+
+# Test with validation split
+./test_unified.sh single --dataset ACDC --model deeplabv3plus_r50 --strategy baseline --test-split val
+
+# Find available checkpoints
+./test_unified.sh find --all
+
+# Batch test all models on a dataset
+./test_unified.sh batch --dataset ACDC --all-seg-models --strategy baseline --dry-run
+
+# Submit test job to LSF cluster
+./test_unified.sh submit --dataset ACDC --model deeplabv3plus_r50 --strategy baseline
+
+# View test results
+./test_unified.sh results --dataset ACDC
+```
+
+**Test Options:**
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `--dataset` | Dataset name | Required |
+| `--model` | Model name | Required |
+| `--strategy` | Augmentation strategy used in training | `baseline` |
+| `--ratio` | Real-to-generated ratio used in training | `1.0` |
+| `--checkpoint` | Path to checkpoint (auto-detected if not specified) | Auto |
+| `--test-split` | Test split: `val`, `test` | `test` |
+| `--output-dir` | Output directory for results | Auto |
+
+**Output Metrics (Segmentation):**
+- `aAcc` - Average accuracy (overall pixel accuracy)
+- `mIoU` - Mean Intersection over Union
+- `mAcc` - Mean per-class accuracy  
+- `fwIoU` - Frequency-weighted IoU
+
+**Output Metrics (Detection):**
+- `mAP` - Mean Average Precision
+- `mAP_50` / `mAP_75` - mAP at IoU thresholds 0.50/0.75
+- `mAP_s` / `mAP_m` / `mAP_l` - mAP by object size
+
+See [docs/UNIFIED_TESTING.md](docs/UNIFIED_TESTING.md) for comprehensive testing documentation.
+
+#### Legacy Testing (prove.py)
 
 Evaluate your trained model:
 
