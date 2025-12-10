@@ -11,6 +11,10 @@ Features:
 - Heatmaps for per-domain per-class breakdown
 - Summary dashboard with multiple subplots
 - Model/strategy comparison plots
+- Class frequency vs performance correlation
+- Domain performance gap analysis
+- Box plot distributions
+- Training curve visualization
 - CSV export for further analysis
 
 Usage:
@@ -458,6 +462,525 @@ class TestResultVisualizer:
         
         return fig
     
+    def plot_class_frequency_performance(
+        self,
+        save: bool = True,
+        show: bool = False,
+    ) -> Optional[plt.Figure]:
+        """
+        Create scatter plot showing correlation between class frequency and performance.
+        
+        This helps identify if rare classes have lower performance.
+        
+        Args:
+            save: Whether to save the figure
+            show: Whether to display the figure
+        """
+        if 'per_class' not in self.data:
+            print("No per-class data available")
+            return None
+        
+        per_class = self.data['per_class'].get('per_class', {})
+        if not per_class:
+            print("Empty per-class data")
+            return None
+        
+        # Extract data
+        classes = []
+        iou_values = []
+        frequencies = []  # Use pixel count or acc as proxy for frequency
+        
+        for cls_name, cls_data in per_class.items():
+            classes.append(cls_name)
+            iou_values.append(cls_data.get('IoU', 0))
+            # Use Acc as proxy for frequency impact (higher acc often means more samples)
+            frequencies.append(cls_data.get('Acc', 0))
+        
+        if not classes:
+            print("No class data")
+            return None
+        
+        # Create figure
+        fig, ax = plt.subplots(figsize=self.figsize)
+        
+        # Scatter plot with size based on IoU
+        scatter = ax.scatter(frequencies, iou_values, 
+                            s=np.array(iou_values) * 3 + 50,  # Size based on IoU
+                            c=iou_values, cmap='RdYlGn', 
+                            alpha=0.7, edgecolors='black', linewidth=0.5)
+        
+        # Add class labels
+        for i, cls in enumerate(classes):
+            ax.annotate(cls, (frequencies[i], iou_values[i]),
+                       xytext=(5, 5), textcoords='offset points',
+                       fontsize=8, alpha=0.8)
+        
+        # Add trend line
+        if len(frequencies) > 2:
+            z = np.polyfit(frequencies, iou_values, 1)
+            p = np.poly1d(z)
+            x_line = np.linspace(min(frequencies), max(frequencies), 100)
+            ax.plot(x_line, p(x_line), "r--", alpha=0.8, label=f'Trend: y={z[0]:.2f}x+{z[1]:.2f}')
+        
+        # Calculate correlation
+        correlation = np.corrcoef(frequencies, iou_values)[0, 1]
+        
+        # Customize plot
+        ax.set_xlabel('Class Accuracy (%)', fontsize=12)
+        ax.set_ylabel('Class IoU (%)', fontsize=12)
+        ax.set_title(f'Class Accuracy vs IoU Correlation (r={correlation:.3f})', 
+                    fontsize=14, fontweight='bold')
+        ax.legend(loc='lower right')
+        ax.grid(True, alpha=0.3)
+        
+        # Colorbar
+        cbar = plt.colorbar(scatter, ax=ax)
+        cbar.set_label('IoU (%)', fontsize=10)
+        
+        plt.tight_layout()
+        
+        if save:
+            filepath = self.output_dir / 'class_freq_performance.png'
+            fig.savefig(filepath, dpi=self.dpi, bbox_inches='tight')
+            print(f"Saved: {filepath}")
+        
+        if show:
+            plt.show()
+        else:
+            plt.close(fig)
+        
+        return fig
+    
+    def plot_domain_gap_analysis(
+        self,
+        reference_domain: Optional[str] = None,
+        metric: str = 'mIoU',
+        save: bool = True,
+        show: bool = False,
+    ) -> Optional[plt.Figure]:
+        """
+        Create domain gap analysis showing performance drop from reference domain.
+        
+        Args:
+            reference_domain: Reference domain (default: domain with highest mIoU)
+            metric: Metric to analyze
+            save: Whether to save the figure
+            show: Whether to display the figure
+        """
+        if 'per_domain' not in self.data:
+            print("No per-domain data available")
+            return None
+        
+        per_domain = self.data['per_domain'].get('per_domain', {})
+        if not per_domain:
+            print("Empty per-domain data")
+            return None
+        
+        # Find reference domain (best performing)
+        if reference_domain is None:
+            reference_domain = max(per_domain.keys(), 
+                                  key=lambda d: per_domain[d].get(metric, 0))
+        
+        ref_value = per_domain[reference_domain].get(metric, 0)
+        
+        # Calculate gaps
+        domains = []
+        values = []
+        gaps = []
+        
+        for domain, data in per_domain.items():
+            domains.append(domain)
+            val = data.get(metric, 0)
+            values.append(val)
+            gaps.append(ref_value - val)
+        
+        # Sort by gap
+        sorted_indices = np.argsort(gaps)
+        domains = [domains[i] for i in sorted_indices]
+        values = [values[i] for i in sorted_indices]
+        gaps = [gaps[i] for i in sorted_indices]
+        
+        # Create figure
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
+        
+        # Left: Performance values
+        colors = ['green' if d == reference_domain else 
+                 ('orange' if g < 20 else 'red') for d, g in zip(domains, gaps)]
+        bars1 = ax1.barh(domains, values, color=colors, alpha=0.8, edgecolor='black', linewidth=0.5)
+        
+        # Add reference line
+        ax1.axvline(ref_value, color='green', linestyle='--', linewidth=2, 
+                   label=f'Reference ({reference_domain}): {ref_value:.1f}%')
+        
+        for bar, val in zip(bars1, values):
+            ax1.annotate(f'{val:.1f}%', xy=(bar.get_width(), bar.get_y() + bar.get_height()/2),
+                        xytext=(5, 0), textcoords='offset points', ha='left', va='center', fontsize=9)
+        
+        ax1.set_xlabel(f'{metric} (%)', fontsize=12)
+        ax1.set_ylabel('Domain', fontsize=12)
+        ax1.set_title(f'Domain {metric} Performance', fontweight='bold')
+        ax1.legend(loc='lower right')
+        ax1.set_xlim(0, 100)
+        ax1.grid(axis='x', alpha=0.3)
+        
+        # Right: Performance gap (drop from reference)
+        gap_colors = ['gray' if g == 0 else ('orange' if g < 20 else 'red') for g in gaps]
+        bars2 = ax2.barh(domains, gaps, color=gap_colors, alpha=0.8, edgecolor='black', linewidth=0.5)
+        
+        for bar, g in zip(bars2, gaps):
+            if g > 0:
+                ax2.annotate(f'-{g:.1f}%', xy=(bar.get_width(), bar.get_y() + bar.get_height()/2),
+                            xytext=(5, 0), textcoords='offset points', ha='left', va='center', fontsize=9)
+        
+        ax2.set_xlabel('Performance Gap (%)', fontsize=12)
+        ax2.set_ylabel('Domain', fontsize=12)
+        ax2.set_title(f'Performance Drop from {reference_domain}', fontweight='bold')
+        ax2.grid(axis='x', alpha=0.3)
+        
+        # Add summary text
+        avg_gap = np.mean([g for g in gaps if g > 0])
+        max_gap = max(gaps)
+        worst_domain = domains[gaps.index(max_gap)]
+        
+        summary_text = f'Average Gap: {avg_gap:.1f}%\nMax Gap: {max_gap:.1f}% ({worst_domain})'
+        ax2.text(0.95, 0.05, summary_text, transform=ax2.transAxes,
+                fontsize=10, verticalalignment='bottom', horizontalalignment='right',
+                bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+        
+        plt.tight_layout()
+        
+        if save:
+            filepath = self.output_dir / 'domain_gap_analysis.png'
+            fig.savefig(filepath, dpi=self.dpi, bbox_inches='tight')
+            print(f"Saved: {filepath}")
+        
+        if show:
+            plt.show()
+        else:
+            plt.close(fig)
+        
+        return fig
+    
+    def plot_domain_boxplot(
+        self,
+        metric: str = 'IoU',
+        save: bool = True,
+        show: bool = False,
+    ) -> Optional[plt.Figure]:
+        """
+        Create box plot showing distribution of class metrics per domain.
+        
+        Args:
+            metric: Metric to visualize
+            save: Whether to save the figure
+            show: Whether to display the figure
+        """
+        if 'full' not in self.data:
+            print("No full metrics data available")
+            return None
+        
+        full_data = self.data['full']
+        per_domain_class = full_data.get('per_domain_per_class', {})
+        
+        if not per_domain_class:
+            print("No per-domain per-class data available")
+            return None
+        
+        # Prepare data for boxplot
+        data_for_plot = []
+        domain_labels = []
+        
+        for domain, class_data in per_domain_class.items():
+            values = [class_data[cls].get(metric, 0) for cls in class_data.keys()]
+            data_for_plot.append(values)
+            domain_labels.append(domain)
+        
+        # Sort by median
+        medians = [np.median(d) for d in data_for_plot]
+        sorted_indices = np.argsort(medians)[::-1]
+        data_for_plot = [data_for_plot[i] for i in sorted_indices]
+        domain_labels = [domain_labels[i] for i in sorted_indices]
+        
+        # Create figure
+        fig, ax = plt.subplots(figsize=self.figsize)
+        
+        # Create boxplot
+        bp = ax.boxplot(data_for_plot, labels=domain_labels, patch_artist=True)
+        
+        # Color the boxes
+        colors = [DOMAIN_COLORS.get(d, '#ADD8E6') for d in domain_labels]
+        for patch, color in zip(bp['boxes'], colors):
+            patch.set_facecolor(color)
+            patch.set_alpha(0.7)
+        
+        # Add individual points with jitter
+        for i, (domain, data) in enumerate(zip(domain_labels, data_for_plot)):
+            x = np.random.normal(i + 1, 0.04, size=len(data))
+            ax.scatter(x, data, alpha=0.5, color='black', s=20, zorder=3)
+        
+        # Add mean markers
+        means = [np.mean(d) for d in data_for_plot]
+        ax.scatter(range(1, len(domain_labels) + 1), means, 
+                  color='red', marker='D', s=50, zorder=4, label='Mean')
+        
+        ax.set_xlabel('Domain', fontsize=12)
+        ax.set_ylabel(f'{metric} (%)', fontsize=12)
+        ax.set_title(f'Distribution of Per-Class {metric} by Domain', fontsize=14, fontweight='bold')
+        ax.set_xticklabels(domain_labels, rotation=45, ha='right')
+        ax.legend(loc='lower right')
+        ax.grid(axis='y', alpha=0.3)
+        ax.set_ylim(0, 105)
+        
+        plt.tight_layout()
+        
+        if save:
+            filepath = self.output_dir / f'domain_boxplot_{metric.lower()}.png'
+            fig.savefig(filepath, dpi=self.dpi, bbox_inches='tight')
+            print(f"Saved: {filepath}")
+        
+        if show:
+            plt.show()
+        else:
+            plt.close(fig)
+        
+        return fig
+    
+    def plot_training_curves(
+        self,
+        scalars_path: Optional[str] = None,
+        save: bool = True,
+        show: bool = False,
+    ) -> Optional[plt.Figure]:
+        """
+        Plot training curves from scalars.json if available.
+        
+        Args:
+            scalars_path: Path to scalars.json (default: look in parent directories)
+            save: Whether to save the figure
+            show: Whether to display the figure
+        """
+        # Try to find scalars.json
+        if scalars_path is None:
+            # Look in results directory and parent directories
+            search_paths = [
+                self.results_dir / 'scalars.json',
+                self.results_dir.parent / 'scalars.json',
+                self.results_dir.parent.parent / 'scalars.json',
+            ]
+            
+            # Also look for vis_data directories (MMEngine logging)
+            for vis_path in self.results_dir.parent.glob('**/vis_data/scalars.json'):
+                search_paths.append(vis_path)
+            
+            scalars_path = None
+            for path in search_paths:
+                if path.exists():
+                    scalars_path = path
+                    break
+        else:
+            scalars_path = Path(scalars_path)
+        
+        if scalars_path is None or not scalars_path.exists():
+            print("No scalars.json found for training curves")
+            return None
+        
+        # Load scalars
+        scalars = []
+        with open(scalars_path) as f:
+            for line in f:
+                try:
+                    scalars.append(json.loads(line.strip()))
+                except json.JSONDecodeError:
+                    continue
+        
+        if not scalars:
+            print("Empty scalars.json")
+            return None
+        
+        # Extract metrics
+        iterations = []
+        losses = []
+        learning_rates = []
+        
+        for entry in scalars:
+            if 'loss' in entry:
+                iterations.append(entry.get('iter', entry.get('step', len(iterations))))
+                losses.append(entry.get('loss', 0))
+                if 'lr' in entry:
+                    learning_rates.append(entry.get('lr', 0))
+        
+        if not losses:
+            print("No loss data found in scalars")
+            return None
+        
+        # Create figure
+        fig, axes = plt.subplots(1, 2 if learning_rates else 1, figsize=(14 if learning_rates else 10, 6))
+        
+        if not learning_rates:
+            axes = [axes]
+        
+        # Loss curve
+        ax1 = axes[0]
+        ax1.plot(iterations, losses, 'b-', alpha=0.7, linewidth=1)
+        
+        # Add smoothed curve
+        if len(losses) > 10:
+            window = min(50, len(losses) // 10)
+            smoothed = np.convolve(losses, np.ones(window)/window, mode='valid')
+            ax1.plot(iterations[window-1:], smoothed, 'r-', linewidth=2, label='Smoothed')
+        
+        ax1.set_xlabel('Iteration', fontsize=12)
+        ax1.set_ylabel('Loss', fontsize=12)
+        ax1.set_title('Training Loss Curve', fontsize=14, fontweight='bold')
+        ax1.legend()
+        ax1.grid(True, alpha=0.3)
+        
+        # Learning rate curve
+        if learning_rates:
+            ax2 = axes[1]
+            ax2.plot(iterations[:len(learning_rates)], learning_rates, 'g-', linewidth=1.5)
+            ax2.set_xlabel('Iteration', fontsize=12)
+            ax2.set_ylabel('Learning Rate', fontsize=12)
+            ax2.set_title('Learning Rate Schedule', fontsize=14, fontweight='bold')
+            ax2.grid(True, alpha=0.3)
+            ax2.ticklabel_format(style='scientific', axis='y', scilimits=(0,0))
+        
+        plt.tight_layout()
+        
+        if save:
+            filepath = self.output_dir / 'training_curves.png'
+            fig.savefig(filepath, dpi=self.dpi, bbox_inches='tight')
+            print(f"Saved: {filepath}")
+        
+        if show:
+            plt.show()
+        else:
+            plt.close(fig)
+        
+        return fig
+    
+    def plot_improvement_comparison(
+        self,
+        baseline_dir: str,
+        metric: str = 'mIoU',
+        save: bool = True,
+        show: bool = False,
+    ) -> Optional[plt.Figure]:
+        """
+        Create delta/improvement chart comparing current results to baseline.
+        
+        Args:
+            baseline_dir: Path to baseline results directory
+            metric: Metric to compare
+            save: Whether to save the figure
+            show: Whether to display the figure
+        """
+        baseline_path = Path(baseline_dir)
+        
+        # Load baseline domain metrics
+        baseline_domain_path = baseline_path / 'metrics_per_domain.json'
+        if not baseline_domain_path.exists():
+            print(f"No baseline metrics found at {baseline_domain_path}")
+            return None
+        
+        with open(baseline_domain_path) as f:
+            baseline_data = json.load(f)
+        
+        if 'per_domain' not in self.data:
+            print("No per-domain data in current results")
+            return None
+        
+        current_data = self.data['per_domain'].get('per_domain', {})
+        baseline_domains = baseline_data.get('per_domain', {})
+        
+        # Calculate improvements
+        domains = []
+        current_values = []
+        baseline_values = []
+        improvements = []
+        
+        for domain in current_data.keys():
+            if domain in baseline_domains:
+                domains.append(domain)
+                curr = current_data[domain].get(metric, 0)
+                base = baseline_domains[domain].get(metric, 0)
+                current_values.append(curr)
+                baseline_values.append(base)
+                improvements.append(curr - base)
+        
+        if not domains:
+            print("No matching domains found between current and baseline")
+            return None
+        
+        # Sort by improvement
+        sorted_indices = np.argsort(improvements)[::-1]
+        domains = [domains[i] for i in sorted_indices]
+        current_values = [current_values[i] for i in sorted_indices]
+        baseline_values = [baseline_values[i] for i in sorted_indices]
+        improvements = [improvements[i] for i in sorted_indices]
+        
+        # Create figure
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
+        
+        # Left: Side by side comparison
+        x = np.arange(len(domains))
+        width = 0.35
+        
+        bars1 = ax1.bar(x - width/2, baseline_values, width, label='Baseline', color='coral', alpha=0.8)
+        bars2 = ax1.bar(x + width/2, current_values, width, label='Current', color='steelblue', alpha=0.8)
+        
+        ax1.set_xlabel('Domain', fontsize=12)
+        ax1.set_ylabel(f'{metric} (%)', fontsize=12)
+        ax1.set_title(f'Baseline vs Current {metric}', fontweight='bold')
+        ax1.set_xticks(x)
+        ax1.set_xticklabels(domains, rotation=45, ha='right')
+        ax1.legend()
+        ax1.set_ylim(0, 105)
+        ax1.grid(axis='y', alpha=0.3)
+        
+        # Right: Improvement delta
+        colors = ['green' if imp > 0 else 'red' for imp in improvements]
+        bars3 = ax2.barh(domains, improvements, color=colors, alpha=0.8, edgecolor='black', linewidth=0.5)
+        
+        for bar, imp in zip(bars3, improvements):
+            sign = '+' if imp > 0 else ''
+            ax2.annotate(f'{sign}{imp:.1f}%', 
+                        xy=(bar.get_width(), bar.get_y() + bar.get_height()/2),
+                        xytext=(5 if imp >= 0 else -5, 0), 
+                        textcoords='offset points', 
+                        ha='left' if imp >= 0 else 'right', 
+                        va='center', fontsize=9)
+        
+        ax2.axvline(0, color='black', linewidth=1)
+        ax2.set_xlabel(f'{metric} Change (%)', fontsize=12)
+        ax2.set_ylabel('Domain', fontsize=12)
+        ax2.set_title('Improvement from Baseline', fontweight='bold')
+        ax2.grid(axis='x', alpha=0.3)
+        
+        # Summary
+        avg_improvement = np.mean(improvements)
+        improved_count = sum(1 for i in improvements if i > 0)
+        summary_text = f'Avg: {avg_improvement:+.1f}%\nImproved: {improved_count}/{len(domains)}'
+        ax2.text(0.95, 0.05, summary_text, transform=ax2.transAxes,
+                fontsize=10, verticalalignment='bottom', horizontalalignment='right',
+                bbox=dict(boxstyle='round', 
+                         facecolor='lightgreen' if avg_improvement > 0 else 'lightsalmon', 
+                         alpha=0.5))
+        
+        plt.tight_layout()
+        
+        if save:
+            filepath = self.output_dir / 'improvement_comparison.png'
+            fig.savefig(filepath, dpi=self.dpi, bbox_inches='tight')
+            print(f"Saved: {filepath}")
+        
+        if show:
+            plt.show()
+        else:
+            plt.close(fig)
+        
+        return fig
+    
     def plot_summary_dashboard(
         self,
         save: bool = True,
@@ -620,15 +1143,21 @@ class TestResultVisualizer:
         if 'per_domain' in self.data:
             self.plot_domain_metrics(show=show)
             self.plot_radar_chart(show=show)
+            self.plot_domain_gap_analysis(show=show)
         
         # Class metrics
         if 'per_class' in self.data:
             self.plot_class_metrics(metric='IoU', show=show)
             self.plot_class_metrics(metric='Acc', show=show)
+            self.plot_class_frequency_performance(show=show)
         
-        # Heatmap (requires full data)
+        # Heatmap and boxplot (requires full data)
         if 'full' in self.data:
             self.plot_heatmap(metric='IoU', show=show)
+            self.plot_domain_boxplot(metric='IoU', show=show)
+        
+        # Training curves (if available)
+        self.plot_training_curves(show=show)
         
         # Dashboard
         self.plot_summary_dashboard(show=show)
@@ -747,6 +1276,12 @@ Examples:
 
     # Change output format
     python test_result_visualizer.py --results-dir /path/to/results --format pdf --dpi 300
+
+    # Generate domain gap analysis
+    python test_result_visualizer.py --results-dir /path/to/results --plots gap boxplot
+
+    # Compare with baseline
+    python test_result_visualizer.py --results-dir /path/to/results --baseline /path/to/baseline
         """
     )
     
@@ -758,10 +1293,12 @@ Examples:
     parser.add_argument('--compare', action='store_true', help='Compare multiple results')
     parser.add_argument('--results-dirs', type=str, nargs='+', help='Paths to result directories for comparison')
     parser.add_argument('--labels', type=str, nargs='+', help='Labels for comparison')
+    parser.add_argument('--baseline', type=str, help='Baseline results directory for improvement comparison')
     
     # Plot selection
     parser.add_argument('--plots', type=str, nargs='+', 
-                       choices=['domain', 'class', 'radar', 'heatmap', 'dashboard', 'all'],
+                       choices=['domain', 'class', 'radar', 'heatmap', 'dashboard', 
+                               'gap', 'boxplot', 'freq', 'training', 'all'],
                        default=['all'], help='Types of plots to generate')
     
     # Output options
@@ -811,6 +1348,18 @@ Examples:
             visualizer.plot_heatmap(show=args.show)
         if 'dashboard' in args.plots:
             visualizer.plot_summary_dashboard(show=args.show)
+        if 'gap' in args.plots:
+            visualizer.plot_domain_gap_analysis(show=args.show)
+        if 'boxplot' in args.plots:
+            visualizer.plot_domain_boxplot(show=args.show)
+        if 'freq' in args.plots:
+            visualizer.plot_class_frequency_performance(show=args.show)
+        if 'training' in args.plots:
+            visualizer.plot_training_curves(show=args.show)
+    
+    # Baseline comparison if provided
+    if args.baseline:
+        visualizer.plot_improvement_comparison(args.baseline, show=args.show)
 
 
 if __name__ == '__main__':

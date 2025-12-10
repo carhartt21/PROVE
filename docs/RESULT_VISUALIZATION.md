@@ -107,16 +107,100 @@ python test_result_visualizer.py --results-dir /path/to/results --plots dashboar
 
 ![Dashboard Example](examples/dashboard.png)
 
+### 6. Domain Gap Analysis (`gap`)
+
+Two-panel visualization showing:
+- Left: Performance values per domain with reference line
+- Right: Performance drop from best domain (domain adaptation gap)
+
+This helps identify which domains suffer the most from domain shift.
+
+```bash
+python test_result_visualizer.py --results-dir /path/to/results --plots gap
+```
+
+**Output**: `figures/domain_gap_analysis.png`
+
+### 7. Class Frequency vs Performance (`freq`)
+
+Scatter plot showing correlation between class accuracy and IoU with trend line. Helps identify:
+- If rare classes have lower performance
+- Classes that underperform relative to their frequency
+- Overall correlation between accuracy and IoU
+
+```bash
+python test_result_visualizer.py --results-dir /path/to/results --plots freq
+```
+
+**Output**: `figures/class_freq_performance.png`
+
+### 8. Domain Box Plot Distribution (`boxplot`)
+
+Box plot showing the distribution of per-class IoU within each domain. Helps visualize:
+- Variance in class performance per domain
+- Outlier classes in each domain
+- Median vs mean performance
+
+Requires full per-domain per-class metrics (`metrics_full.json`).
+
+```bash
+python test_result_visualizer.py --results-dir /path/to/results --plots boxplot
+```
+
+**Output**: `figures/domain_boxplot_iou.png`
+
+### 9. Training Curves (`training`)
+
+Line plots showing training progress:
+- Loss curve with smoothed trend line
+- Learning rate schedule (if available)
+
+Requires `scalars.json` from MMEngine logging.
+
+```bash
+python test_result_visualizer.py --results-dir /path/to/results --plots training
+```
+
+**Output**: `figures/training_curves.png`
+
+### 10. Improvement Comparison (`--baseline`)
+
+Two-panel visualization comparing current results to a baseline:
+- Left: Side-by-side bar comparison
+- Right: Delta chart showing improvement/regression per domain
+
+```bash
+python test_result_visualizer.py --results-dir /path/to/results --baseline /path/to/baseline/results
+```
+
+**Output**: `figures/improvement_comparison.png`
+
 ## Command Line Options
 
 | Option | Description | Default |
 |--------|-------------|---------|
 | `--results-dir <path>` | Path to test results directory | Required |
 | `--output-dir <path>` | Output directory for figures | `results_dir/figures` |
-| `--plots <types>` | Plot types: `domain`, `class`, `radar`, `heatmap`, `dashboard`, `all` | `all` |
+| `--plots <types>` | Plot types (see below) | `all` |
 | `--format <fmt>` | Output format: `png`, `pdf`, `svg` | `png` |
 | `--dpi <int>` | Figure resolution | `150` |
 | `--show` | Display figures interactively | Disabled |
+| `--baseline <path>` | Baseline results for improvement comparison | None |
+
+### Available Plot Types
+
+| Plot Type | Description | Output File |
+|-----------|-------------|-------------|
+| `domain` | Per-domain metrics bar chart | `domain_metrics.png` |
+| `class` | Per-class IoU/Acc bar charts | `class_iou.png`, `class_acc.png` |
+| `radar` | Multi-metric domain radar chart | `domain_radar.png` |
+| `heatmap` | Domain vs class IoU heatmap | `heatmap_iou.png` |
+| `dashboard` | Comprehensive 6-panel summary | `dashboard.png` |
+| `gap` | Domain gap analysis | `domain_gap_analysis.png` |
+| `freq` | Class frequency vs performance | `class_freq_performance.png` |
+| `boxplot` | Per-domain IoU distribution | `domain_boxplot_iou.png` |
+| `training` | Training curves | `training_curves.png` |
+| `all` | Generate all plots | All files |
 
 ### Comparison Mode
 
@@ -145,6 +229,13 @@ visualizer.plot_class_metrics(metric='IoU', sort_by='value')
 visualizer.plot_radar_chart()
 visualizer.plot_heatmap(metric='IoU')
 visualizer.plot_summary_dashboard()
+
+# New visualization methods
+visualizer.plot_domain_gap_analysis()  # Domain gap analysis
+visualizer.plot_class_frequency_performance()  # Correlation plot
+visualizer.plot_domain_boxplot(metric='IoU')  # Distribution analysis
+visualizer.plot_training_curves()  # Training progress
+visualizer.plot_improvement_comparison('/path/to/baseline')  # Delta comparison
 
 # Generate all plots
 visualizer.generate_all_plots()

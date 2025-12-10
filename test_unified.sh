@@ -83,6 +83,7 @@ print_usage() {
     echo "LSF Submit Options:"
     echo "  --queue <name>            LSF queue name (default: BatchGPU)"
     echo "  --gpu-mem <size>          GPU memory requirement (default: 16G)"
+    echo "  --gpu-mode <mode>         GPU mode: shared or exclusive_process (default: shared)"
     echo "  --num-cpus <n>            Number of CPUs per job (default: 4)"
     echo ""
     echo "Examples:"
@@ -917,7 +918,8 @@ cmd_submit() {
     local work_dir="$DEFAULT_WEIGHTS_ROOT"
     local queue="BatchGPU"
     local gpu_mem="16G"
-    local num_cpus="4"
+    local gpu_mode="shared"
+    local num_cpus="8"
     local dry_run=false
     
     while [[ $# -gt 0 ]]; do
@@ -930,6 +932,7 @@ cmd_submit() {
             --work-dir) work_dir="$2"; shift 2 ;;
             --queue) queue="$2"; shift 2 ;;
             --gpu-mem) gpu_mem="$2"; shift 2 ;;
+            --gpu-mode) gpu_mode="$2"; shift 2 ;;
             --num-cpus) num_cpus="$2"; shift 2 ;;
             --dry-run) dry_run=true; shift ;;
             *) echo "Unknown option: $1"; exit 1 ;;
@@ -946,7 +949,7 @@ cmd_submit() {
     
     mkdir -p logs
     
-    local bsub_cmd="bsub -gpu \"num=1:mode=exclusive_process:gmem=${gpu_mem}\" \
+    local bsub_cmd="bsub -gpu \"num=1:mode=${gpu_mode}:gmem=${gpu_mem}\" \
         -q ${queue} \
         -R \"span[hosts=1]\" \
         -n ${num_cpus} \
@@ -964,6 +967,7 @@ cmd_submit() {
     echo "Strategy:  $strategy"
     echo "Queue:     $queue"
     echo "GPU mem:   $gpu_mem"
+    echo "GPU mode:  $gpu_mode"
     echo ""
     
     if [ "$dry_run" = true ]; then
@@ -983,7 +987,8 @@ cmd_submit_batch() {
     local work_dir="$DEFAULT_WEIGHTS_ROOT"
     local queue="BatchGPU"
     local gpu_mem="16G"
-    local num_cpus="4"
+    local gpu_mode="shared"
+    local num_cpus="8"
     local all_seg_datasets=false
     local all_det_datasets=false
     local all_seg_models=false
@@ -1015,6 +1020,7 @@ cmd_submit_batch() {
             --work-dir) work_dir="$2"; shift 2 ;;
             --queue) queue="$2"; shift 2 ;;
             --gpu-mem) gpu_mem="$2"; shift 2 ;;
+            --gpu-mode) gpu_mode="$2"; shift 2 ;;
             --num-cpus) num_cpus="$2"; shift 2 ;;
             --all-seg-datasets) all_seg_datasets=true; shift ;;
             --all-det-datasets) all_det_datasets=true; shift ;;
@@ -1060,6 +1066,8 @@ cmd_submit_batch() {
     echo "Models:     $models"
     echo "Strategies: $strategies"
     echo "Queue:      $queue"
+    echo "GPU mem:    $gpu_mem"
+    echo "GPU mode:   $gpu_mode"
     echo ""
     
     local job_count=0
@@ -1074,7 +1082,13 @@ cmd_submit_batch() {
                     local job_name="prove_test_${dataset}_${model}_${strategy}"
                     local test_cmd="./test_unified.sh single --dataset $dataset --model $model --strategy $strategy --ratio $ratio --work-dir $work_dir"
                     
-                    local bsub_cmd="bsub -gpu \"num=1:mode=exclusive_process:gmem=${gpu_mem}\" \
+                    local gpu_spec="num=1"
+                    if [ "$gpu_mode" = "exclusive_process" ]; then
+                        gpu_spec="${gpu_spec}:mode=exclusive_process"
+                    fi
+                    gpu_spec="${gpu_spec}:gmem=${gpu_mem}"
+                    
+                    local bsub_cmd="bsub -gpu \"${gpu_spec}\" \
                         -q ${queue} \
                         -R \"span[hosts=1]\" \
                         -n ${num_cpus} \
@@ -1115,6 +1129,7 @@ cmd_submit_detailed() {
     local work_dir="$DEFAULT_WEIGHTS_ROOT"
     local queue="BatchGPU"
     local gpu_mem="16G"
+    local gpu_mode="shared"
     local num_cpus="4"
     local mode="per-domain"
     local data_root="${PROVE_DATA_ROOT:-/scratch/aaa_exchange/AWARE/FINAL_SPLITS}"
@@ -1130,6 +1145,7 @@ cmd_submit_detailed() {
             --work-dir) work_dir="$2"; shift 2 ;;
             --queue) queue="$2"; shift 2 ;;
             --gpu-mem) gpu_mem="$2"; shift 2 ;;
+            --gpu-mode) gpu_mode="$2"; shift 2 ;;
             --num-cpus) num_cpus="$2"; shift 2 ;;
             --mode) mode="$2"; shift 2 ;;
             --data-root) data_root="$2"; shift 2 ;;
@@ -1148,7 +1164,13 @@ cmd_submit_detailed() {
     
     mkdir -p logs
     
-    local bsub_cmd="bsub -gpu \"num=1:mode=exclusive_process:gmem=${gpu_mem}\" \
+    local gpu_spec="num=1"
+    if [ "$gpu_mode" = "exclusive_process" ]; then
+        gpu_spec="${gpu_spec}:mode=exclusive_process"
+    fi
+    gpu_spec="${gpu_spec}:gmem=${gpu_mem}"
+    
+    local bsub_cmd="bsub -gpu \"${gpu_spec}\" \
         -q ${queue} \
         -R \"span[hosts=1]\" \
         -n ${num_cpus} \
@@ -1167,6 +1189,7 @@ cmd_submit_detailed() {
     echo "Mode:      $mode"
     echo "Queue:     $queue"
     echo "GPU mem:   $gpu_mem"
+    echo "GPU mode:  $gpu_mode"
     echo ""
     
     if [ "$dry_run" = true ]; then
@@ -1186,6 +1209,7 @@ cmd_submit_detailed_batch() {
     local work_dir="$DEFAULT_WEIGHTS_ROOT"
     local queue="BatchGPU"
     local gpu_mem="16G"
+    local gpu_mode="shared"
     local num_cpus="4"
     local mode="per-domain"
     local data_root="${PROVE_DATA_ROOT:-/scratch/aaa_exchange/AWARE/FINAL_SPLITS}"
@@ -1222,6 +1246,7 @@ cmd_submit_detailed_batch() {
             --work-dir) work_dir="$2"; shift 2 ;;
             --queue) queue="$2"; shift 2 ;;
             --gpu-mem) gpu_mem="$2"; shift 2 ;;
+            --gpu-mode) gpu_mode="$2"; shift 2 ;;
             --num-cpus) num_cpus="$2"; shift 2 ;;
             --mode) mode="$2"; shift 2 ;;
             --data-root) data_root="$2"; shift 2 ;;
@@ -1270,6 +1295,8 @@ cmd_submit_detailed_batch() {
     echo "Strategies: $strategies"
     echo "Mode:       $mode"
     echo "Queue:      $queue"
+    echo "GPU mem:    $gpu_mem"
+    echo "GPU mode:   $gpu_mode"
     echo ""
     
     local job_count=0
@@ -1284,7 +1311,13 @@ cmd_submit_detailed_batch() {
                     local job_name="prove_detailed_${dataset}_${model}_${strategy}"
                     local test_cmd="./test_unified.sh detailed --dataset $dataset --model $model --strategy $strategy --ratio $ratio --work-dir $work_dir --mode $mode --data-root $data_root"
                     
-                    local bsub_cmd="bsub -gpu \"num=1:mode=exclusive_process:gmem=${gpu_mem}\" \
+                    local gpu_spec="num=1"
+                    if [ "$gpu_mode" = "exclusive_process" ]; then
+                        gpu_spec="${gpu_spec}:mode=exclusive_process"
+                    fi
+                    gpu_spec="${gpu_spec}:gmem=${gpu_mem}"
+                    
+                    local bsub_cmd="bsub -gpu \"${gpu_spec}\" \
                         -q ${queue} \
                         -R \"span[hosts=1]\" \
                         -n ${num_cpus} \
