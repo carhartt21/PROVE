@@ -18,6 +18,9 @@ The `test_unified.sh` script provides a unified interface for testing trained mo
 # Test a single trained model
 ./test_unified.sh single --dataset ACDC --model deeplabv3plus_r50 --strategy baseline
 
+# Fine-grained per-domain testing
+./test_unified.sh detailed --dataset ACDC --model deeplabv3plus_r50 --strategy baseline --mode per-domain
+
 # Find available checkpoints
 ./test_unified.sh find --all
 
@@ -29,6 +32,72 @@ The `test_unified.sh` script provides a unified interface for testing trained mo
 ```
 
 ## Commands
+
+### `detailed` - Fine-Grained Per-Domain/Per-Class Metrics
+
+Run detailed testing with metrics breakdown by domain and class:
+
+```bash
+./test_unified.sh detailed --dataset ACDC --model deeplabv3plus_r50 --strategy baseline --mode per-domain
+```
+
+**Options:**
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `--dataset <name>` | Dataset name | Required |
+| `--model <name>` | Model name | Required |
+| `--strategy <name>` | Training strategy | `baseline` |
+| `--ratio <ratio>` | Real-to-generated ratio | `1.0` |
+| `--mode <mode>` | Testing mode: `per-domain`, `per-class`, `both` | `per-domain` |
+| `--test-split <split>` | Test split | `test` |
+
+**Output Files:**
+
+Results are saved in a timestamped folder under `test_results_detailed/`:
+
+| File | Description |
+|------|-------------|
+| `metrics_summary.json` | Overall metrics and configuration |
+| `metrics_per_domain.json` | Metrics broken down by weather domain |
+| `metrics_per_class.json` | IoU and Accuracy per semantic class |
+| `metrics_full.json` | Complete metrics with per-domain per-class breakdown |
+| `test_report.txt` | Human-readable text report |
+| `per_domain_metrics.csv` | CSV for easy import into spreadsheets |
+| `per_class_metrics.csv` | CSV with per-class metrics |
+
+**Example Output:**
+
+```
+FINAL TEST RESULTS SUMMARY
+============================================================
+  aAcc: 90.46
+  mIoU: 45.83
+  mAcc: 53.64
+  fwIoU: 83.39
+  num_images: 1213
+
+Per-Domain Results:
+  clear_day:  mIoU=25.28, fwIoU=69.83 (301 images)
+  cloudy:     mIoU=42.45, fwIoU=86.50 (217 images)
+  foggy:      mIoU=68.78, fwIoU=96.18 (144 images)
+  night:      mIoU=41.43, fwIoU=82.74 (183 images)
+  rainy:      mIoU=58.16, fwIoU=91.60 (162 images)
+  snowy:      mIoU=54.72, fwIoU=90.11 (190 images)
+```
+
+**Available Domains by Dataset:**
+
+| Dataset | Domains |
+|---------|---------|
+| ACDC | clear_day, cloudy, dawn_dusk, foggy, night, rainy, snowy |
+| BDD10k | daytime, night, dawn_dusk |
+| BDD100k | daytime, night, dawn_dusk |
+| IDD-AW | clear, rainy, foggy, hazy, low_light |
+| MapillaryVistas | all |
+| OUTSIDE15k | all |
+
+---
 
 ### `single` - Test Single Checkpoint
 

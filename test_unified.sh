@@ -41,6 +41,7 @@ print_usage() {
     echo ""
     echo "Commands:"
     echo "  single       Test a single checkpoint"
+    echo "  detailed     Fine-grained test with per-domain and per-class results"
     echo "  batch        Test multiple checkpoints"
     echo "  submit       Submit single test job to LSF cluster"
     echo "  submit-batch Submit multiple test jobs to LSF cluster"
@@ -62,6 +63,10 @@ print_usage() {
     echo "  --show                    Visualize results"
     echo "  --show-dir <path>         Directory to save visualizations"
     echo ""
+    echo "Detailed Test Options (per-domain, per-class):"
+    echo "  --mode <mode>             Test mode: per-domain, per-class, full (default: per-domain)"
+    echo "  --data-root <path>        Data root directory (default: \$PROVE_DATA_ROOT)"
+    echo ""
     echo "Batch Test Options:"
     echo "  --datasets <names...>     List of datasets"
     echo "  --models <names...>       List of models"
@@ -81,6 +86,8 @@ print_usage() {
     echo "  $0 single --dataset ACDC --model deeplabv3plus_r50 --strategy baseline"
     echo "  $0 single --dataset ACDC --model deeplabv3plus_r50 --strategy gen_cycleGAN --ratio 0.5"
     echo "  $0 single --checkpoint /path/to/checkpoint.pth --dataset ACDC --model deeplabv3plus_r50"
+    echo "  $0 detailed --dataset ACDC --model deeplabv3plus_r50 --strategy baseline"
+    echo "  $0 detailed --dataset ACDC --model deeplabv3plus_r50 --strategy baseline --mode full"
     echo "  $0 batch --all-seg-datasets --all-seg-models --strategy baseline --dry-run"
     echo "  $0 find --dataset ACDC --model deeplabv3plus_r50"
     echo "  $0 find --all"
@@ -411,6 +418,96 @@ cmd_single() {
     
     echo ""
     echo "Testing complete. Results saved to: $output_dir"
+}
+
+# Detailed test command (per-domain, per-class)
+cmd_detailed() {
+    local dataset=""
+    local model=""
+    local strategy="baseline"
+    local ratio="1.0"
+    local checkpoint=""
+    local checkpoint_type="best"
+    local work_dir="$DEFAULT_WEIGHTS_ROOT"
+    local output_dir=""
+    local test_split="test"
+    local mode="per-domain"
+    local data_root="${PROVE_DATA_ROOT:-/scratch/aaa_exchange/AWARE/FINAL_SPLITS}"
+    
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            --dataset) dataset="$2"; shift 2 ;;
+            --model) model="$2"; shift 2 ;;
+            --strategy) strategy="$2"; shift 2 ;;
+            --ratio) ratio="$2"; shift 2 ;;
+            --checkpoint) checkpoint="$2"; shift 2 ;;
+            --checkpoint-type) checkpoint_type="$2"; shift 2 ;;
+            --work-dir) work_dir="$2"; shift 2 ;;
+            --output-dir) output_dir="$2"; shift 2 ;;
+            --test-split) test_split="$2"; shift 2 ;;
+            --mode) mode="$2"; shift 2 ;;
+            --data-root) data_root="$2"; shift 2 ;;
+            *) echo "Unknown option: $1"; exit 1 ;;
+        esac
+    done
+    
+    # Validate required options
+    if [ -z "$dataset" ] || [ -z "$model" ]; then
+        echo "Error: --dataset and --model are required for detailed test"
+        exit 1
+    fi
+    
+    # Get checkpoint path if not specified
+    if [ -z "$checkpoint" ]; then
+        checkpoint=$(get_checkpoint_path "$work_dir" "$dataset" "$model" "$strategy" "$ratio" "$checkpoint_type")
+        if [ -z "$checkpoint" ] || [ ! -f "$checkpoint" ]; then
+            echo "Error: Could not find checkpoint for $dataset/$model/$strategy"
+            echo "Searched in: $work_dir"
+            exit 1
+        fi
+    fi
+    
+    # Get config path
+    local config_dir=$(dirname "$checkpoint")/configs
+    local config_path="$config_dir/training_config.py"
+    
+    if [ ! -f "$config_path" ]; then
+        echo "Error: Config file not found at: $config_path"
+        exit 1
+    fi
+    
+    # Default output directory
+    if [ -z "$output_dir" ]; then
+        output_dir="$(dirname "$checkpoint")/test_results_detailed"
+    fi
+    
+    echo "PROVE Fine-Grained Testing"
+    echo "=========================="
+    echo ""
+    echo "Dataset:     $dataset"
+    echo "Model:       $model"
+    echo "Strategy:    $strategy"
+    echo "Ratio:       $ratio"
+    echo "Checkpoint:  $checkpoint"
+    echo "Config:      $config_path"
+    echo "Output:      $output_dir"
+    echo "Test split:  $test_split"
+    echo "Mode:        $mode"
+    echo "Data root:   $data_root"
+    echo ""
+    
+    # Run fine-grained test
+    mamba run -n prove python "$SCRIPT_DIR/fine_grained_test.py" \
+        --config "$config_path" \
+        --checkpoint "$checkpoint" \
+        --output-dir "$output_dir" \
+        --dataset "$dataset" \
+        --data-root "$data_root" \
+        --test-split "$test_split" \
+        --mode "$mode"
+    
+    echo ""
+    echo "Fine-grained testing complete. Results saved to: $output_dir"
 }
 
 cmd_batch() {
@@ -888,6 +985,10 @@ case "${1:-help}" in
     single)
         shift
         cmd_single "$@"
+        ;;
+    detailed)
+        shift
+        cmd_detailed "$@"
         ;;
     batch)
         shift

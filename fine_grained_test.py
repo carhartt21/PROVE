@@ -1,0 +1,631 @@
+#!/usr/bin/env python3
+"""
+Fine-grained testing for PROVE segmentation models.
+
+This script provides detailed test results including:
+- Per-domain (weather condition) metrics
+- Per-class IoU breakdown
+- Timestamped output folders
+- Multiple granularity levels in separate JSON files
+
+Usage:
+    python fine_grained_test.py --config /path/to/config.py --checkpoint /path/to/checkpoint.pth \
+        --output-dir /path/to/output --dataset ACDC
+"""
+
+import os
+import sys
+import json
+import argparse
+from datetime import datetime
+from pathlib import Path
+from collections import defaultdict
+from typing import Dict, List, Optional, Any, Tuple
+
+import numpy as np
+import torch
+import cv2
+from tqdm import tqdm
+
+# Add project root to path
+script_dir = Path(__file__).parent.absolute()
+sys.path.insert(0, str(script_dir))
+
+# Import custom transforms before MMSeg
+import custom_transforms
+
+from mmengine.config import Config
+from mmengine.dataset import Compose
+from mmengine.model.utils import revert_sync_batchnorm
+from mmseg.registry import DATASETS, MODELS
+from mmseg.utils import register_all_modules
+import mmseg.models  # Register all mmseg models including SegDataPreProcessor
+
+# Register all modules
+register_all_modules(init_default_scope=True)
+
+
+# Dataset domain configurations
+DATASET_DOMAINS = {
+    'ACDC': ['clear_day', 'cloudy', 'dawn_dusk', 'foggy', 'night', 'rainy', 'snowy'],
+    'BDD10k': ['clear', 'overcast', 'partly_cloudy', 'rainy', 'snowy', 'foggy'],
+    'BDD100k': ['clear', 'overcast', 'partly_cloudy', 'rainy', 'snowy', 'foggy', 'undefined'],
+    'IDD-AW': ['clear', 'foggy', 'rainy'],
+    'MapillaryVistas': None,  # No domain split
+    'OUTSIDE15k': None,  # No domain split
+}
+
+# Cityscapes class names (19 classes)
+CITYSCAPES_CLASSES = [
+    'road', 'sidewalk', 'building', 'wall', 'fence', 'pole',
+    'traffic light', 'traffic sign', 'vegetation', 'terrain', 'sky',
+    'person', 'rider', 'car', 'truck', 'bus', 'train', 'motorcycle', 'bicycle'
+]
+
+
+def to_python_type(val):
+    """Convert tensor values to Python types for JSON serialization."""
+    if isinstance(val, torch.Tensor):
+        return val.item() if val.numel() == 1 else val.tolist()
+    elif isinstance(val, np.ndarray):
+        return val.tolist()
+    elif isinstance(val, (np.floating, np.integer)):
+        return val.item()
+    return val
+
+
+def compute_iou_metrics(
+    pred: np.ndarray, 
+    label: np.ndarray, 
+    num_classes: int,
+    ignore_index: int = 255
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """Compute IoU metrics for a single prediction.
+    
+    Returns:
+        area_intersect, area_union, area_pred, area_label
+    """
+    mask = label != ignore_index
+    pred = pred[mask]
+    label = label[mask]
+    
+    area_intersect = np.zeros(num_classes, dtype=np.float64)
+    area_union = np.zeros(num_classes, dtype=np.float64)
+    area_pred = np.zeros(num_classes, dtype=np.float64)
+    area_label = np.zeros(num_classes, dtype=np.float64)
+    
+    for cls in range(num_classes):
+        pred_cls = (pred == cls)
+        label_cls = (label == cls)
+        
+        area_intersect[cls] = np.sum(pred_cls & label_cls)
+        area_union[cls] = np.sum(pred_cls | label_cls)
+        area_pred[cls] = np.sum(pred_cls)
+        area_label[cls] = np.sum(label_cls)
+    
+    return area_intersect, area_union, area_pred, area_label
+
+
+def compute_metrics_from_areas(
+    area_intersect: np.ndarray,
+    area_union: np.ndarray,
+    area_pred: np.ndarray,
+    area_label: np.ndarray
+) -> Dict[str, float]:
+    """Compute summary metrics from aggregated areas."""
+    # Per-class IoU
+    iou = area_intersect / np.maximum(area_union, 1)
+    
+    # Per-class accuracy (recall)
+    acc = area_intersect / np.maximum(area_label, 1)
+    
+    # Overall accuracy
+    total_correct = area_intersect.sum()
+    total_pixels = area_label.sum()
+    aAcc = total_correct / max(total_pixels, 1) * 100
+    
+    # Mean IoU
+    valid_mask = area_label > 0
+    mIoU = np.nanmean(iou[valid_mask]) * 100 if valid_mask.any() else 0.0
+    
+    # Mean Accuracy
+    mAcc = np.nanmean(acc[valid_mask]) * 100 if valid_mask.any() else 0.0
+    
+    # Frequency-weighted IoU
+    if total_pixels > 0:
+        freq = area_label / total_pixels
+        fwIoU = (freq * iou).sum() * 100
+    else:
+        fwIoU = 0.0
+    
+    return {
+        'aAcc': float(aAcc),
+        'mIoU': float(mIoU),
+        'mAcc': float(mAcc),
+        'fwIoU': float(fwIoU)
+    }
+
+
+def get_per_class_metrics(
+    area_intersect: np.ndarray,
+    area_union: np.ndarray,
+    area_pred: np.ndarray,
+    area_label: np.ndarray
+) -> Dict[str, Dict[str, float]]:
+    """Get per-class breakdown of metrics."""
+    iou = area_intersect / np.maximum(area_union, 1)
+    acc = area_intersect / np.maximum(area_label, 1)
+    
+    per_class = {}
+    for i, class_name in enumerate(CITYSCAPES_CLASSES):
+        per_class[class_name] = {
+            'IoU': float(iou[i] * 100),
+            'Acc': float(acc[i] * 100),
+            'area_intersect': float(area_intersect[i]),
+            'area_union': float(area_union[i]),
+            'area_pred': float(area_pred[i]),
+            'area_label': float(area_label[i])
+        }
+    return per_class
+
+
+def run_fine_grained_test(
+    config_path: str,
+    checkpoint_path: str,
+    output_dir: str,
+    dataset_name: str,
+    data_root: str,
+    test_split: str = 'test'
+) -> Dict[str, Any]:
+    """Run fine-grained testing with per-domain and per-class results.
+    
+    Uses a single model instance and manually iterates over domains to avoid
+    creating multiple Runners.
+    """
+    
+    # Create timestamped output directory
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    output_path = Path(output_dir) / timestamp
+    output_path.mkdir(parents=True, exist_ok=True)
+    
+    print(f"Fine-grained test output directory: {output_path}")
+    
+    # Load config
+    cfg = Config.fromfile(config_path)
+    
+    # Build model
+    print("Building model...")
+    model = MODELS.build(cfg.model)
+    model = revert_sync_batchnorm(model)
+    
+    # Load checkpoint
+    print(f"Loading checkpoint: {checkpoint_path}")
+    checkpoint = torch.load(checkpoint_path, map_location='cpu')
+    if 'state_dict' in checkpoint:
+        state_dict = checkpoint['state_dict']
+    else:
+        state_dict = checkpoint
+    model.load_state_dict(state_dict, strict=True)
+    
+    # Move to GPU
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    model = model.to(device)
+    model.eval()
+    
+    print(f"Model loaded on {device}")
+    
+    # Get domains for this dataset
+    domains = DATASET_DOMAINS.get(dataset_name, None)
+    
+    # Results storage
+    all_results = {
+        'config': {
+            'config_path': config_path,
+            'checkpoint_path': checkpoint_path,
+            'dataset': dataset_name,
+            'test_split': test_split,
+            'timestamp': timestamp,
+            'classes': CITYSCAPES_CLASSES
+        },
+        'overall': {},
+        'per_domain': {},
+        'per_class': {}
+    }
+    
+    num_classes = len(CITYSCAPES_CLASSES)
+    
+    # Overall aggregated metrics
+    total_area_intersect = np.zeros(num_classes, dtype=np.float64)
+    total_area_union = np.zeros(num_classes, dtype=np.float64)
+    total_area_pred = np.zeros(num_classes, dtype=np.float64)
+    total_area_label = np.zeros(num_classes, dtype=np.float64)
+    
+    # Test pipeline from config
+    test_pipeline = cfg.get('test_pipeline', cfg.test_dataloader.dataset.pipeline)
+    pipeline = Compose(test_pipeline)
+    
+    # Process each domain
+    test_domains = domains if domains else ['all']
+    
+    for domain in test_domains:
+        print(f"\n{'='*60}")
+        print(f"Testing domain: {domain if domain != 'all' else 'all data'}")
+        print('='*60)
+        
+        # Get image and label paths for this domain
+        if domain == 'all':
+            img_dir = Path(data_root) / test_split / 'images' / dataset_name
+            label_dir = Path(data_root) / test_split / 'labels' / dataset_name
+        else:
+            img_dir = Path(data_root) / test_split / 'images' / dataset_name / domain
+            label_dir = Path(data_root) / test_split / 'labels' / dataset_name / domain
+        
+        if not img_dir.exists():
+            print(f"  Skipping: folder not found at {img_dir}")
+            continue
+        
+        # Get all images
+        img_files = sorted(list(img_dir.glob('*.png')) + list(img_dir.glob('*.jpg')))
+        if not img_files:
+            print(f"  Skipping: no images found")
+            continue
+        
+        print(f"  Found {len(img_files)} images")
+        
+        # Domain aggregated metrics
+        domain_area_intersect = np.zeros(num_classes, dtype=np.float64)
+        domain_area_union = np.zeros(num_classes, dtype=np.float64)
+        domain_area_pred = np.zeros(num_classes, dtype=np.float64)
+        domain_area_label = np.zeros(num_classes, dtype=np.float64)
+        
+        # Process images
+        for img_path in tqdm(img_files, desc=f"  Processing {domain}"):
+            # Find corresponding label
+            label_path = label_dir / img_path.name
+            if not label_path.exists():
+                # Try different extension
+                for ext in ['.png', '.jpg']:
+                    label_path = label_dir / (img_path.stem + ext)
+                    if label_path.exists():
+                        break
+            
+            if not label_path.exists():
+                continue
+            
+            # Prepare data dict for pipeline
+            data_dict = {
+                'img_path': str(img_path),
+                'seg_map_path': str(label_path),
+                'reduce_zero_label': False,
+                'img_info': {'filename': img_path.name},
+                'seg_fields': [],  # Required by LoadAnnotations
+            }
+            
+            # Run through pipeline
+            try:
+                data = pipeline(data_dict)
+            except Exception as e:
+                # Fall back to direct loading
+                img = cv2.imread(str(img_path))
+                img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+                gt_seg_map = cv2.imread(str(label_path), cv2.IMREAD_UNCHANGED)
+                if gt_seg_map.ndim == 3:
+                    gt_seg_map = gt_seg_map[:, :, 0]
+                
+                # Simple preprocessing
+                h, w = img.shape[:2]
+                
+                # Normalize
+                mean = np.array([123.675, 116.28, 103.53])
+                std = np.array([58.395, 57.12, 57.375])
+                img = (img - mean) / std
+                img = img.transpose(2, 0, 1)  # HWC to CHW
+                inputs = torch.from_numpy(img).float().unsqueeze(0).to(device)
+                
+                # Run inference
+                with torch.no_grad():
+                    result = model.inference(inputs, None)
+                    pred_seg_map = result[0].pred_sem_seg.data.cpu().numpy().squeeze()
+                
+                # Resize prediction back to original size if needed
+                if pred_seg_map.shape != gt_seg_map.shape:
+                    pred_seg_map = cv2.resize(pred_seg_map.astype(np.uint8), 
+                                              (gt_seg_map.shape[1], gt_seg_map.shape[0]),
+                                              interpolation=cv2.INTER_NEAREST)
+                
+                # Compute metrics
+                area_intersect, area_union, area_pred, area_label = compute_iou_metrics(
+                    pred_seg_map, gt_seg_map, num_classes
+                )
+                
+                # Aggregate
+                domain_area_intersect += area_intersect
+                domain_area_union += area_union
+                domain_area_pred += area_pred
+                domain_area_label += area_label
+                continue
+            
+            # Get input - need to handle as raw image data for preprocessing
+            # Load image and preprocess manually
+            img = cv2.imread(str(img_path))
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            gt_seg_map = cv2.imread(str(label_path), cv2.IMREAD_UNCHANGED)
+            if gt_seg_map.ndim == 3:
+                gt_seg_map = gt_seg_map[:, :, 0]
+            
+            # Apply label transform (CityscapesLabelIdToTrainId)
+            lut = np.full(256, 255, dtype=np.uint8)
+            for label_id, train_id in custom_transforms.CITYSCAPES_ID_TO_TRAINID.items():
+                if 0 <= label_id < 256:
+                    lut[label_id] = train_id
+            gt_seg_map = lut[gt_seg_map]
+            
+            # Preprocess image
+            h, w = img.shape[:2]
+            mean = np.array([123.675, 116.28, 103.53])
+            std = np.array([58.395, 57.12, 57.375])
+            img = (img.astype(np.float32) - mean) / std
+            img = img.transpose(2, 0, 1)  # HWC to CHW
+            inputs = torch.from_numpy(img).float().unsqueeze(0).to(device)
+            
+            # Get image shape for metadata
+            img_shape = (h, w)
+            batch_img_metas = [{
+                'ori_shape': img_shape,
+                'img_shape': img_shape,
+                'pad_shape': img_shape,
+                'scale_factor': (1.0, 1.0),
+            }]
+            
+            # Run inference
+            with torch.no_grad():
+                result = model.inference(inputs, batch_img_metas)
+                # Result may be tensor or list of SegDataSample
+                if isinstance(result, torch.Tensor):
+                    pred_seg_map = result.cpu().numpy().squeeze()
+                elif isinstance(result, list) and hasattr(result[0], 'pred_sem_seg'):
+                    pred_seg_map = result[0].pred_sem_seg.data.cpu().numpy().squeeze()
+                else:
+                    pred_seg_map = result[0].cpu().numpy().squeeze() if isinstance(result, list) else result.cpu().numpy().squeeze()
+                
+                # Take argmax if needed (logits case)
+                if pred_seg_map.ndim == 3:
+                    pred_seg_map = pred_seg_map.argmax(axis=0)
+            
+            # Compute metrics
+            area_intersect, area_union, area_pred, area_label = compute_iou_metrics(
+                pred_seg_map, gt_seg_map, num_classes
+            )
+            
+            # Aggregate
+            domain_area_intersect += area_intersect
+            domain_area_union += area_union
+            domain_area_pred += area_pred
+            domain_area_label += area_label
+        
+        # Compute domain metrics
+        domain_metrics = compute_metrics_from_areas(
+            domain_area_intersect, domain_area_union,
+            domain_area_pred, domain_area_label
+        )
+        domain_metrics['num_images'] = len(img_files)
+        
+        # Per-class for this domain
+        domain_per_class = get_per_class_metrics(
+            domain_area_intersect, domain_area_union,
+            domain_area_pred, domain_area_label
+        )
+        
+        # Store results
+        if domain == 'all':
+            all_results['overall'] = domain_metrics
+            all_results['per_class'] = domain_per_class
+        else:
+            all_results['per_domain'][domain] = {
+                'summary': domain_metrics,
+                'per_class': domain_per_class
+            }
+        
+        # Aggregate to overall
+        total_area_intersect += domain_area_intersect
+        total_area_union += domain_area_union
+        total_area_pred += domain_area_pred
+        total_area_label += domain_area_label
+        
+        # Print domain summary
+        print(f"\n  Domain {domain} results:")
+        for k, v in domain_metrics.items():
+            if isinstance(v, float):
+                print(f"    {k}: {v:.2f}")
+            else:
+                print(f"    {k}: {v}")
+    
+    # Compute overall metrics if we tested multiple domains
+    if domains and len(all_results['per_domain']) > 0:
+        overall_metrics = compute_metrics_from_areas(
+            total_area_intersect, total_area_union,
+            total_area_pred, total_area_label
+        )
+        overall_per_class = get_per_class_metrics(
+            total_area_intersect, total_area_union,
+            total_area_pred, total_area_label
+        )
+        
+        # Count total images
+        total_images = sum(
+            d['summary']['num_images'] 
+            for d in all_results['per_domain'].values() 
+            if isinstance(d, dict) and 'summary' in d
+        )
+        overall_metrics['num_images'] = total_images
+        
+        all_results['overall'] = overall_metrics
+        all_results['per_class'] = overall_per_class
+    
+    # Save results at different granularity levels
+    
+    # 1. Summary metrics (overall)
+    summary_file = output_path / 'metrics_summary.json'
+    with open(summary_file, 'w') as f:
+        json.dump({
+            'config': all_results['config'],
+            'overall': all_results.get('overall', {})
+        }, f, indent=2)
+    print(f"\nSummary saved to: {summary_file}")
+    
+    # 2. Per-domain metrics
+    if all_results['per_domain']:
+        domain_file = output_path / 'metrics_per_domain.json'
+        # Simplify per-domain to just summary metrics
+        per_domain_summary = {
+            d: v['summary'] if isinstance(v, dict) and 'summary' in v else v
+            for d, v in all_results['per_domain'].items()
+        }
+        with open(domain_file, 'w') as f:
+            json.dump({
+                'config': all_results['config'],
+                'per_domain': per_domain_summary
+            }, f, indent=2)
+        print(f"Per-domain metrics saved to: {domain_file}")
+    
+    # 3. Per-class metrics
+    if all_results['per_class']:
+        class_file = output_path / 'metrics_per_class.json'
+        with open(class_file, 'w') as f:
+            json.dump({
+                'config': all_results['config'],
+                'overall': all_results.get('overall', {}),
+                'per_class': all_results['per_class']
+            }, f, indent=2)
+        print(f"Per-class metrics saved to: {class_file}")
+    
+    # 4. Full detailed results
+    full_file = output_path / 'metrics_full.json'
+    with open(full_file, 'w') as f:
+        json.dump(all_results, f, indent=2)
+    print(f"Full metrics saved to: {full_file}")
+    
+    # 5. Create readable text report
+    report_file = output_path / 'test_report.txt'
+    with open(report_file, 'w') as f:
+        f.write(f"PROVE Fine-Grained Test Report\n")
+        f.write(f"{'='*60}\n\n")
+        f.write(f"Timestamp: {timestamp}\n")
+        f.write(f"Dataset: {dataset_name}\n")
+        f.write(f"Config: {config_path}\n")
+        f.write(f"Checkpoint: {checkpoint_path}\n")
+        
+        f.write(f"\n{'='*60}\n")
+        f.write(f"OVERALL METRICS\n")
+        f.write(f"{'='*60}\n\n")
+        
+        for key, value in all_results.get('overall', {}).items():
+            if isinstance(value, float):
+                f.write(f"  {key}: {value:.4f}\n")
+            else:
+                f.write(f"  {key}: {value}\n")
+        
+        if all_results['per_domain']:
+            f.write(f"\n{'='*60}\n")
+            f.write(f"PER-DOMAIN METRICS\n")
+            f.write(f"{'='*60}\n")
+            
+            for domain, data in all_results['per_domain'].items():
+                f.write(f"\n--- {domain} ---\n")
+                metrics = data.get('summary', data) if isinstance(data, dict) else {}
+                for key, value in metrics.items():
+                    if isinstance(value, float):
+                        f.write(f"  {key}: {value:.4f}\n")
+                    else:
+                        f.write(f"  {key}: {value}\n")
+        
+        if all_results['per_class']:
+            f.write(f"\n{'='*60}\n")
+            f.write(f"PER-CLASS METRICS (Overall)\n")
+            f.write(f"{'='*60}\n\n")
+            
+            f.write(f"{'Class':<20} {'IoU':>10} {'Acc':>10}\n")
+            f.write(f"{'-'*40}\n")
+            for class_name, metrics in all_results['per_class'].items():
+                f.write(f"{class_name:<20} {metrics['IoU']:>10.2f} {metrics['Acc']:>10.2f}\n")
+    
+    print(f"Text report saved to: {report_file}")
+    
+    # 6. CSV files for easy analysis
+    import csv
+    
+    # Per-domain CSV
+    if all_results['per_domain']:
+        csv_file = output_path / 'per_domain_metrics.csv'
+        with open(csv_file, 'w', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerow(['domain', 'mIoU', 'fwIoU', 'mAcc', 'aAcc', 'num_images'])
+            for domain, data in all_results['per_domain'].items():
+                metrics = data.get('summary', data) if isinstance(data, dict) else {}
+                writer.writerow([
+                    domain,
+                    f"{metrics.get('mIoU', 0):.2f}",
+                    f"{metrics.get('fwIoU', 0):.2f}",
+                    f"{metrics.get('mAcc', 0):.2f}",
+                    f"{metrics.get('aAcc', 0):.2f}",
+                    metrics.get('num_images', 0)
+                ])
+        print(f"Per-domain CSV saved to: {csv_file}")
+    
+    # Per-class CSV
+    if all_results['per_class']:
+        csv_file = output_path / 'per_class_metrics.csv'
+        with open(csv_file, 'w', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerow(['class', 'IoU', 'Acc', 'area_intersect', 'area_union', 'area_label'])
+            for class_name, metrics in all_results['per_class'].items():
+                writer.writerow([
+                    class_name,
+                    f"{metrics.get('IoU', 0):.2f}",
+                    f"{metrics.get('Acc', 0):.2f}",
+                    f"{metrics.get('area_intersect', 0):.0f}",
+                    f"{metrics.get('area_union', 0):.0f}",
+                    f"{metrics.get('area_label', 0):.0f}"
+                ])
+        print(f"Per-class CSV saved to: {csv_file}")
+    
+    # Print final summary
+    print(f"\n{'='*60}")
+    print("FINAL TEST RESULTS SUMMARY")
+    print('='*60)
+    for key, value in all_results.get('overall', {}).items():
+        if isinstance(value, float):
+            print(f"  {key}: {value:.2f}")
+        else:
+            print(f"  {key}: {value}")
+    
+    return all_results
+
+
+def main():
+    parser = argparse.ArgumentParser(description='Fine-grained testing for PROVE models')
+    parser.add_argument('--config', required=True, help='Path to config file')
+    parser.add_argument('--checkpoint', required=True, help='Path to checkpoint file')
+    parser.add_argument('--output-dir', required=True, help='Output directory')
+    parser.add_argument('--dataset', required=True, help='Dataset name (ACDC, BDD10k, etc.)')
+    parser.add_argument('--data-root', default='/scratch/aaa_exchange/AWARE/FINAL_SPLITS',
+                       help='Data root directory')
+    parser.add_argument('--test-split', default='test', choices=['val', 'test'],
+                       help='Test split to use')
+    parser.add_argument('--mode', default='per-domain', choices=['per-domain', 'per-class', 'full'],
+                       help='Test mode (all modes output the same comprehensive results)')
+    
+    args = parser.parse_args()
+    
+    run_fine_grained_test(
+        config_path=args.config,
+        checkpoint_path=args.checkpoint,
+        output_dir=args.output_dir,
+        dataset_name=args.dataset,
+        data_root=args.data_root,
+        test_split=args.test_split
+    )
+
+
+if __name__ == '__main__':
+    main()
