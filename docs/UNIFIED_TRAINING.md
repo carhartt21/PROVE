@@ -195,6 +195,12 @@ The `train_unified.sh` script provides convenient shortcuts:
 # Generate configs
 ./train_unified.sh generate --strategy baseline --all
 
+# Submit to a single job to lsf
+./train_unified.sh submit --dataset ACDC --model deeplabv3plus_r50 --strategy baseline
+
+# Submit batches for all datasets and models
+./train_unified submit-batch --all-seg-datasets --all-seg-models --strategy baseline
+
 # List options
 ./train_unified.sh list
 ```
