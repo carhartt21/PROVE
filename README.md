@@ -803,6 +803,28 @@ python prove.py train \
     --debug
 ```
 
+#### MMSegmentation Deprecation Warnings
+
+**Problem**: `UserWarning: ``build_loss`` would be deprecated soon, please use ``mmseg.registry.MODELS.build()`` instead.`
+
+**Cause**: MMSegmentation 1.2.2 includes deprecated internal API usage that will be removed in future versions.
+
+**Solution**: This warning has been suppressed in PROVE scripts. The functionality remains unaffected, and training/testing will continue normally. The warning appears in logs but doesn't impact performance.
+
+### Performance Optimization
+
+If you encounter slow training or inference:
+
+```bash
+# Use mixed precision training
+export CUDA_VISIBLE_DEVICES=0
+python unified_training.py --fp16
+
+# Optimize data loading
+export NUM_WORKERS=4  # Adjust based on CPU cores
+python unified_training.py --workers-per-gpu 4
+```
+
 ## Examples
 
 ### Complete Object Detection Workflow

@@ -27,6 +27,10 @@ from pathlib import Path
 from typing import Dict, List, Optional, Any, Union
 from dataclasses import dataclass, field
 
+# Suppress MMSegmentation deprecation warnings
+import warnings
+warnings.filterwarnings('ignore', category=UserWarning, module='mmseg')
+
 # Register custom transforms and metrics for handling 3-channel labels and fwIoU
 try:
     import numpy as np
