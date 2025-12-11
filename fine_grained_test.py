@@ -44,6 +44,10 @@ import mmseg.models  # Register all mmseg models including SegDataPreProcessor
 # Register all modules
 register_all_modules(init_default_scope=True)
 
+# Suppress MMSegmentation deprecation warnings
+import warnings
+warnings.filterwarnings('ignore', category=UserWarning, module='mmseg')
+
 
 # Dataset domain configurations
 DATASET_DOMAINS = {

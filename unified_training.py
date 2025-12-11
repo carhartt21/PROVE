@@ -42,6 +42,10 @@ from typing import Dict, List, Optional, Any
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent))
 
+# Suppress MMSegmentation deprecation warnings
+import warnings
+warnings.filterwarnings('ignore', category=UserWarning, module='mmseg')
+
 from unified_training_config import (
     UnifiedTrainingConfig,
     DATASET_CONFIGS,

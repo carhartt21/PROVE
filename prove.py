@@ -29,6 +29,10 @@ from mmdet.datasets import build_dataset
 from mmdet.models import build_detector
 from mmdet.utils import collect_env, get_root_logger
 
+# Suppress MMSegmentation deprecation warnings
+import warnings
+warnings.filterwarnings('ignore', category=UserWarning, module='mmseg')
+
 # Import our configuration class
 from prove_config import PROVEConfig
 
