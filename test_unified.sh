@@ -917,7 +917,7 @@ cmd_submit() {
     local checkpoint_type="best"
     local work_dir="$DEFAULT_WEIGHTS_ROOT"
     local queue="BatchGPU"
-    local gpu_mem="16G"
+    local gpu_mem="12G"
     local gpu_mode="shared"
     local num_cpus="8"
     local dry_run=false
@@ -986,7 +986,7 @@ cmd_submit_batch() {
     local ratio="1.0"
     local work_dir="$DEFAULT_WEIGHTS_ROOT"
     local queue="BatchGPU"
-    local gpu_mem="16G"
+    local gpu_mem="12G"
     local gpu_mode="shared"
     local num_cpus="8"
     local all_seg_datasets=false
@@ -1128,7 +1128,7 @@ cmd_submit_detailed() {
     local checkpoint_type="best"
     local work_dir="$DEFAULT_WEIGHTS_ROOT"
     local queue="BatchGPU"
-    local gpu_mem="16G"
+    local gpu_mem="12G"
     local gpu_mode="shared"
     local num_cpus="4"
     local mode="per-domain"
@@ -1208,9 +1208,9 @@ cmd_submit_detailed_batch() {
     local ratio="1.0"
     local work_dir="$DEFAULT_WEIGHTS_ROOT"
     local queue="BatchGPU"
-    local gpu_mem="16G"
+    local gpu_mem="12G"
     local gpu_mode="shared"
-    local num_cpus="4"
+    local num_cpus="8"
     local mode="per-domain"
     local data_root="${PROVE_DATA_ROOT:-/scratch/aaa_exchange/AWARE/FINAL_SPLITS}"
     local all_seg_datasets=false

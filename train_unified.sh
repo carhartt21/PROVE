@@ -67,7 +67,9 @@ print_usage() {
     echo "LSF Submit Options:"
     echo "  --queue <name>            LSF queue name (default: BatchGPU)"
     echo "  --gpu-mem <size>          GPU memory requirement (default: 24G)"
+    echo "  --gpu-mode <mode>         GPU mode: shared or exclusive_process (default: shared)"
     echo "  --num-cpus <n>            Number of CPUs per job (default: 8)"
+    echo "  --domain-filter <domain>  Filter training data to specific domain (e.g., clear_day)"
     echo "  --dry-run                 Show bsub command without executing"
     echo ""
     echo "Batch Training Options:"
@@ -332,7 +334,8 @@ cmd_submit_batch() {
     local strategy="baseline"
     local ratio="1.0"
     local queue="BatchGPU"
-    local gpu_mem="24G"
+    local gpu_mem="12G"
+    local gpu_mode="shared"
     local num_cpus="8"
     local dry_run=false
     local all_seg_datasets=false
@@ -340,8 +343,9 @@ cmd_submit_batch() {
     local all_seg_models=false
     local all_det_models=false
     local cache_dir=""
-    local no_early_stop=false
+    local no_early_stop=true
     local early_stop_patience=""
+    local domain_filter=""
     
     while [[ $# -gt 0 ]]; do
         case $1 in
@@ -359,8 +363,10 @@ cmd_submit_batch() {
                 ;;
             --strategy) strategy="$2"; shift 2 ;;
             --ratio) ratio="$2"; shift 2 ;;
+            --domain-filter) domain_filter="$2"; shift 2 ;;
             --queue) queue="$2"; shift 2 ;;
             --gpu-mem) gpu_mem="$2"; shift 2 ;;
+            --gpu-mode) gpu_mode="$2"; shift 2 ;;
             --num-cpus) num_cpus="$2"; shift 2 ;;
             --cache-dir) cache_dir="$2"; shift 2 ;;
             --no-early-stop) no_early_stop=true; shift ;;
@@ -408,6 +414,7 @@ cmd_submit_batch() {
     echo "Ratio:     $ratio"
     echo "Queue:     $queue"
     echo "GPU mem:   $gpu_mem"
+    echo "GPU mode:  $gpu_mode"
     echo "CPUs:      $num_cpus"
     echo ""
     
@@ -418,6 +425,9 @@ cmd_submit_batch() {
             
             # Build job name
             local job_name="prove_${dataset}_${model}_${strategy}"
+            if [ -n "$domain_filter" ]; then
+                job_name="${job_name}_${domain_filter}"
+            fi            
             if [[ "$ratio" != "1.0" ]]; then
                 local ratio_int=$(echo "$ratio * 100" | bc | cut -d. -f1)
                 job_name="${job_name}_r${ratio_int}"
@@ -426,6 +436,9 @@ cmd_submit_batch() {
             # Build training command
             local train_cmd="./train_unified.sh single --dataset $dataset --model $model --strategy $strategy --ratio $ratio"
             
+            if [ -n "$domain_filter" ]; then
+                train_cmd="$train_cmd --domain-filter $domain_filter"
+            fi
             if [ -n "$cache_dir" ]; then
                 train_cmd="$train_cmd --cache-dir $cache_dir"
             fi
@@ -437,7 +450,7 @@ cmd_submit_batch() {
             fi
             
             # Build bsub command
-            local bsub_cmd="bsub -gpu \"num=1:mode=exclusive_process:gmem=${gpu_mem}\" \
+            local bsub_cmd="bsub -gpu \"num=1:mode=${gpu_mode}:gmem=${gpu_mem}\" \
                 -q ${queue} \
                 -R \"span[hosts=1]\" \
                 -n ${num_cpus} \
@@ -473,10 +486,11 @@ cmd_submit() {
     local ratio="1.0"
     local domain_filter=""
     local cache_dir=""
-    local no_early_stop=false
+    local no_early_stop=true
     local early_stop_patience=""
     local queue="BatchGPU"
-    local gpu_mem="24G"
+    local gpu_mem="12G"
+    local gpu_mode="shared"
     local num_cpus="8"
     local dry_run=false
     
@@ -492,6 +506,7 @@ cmd_submit() {
             --early-stop-patience) early_stop_patience="$2"; shift 2 ;;
             --queue) queue="$2"; shift 2 ;;
             --gpu-mem) gpu_mem="$2"; shift 2 ;;
+            --gpu-mode) gpu_mode="$2"; shift 2 ;;
             --num-cpus) num_cpus="$2"; shift 2 ;;
             --dry-run) dry_run=true; shift ;;
             *) echo "Unknown option: $1"; exit 1 ;;
@@ -505,6 +520,9 @@ cmd_submit() {
     
     # Build job name
     local job_name="prove_${dataset}_${model}_${strategy}"
+    if [ -n "$domain_filter" ]; then
+        job_name="${job_name}_${domain_filter}"
+    fi
     if [[ "$ratio" != "1.0" ]]; then
         local ratio_int=$(echo "$ratio * 100" | bc | cut -d. -f1)
         job_name="${job_name}_r${ratio_int}"
@@ -530,7 +548,7 @@ cmd_submit() {
     mkdir -p logs
     
     # Build bsub command
-    local bsub_cmd="bsub -gpu \"num=1:mode=exclusive_process:gmem=${gpu_mem}\" \
+    local bsub_cmd="bsub -gpu \"num=1:mode=${gpu_mode}:gmem=${gpu_mem}\" \
         -q ${queue} \
         -R \"span[hosts=1]\" \
         -n ${num_cpus} \
@@ -549,6 +567,7 @@ cmd_submit() {
     echo "Ratio:     $ratio"
     echo "Queue:     $queue"
     echo "GPU mem:   $gpu_mem"
+    echo "GPU mode:  $gpu_mode"
     echo "CPUs:      $num_cpus"
     echo ""
     echo "Command:   $train_cmd"
