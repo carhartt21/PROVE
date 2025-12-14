@@ -966,6 +966,282 @@ class UnifiedTrainingConfig:
         
         return config
     
+    def build_multi_dataset(
+        self,
+        datasets: List[str],
+        model: str,
+        strategy: str = 'baseline',
+        real_gen_ratio: float = 1.0,
+        weights: Optional[List[float]] = None,
+        custom_training_config: Optional[Dict] = None,
+        custom_conditions: Optional[List[str]] = None,
+    ) -> Dict[str, Any]:
+        """
+        Build a complete training configuration for multiple datasets (joint training).
+        
+        Args:
+            datasets: List of dataset names (e.g., ['ACDC', 'MapillaryVistas'])
+            model: Model name (e.g., 'deeplabv3plus_r50')
+            strategy: Augmentation strategy (e.g., 'baseline', 'gen_cycleGAN')
+            real_gen_ratio: Ratio of real images in mixed training (0.0-1.0)
+            weights: Optional sampling weights for each dataset (must sum to 1.0).
+                    If None, uses balanced sampling (equal weight per dataset).
+            custom_training_config: Optional custom training parameters
+            custom_conditions: Optional custom list of weather conditions
+            
+        Returns:
+            Complete configuration dictionary with ConcatDataset for joint training
+        """
+        import copy
+        
+        if len(datasets) < 2:
+            raise ValueError(f"build_multi_dataset requires at least 2 datasets, got {len(datasets)}")
+        
+        # Validate inputs
+        for ds_name in datasets:
+            if ds_name not in DATASET_CONFIGS:
+                raise ValueError(f"Unknown dataset: {ds_name}. Available: {list(DATASET_CONFIGS.keys())}")
+        if model not in ALL_MODELS:
+            raise ValueError(f"Unknown model: {model}. Available: {list(ALL_MODELS.keys())}")
+        if strategy not in AUGMENTATION_STRATEGIES:
+            raise ValueError(f"Unknown strategy: {strategy}. Available: {list(AUGMENTATION_STRATEGIES.keys())}")
+        
+        # Validate weights if provided
+        if weights is not None:
+            if len(weights) != len(datasets):
+                raise ValueError(f"Number of weights ({len(weights)}) must match number of datasets ({len(datasets)})")
+            weight_sum = sum(weights)
+            if not (0.99 <= weight_sum <= 1.01):
+                raise ValueError(f"Weights must sum to 1.0, got {weight_sum}")
+        else:
+            # Equal weights
+            weights = [1.0 / len(datasets)] * len(datasets)
+        
+        # Use first dataset to get base configuration
+        # All datasets must share the same task type and label space
+        dataset_cfgs = [DATASET_CONFIGS[ds] for ds in datasets]
+        first_cfg = dataset_cfgs[0]
+        model_cfg = ALL_MODELS[model]
+        aug_strategy = AUGMENTATION_STRATEGIES[strategy]
+        training_cfg = TRAINING_CONFIGS.get(first_cfg.task, TRAINING_CONFIGS['segmentation'])
+        
+        # Validate all datasets have the same task
+        for i, cfg in enumerate(dataset_cfgs):
+            if cfg.task != first_cfg.task:
+                raise ValueError(f"All datasets must have the same task. {datasets[0]} is '{first_cfg.task}' but {datasets[i]} is '{cfg.task}'")
+        
+        # Apply custom training config if provided
+        if custom_training_config:
+            training_cfg = copy.deepcopy(training_cfg)
+            for key, value in custom_training_config.items():
+                if hasattr(training_cfg, key):
+                    setattr(training_cfg, key, value)
+        
+        conditions = custom_conditions or aug_strategy.conditions
+        
+        # Build base configuration using first dataset as template
+        config = self._build_base_config(first_cfg, model_cfg, training_cfg)
+        config = self._add_training_pipeline(config, first_cfg.task, aug_strategy)
+        config = self._add_augmentation_config(config, aug_strategy, conditions, real_gen_ratio)
+        
+        # Build multi-dataset train dataloader with ConcatDataset
+        config = self._add_multi_dataset_config(config, dataset_cfgs, datasets, weights, real_gen_ratio)
+        
+        # Set work directory for multi-dataset training
+        config = self._set_multi_dataset_work_dir(config, datasets, model, strategy, real_gen_ratio)
+        
+        # Update metadata
+        config['_prove_config']['datasets'] = datasets
+        config['_prove_config']['dataset'] = '+'.join(datasets)
+        config['_prove_config']['multi_dataset'] = True
+        config['_prove_config']['dataset_weights'] = weights
+        
+        return config
+    
+    def _add_multi_dataset_config(
+        self,
+        config: Dict[str, Any],
+        dataset_cfgs: List[DatasetConfig],
+        dataset_names: List[str],
+        weights: List[float],
+        real_gen_ratio: float,
+    ) -> Dict[str, Any]:
+        """
+        Add multi-dataset configuration using ConcatDataset with per-dataset pipelines.
+        
+        Automatically handles label unification by adding appropriate transforms:
+        - MapillaryVistas: MapillaryLabelTransform (66 -> 19 class mapping)
+        - ACDC, Cityscapes, etc.: Already use Cityscapes trainIDs (no transform needed)
+        
+        Args:
+            config: Configuration dictionary to update
+            dataset_cfgs: List of dataset configurations
+            dataset_names: List of dataset names (for reference)
+            weights: Sampling weights for each dataset
+            real_gen_ratio: Ratio of real images (0.0-1.0)
+        """
+        
+        data_root = self.data_root
+        config['data_root'] = data_root
+        
+        # All segmentation datasets use Cityscapes format with same classes
+        config['dataset_type'] = 'ConcatDataset'
+        config['classes'] = dataset_cfgs[0].classes  # Use first dataset's classes
+        
+        batch_size = 2
+        num_workers = 4
+        
+        # Datasets that need label transformation
+        MAPILLARY_DATASETS = {'MapillaryVistas', 'Mapillary'}
+        
+        # Build individual dataset configs for ConcatDataset with per-dataset pipelines
+        train_datasets = []
+        for i, (cfg, name, weight) in enumerate(zip(dataset_cfgs, dataset_names, weights)):
+            # Create per-dataset pipeline reference
+            pipeline_name = f'train_pipeline_{name.lower()}'
+            
+            # Build custom pipeline for this dataset if needed
+            needs_label_transform = name in MAPILLARY_DATASETS
+            
+            if needs_label_transform:
+                # Add MapillaryLabelTransform for Mapillary datasets
+                # This pipeline will be defined separately in the config
+                config[pipeline_name] = self._build_mapillary_training_pipeline(cfg)
+                pipeline_ref = '{{' + pipeline_name + '}}'
+            else:
+                # Use standard pipeline (Cityscapes labels, no additional transform needed)
+                pipeline_ref = '{{train_pipeline}}'
+            
+            ds_config = dict(
+                type='CityscapesDataset',
+                data_root=data_root,
+                data_prefix=dict(
+                    img_path=cfg.train_img_dir,
+                    seg_map_path=cfg.train_ann_dir,
+                ),
+                img_suffix=cfg.img_suffix,
+                seg_map_suffix='.png',
+                reduce_zero_label=False,
+                pipeline=pipeline_ref,
+            )
+            train_datasets.append(ds_config)
+        
+        # ConcatDataset for training (combines all datasets)
+        config['train_dataloader'] = dict(
+            batch_size=batch_size,
+            num_workers=num_workers,
+            persistent_workers=True,
+            sampler=dict(type='InfiniteSampler', shuffle=True),
+            dataset=dict(
+                type='ConcatDataset',
+                datasets=train_datasets,
+            ),
+        )
+        
+        # Store weights in config for potential weighted sampling
+        config['multi_dataset_config'] = dict(
+            enabled=True,
+            datasets=dataset_names,
+            weights=weights,
+        )
+        
+        # Use first dataset for validation/test (can be changed as needed)
+        first_cfg = dataset_cfgs[0]
+        config['val_dataloader'] = dict(
+            batch_size=1,
+            num_workers=num_workers,
+            persistent_workers=True,
+            sampler=dict(type='DefaultSampler', shuffle=False),
+            dataset=dict(
+                type='CityscapesDataset',
+                data_root=data_root,
+                data_prefix=dict(
+                    img_path=first_cfg.val_img_dir,
+                    seg_map_path=first_cfg.val_ann_dir,
+                ),
+                img_suffix=first_cfg.img_suffix,
+                seg_map_suffix='.png',
+                reduce_zero_label=False,
+                pipeline='{{test_pipeline}}',
+            ),
+        )
+        
+        config['test_dataloader'] = config['val_dataloader'].copy()
+        
+        # Image normalization
+        config['img_norm_cfg'] = dict(
+            mean=[123.675, 116.28, 103.53],
+            std=[58.395, 57.12, 57.375],
+            to_rgb=True,
+        )
+        
+        return config
+    
+    def _build_mapillary_training_pipeline(self, dataset_cfg: DatasetConfig) -> List[Dict]:
+        """
+        Build a training pipeline for Mapillary datasets with automatic label transformation.
+        
+        Includes MapillaryLabelTransform to convert 66 Mapillary classes to 19 Cityscapes trainIDs.
+        This allows joint training with ACDC, Cityscapes, etc. using a unified label space.
+        
+        Args:
+            dataset_cfg: Dataset configuration object
+            
+        Returns:
+            List of pipeline transforms
+        """
+        crop_size = (512, 512)
+        
+        # Pipeline with MapillaryLabelTransform added after LoadAnnotations
+        pipeline = [
+            dict(type='LoadImageFromFile'),
+            dict(type='LoadAnnotations'),
+            # Handle labels stored as 3-channel PNGs
+            dict(type='ReduceToSingleChannel'),
+            # Convert Mapillary labels (0-65) to Cityscapes trainIds (0-18, 255)
+            # MapillaryLabelTransform is registered in unified_datasets.py
+            dict(type='MapillaryLabelTransform', target_space='cityscapes'),
+            dict(type='Resize', scale=(1024, 512), keep_ratio=True),
+            dict(type='RandomCrop', crop_size=crop_size, cat_max_ratio=0.75),
+            dict(type='RandomFlip', prob=0.5),
+            dict(type='PhotoMetricDistortion'),
+            dict(type='PackSegInputs'),
+        ]
+        
+        return pipeline
+    
+    def _set_multi_dataset_work_dir(
+        self,
+        config: Dict[str, Any],
+        datasets: List[str],
+        model: str,
+        strategy: str,
+        real_gen_ratio: float,
+    ) -> Dict[str, Any]:
+        """
+        Set the output work directory for multi-dataset training.
+        
+        Directory format: {weights_root}/{strategy}/multi_{ds1}+{ds2}/model
+        """
+        
+        if real_gen_ratio < 1.0:
+            ratio_str = f'_ratio{real_gen_ratio:.2f}'.replace('.', 'p')
+        else:
+            ratio_str = ''
+        
+        # Create combined dataset name
+        datasets_str = 'multi_' + '+'.join(ds.lower() for ds in datasets)
+        
+        config['work_dir'] = os.path.join(
+            self.weights_root,
+            strategy,
+            datasets_str,
+            f'{model}{ratio_str}',
+        )
+        
+        return config
+    
+
     def _update_pretrained_paths(self, model_def: Dict[str, Any]) -> Dict[str, Any]:
         """Update pretrained model paths to use cache_dir if specified.
         
@@ -1576,6 +1852,12 @@ class UnifiedTrainingConfig:
                     value_str = value_str.replace("'{{train_pipeline}}'", "train_pipeline")
                     value_str = value_str.replace("'{{test_pipeline}}'", "test_pipeline")
                     value_str = value_str.replace("'{{val_pipeline}}'", "val_pipeline")
+                    # Handle per-dataset pipelines (e.g., train_pipeline_mapillaryvistas)
+                    import re
+                    for pipeline_key in config.keys():
+                        if pipeline_key.startswith('train_pipeline_'):
+                            placeholder = "'{{" + pipeline_key + "}}'"
+                            value_str = value_str.replace(placeholder, pipeline_key)
                     f.write(f"{key} = {value_str}\n")
         
         return filepath

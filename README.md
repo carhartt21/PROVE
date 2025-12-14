@@ -211,6 +211,39 @@ python unified_training.py --dataset ACDC --model deeplabv3plus_r50 --early-stop
 | `--parallel` | Run batch jobs in parallel |
 | `--dry-run` | Preview commands without executing |
 
+#### Multi-Dataset Joint Training
+
+Train on multiple datasets simultaneously (e.g., ACDC + MapillaryVistas) with automatic label unification:
+
+```bash
+# Joint training on ACDC + Mapillary (labels unified automatically)
+./train_unified.sh single-multi --datasets ACDC MapillaryVistas --model deeplabv3plus_r50
+
+# With custom sampling weights (70% ACDC, 30% Mapillary)
+./train_unified.sh single-multi --datasets ACDC MapillaryVistas --weights 0.7 0.3 --model deeplabv3plus_r50
+
+# Generate config only (no training)
+./train_unified.sh single-multi --datasets ACDC MapillaryVistas --model deeplabv3plus_r50 --config-only
+
+# Python CLI alternative
+python unified_training.py --multi-dataset --datasets ACDC MapillaryVistas --model deeplabv3plus_r50
+```
+
+**How Label Unification Works:**
+- Datasets using Cityscapes format (ACDC, BDD10k, etc.) use labels as-is
+- Mapillary datasets automatically get `MapillaryLabelTransform` applied, mapping 66 classes to 19 Cityscapes trainIDs
+- All datasets are combined using `ConcatDataset` with configurable sampling weights
+
+**Multi-Dataset Options:**
+
+| Option | Description |
+|--------|-------------|
+| `--datasets` | Space-separated list of datasets to train jointly |
+| `--weights` | Optional sampling weights per dataset (must sum to 1.0) |
+| `--model` | Model architecture to use |
+| `--strategy` | Augmentation strategy (default: baseline) |
+| `--config-only` | Generate config without training |
+
 #### Using train_unified.sh (Alternative)
 
 ```bash
@@ -219,6 +252,9 @@ bash train_unified.sh single --dataset ACDC --model deeplabv3plus_r50 --strategy
 
 # With domain filter
 bash train_unified.sh single --dataset ACDC --model deeplabv3plus_r50 --strategy baseline --domain-filter clear_day
+
+# Multi-dataset training
+bash train_unified.sh single-multi --datasets ACDC MapillaryVistas --model deeplabv3plus_r50
 
 # Batch training for all segmentation
 bash train_unified.sh batch --all-seg-datasets --all-seg-models --strategy baseline --dry-run
@@ -272,6 +308,9 @@ The unified testing script provides a streamlined interface for evaluating train
 
 # Submit test job to LSF cluster
 ./test_unified.sh submit --dataset ACDC --model deeplabv3plus_r50 --strategy baseline
+
+# Test multi-dataset trained model (e.g., ACDC+Mapillary)
+./test_unified.sh single-multi --datasets ACDC MapillaryVistas --model deeplabv3plus_r50
 
 # View test results
 ./test_unified.sh results --dataset ACDC

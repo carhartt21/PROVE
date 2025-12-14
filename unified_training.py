@@ -432,6 +432,194 @@ runner.train()
         }
 
 
+class UnifiedMultiTrainer:
+    """
+    Multi-dataset training orchestrator for PROVE pipeline.
+    
+    Enables joint training on multiple datasets simultaneously (e.g., ACDC + MapillaryVistas).
+    
+    Args:
+        datasets: List of dataset names (e.g., ['ACDC', 'MapillaryVistas'])
+        model: Model name (e.g., 'deeplabv3plus_r50')
+        strategy: Augmentation strategy (e.g., 'baseline', 'gen_cycleGAN')
+        weights: Optional sampling weights for each dataset (must sum to 1.0)
+        real_gen_ratio: Ratio of real images (0.0-1.0). Default: 1.0
+        custom_conditions: Optional list of weather conditions to use
+        work_dir: Output directory for checkpoints and logs
+        cache_dir: Directory for caching pretrained weights
+        seed: Random seed for reproducibility. Default: 42
+        early_stop: Whether to enable early stopping. Default: True
+        early_stop_patience: Number of validations without improvement before stopping
+        gpu_ids: List of GPU IDs to use. Default: [0]
+        distributed: Whether to use distributed training. Default: False
+    """
+    
+    def __init__(
+        self,
+        datasets: List[str],
+        model: str,
+        strategy: str = 'baseline',
+        weights: Optional[List[float]] = None,
+        real_gen_ratio: float = 1.0,
+        custom_conditions: Optional[List[str]] = None,
+        work_dir: Optional[str] = None,
+        cache_dir: Optional[str] = None,
+        seed: int = 42,
+        early_stop: bool = True,
+        early_stop_patience: int = 5,
+        gpu_ids: List[int] = None,
+        distributed: bool = False,
+    ):
+        self.datasets = datasets
+        self.model = model
+        self.strategy = strategy
+        self.weights = weights
+        self.real_gen_ratio = real_gen_ratio
+        self.custom_conditions = custom_conditions
+        self.work_dir = work_dir
+        self.cache_dir = cache_dir
+        self.seed = seed
+        self.early_stop = early_stop
+        self.early_stop_patience = early_stop_patience
+        self.gpu_ids = gpu_ids or [0]
+        self.distributed = distributed
+        
+        # Initialize config builder
+        self.config_builder = UnifiedTrainingConfig(cache_dir=cache_dir)
+        
+        # Build configuration
+        self.config = self._build_config()
+    
+    def _build_config(self) -> Dict[str, Any]:
+        """Build multi-dataset training configuration"""
+        custom_training_config = {
+            'early_stop': self.early_stop,
+            'early_stop_patience': self.early_stop_patience,
+        }
+        
+        config = self.config_builder.build_multi_dataset(
+            datasets=self.datasets,
+            model=self.model,
+            strategy=self.strategy,
+            real_gen_ratio=self.real_gen_ratio,
+            weights=self.weights,
+            custom_conditions=self.custom_conditions,
+            custom_training_config=custom_training_config,
+        )
+        
+        # Override work_dir if specified
+        if self.work_dir:
+            config['work_dir'] = self.work_dir
+        
+        # Override seed
+        config['seed'] = self.seed
+        config['gpu_ids'] = self.gpu_ids
+        
+        return config
+    
+    def save_config(self, filepath: Optional[str] = None) -> str:
+        """Save configuration to file"""
+        if filepath is None:
+            config_dir = Path(self.config['work_dir']) / 'configs'
+            config_dir.mkdir(parents=True, exist_ok=True)
+            filepath = str(config_dir / 'training_config.py')
+        
+        return self.config_builder.save_config(self.config, filepath)
+    
+    def train(self, method: str = 'subprocess'):
+        """Execute multi-dataset training."""
+        # Save config first
+        config_path = self.save_config()
+        print(f"Configuration saved to: {config_path}")
+        
+        # Create work directory
+        work_dir = Path(self.config['work_dir'])
+        work_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Run training
+        print("\n" + "=" * 60)
+        print("Starting PROVE Multi-Dataset Training")
+        print("=" * 60)
+        print(f"Datasets: {', '.join(self.datasets)}")
+        if self.weights:
+            weight_strs = [f"{d}: {w:.1%}" for d, w in zip(self.datasets, self.weights)]
+            print(f"Weights: {', '.join(weight_strs)}")
+        print(f"Model: {self.model}")
+        print(f"Strategy: {self.strategy}")
+        print(f"Real/Gen Ratio: {self.real_gen_ratio}")
+        print(f"Work Dir: {self.config['work_dir']}")
+        print("=" * 60 + "\n")
+        
+        return self._train_with_mmengine(config_path)
+    
+    def _train_with_mmengine(self, config_path: str) -> bool:
+        """Train using MMEngine via subprocess"""
+        import subprocess
+        import sys
+        
+        train_script = f'''
+import sys
+sys.path.insert(0, "{Path(__file__).parent}")
+
+# Import custom transforms to register them BEFORE loading config
+import custom_transforms
+
+try:
+    import mmseg.datasets  
+    import mmseg.evaluation
+    from mmseg.models.segmentors import EncoderDecoder
+except ImportError as e:
+    print(f"Warning: Some mmseg imports failed: {{e}}")
+
+from mmengine.runner import Runner
+from mmengine.config import Config
+
+cfg = Config.fromfile("{config_path}")
+runner = Runner.from_cfg(cfg)
+runner.train()
+'''
+        
+        # Write temporary training script
+        script_path = Path(self.config['work_dir']) / 'train_script.py'
+        script_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(script_path, 'w') as f:
+            f.write(train_script)
+        
+        # Run training
+        print(f"Starting training via subprocess...")
+        
+        env = os.environ.copy()
+        if 'CUDA_VISIBLE_DEVICES' not in env and self.gpu_ids:
+            env['CUDA_VISIBLE_DEVICES'] = ','.join(map(str, self.gpu_ids))
+        
+        result = subprocess.run(
+            [sys.executable, str(script_path)],
+            env=env,
+            cwd=str(Path(__file__).parent),
+        )
+        
+        return result.returncode == 0
+    
+    def get_training_summary(self) -> Dict[str, Any]:
+        """Get summary of multi-dataset training configuration"""
+        max_iters = self.config.get('train_cfg', {}).get('max_iters', 40000)
+        batch_size = self.config.get('train_dataloader', {}).get('batch_size', 2)
+        
+        return {
+            'datasets': self.datasets,
+            'datasets_str': '+'.join(self.datasets),
+            'model': self.model,
+            'strategy': self.strategy,
+            'weights': self.weights,
+            'real_gen_ratio': self.real_gen_ratio,
+            'work_dir': self.config['work_dir'],
+            'max_iters': max_iters,
+            'batch_size': batch_size,
+            'multi_dataset': True,
+        }
+
+
+
 # ============================================================================
 # Job Submission
 # ============================================================================
@@ -684,6 +872,12 @@ Examples:
   # Generate config only
   python unified_training.py --dataset ACDC --model deeplabv3plus_r50 --config-only
 
+  # Multi-dataset training (joint training on ACDC + Mapillary)
+  python unified_training.py --multi-dataset --datasets ACDC MapillaryVistas --model deeplabv3plus_r50
+
+  # Multi-dataset with custom weights (70%% ACDC, 30%% Mapillary)
+  python unified_training.py --multi-dataset --datasets ACDC MapillaryVistas --weights 0.7 0.3 --model deeplabv3plus_r50
+
   # Batch training
   python unified_training.py --batch --datasets ACDC BDD10k --strategies baseline gen_cycleGAN
 
@@ -731,11 +925,17 @@ Examples:
     parser.add_argument('--config-output', type=str,
                        help='Path to save generated config')
     
+    # Multi-dataset training
+    parser.add_argument('--multi-dataset', action='store_true',
+                       help='Enable multi-dataset joint training mode')
+    parser.add_argument('--weights', type=float, nargs='+',
+                       help='Sampling weights for each dataset (must sum to 1.0)')
+    
     # Batch training
     parser.add_argument('--batch', action='store_true',
                        help='Run batch training')
     parser.add_argument('--datasets', type=str, nargs='+',
-                       help='Datasets for batch training')
+                       help='Datasets for multi-dataset or batch training')
     parser.add_argument('--models', type=str, nargs='+',
                        help='Models for batch training')
     parser.add_argument('--strategies', type=str, nargs='+',
@@ -837,10 +1037,64 @@ def main():
         print(f"Successful: {success}/{len(results)}")
         return
     
+    # Multi-dataset training mode
+    if args.multi_dataset:
+        if not args.datasets or len(args.datasets) < 2:
+            print("Error: --multi-dataset requires at least 2 datasets via --datasets")
+            print("Example: --multi-dataset --datasets ACDC MapillaryVistas --model deeplabv3plus_r50")
+            return
+        
+        if not args.model:
+            print("Error: --model is required for multi-dataset training")
+            return
+        
+        # Validate weights if provided
+        if args.weights:
+            if len(args.weights) != len(args.datasets):
+                print(f"Error: Number of weights ({len(args.weights)}) must match number of datasets ({len(args.datasets)})")
+                return
+            weight_sum = sum(args.weights)
+            if not (0.99 <= weight_sum <= 1.01):
+                print(f"Error: Weights must sum to 1.0, got {weight_sum}")
+                return
+        
+        # Create multi-dataset trainer
+        trainer = UnifiedMultiTrainer(
+            datasets=args.datasets,
+            model=args.model,
+            strategy=args.strategy,
+            weights=args.weights,
+            real_gen_ratio=args.real_gen_ratio,
+            custom_conditions=args.conditions,
+            work_dir=args.work_dir,
+            cache_dir=args.cache_dir,
+            seed=args.seed,
+            early_stop=not args.no_early_stop,
+            early_stop_patience=args.early_stop_patience,
+            gpu_ids=args.gpu_ids,
+            distributed=args.distributed,
+        )
+        
+        # Config only mode
+        if args.config_only:
+            config_path = trainer.save_config(args.config_output)
+            print(f"Multi-dataset configuration saved to: {config_path}")
+            
+            # Print summary
+            summary = trainer.get_training_summary()
+            print("\nMulti-Dataset Training Summary:")
+            for key, value in summary.items():
+                print(f"  {key}: {value}")
+            return
+        
+        # Run multi-dataset training
+        trainer.train(method=args.train_method)
+        return
+    
     # Single training - validate required arguments
     if not args.dataset or not args.model:
         print("Error: --dataset and --model are required for single training")
-        print("Use --batch for batch training or --list to see options")
+        print("Use --multi-dataset for joint training or --list to see options")
         return
     
     # Generate job script

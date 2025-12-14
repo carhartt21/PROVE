@@ -41,6 +41,7 @@ print_usage() {
     echo ""
     echo "Commands:"
     echo "  single              Test a single checkpoint"
+    echo "  single-multi        Test checkpoint trained on multiple datasets"
     echo "  detailed            Fine-grained test with per-domain and per-class results"
     echo "  batch               Test multiple checkpoints"
     echo "  detailed-batch      Fine-grained test for multiple checkpoints"
@@ -52,6 +53,12 @@ print_usage() {
     echo "  results             Show test results summary"
     echo "  list                List available options"
     echo "  help                Show this help message"
+    echo ""
+    echo "Multi-Dataset Test Options (single-multi command):"
+    echo "  --datasets <names...>     List of datasets the model was trained on"
+    echo "  --model <name>            Model name"
+    echo "  --strategy <name>         Augmentation strategy used during training"
+    echo "  --eval-dataset <name>     Dataset to evaluate on (default: first in --datasets)"
     echo ""
     echo "Single Test Options:"
     echo "  --dataset <name>          Dataset name (ACDC, BDD10k, BDD100k, IDD-AW, MapillaryVistas, OUTSIDE15k)"
@@ -98,6 +105,7 @@ print_usage() {
     echo "  $0 find --all"
     echo "  $0 submit --dataset ACDC --model deeplabv3plus_r50 --strategy baseline"
     echo "  $0 submit-detailed --dataset ACDC --model deeplabv3plus_r50 --strategy baseline"
+    echo "  $0 single-multi --datasets ACDC MapillaryVistas --model deeplabv3plus_r50"
     echo "  $0 results --dataset ACDC"
     echo ""
 }
@@ -421,6 +429,128 @@ cmd_single() {
     else
         run_detection_test "$config_path" "$checkpoint" "$output_dir" "$test_split" "$show" "$show_dir"
     fi
+    
+    echo ""
+    echo "Testing complete. Results saved to: $output_dir"
+}
+
+# Multi-dataset test command
+cmd_single_multi() {
+    local datasets=""
+    local model=""
+    local strategy="baseline"
+    local ratio="1.0"
+    local checkpoint=""
+    local checkpoint_type="best"
+    local work_dir="$DEFAULT_WEIGHTS_ROOT"
+    local output_dir=""
+    local test_split="test"
+    local eval_dataset=""
+    
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            --datasets) shift;
+                while [[ $# -gt 0 && ! "$1" =~ ^-- ]]; do
+                    datasets="$datasets $1"
+                    shift
+                done
+                ;;
+            --model) model="$2"; shift 2 ;;
+            --strategy) strategy="$2"; shift 2 ;;
+            --ratio) ratio="$2"; shift 2 ;;
+            --checkpoint) checkpoint="$2"; shift 2 ;;
+            --checkpoint-type) checkpoint_type="$2"; shift 2 ;;
+            --work-dir) work_dir="$2"; shift 2 ;;
+            --output-dir) output_dir="$2"; shift 2 ;;
+            --test-split) test_split="$2"; shift 2 ;;
+            --eval-dataset) eval_dataset="$2"; shift 2 ;;
+            *) echo "Unknown option: $1"; exit 1 ;;
+        esac
+    done
+    
+    # Trim leading spaces
+    datasets=$(echo $datasets | xargs)
+    
+    if [ -z "$datasets" ] || [ -z "$model" ]; then
+        echo "Error: --datasets and --model are required"
+        exit 1
+    fi
+    
+    # Build multi-dataset directory name (e.g., multi_acdc+mapillaryvistas)
+    local datasets_lower=$(echo "$datasets" | tr ' ' '+' | tr '[:upper:]' '[:lower:]')
+    local datasets_dir="multi_${datasets_lower}"
+    
+    # Build ratio string for directory
+    local ratio_str=""
+    if [[ "$ratio" != "1.0" ]]; then
+        ratio_str="_ratio${ratio//.p/p}"
+        ratio_str="${ratio_str//./_}"
+    fi
+    
+    local checkpoint_dir="${work_dir}/${strategy}/${datasets_dir}/${model}${ratio_str}"
+    
+    # Auto-detect checkpoint if not specified
+    if [ -z "$checkpoint" ]; then
+        if [ "$checkpoint_type" = "best" ]; then
+            checkpoint=$(find "$checkpoint_dir" -maxdepth 1 -name "best_*.pth" 2>/dev/null | head -n 1)
+        fi
+        if [ -z "$checkpoint" ]; then
+            checkpoint=$(find "$checkpoint_dir" -maxdepth 1 -name "iter_*.pth" 2>/dev/null | sort -t_ -k2 -n | tail -n 1)
+        fi
+        if [ -z "$checkpoint" ] && [ -f "${checkpoint_dir}/latest.pth" ]; then
+            checkpoint="${checkpoint_dir}/latest.pth"
+        fi
+    fi
+    
+    if [ ! -f "$checkpoint" ]; then
+        echo "Error: Checkpoint not found in: $checkpoint_dir"
+        echo "Use '$0 find' to list available checkpoints"
+        exit 1
+    fi
+    
+    # Get config path
+    local config_dir="${checkpoint_dir}/configs"
+    local config_path="${config_dir}/training_config.py"
+    
+    if [ ! -f "$config_path" ]; then
+        echo "Warning: Config not found at $config_path"
+        # Try to generate config
+        echo "Generating config dynamically..."
+        mamba run -n prove python -c "
+from unified_training_config import UnifiedTrainingConfig
+config = UnifiedTrainingConfig()
+datasets = '$datasets'.split()
+cfg = config.build_multi_dataset(datasets=datasets, model='$model', strategy='$strategy', real_gen_ratio=$ratio)
+config.save_config(cfg, '$config_path')
+print('Config generated successfully')
+"
+    fi
+    
+    # Set output directory
+    if [ -z "$output_dir" ]; then
+        output_dir="$(dirname $checkpoint)/test_results/${test_split}"
+    fi
+    
+    # Use first dataset for evaluation if not specified
+    if [ -z "$eval_dataset" ]; then
+        eval_dataset=$(echo $datasets | awk '{print $1}')
+    fi
+    
+    echo "PROVE Multi-Dataset Testing"
+    echo "============================"
+    echo ""
+    echo "Datasets:    $datasets"
+    echo "Model:       $model"
+    echo "Strategy:    $strategy"
+    echo "Ratio:       $ratio"
+    echo "Eval on:     $eval_dataset"
+    echo "Checkpoint:  $checkpoint"
+    echo "Config:      $config_path"
+    echo "Output:      $output_dir"
+    echo ""
+    
+    # Run segmentation test
+    run_segmentation_test "$config_path" "$checkpoint" "$output_dir" "$test_split" "false" ""
     
     echo ""
     echo "Testing complete. Results saved to: $output_dir"
@@ -1373,6 +1503,10 @@ case "${1:-help}" in
     single)
         shift
         cmd_single "$@"
+        ;;
+    single-multi)
+        shift
+        cmd_single_multi "$@"
         ;;
     detailed)
         shift

@@ -46,6 +46,7 @@ print_usage() {
     echo ""
     echo "Commands:"
     echo "  single       Train a single configuration"
+    echo "  single-multi Train jointly on multiple datasets"
     echo "  batch        Train multiple configurations"
     echo "  submit       Submit single job to LSF cluster"
     echo "  submit-batch Submit multiple jobs to LSF cluster"
@@ -53,6 +54,23 @@ print_usage() {
     echo "  generate    Generate configs without training"
     echo "  list        List available options"
     echo "  help        Show this help message"
+    echo ""
+    echo "Single Training Options:"
+    echo "  --dataset <name>          Dataset name (ACDC, BDD10k, BDD100k, IDD-AW, MapillaryVistas, OUTSIDE15k)"
+    echo "  --model <name>            Model name (deeplabv3plus_r50, pspnet_r50, segformer_mit-b5, etc.)"
+    echo "  --strategy <name>         Augmentation strategy (see below)"
+    echo "  --real-gen-ratio <ratio>  Ratio of real to generated images (0.0 to 1.0)"
+    echo "  --domain-filter <domain>  Filter training data to specific domain (e.g., clear_day)"
+    echo "  --cache-dir <path>        Directory for caching pretrained weights"
+    echo "  --no-early-stop           Disable early stopping (enabled by default)"
+    echo "  --early-stop-patience <n> Number of validations without improvement before stopping (default: 5)"
+    echo ""
+    echo "Multi-Dataset Training Options (single-multi command):"
+    echo "  --datasets <names...>     List of datasets to train jointly (e.g., ACDC MapillaryVistas)"
+    echo "  --weights <floats...>     Optional sampling weights per dataset (must sum to 1.0)"
+    echo "  --model <name>            Model name"
+    echo "  --strategy <name>         Augmentation strategy"
+    echo "  --config-only             Only generate config, do not train"
     echo ""
     echo "Single Training Options:"
     echo "  --dataset <name>          Dataset name (ACDC, BDD10k, BDD100k, IDD-AW, MapillaryVistas, OUTSIDE15k)"
@@ -89,7 +107,7 @@ print_usage() {
     echo "               gen_Img2Img, gen_IP2P, gen_UniControl, gen_step1x_new, gen_StyleID,"
     echo "               gen_NST, gen_albumentations, gen_automold, gen_imgaug_weather,"
     echo "               gen_Weather_Effect_Generator, gen_Attribute_Hallucination,"
-    echo "               gen_cnet_seg, gen_tunit, gen_flux1_kontext"
+    echo "               gen_cnet_seg, gen_tunit, gen_flux1_kontext, gen_qwen_image_edit"
     echo ""
     echo "Examples:"
     echo "  $0 single --dataset ACDC --model deeplabv3plus_r50 --strategy baseline"
@@ -102,6 +120,8 @@ print_usage() {
     echo "  $0 batch --all-seg-datasets --all-seg-models --strategy baseline"
     echo "  $0 batch --all-det-datasets --all-det-models --strategy baseline --dry-run"
     echo "  $0 batch --datasets ACDC BDD10k --strategy gen_cycleGAN"
+    echo "  $0 single-multi --datasets ACDC MapillaryVistas --model deeplabv3plus_r50"
+    echo "  $0 single-multi --datasets ACDC MapillaryVistas --weights 0.7 0.3 --model deeplabv3plus_r50"
     echo "  $0 ratio-exp --dataset ACDC --model deeplabv3plus_r50 --strategy gen_cycleGAN"
     echo "  $0 generate --strategy baseline --all"
     echo ""
@@ -190,6 +210,85 @@ cmd_single() {
     if [ -n "$cache_dir" ]; then
         echo "Cache dir: $cache_dir"
     fi
+    
+    eval $cmd
+}
+
+cmd_single_multi() {
+    # Parse arguments for multi-dataset training
+    local datasets=""
+    local weights=""
+    local model=""
+    local strategy="baseline"
+    local ratio="1.0"
+    local cache_dir=""
+    local no_early_stop=false
+    local early_stop_patience=""
+    local config_only=false
+    
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            --datasets) shift;
+                while [[ $# -gt 0 && ! "$1" =~ ^-- ]]; do
+                    datasets="$datasets $1"
+                    shift
+                done
+                ;;
+            --weights) shift;
+                while [[ $# -gt 0 && ! "$1" =~ ^-- ]]; do
+                    weights="$weights $1"
+                    shift
+                done
+                ;;
+            --model) model="$2"; shift 2 ;;
+            --strategy) strategy="$2"; shift 2 ;;
+            --ratio) ratio="$2"; shift 2 ;;
+            --cache-dir) cache_dir="$2"; shift 2 ;;
+            --no-early-stop) no_early_stop=true; shift ;;
+            --early-stop-patience) early_stop_patience="$2"; shift 2 ;;
+            --config-only) config_only=true; shift ;;
+            *) echo "Unknown option: $1"; exit 1 ;;
+        esac
+    done
+    
+    # Trim leading spaces
+    datasets=$(echo $datasets | xargs)
+    weights=$(echo $weights | xargs)
+    
+    if [ -z "$datasets" ] || [ -z "$model" ]; then
+        echo "Error: --datasets and --model are required for multi-dataset training"
+        echo "Example: $0 single-multi --datasets ACDC MapillaryVistas --model deeplabv3plus_r50"
+        exit 1
+    fi
+    
+    # Build command
+    local cmd="mamba run -n prove python unified_training.py --multi-dataset --datasets $datasets --model $model --strategy $strategy --real-gen-ratio $ratio"
+    
+    if [ -n "$weights" ]; then
+        cmd="$cmd --weights $weights"
+    fi
+    if [ -n "$cache_dir" ]; then
+        cmd="$cmd --cache-dir $cache_dir"
+    fi
+    if [ "$no_early_stop" = true ]; then
+        cmd="$cmd --no-early-stop"
+    fi
+    if [ -n "$early_stop_patience" ]; then
+        cmd="$cmd --early-stop-patience $early_stop_patience"
+    fi
+    if [ "$config_only" = true ]; then
+        cmd="$cmd --config-only"
+    fi
+    
+    echo "Multi-Dataset Training"
+    echo "====================="
+    echo "Datasets: $datasets"
+    if [ -n "$weights" ]; then
+        echo "Weights: $weights"
+    fi
+    echo "Model: $model"
+    echo "Strategy: $strategy"
+    echo ""
     
     eval $cmd
 }
@@ -590,6 +689,10 @@ case "${1:-help}" in
     single)
         shift
         cmd_single "$@"
+        ;;
+    single-multi)
+        shift
+        cmd_single_multi "$@"
         ;;
     batch)
         shift
