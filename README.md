@@ -406,7 +406,7 @@ See [docs/UNIFIED_TESTING.md](docs/UNIFIED_TESTING.md) for comprehensive testing
 Generate publication-quality visualizations from test results:
 
 ```bash
-# Generate all visualizations for test results
+# Generate all visualizations for test results (includes insights by default)
 python test_result_visualizer.py --results-dir /path/to/test_results_detailed/timestamp/
 
 # Generate specific plot types
@@ -414,7 +414,16 @@ python test_result_visualizer.py --results-dir /path/to/results --plots domain c
 
 # Compare multiple models
 python test_result_visualizer.py --compare --results-dirs baseline_results cycleGAN_results --labels "Baseline" "CycleGAN"
+
+# Skip insights printout
+python test_result_visualizer.py --results-dir /path/to/results --no-insights
 ```
+
+**Automatic Insights:** By default, the visualizer prints high-level insights about:
+- Overall performance metrics (mIoU, fwIoU, mAcc, aAcc)
+- Domain performance ranking with difficulty indicators (🟢 Easy, 🟡 Medium, 🔴 Hard)
+- Top 3 and bottom 3 performing semantic classes
+- Failing classes (IoU < 10%) that need attention
 
 **Visualization Types:**
 | Plot | Description |
@@ -442,54 +451,63 @@ python test_result_analyzer.py
 # Generate comprehensive summary with top 10 performers
 python test_result_analyzer.py --comprehensive --top-n 10
 
+# Show per-dataset insights
+python test_result_analyzer.py --dataset-insights
+
+# Show per-domain (weather condition) insights
+python test_result_analyzer.py --domain-insights
+
+# Show all insights (comprehensive + dataset + domain)
+python test_result_analyzer.py --all-insights
+
 # Filter by strategy or dataset
 python test_result_analyzer.py --strategy baseline --dataset ACDC
 
 # Output as JSON for programmatic processing
 python test_result_analyzer.py --format json
-
-# Include detailed metrics in analysis
-python test_result_analyzer.py --include-detailed
 ```
 
-**Comprehensive Summary Output:**
+**Analysis Options:**
 
-The comprehensive summary (`--comprehensive`) provides:
+| Option | Description |
+|--------|-------------|
+| `--comprehensive` | Top performers and strategy comparisons |
+| `--dataset-insights` | Per-dataset performance analysis |
+| `--domain-insights` | Per-domain (weather) performance analysis |
+| `--all-insights` | All insights combined |
+| `--top-n N` | Number of top configurations to show (default: 5) |
+| `--domain-breakdown` | Detailed per-domain metrics table |
 
-1. **🏆 Top N Configurations by mIoU**
-   - Best performing configurations ranked by mIoU
-   - Shows strategy, dataset, model, and mIoU value
+**Per-Dataset Insights** (`--dataset-insights`) provides:
+- Overall statistics (avg, best, worst, std, spread)
+- Best/worst configuration for each dataset
+- Strategy effectiveness ranking per dataset
+- Model architecture comparison per dataset
+- Key recommendations
 
-2. **📊 Strategy Performance Comparison**
-   - Average, maximum, and minimum mIoU per strategy
-   - Sorted by average performance
+**Per-Domain Insights** (`--domain-insights`) provides:
+- Domain difficulty ranking (easiest to hardest conditions)
+- Performance gap analysis between domains
+- Best configuration per weather domain
+- Strategy effectiveness matrix (strategy × domain)
+- Improvement potential and variability analysis
 
-3. **📈 Performance Gains vs Baseline (Clear_Day Training)**
-   - Compares each strategy against baseline models trained on clear_day domain
-   - Shows absolute improvement and percentage gain
-   - Highlights which augmentation strategies provide the most benefit
-
-4. **💡 Key Insights**
-   - Best overall configuration
-   - Best performing strategy (by average)
-   - Best performing model architecture
-   - Largest improvement over baseline
-
-**Example Output:**
+**Example Domain Insights Output:**
 ```
-🏆 TOP 5 CONFIGURATIONS BY mIoU:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  1. gen_cycleGAN | BDD10k | segformer_mit-b5     | mIoU: 72.45
-  2. std_cutmix   | ACDC   | deeplabv3plus_r50    | mIoU: 71.23
-  ...
+📊 DOMAIN DIFFICULTY RANKING (by average mIoU)
+Rank  Domain               Avg mIoU    Best      Worst
+1     foggy                  80.96%   100.00%    33.88%
+2     snowy                  61.20%    82.40%    22.94%
+3     rainy                  59.77%    76.76%    26.72%
+...
+✅ Easiest Domain: foggy (avg mIoU: 80.96%)
+❌ Hardest Domain: dawn_dusk (avg mIoU: 40.59%)
+📏 Domain Performance Gap: 40.36% mIoU
 
-📈 PERFORMANCE GAINS VS BASELINE (CLEAR_DAY TRAINING):
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  Baseline Reference (clear_day training): avg mIoU = 58.32
-  
-  gen_cycleGAN         | +8.45 (↑14.5%)
-  std_cutmix           | +6.23 (↑10.7%)
-  ...
+💡 KEY DOMAIN INSIGHTS
+  foggy:
+    • Best strategy: std_randaugment (avg 82.66%)
+    • High variability (std=14.5%): Strategy choice matters significantly
 ```
 
 #### Legacy Testing (prove.py)
@@ -1080,16 +1098,16 @@ Automatically identify and submit test jobs for configurations that haven't been
 | `--batch-size <n>` | Number of jobs per batch before pause | 10 |
 | `--batch-delay <s>` | Seconds to pause between batches | 60 |
 | `--detailed` | Submit detailed (fine-grained) tests instead of basic tests | off |
-| `--missing-detailed` | Filter for configs that have basic tests but missing detailed tests | off |
+| `--missing-detailed` | Filter for configs that have basic tests but missing detailed tests (auto uses submit-detailed) | off |
 
 **Common Usage Patterns:**
 
 ```bash
 # Submit detailed tests for all configurations missing them
-./submit_untested_tests.sh --missing-detailed --detailed
+./submit_untested_tests.sh --missing-detailed
 
 # Preview missing detailed tests
-./submit_untested_tests.sh --missing-detailed --detailed --dry-run
+./submit_untested_tests.sh --missing-detailed --dry-run
 
 # Submit with rate limiting (5 jobs, 2 min pause between batches)
 ./submit_untested_tests.sh --batch-size 5 --batch-delay 120
