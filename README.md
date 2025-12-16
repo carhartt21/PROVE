@@ -344,16 +344,10 @@ The unified testing script provides a streamlined interface for evaluating train
 For detailed analysis of model performance across weather domains and semantic classes:
 
 ```bash
-# Per-domain testing (breakdown by weather condition)
-./test_unified.sh detailed --dataset ACDC --model deeplabv3plus_r50 --strategy baseline --mode per-domain
+# Run full detailed testing (per-domain and per-class metrics)
+./test_unified.sh detailed --dataset ACDC --model deeplabv3plus_r50 --strategy baseline
 
-# Per-class testing
-./test_unified.sh detailed --dataset ACDC --model deeplabv3plus_r50 --strategy baseline --mode per-class
-
-# Full detailed testing (both per-domain and per-class)
-./test_unified.sh detailed --dataset ACDC --model deeplabv3plus_r50 --strategy baseline --mode full
-
-# Batch detailed testing
+# Batch detailed testing for all models
 ./test_unified.sh detailed-batch --all-seg-models --dataset ACDC --strategy baseline --dry-run
 
 # Submit detailed test to LSF cluster
@@ -364,15 +358,35 @@ For detailed analysis of model performance across weather domains and semantic c
 ```
 
 **Detailed Test Output Files:**
+
+The detailed testing now generates a unified output structure:
+
 | File | Description |
 |------|-------------|
-| `metrics_summary.json` | Overall metrics and configuration |
-| `metrics_per_domain.json` | Metrics by weather domain (clear_day, foggy, night, etc.) |
-| `metrics_per_class.json` | IoU and Accuracy for each semantic class |
-| `metrics_full.json` | Complete breakdown with per-domain per-class metrics |
+| `results.json` | Complete unified results with overall, per-domain, and per-class metrics |
 | `test_report.txt` | Human-readable summary report |
-| `per_domain_metrics.csv` | CSV for spreadsheet import |
-| `per_class_metrics.csv` | CSV with per-class metrics |
+
+**Structure of `results.json`:**
+```json
+{
+  "overall": {
+    "aAcc": 85.2,
+    "mIoU": 62.5,
+    "mAcc": 73.1,
+    "fwIoU": 78.9
+  },
+  "per_domain": {
+    "clear_day": {"aAcc": 91.2, "mIoU": 71.8, ...},
+    "foggy": {"aAcc": 78.4, "mIoU": 55.2, ...},
+    ...
+  },
+  "per_class": {
+    "road": {"IoU": 95.2, "Acc": 97.1},
+    "sidewalk": {"IoU": 72.4, "Acc": 85.3},
+    ...
+  }
+}
+```
 
 **Available Domains by Dataset:**
 
@@ -416,6 +430,67 @@ Example dashboard visualization:
 ![Dashboard Example](docs/examples/dashboard.png)
 
 See [docs/RESULT_VISUALIZATION.md](docs/RESULT_VISUALIZATION.md) for comprehensive visualization documentation.
+
+#### Result Analysis
+
+Analyze test results across all configurations and generate comprehensive performance reports:
+
+```bash
+# Analyze all results with comprehensive summary
+python test_result_analyzer.py
+
+# Generate comprehensive summary with top 10 performers
+python test_result_analyzer.py --comprehensive --top-n 10
+
+# Filter by strategy or dataset
+python test_result_analyzer.py --strategy baseline --dataset ACDC
+
+# Output as JSON for programmatic processing
+python test_result_analyzer.py --format json
+
+# Include detailed metrics in analysis
+python test_result_analyzer.py --include-detailed
+```
+
+**Comprehensive Summary Output:**
+
+The comprehensive summary (`--comprehensive`) provides:
+
+1. **🏆 Top N Configurations by mIoU**
+   - Best performing configurations ranked by mIoU
+   - Shows strategy, dataset, model, and mIoU value
+
+2. **📊 Strategy Performance Comparison**
+   - Average, maximum, and minimum mIoU per strategy
+   - Sorted by average performance
+
+3. **📈 Performance Gains vs Baseline (Clear_Day Training)**
+   - Compares each strategy against baseline models trained on clear_day domain
+   - Shows absolute improvement and percentage gain
+   - Highlights which augmentation strategies provide the most benefit
+
+4. **💡 Key Insights**
+   - Best overall configuration
+   - Best performing strategy (by average)
+   - Best performing model architecture
+   - Largest improvement over baseline
+
+**Example Output:**
+```
+🏆 TOP 5 CONFIGURATIONS BY mIoU:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  1. gen_cycleGAN | BDD10k | segformer_mit-b5     | mIoU: 72.45
+  2. std_cutmix   | ACDC   | deeplabv3plus_r50    | mIoU: 71.23
+  ...
+
+📈 PERFORMANCE GAINS VS BASELINE (CLEAR_DAY TRAINING):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Baseline Reference (clear_day training): avg mIoU = 58.32
+  
+  gen_cycleGAN         | +8.45 (↑14.5%)
+  std_cutmix           | +6.23 (↑10.7%)
+  ...
+```
 
 #### Legacy Testing (prove.py)
 
@@ -922,27 +997,41 @@ python weights_analyzer.py --root /path/to/weights/
 - Number of checkpoints per configuration
 - Total storage size per configuration
 - Latest checkpoint timestamp
-- Test results availability
+- Test results availability (basic and detailed)
 - Summary statistics by strategy and dataset
 - Total checkpoints and storage across all configurations
 
 **Example Output:**
 ```
-┌─────────────┬─────────┬───────────────────┬─────────────┬────────────┬────────────┬──────────────┐
-│ Strategy    │ Dataset │ Model             │ Checkpoints │ Total Size │ Latest     │ Test Results │
-├─────────────┼─────────┼───────────────────┼─────────────┼────────────┼────────────┼──────────────┤
-│ baseline    │ acdc    │ deeplabv3plus_r50 │ 8           │ 2.65 GB    │ 2025-12-09 │ ✓ (2)        │
-│ baseline    │ acdc    │ pspnet_r50        │ 8           │ 2.97 GB    │ 2025-12-11 │ —            │
-│ gen_CUT     │ bdd10k  │ segformer_mit-b5  │ 3           │ 2.76 GB    │ 2025-12-15 │ —            │
-└─────────────┴─────────┴───────────────────┴─────────────┴────────────┴────────────┴──────────────┘
+┌─────────────┬─────────┬───────────────────┬─────────────┬────────────┬────────────┬──────────────┬──────────┐
+│ Strategy    │ Dataset │ Model             │ Checkpoints │ Total Size │ Latest     │ Test Results │ Detailed │
+├─────────────┼─────────┼───────────────────┼─────────────┼────────────┼────────────┼──────────────┼──────────┤
+│ baseline    │ acdc    │ deeplabv3plus_r50 │ 8           │ 2.65 GB    │ 2025-12-09 │ ✓ (2)        │ ✓        │
+│ baseline    │ acdc    │ pspnet_r50        │ 8           │ 2.97 GB    │ 2025-12-11 │ ✓ (1)        │ —        │
+│ gen_CUT     │ bdd10k  │ segformer_mit-b5  │ 3           │ 2.76 GB    │ 2025-12-15 │ —            │ —        │
+└─────────────┴─────────┴───────────────────┴─────────────┴────────────┴────────────┴──────────────┴──────────┘
 
 ======================================================================
 WEIGHTS DIRECTORY SUMMARY
 ======================================================================
-Total Configurations: 224
+Total Configurations: 271
 Total Checkpoints: 1703
 Total Storage: 915.03 GB
-Configurations with Test Results: 1
+Configurations with Test Results: 254
+Configurations with Detailed Test Results: 119
+```
+
+**JSON Output Fields:**
+The JSON export includes `has_detailed_test_results` field to track whether fine-grained test results exist:
+```json
+{
+  "strategy": "baseline",
+  "dataset": "acdc",
+  "model": "deeplabv3plus_r50",
+  "has_test_results": true,
+  "has_detailed_test_results": true,
+  ...
+}
 ```
 
 This tool is particularly useful for:
@@ -988,6 +1077,23 @@ Automatically identify and submit test jobs for configurations that haven't been
 | `--queue <name>` | LSF queue name | BatchGPU |
 | `--gpu-mem <size>` | GPU memory requirement | 24G |
 | `--limit <n>` | Maximum number of jobs | unlimited |
+| `--batch-size <n>` | Number of jobs per batch before pause | 10 |
+| `--batch-delay <s>` | Seconds to pause between batches | 60 |
+| `--detailed` | Submit detailed (fine-grained) tests instead of basic tests | off |
+| `--missing-detailed` | Filter for configs that have basic tests but missing detailed tests | off |
+
+**Common Usage Patterns:**
+
+```bash
+# Submit detailed tests for all configurations missing them
+./submit_untested_tests.sh --missing-detailed --detailed
+
+# Preview missing detailed tests
+./submit_untested_tests.sh --missing-detailed --detailed --dry-run
+
+# Submit with rate limiting (5 jobs, 2 min pause between batches)
+./submit_untested_tests.sh --batch-size 5 --batch-delay 120
+```
 
 **Example Output:**
 ```
