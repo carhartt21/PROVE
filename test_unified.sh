@@ -74,7 +74,6 @@ print_usage() {
     echo "  --show-dir <path>         Directory to save visualizations"
     echo ""
     echo "Detailed Test Options (per-domain, per-class):"
-    echo "  --mode <mode>             Test mode: per-domain, per-class, full (default: per-domain)"
     echo "  --data-root <path>        Data root directory (default: \$PROVE_DATA_ROOT)"
     echo ""
     echo "Batch Test Options:"
@@ -98,7 +97,6 @@ print_usage() {
     echo "  $0 single --dataset ACDC --model deeplabv3plus_r50 --strategy gen_cycleGAN --ratio 0.5"
     echo "  $0 single --checkpoint /path/to/checkpoint.pth --dataset ACDC --model deeplabv3plus_r50"
     echo "  $0 detailed --dataset ACDC --model deeplabv3plus_r50 --strategy baseline"
-    echo "  $0 detailed --dataset ACDC --model deeplabv3plus_r50 --strategy baseline --mode full"
     echo "  $0 detailed-batch --all-seg-datasets --all-seg-models --strategy baseline --dry-run"
     echo "  $0 batch --all-seg-datasets --all-seg-models --strategy baseline --dry-run"
     echo "  $0 find --dataset ACDC --model deeplabv3plus_r50"
@@ -567,7 +565,6 @@ cmd_detailed() {
     local work_dir="$DEFAULT_WEIGHTS_ROOT"
     local output_dir=""
     local test_split="test"
-    local mode="per-domain"
     local data_root="${PROVE_DATA_ROOT:-/scratch/aaa_exchange/AWARE/FINAL_SPLITS}"
     
     while [[ $# -gt 0 ]]; do
@@ -581,7 +578,6 @@ cmd_detailed() {
             --work-dir) work_dir="$2"; shift 2 ;;
             --output-dir) output_dir="$2"; shift 2 ;;
             --test-split) test_split="$2"; shift 2 ;;
-            --mode) mode="$2"; shift 2 ;;
             --data-root) data_root="$2"; shift 2 ;;
             *) echo "Unknown option: $1"; exit 1 ;;
         esac
@@ -628,7 +624,6 @@ cmd_detailed() {
     echo "Config:      $config_path"
     echo "Output:      $output_dir"
     echo "Test split:  $test_split"
-    echo "Mode:        $mode"
     echo "Data root:   $data_root"
     echo ""
     
@@ -639,8 +634,7 @@ cmd_detailed() {
         --output-dir "$output_dir" \
         --dataset "$dataset" \
         --data-root "$data_root" \
-        --test-split "$test_split" \
-        --mode "$mode"
+        --test-split "$test_split"
     
     echo ""
     echo "Fine-grained testing complete. Results saved to: $output_dir"
@@ -654,7 +648,6 @@ cmd_detailed_batch() {
     local checkpoint_type="best"
     local work_dir="$DEFAULT_WEIGHTS_ROOT"
     local test_split="test"
-    local mode="per-domain"
     local data_root="${PROVE_DATA_ROOT:-/scratch/aaa_exchange/AWARE/FINAL_SPLITS}"
     local all_seg_datasets=false
     local all_det_datasets=false
@@ -689,7 +682,6 @@ cmd_detailed_batch() {
             --checkpoint-type) checkpoint_type="$2"; shift 2 ;;
             --work-dir) work_dir="$2"; shift 2 ;;
             --test-split) test_split="$2"; shift 2 ;;
-            --mode) mode="$2"; shift 2 ;;
             --data-root) data_root="$2"; shift 2 ;;
             --all-seg-datasets) all_seg_datasets=true; shift ;;
             --all-det-datasets) all_det_datasets=true; shift ;;
@@ -735,7 +727,6 @@ cmd_detailed_batch() {
     echo "Models:     $models"
     echo "Strategies: $strategies"
     echo "Ratio:      $ratio"
-    echo "Mode:       $mode"
     echo ""
     
     local test_count=0
@@ -763,7 +754,7 @@ cmd_detailed_batch() {
                         if cmd_detailed --dataset "$dataset" --model "$model" --strategy "$strategy" \
                                         --ratio "$ratio" --checkpoint "$checkpoint" \
                                         --work-dir "$work_dir" --test-split "$test_split" \
-                                        --mode "$mode" --data-root "$data_root"; then
+                                        --data-root "$data_root"; then
                             success_count=$((success_count + 1))
                         else
                             fail_count=$((fail_count + 1))

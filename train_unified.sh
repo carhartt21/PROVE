@@ -16,6 +16,7 @@ cd "$SCRIPT_DIR"
 # Available datasets
 SEGMENTATION_DATASETS="ACDC BDD10k IDD-AW MapillaryVistas OUTSIDE15k"
 DETECTION_DATASETS="BDD100k"
+UNIFIED_SEG_DATASET="multi_ACDC+MapillaryVistas+IDD-AW+BDD10k"
 
 # Available models
 SEGMENTATION_MODELS="deeplabv3plus_r50 pspnet_r50 segformer_mit-b5"
@@ -95,6 +96,7 @@ print_usage() {
     echo "  --models <names...>       List of models for batch training"
     echo "  --all-seg-datasets        Use all segmentation datasets"
     echo "  --all-det-datasets        Use all detection datasets"
+    echo "  --unified-seg-dataset     Use unified segmentation dataset (ACDC+BDD10k+MapillaryVistas+IDD-AW)"
     echo "  --all-seg-models          Use all segmentation models"
     echo "  --all-det-models          Use all detection models"
     echo "  --parallel                Run jobs in parallel"
@@ -116,8 +118,12 @@ print_usage() {
     echo "  $0 submit --dataset ACDC --model deeplabv3plus_r50 --strategy baseline"
     echo "  $0 submit --dataset ACDC --model deeplabv3plus_r50 --strategy gen_cycleGAN --queue BatchGPU"
     echo "  $0 submit-batch --all-seg-datasets --all-seg-models --strategy baseline"
+    echo "  $0 submit-batch --unified-seg-dataset --all-seg-models --strategy baseline"
     echo "  $0 submit-batch --datasets ACDC BDD10k --models deeplabv3plus_r50 --strategy gen_cycleGAN --dry-run"
+    echo "  $0 submit-batch --unified-seg-dataset --all-seg-models --strategy baseline --with-domain-variants"
+    
     echo "  $0 batch --all-seg-datasets --all-seg-models --strategy baseline"
+    echo "  $0 batch --unified-seg-dataset --models deeplabv3plus_r50 --strategy baseline"
     echo "  $0 batch --all-det-datasets --all-det-models --strategy baseline --dry-run"
     echo "  $0 batch --datasets ACDC BDD10k --strategy gen_cycleGAN"
     echo "  $0 single-multi --datasets ACDC MapillaryVistas --model deeplabv3plus_r50"
@@ -185,6 +191,31 @@ cmd_single() {
     if [ -z "$dataset" ] || [ -z "$model" ]; then
         echo "Error: --dataset and --model are required"
         exit 1
+    fi
+    
+    # Handle multi-dataset names (from submit-batch command)
+    # Multi-dataset format: multi_ds1+ds2+ds3 (e.g., multi_acdc+bdd10k+mapillaryvistas)
+    if [[ "$dataset" == multi_* ]]; then
+        # Extract datasets from multi_ds1+ds2+ds3 format
+        local datasets_str="${dataset#multi_}"  # Remove "multi_" prefix
+        # Convert + separated list to space separated for cmd_single_multi
+        local datasets_space="${datasets_str//+/ }"
+        
+        # Build arguments for cmd_single_multi
+        local multi_args="--datasets $datasets_space --model $model --strategy $strategy --ratio $ratio"
+        if [ -n "$cache_dir" ]; then
+            multi_args="$multi_args --cache-dir $cache_dir"
+        fi
+        if [ "$no_early_stop" = true ]; then
+            multi_args="$multi_args --no-early-stop"
+        fi
+        if [ -n "$early_stop_patience" ]; then
+            multi_args="$multi_args --early-stop-patience $early_stop_patience"
+        fi
+        
+        echo "Detected multi-dataset format, redirecting to single-multi command..."
+        cmd_single_multi $multi_args
+        return $?
     fi
     
     # Build command with optional parameters
@@ -301,6 +332,7 @@ cmd_batch() {
     local parallel=false
     local all_seg_datasets=false
     local all_det_datasets=false
+    local unified_seg_dataset=false
     local all_seg_models=false
     local all_det_models=false
     local dry_run=false
@@ -324,6 +356,7 @@ cmd_batch() {
             --parallel) parallel=true; shift ;;
             --all-seg-datasets) all_seg_datasets=true; shift ;;
             --all-det-datasets) all_det_datasets=true; shift ;;
+            --unified-seg-dataset) unified_seg_dataset=true; shift ;;
             --all-seg-models) all_seg_models=true; shift ;;
             --all-det-models) all_det_models=true; shift ;;
             --dry-run) dry_run=true; shift ;;
@@ -345,6 +378,9 @@ cmd_batch() {
     fi
     if [ "$all_det_datasets" = true ]; then
         cmd="$cmd --all-det-datasets"
+    fi
+    if [ "$unified_seg_dataset" = true ]; then
+        cmd="$cmd --unified-seg-dataset"
     fi
     if [ "$all_seg_models" = true ]; then
         cmd="$cmd --all-seg-models"
@@ -439,12 +475,14 @@ cmd_submit_batch() {
     local dry_run=false
     local all_seg_datasets=false
     local all_det_datasets=false
+    local unified_seg_dataset=false
     local all_seg_models=false
     local all_det_models=false
     local cache_dir=""
     local no_early_stop=true
     local early_stop_patience=""
     local domain_filter=""
+    local with_domain_variants=false
     
     while [[ $# -gt 0 ]]; do
         case $1 in
@@ -463,6 +501,7 @@ cmd_submit_batch() {
             --strategy) strategy="$2"; shift 2 ;;
             --ratio) ratio="$2"; shift 2 ;;
             --domain-filter) domain_filter="$2"; shift 2 ;;
+            --with-domain-variants) with_domain_variants=true; shift ;;
             --queue) queue="$2"; shift 2 ;;
             --gpu-mem) gpu_mem="$2"; shift 2 ;;
             --gpu-mode) gpu_mode="$2"; shift 2 ;;
@@ -472,6 +511,7 @@ cmd_submit_batch() {
             --early-stop-patience) early_stop_patience="$2"; shift 2 ;;
             --all-seg-datasets) all_seg_datasets=true; shift ;;
             --all-det-datasets) all_det_datasets=true; shift ;;
+            --unified-seg-dataset) unified_seg_dataset=true; shift ;;
             --all-seg-models) all_seg_models=true; shift ;;
             --all-det-models) all_det_models=true; shift ;;
             --dry-run) dry_run=true; shift ;;
@@ -485,6 +525,9 @@ cmd_submit_batch() {
     fi
     if [ "$all_det_datasets" = true ]; then
         datasets="$datasets $DETECTION_DATASETS"
+    fi
+    if [ "$unified_seg_dataset" = true ]; then
+        datasets="$datasets $UNIFIED_SEG_DATASET"
     fi
     if [ "$all_seg_models" = true ]; then
         models="$models $SEGMENTATION_MODELS"
@@ -520,33 +563,42 @@ cmd_submit_batch() {
     local job_count=0
     for dataset in $datasets; do
         for model in $models; do
-            job_count=$((job_count + 1))
-            
-            # Build job name
-            local job_name="prove_${dataset}_${model}_${strategy}"
-            if [ -n "$domain_filter" ]; then
-                job_name="${job_name}_${domain_filter}"
-            fi            
-            if [[ "$ratio" != "1.0" ]]; then
-                local ratio_int=$(echo "$ratio * 100" | bc | cut -d. -f1)
-                job_name="${job_name}_r${ratio_int}"
+            # Determine domain filter variants to process
+            local domain_variants=("")
+            if [ "$with_domain_variants" = true ]; then
+                domain_variants=("" "clear_day")
+            elif [ -n "$domain_filter" ]; then
+                domain_variants=("$domain_filter")
             fi
             
-            # Build training command
-            local train_cmd="./train_unified.sh single --dataset $dataset --model $model --strategy $strategy --ratio $ratio"
-            
-            if [ -n "$domain_filter" ]; then
-                train_cmd="$train_cmd --domain-filter $domain_filter"
-            fi
-            if [ -n "$cache_dir" ]; then
-                train_cmd="$train_cmd --cache-dir $cache_dir"
-            fi
-            if [ "$no_early_stop" = true ]; then
-                train_cmd="$train_cmd --no-early-stop"
-            fi
-            if [ -n "$early_stop_patience" ]; then
-                train_cmd="$train_cmd --early-stop-patience $early_stop_patience"
-            fi
+            for variant_filter in "${domain_variants[@]}"; do
+                job_count=$((job_count + 1))
+                
+                # Build job name
+                local job_name="prove_${dataset}_${model}_${strategy}"
+                if [ -n "$variant_filter" ]; then
+                    job_name="${job_name}_${variant_filter}"
+                fi            
+                if [[ "$ratio" != "1.0" ]]; then
+                    local ratio_int=$(echo "$ratio * 100" | bc | cut -d. -f1)
+                    job_name="${job_name}_r${ratio_int}"
+                fi
+                
+                # Build training command
+                local train_cmd="./train_unified.sh single --dataset $dataset --model $model --strategy $strategy --ratio $ratio"
+                
+                if [ -n "$variant_filter" ]; then
+                    train_cmd="$train_cmd --domain-filter $variant_filter"
+                fi
+                if [ -n "$cache_dir" ]; then
+                    train_cmd="$train_cmd --cache-dir $cache_dir"
+                fi
+                if [ "$no_early_stop" = true ]; then
+                    train_cmd="$train_cmd --no-early-stop"
+                fi
+                if [ -n "$early_stop_patience" ]; then
+                    train_cmd="$train_cmd --early-stop-patience $early_stop_patience"
+                fi
             
             # Build bsub command
             local bsub_cmd="bsub -gpu \"num=1:mode=${gpu_mode}:gmem=${gpu_mem}\" \
@@ -566,6 +618,7 @@ cmd_submit_batch() {
                 echo "[$job_count] Submitting: $job_name"
                 eval $bsub_cmd
             fi
+            done
         done
     done
     
