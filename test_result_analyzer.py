@@ -168,8 +168,18 @@ class TestResultAnalyzer:
         model: str,
         test_type: str
     ) -> Optional[Dict]:
-        """Parse detailed test results from a timestamp directory."""
-        # Look for metrics files
+        """Parse detailed test results from a timestamp directory.
+        
+        Supports both the new unified format (results.json) and legacy format.
+        """
+        # Try new unified format first (results.json)
+        unified_file = result_dir / "results.json"
+        if unified_file.exists():
+            return self._parse_unified_results(
+                unified_file, strategy, dataset, model, test_type, result_dir
+            )
+        
+        # Fall back to legacy format
         summary_file = result_dir / "metrics_summary.json"
         domain_file = result_dir / "metrics_per_domain.json"
         full_file = result_dir / "metrics_full.json"
@@ -204,6 +214,15 @@ class TestResultAnalyzer:
                     'aAcc': metrics.get('test/aAcc'),
                     'fwIoU': metrics.get('test/fwIoU')
                 })
+            elif 'overall' in summary and summary['overall']:
+                # Alternative format with 'overall' key
+                overall = summary['overall']
+                result.update({
+                    'mIoU': overall.get('mIoU'),
+                    'mAcc': overall.get('mAcc'),
+                    'aAcc': overall.get('aAcc'),
+                    'fwIoU': overall.get('fwIoU')
+                })
             else:
                 result.update({
                     'mIoU': None,
@@ -220,6 +239,64 @@ class TestResultAnalyzer:
             
         except Exception as e:
             print(f"Warning: Could not parse detailed metrics in {result_dir}: {e}")
+            return None
+    
+    def _parse_unified_results(
+        self,
+        unified_file: Path,
+        strategy: str,
+        dataset: str,
+        model: str,
+        test_type: str,
+        result_dir: Path
+    ) -> Optional[Dict]:
+        """Parse the new unified results.json format."""
+        try:
+            with open(unified_file, 'r') as f:
+                data = json.load(f)
+            
+            # Extract overall metrics
+            overall = data.get('overall', {})
+            
+            result = {
+                'strategy': strategy,
+                'dataset': dataset,
+                'model': model,
+                'test_type': test_type,
+                'result_type': 'detailed',
+                'result_dir': str(result_dir),
+                'timestamp': result_dir.name,
+                'mIoU': overall.get('mIoU'),
+                'mAcc': overall.get('mAcc'),
+                'aAcc': overall.get('aAcc'),
+                'fwIoU': overall.get('fwIoU'),
+                'num_images': overall.get('num_images', 0),
+                'has_per_domain': bool(data.get('per_domain')),
+                'has_per_class': bool(data.get('per_class'))
+            }
+            
+            # Parse per-domain metrics from unified format
+            if data.get('per_domain'):
+                domain_metrics = {}
+                for domain, domain_data in data['per_domain'].items():
+                    # Handle nested structure with 'summary' key
+                    metrics = domain_data.get('summary', domain_data) if isinstance(domain_data, dict) else {}
+                    domain_metrics[domain] = {
+                        'mIoU': metrics.get('mIoU'),
+                        'mAcc': metrics.get('mAcc'),
+                        'aAcc': metrics.get('aAcc'),
+                        'fwIoU': metrics.get('fwIoU')
+                    }
+                result['per_domain_metrics'] = domain_metrics
+            
+            # Store per-class data for top class analysis
+            if data.get('per_class'):
+                result['per_class_metrics'] = data['per_class']
+            
+            return result
+            
+        except Exception as e:
+            print(f"Warning: Could not parse unified results in {unified_file}: {e}")
             return None
     
     def _parse_per_domain(self, domain_file: Path) -> Dict:
@@ -400,6 +477,187 @@ class TestResultAnalyzer:
         
         return "\n".join(summary)
     
+    def format_comprehensive_summary(self, top_n: int = 5) -> str:
+        """
+        Generate a comprehensive summary with top performing configurations.
+        
+        Args:
+            top_n: Number of top configurations to show
+        
+        Returns:
+            Formatted comprehensive summary string
+        """
+        if not self.test_results:
+            return "No test results available for comprehensive summary"
+        
+        # Filter to valid results with metrics
+        valid_results = [
+            r for r in self.test_results 
+            if r.get('mIoU') is not None
+        ]
+        
+        if not valid_results:
+            return "No valid test results with metrics for comprehensive summary"
+        
+        lines = []
+        lines.append("\n" + "=" * 80)
+        lines.append("COMPREHENSIVE PERFORMANCE SUMMARY")
+        lines.append("=" * 80)
+        
+        # === TOP OVERALL CONFIGURATIONS ===
+        sorted_by_miou = sorted(valid_results, key=lambda x: x['mIoU'] or 0, reverse=True)
+        
+        lines.append(f"\n🏆 TOP {top_n} CONFIGURATIONS BY mIoU")
+        lines.append("-" * 80)
+        lines.append(f"{'Rank':<5} {'Strategy':<20} {'Dataset':<20} {'Model':<25} {'mIoU':>8}")
+        lines.append("-" * 80)
+        
+        for i, result in enumerate(sorted_by_miou[:top_n], 1):
+            lines.append(f"{i:<5} {result['strategy']:<20} {result['dataset']:<20} "
+                        f"{result['model']:<25} {result['mIoU']:>7.2f}%")
+        
+        # === BEST PER DATASET ===
+        lines.append(f"\n📊 BEST CONFIGURATION PER DATASET")
+        lines.append("-" * 80)
+        lines.append(f"{'Dataset':<20} {'Strategy':<20} {'Model':<25} {'mIoU':>8}")
+        lines.append("-" * 80)
+        
+        datasets = set(r['dataset'] for r in valid_results)
+        for dataset in sorted(datasets):
+            dataset_results = [r for r in valid_results if r['dataset'] == dataset]
+            if dataset_results:
+                best = max(dataset_results, key=lambda x: x['mIoU'] or 0)
+                lines.append(f"{dataset:<20} {best['strategy']:<20} "
+                            f"{best['model']:<25} {best['mIoU']:>7.2f}%")
+        
+        # === BEST PER STRATEGY ===
+        lines.append(f"\n🎯 BEST CONFIGURATION PER STRATEGY")
+        lines.append("-" * 80)
+        lines.append(f"{'Strategy':<20} {'Dataset':<20} {'Model':<25} {'mIoU':>8}")
+        lines.append("-" * 80)
+        
+        strategies = set(r['strategy'] for r in valid_results)
+        strategy_bests = []
+        for strategy in sorted(strategies):
+            strategy_results = [r for r in valid_results if r['strategy'] == strategy]
+            if strategy_results:
+                best = max(strategy_results, key=lambda x: x['mIoU'] or 0)
+                strategy_bests.append((strategy, best))
+                lines.append(f"{strategy:<20} {best['dataset']:<20} "
+                            f"{best['model']:<25} {best['mIoU']:>7.2f}%")
+        
+        # === STRATEGY COMPARISON ===
+        lines.append(f"\n📈 STRATEGY PERFORMANCE COMPARISON (Average mIoU)")
+        lines.append("-" * 80)
+        
+        strategy_stats = {}
+        for strategy in strategies:
+            strategy_results = [r for r in valid_results if r['strategy'] == strategy]
+            if strategy_results:
+                avg_miou = sum(r['mIoU'] for r in strategy_results) / len(strategy_results)
+                max_miou = max(r['mIoU'] for r in strategy_results)
+                min_miou = min(r['mIoU'] for r in strategy_results)
+                strategy_stats[strategy] = {
+                    'avg': avg_miou,
+                    'max': max_miou,
+                    'min': min_miou,
+                    'count': len(strategy_results)
+                }
+        
+        # Sort by average mIoU
+        sorted_strategies = sorted(strategy_stats.items(), key=lambda x: x[1]['avg'], reverse=True)
+        
+        lines.append(f"{'Strategy':<25} {'Avg mIoU':>10} {'Max mIoU':>10} {'Min mIoU':>10} {'Count':>8}")
+        lines.append("-" * 80)
+        
+        # Baseline reference for calculating improvements
+        baseline_avg = strategy_stats.get('baseline', {}).get('avg', 0)
+        
+        for strategy, stats in sorted_strategies:
+            lines.append(f"{strategy:<25} {stats['avg']:>9.2f}% {stats['max']:>9.2f}% "
+                        f"{stats['min']:>9.2f}% {stats['count']:>8}")
+        
+        # === PERFORMANCE GAINS VS BASELINE ===
+        if baseline_avg > 0:
+            lines.append(f"\n📊 PERFORMANCE GAINS VS BASELINE")
+            lines.append("-" * 80)
+            lines.append(f"{'Strategy':<25} {'Baseline':>10} {'Strategy':>10} {'Gain':>10} {'%Improvement':>12}")
+            lines.append("-" * 80)
+            
+            gains = []
+            for strategy, stats in sorted_strategies:
+                if strategy != 'baseline':
+                    gain = stats['avg'] - baseline_avg
+                    pct_gain = (gain / baseline_avg) * 100 if baseline_avg > 0 else 0
+                    gains.append((strategy, baseline_avg, stats['avg'], gain, pct_gain))
+            
+            # Sort by gain
+            gains.sort(key=lambda x: x[3], reverse=True)
+            
+            for strategy, base, strat_avg, gain, pct in gains:
+                gain_str = f"+{gain:.2f}" if gain >= 0 else f"{gain:.2f}"
+                pct_str = f"+{pct:.1f}%" if pct >= 0 else f"{pct:.1f}%"
+                lines.append(f"{strategy:<25} {base:>9.2f}% {strat_avg:>9.2f}% "
+                            f"{gain_str:>10} {pct_str:>12}")
+        
+        # === MODEL COMPARISON ===
+        lines.append(f"\n🔧 MODEL PERFORMANCE COMPARISON (Average mIoU)")
+        lines.append("-" * 80)
+        
+        models = set(r['model'] for r in valid_results)
+        # Clean model names (remove _clear_day suffix for grouping)
+        model_base_names = set()
+        for model in models:
+            base_name = model.replace('_clear_day', '')
+            model_base_names.add(base_name)
+        
+        model_stats = {}
+        for model in sorted(model_base_names):
+            # Include both base model and _clear_day variant
+            model_results = [r for r in valid_results 
+                           if r['model'] == model or r['model'] == f"{model}_clear_day"]
+            if model_results:
+                avg_miou = sum(r['mIoU'] for r in model_results) / len(model_results)
+                model_stats[model] = {
+                    'avg': avg_miou,
+                    'count': len(model_results)
+                }
+        
+        sorted_models = sorted(model_stats.items(), key=lambda x: x[1]['avg'], reverse=True)
+        
+        lines.append(f"{'Model':<35} {'Avg mIoU':>10} {'Count':>8}")
+        lines.append("-" * 80)
+        for model, stats in sorted_models:
+            lines.append(f"{model:<35} {stats['avg']:>9.2f}% {stats['count']:>8}")
+        
+        # === KEY INSIGHTS ===
+        lines.append(f"\n💡 KEY INSIGHTS")
+        lines.append("-" * 80)
+        
+        if sorted_by_miou:
+            best = sorted_by_miou[0]
+            lines.append(f"• Best Overall: {best['strategy']}/{best['dataset']}/{best['model']} "
+                        f"with {best['mIoU']:.2f}% mIoU")
+        
+        if sorted_strategies:
+            best_strategy = sorted_strategies[0][0]
+            lines.append(f"• Best Strategy (by avg): {best_strategy} "
+                        f"with {sorted_strategies[0][1]['avg']:.2f}% average mIoU")
+        
+        if sorted_models:
+            best_model = sorted_models[0][0]
+            lines.append(f"• Best Model (by avg): {best_model} "
+                        f"with {sorted_models[0][1]['avg']:.2f}% average mIoU")
+        
+        if baseline_avg > 0 and gains:
+            best_gain = gains[0]
+            lines.append(f"• Largest Improvement over Baseline: {best_gain[0]} "
+                        f"with +{best_gain[3]:.2f}% mIoU ({best_gain[4]:.1f}% relative improvement)")
+        
+        lines.append("\n" + "=" * 80)
+        
+        return "\n".join(lines)
+    
     def format_per_domain_table(self) -> str:
         """
         Generate a per-domain performance table.
@@ -519,6 +777,17 @@ def main():
         action='store_true',
         help="Show detailed per-domain performance breakdown"
     )
+    parser.add_argument(
+        '--comprehensive',
+        action='store_true',
+        help="Show comprehensive summary with top performers and strategy comparisons"
+    )
+    parser.add_argument(
+        '--top-n',
+        type=int,
+        default=5,
+        help="Number of top configurations to show (default: 5)"
+    )
     
     args = parser.parse_args()
     
@@ -532,6 +801,9 @@ def main():
     if args.format == 'table':
         print("\n" + analyzer.format_table(show_domains=args.show_domains))
         print("\n" + analyzer.format_summary())
+        
+        # Always show comprehensive summary for better insight
+        print(analyzer.format_comprehensive_summary(top_n=args.top_n))
         
         if args.domain_breakdown:
             print(analyzer.format_per_domain_table())

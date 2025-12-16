@@ -119,9 +119,76 @@ class TestResultVisualizer:
             sns.set_palette("husl")
     
     def _load_results(self) -> Dict[str, Any]:
-        """Load all result files from the results directory."""
+        """Load all result files from the results directory.
+        
+        Supports both the new unified format (results.json) and legacy format
+        (metrics_summary.json, metrics_per_domain.json, etc.).
+        """
         data = {}
         
+        # Try new unified format first (results.json)
+        unified_path = self.results_dir / 'results.json'
+        if unified_path.exists():
+            with open(unified_path) as f:
+                unified_data = json.load(f)
+            
+            # Extract data into expected format
+            data['full'] = unified_data
+            
+            # Create summary format
+            data['summary'] = {
+                'config': unified_data.get('config', {}),
+                'overall': unified_data.get('overall', {})
+            }
+            
+            # Create per-domain format
+            if unified_data.get('per_domain'):
+                data['per_domain'] = {
+                    'config': unified_data.get('config', {}),
+                    'per_domain': unified_data.get('per_domain', {})
+                }
+                
+                # Create DataFrame from per-domain data for easier access
+                domain_rows = []
+                for domain, domain_data in unified_data['per_domain'].items():
+                    # Handle both nested (summary + per_class) and flat formats
+                    metrics = domain_data.get('summary', domain_data) if isinstance(domain_data, dict) else {}
+                    domain_rows.append({
+                        'domain': domain,
+                        'mIoU': metrics.get('mIoU', 0),
+                        'fwIoU': metrics.get('fwIoU', 0),
+                        'mAcc': metrics.get('mAcc', 0),
+                        'aAcc': metrics.get('aAcc', 0),
+                        'num_images': metrics.get('num_images', 0)
+                    })
+                if domain_rows:
+                    data['domain_df'] = pd.DataFrame(domain_rows)
+            
+            # Create per-class format
+            if unified_data.get('per_class'):
+                data['per_class'] = {
+                    'config': unified_data.get('config', {}),
+                    'overall': unified_data.get('overall', {}),
+                    'per_class': unified_data.get('per_class', {})
+                }
+                
+                # Create DataFrame from per-class data for easier access
+                class_rows = []
+                for class_name, class_data in unified_data['per_class'].items():
+                    class_rows.append({
+                        'class': class_name,
+                        'IoU': class_data.get('IoU', 0),
+                        'Acc': class_data.get('Acc', 0),
+                        'area_intersect': class_data.get('area_intersect', 0),
+                        'area_union': class_data.get('area_union', 0),
+                        'area_label': class_data.get('area_label', 0)
+                    })
+                if class_rows:
+                    data['class_df'] = pd.DataFrame(class_rows)
+            
+            return data
+        
+        # Fall back to legacy format
         # Load summary
         summary_path = self.results_dir / 'metrics_summary.json'
         if summary_path.exists():
@@ -146,7 +213,7 @@ class TestResultVisualizer:
             with open(full_path) as f:
                 data['full'] = json.load(f)
         
-        # Load CSV files for easier DataFrame access
+        # Load CSV files for easier DataFrame access (legacy)
         domain_csv = self.results_dir / 'per_domain_metrics.csv'
         if domain_csv.exists():
             data['domain_df'] = pd.read_csv(domain_csv)
