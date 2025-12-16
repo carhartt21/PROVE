@@ -13,14 +13,18 @@ from typing import Dict, List, Optional, Tuple, Union
 import numpy as np
 
 try:
-    from mmseg.datasets.builder import DATASETS
     from mmseg.datasets.basesegdataset import BaseSegDataset
-    from mmseg.registry import DATASETS as DATASETS_REGISTRY
+    from mmseg.registry import DATASETS
     MMSEG_AVAILABLE = True
 except ImportError:
-    MMSEG_AVAILABLE = False
-    DATASETS = None
-    DATASETS_REGISTRY = None
+    try:
+        # Fallback for older mmseg versions
+        from mmseg.datasets.builder import DATASETS
+        from mmseg.datasets.basesegdataset import BaseSegDataset
+        MMSEG_AVAILABLE = True
+    except ImportError:
+        MMSEG_AVAILABLE = False
+        DATASETS = None
 
 from label_unification import (
     LabelUnificationManager,
@@ -92,7 +96,7 @@ UNIFIED_PALETTE = [
 # =============================================================================
 
 if MMSEG_AVAILABLE:
-    @DATASETS_REGISTRY.register_module()
+    @DATASETS.register_module()
     class MapillaryUnifiedDataset(BaseSegDataset):
         """
         Mapillary Vistas dataset with on-the-fly label transformation.
@@ -158,7 +162,7 @@ if MMSEG_AVAILABLE:
             return transformed_seg_map
 
 
-    @DATASETS_REGISTRY.register_module()
+    @DATASETS.register_module()
     class UnifiedCityscapesDataset(BaseSegDataset):
         """
         Cityscapes dataset with on-the-fly label transformation to unified space.
@@ -208,7 +212,7 @@ if MMSEG_AVAILABLE:
             return transformed_seg_map
 
 
-    @DATASETS_REGISTRY.register_module()
+    @DATASETS.register_module()
     class JointCityscapesMapillaryDataset(BaseSegDataset):
         """
         Joint Cityscapes + Mapillary Vistas dataset for unified training.
