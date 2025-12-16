@@ -234,6 +234,10 @@ class UnifiedTrainer:
             from mmengine.runner import Runner
             from mmengine.config import Config
             
+            # Import custom transforms and datasets to register them
+            import custom_transforms
+            import unified_datasets
+            
             # Import mmsegmentation to register all components
             import mmseg.models
             import mmseg.datasets  
@@ -270,8 +274,9 @@ class UnifiedTrainer:
 import sys
 sys.path.insert(0, "{Path(__file__).parent}")
 
-# Import custom transforms to register them BEFORE loading config
+# Import custom transforms and datasets to register them BEFORE loading config
 import custom_transforms  # Registers ReduceToSingleChannel transform
+import unified_datasets   # Registers MapillaryLabelTransform, CityscapesLabelTransform
 
 # Import mmsegmentation components carefully to avoid mmcv._ext issues
 try:
@@ -561,8 +566,9 @@ class UnifiedMultiTrainer:
 import sys
 sys.path.insert(0, "{Path(__file__).parent}")
 
-# Import custom transforms to register them BEFORE loading config
+# Import custom transforms and datasets to register them BEFORE loading config
 import custom_transforms
+import unified_datasets
 
 try:
     import mmseg.datasets  
@@ -765,7 +771,13 @@ def run_batch_training(
     
     for dataset in datasets:
         # Get appropriate models for this dataset
-        task = DATASET_CONFIGS[dataset].task
+        # Handle multi-dataset case (starts with "multi_")
+        if dataset.startswith('multi_'):
+            # Multi-datasets are always segmentation for now
+            task = 'segmentation'
+        else:
+            task = DATASET_CONFIGS[dataset].task
+        
         available_models = (
             list(SEGMENTATION_MODELS.keys()) if task == 'segmentation'
             else list(DETECTION_MODELS.keys())
@@ -778,13 +790,26 @@ def run_batch_training(
             
             for strategy in strategies:
                 for ratio in ratios:
-                    cmd = [
-                        'python', 'unified_training.py',
-                        '--dataset', dataset,
-                        '--model', model,
-                        '--strategy', strategy,
-                        '--real-gen-ratio', str(ratio),
-                    ]
+                    # Handle multi-dataset case differently
+                    if dataset.startswith('multi_'):
+                        # Extract individual datasets from multi_dataset1+dataset2+... format
+                        dataset_names = dataset.replace('multi_', '').split('+')
+                        cmd = [
+                            'python', 'unified_training.py',
+                            '--multi-dataset',
+                            '--datasets', *dataset_names,
+                            '--model', model,
+                            '--strategy', strategy,
+                            '--real-gen-ratio', str(ratio),
+                        ]
+                    else:
+                        cmd = [
+                            'python', 'unified_training.py',
+                            '--dataset', dataset,
+                            '--model', model,
+                            '--strategy', strategy,
+                            '--real-gen-ratio', str(ratio),
+                        ]
                     commands.append({
                         'cmd': cmd,
                         'dataset': dataset,
@@ -877,6 +902,7 @@ Examples:
 
   # Multi-dataset with custom weights (70%% ACDC, 30%% Mapillary)
   python unified_training.py --multi-dataset --datasets ACDC MapillaryVistas --weights 0.7 0.3 --model deeplabv3plus_r50
+  
 
   # Batch training
   python unified_training.py --batch --datasets ACDC BDD10k --strategies baseline gen_cycleGAN
@@ -946,6 +972,8 @@ Examples:
                        help='Use all segmentation datasets for batch training')
     parser.add_argument('--all-det-datasets', action='store_true',
                        help='Use all detection datasets for batch training')
+    parser.add_argument('--unified-seg-dataset', action='store_true',
+                       help='Use unified segmentation dataset (ACDC+BDD10k+MapillaryVistas+IDD-AW)')
     parser.add_argument('--all-seg-models', action='store_true',
                        help='Use all segmentation models for batch training')
     parser.add_argument('--all-det-models', action='store_true',
@@ -1004,6 +1032,9 @@ def main():
         if args.all_seg_datasets:
             seg_datasets = [name for name, cfg in DATASET_CONFIGS.items() if cfg.task == 'segmentation']
             datasets.extend(seg_datasets)
+        
+        if args.unified_seg_dataset:
+            datasets.append('multi_acdc+mapillaryvistas+idd-aw+bdd10k')
         
         if args.all_seg_models:
             models.extend(list(SEGMENTATION_MODELS.keys()))
