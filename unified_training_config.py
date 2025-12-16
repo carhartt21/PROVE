@@ -1091,8 +1091,12 @@ class UnifiedTrainingConfig:
         batch_size = 2
         num_workers = 4
         
-        # Datasets that need label transformation
+        # Datasets that need specific label transformations:
+        # - MapillaryVistas: 66-class labels → 19-class Cityscapes trainIDs
+        # - ACDC: Cityscapes label IDs (0-33) → Cityscapes trainIDs (0-18)
+        # - BDD10k, IDD-AW: Already use Cityscapes trainIDs (no ID transform needed)
         MAPILLARY_DATASETS = {'MapillaryVistas', 'Mapillary'}
+        CITYSCAPES_LABEL_ID_DATASETS = {'ACDC'}  # Use Cityscapes label ID format (7=road, 8=sidewalk, etc.)
         
         # Build individual dataset configs for ConcatDataset with per-dataset pipelines
         train_datasets = []
@@ -1100,17 +1104,19 @@ class UnifiedTrainingConfig:
             # Create per-dataset pipeline reference
             pipeline_name = f'train_pipeline_{name.lower()}'
             
-            # Build custom pipeline for this dataset if needed
-            needs_label_transform = name in MAPILLARY_DATASETS
-            
-            if needs_label_transform:
-                # Add MapillaryLabelTransform for Mapillary datasets
-                # This pipeline will be defined separately in the config
+            # Build custom pipeline based on dataset's label format
+            if name in MAPILLARY_DATASETS:
+                # MapillaryVistas: needs MapillaryLabelTransform (66 → 19 classes)
                 config[pipeline_name] = self._build_mapillary_training_pipeline(cfg)
                 pipeline_ref = '{{' + pipeline_name + '}}'
+            elif name in CITYSCAPES_LABEL_ID_DATASETS:
+                # ACDC: uses Cityscapes label IDs, needs CityscapesLabelIdToTrainId
+                config[pipeline_name] = self._build_cityscapes_training_pipeline(cfg)
+                pipeline_ref = '{{' + pipeline_name + '}}'
             else:
-                # Use standard pipeline (Cityscapes labels, no additional transform needed)
-                pipeline_ref = '{{train_pipeline}}'
+                # BDD10k, IDD-AW: already have trainIDs, just need ReduceToSingleChannel
+                config[pipeline_name] = self._build_trainid_training_pipeline(cfg)
+                pipeline_ref = '{{' + pipeline_name + '}}'
             
             ds_config = dict(
                 type='CityscapesDataset',
@@ -1201,6 +1207,73 @@ class UnifiedTrainingConfig:
             # Convert Mapillary labels (0-65) to Cityscapes trainIds (0-18, 255)
             # MapillaryLabelTransform is registered in unified_datasets.py
             dict(type='MapillaryLabelTransform', target_space='cityscapes'),
+            dict(type='Resize', scale=(1024, 512), keep_ratio=True),
+            dict(type='RandomCrop', crop_size=crop_size, cat_max_ratio=0.75),
+            dict(type='RandomFlip', prob=0.5),
+            dict(type='PhotoMetricDistortion'),
+            dict(type='PackSegInputs'),
+        ]
+        
+        return pipeline
+    
+    def _build_cityscapes_training_pipeline(self, dataset_cfg: DatasetConfig) -> List[Dict]:
+        """
+        Build a training pipeline for datasets using Cityscapes label ID format.
+        
+        Datasets like ACDC use the original Cityscapes label format where:
+        - road = 7, sidewalk = 8, building = 11, etc.
+        
+        This pipeline includes CityscapesLabelIdToTrainId to convert these to trainIDs:
+        - road = 0, sidewalk = 1, building = 2, etc.
+        
+        Args:
+            dataset_cfg: Dataset configuration object
+            
+        Returns:
+            List of pipeline transforms
+        """
+        crop_size = (512, 512)
+        
+        pipeline = [
+            dict(type='LoadImageFromFile'),
+            dict(type='LoadAnnotations'),
+            # Handle labels stored as 3-channel PNGs
+            dict(type='ReduceToSingleChannel'),
+            # Convert Cityscapes label IDs (0-33) to trainIDs (0-18)
+            dict(type='CityscapesLabelIdToTrainId'),
+            dict(type='Resize', scale=(1024, 512), keep_ratio=True),
+            dict(type='RandomCrop', crop_size=crop_size, cat_max_ratio=0.75),
+            dict(type='RandomFlip', prob=0.5),
+            dict(type='PhotoMetricDistortion'),
+            dict(type='PackSegInputs'),
+        ]
+        
+        return pipeline
+    
+    def _build_trainid_training_pipeline(self, dataset_cfg: DatasetConfig) -> List[Dict]:
+        """
+        Build a training pipeline for datasets that already use trainID format.
+        
+        Datasets like BDD10k and IDD-AW already have labels in Cityscapes trainID format:
+        - road = 0, sidewalk = 1, building = 2, etc.
+        
+        These datasets only need ReduceToSingleChannel (for 3-channel PNGs) but NO
+        label ID transformation.
+        
+        Args:
+            dataset_cfg: Dataset configuration object
+            
+        Returns:
+            List of pipeline transforms
+        """
+        crop_size = (512, 512)
+        
+        pipeline = [
+            dict(type='LoadImageFromFile'),
+            dict(type='LoadAnnotations'),
+            # Handle labels stored as 3-channel PNGs
+            dict(type='ReduceToSingleChannel'),
+            # NO CityscapesLabelIdToTrainId - labels already in trainID format
             dict(type='Resize', scale=(1024, 512), keep_ratio=True),
             dict(type='RandomCrop', crop_size=crop_size, cat_max_ratio=0.75),
             dict(type='RandomFlip', prob=0.5),
