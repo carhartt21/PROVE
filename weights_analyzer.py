@@ -131,7 +131,17 @@ class WeightsAnalyzer:
         
         # Check for test results
         test_results_dirs = list(model_dir.glob("test_results*"))
-        has_test_results = len(test_results_dirs) > 0
+        # Filter out test_results_detailed from basic test results count
+        basic_test_dirs = [d for d in test_results_dirs if d.name != "test_results_detailed"]
+        has_test_results = len(basic_test_dirs) > 0
+        
+        # Check for detailed test results
+        detailed_results_dir = model_dir / "test_results_detailed"
+        has_detailed_test_results = (
+            detailed_results_dir.exists() and 
+            detailed_results_dir.is_dir() and
+            len(list(detailed_results_dir.iterdir())) > 0  # Has at least one timestamped subfolder
+        )
         
         return {
             'strategy': strategy,
@@ -149,7 +159,8 @@ class WeightsAnalyzer:
             'latest_checkpoint': latest_time.isoformat() if latest_time else None,
             'has_config': config_path.exists(),
             'has_test_results': has_test_results,
-            'num_test_result_dirs': len(test_results_dirs),
+            'has_detailed_test_results': has_detailed_test_results,
+            'num_test_result_dirs': len(basic_test_dirs),
             **config_info
         }
     
@@ -207,7 +218,8 @@ class WeightsAnalyzer:
             "Checkpoints",
             "Total Size",
             "Latest",
-            "Test Results"
+            "Test Results",
+            "Detailed"
         ]
         
         # Data rows
@@ -230,6 +242,9 @@ class WeightsAnalyzer:
             else:
                 test_str = "—"
             
+            # Detailed test results indicator
+            detailed_str = "✓" if item.get('has_detailed_test_results', False) else "—"
+            
             rows.append([
                 item['strategy'],
                 item['dataset'],
@@ -237,7 +252,8 @@ class WeightsAnalyzer:
                 str(item['num_checkpoints']),
                 size_str,
                 date_str,
-                test_str
+                test_str,
+                detailed_str
             ])
         
         # Calculate column widths
@@ -301,6 +317,7 @@ class WeightsAnalyzer:
         
         # Count with test results
         with_tests = sum(1 for item in self.weights_data if item['has_test_results'])
+        with_detailed = sum(1 for item in self.weights_data if item.get('has_detailed_test_results', False))
         
         summary = []
         summary.append("=" * 70)
@@ -310,6 +327,7 @@ class WeightsAnalyzer:
         summary.append(f"Total Checkpoints: {total_checkpoints}")
         summary.append(f"Total Storage: {total_size_gb:.2f} GB")
         summary.append(f"Configurations with Test Results: {with_tests}")
+        summary.append(f"Configurations with Detailed Test Results: {with_detailed}")
         summary.append("")
         summary.append("Strategies:")
         for strategy, count in sorted(strategies.items()):

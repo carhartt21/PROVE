@@ -570,17 +570,33 @@ class TestResultAnalyzer:
         lines.append(f"{'Strategy':<25} {'Avg mIoU':>10} {'Max mIoU':>10} {'Min mIoU':>10} {'Count':>8}")
         lines.append("-" * 80)
         
-        # Baseline reference for calculating improvements
-        baseline_avg = strategy_stats.get('baseline', {}).get('avg', 0)
-        
         for strategy, stats in sorted_strategies:
             lines.append(f"{strategy:<25} {stats['avg']:>9.2f}% {stats['max']:>9.2f}% "
                         f"{stats['min']:>9.2f}% {stats['count']:>8}")
         
-        # === PERFORMANCE GAINS VS BASELINE ===
+        # === BASELINE CALCULATION ===
+        # Use baseline strategy with clear_day training data as reference
+        baseline_clear_day_results = [
+            r for r in valid_results 
+            if r['strategy'] == 'baseline' and '_clear_day' in r['model']
+        ]
+        
+        if baseline_clear_day_results:
+            baseline_avg = sum(r['mIoU'] for r in baseline_clear_day_results) / len(baseline_clear_day_results)
+            baseline_label = "Baseline (clear_day training)"
+        else:
+            # Fall back to any baseline if no clear_day variants exist
+            baseline_results = [r for r in valid_results if r['strategy'] == 'baseline']
+            baseline_avg = sum(r['mIoU'] for r in baseline_results) / len(baseline_results) if baseline_results else 0
+            baseline_label = "Baseline"
+        
+        # === PERFORMANCE GAINS VS BASELINE (clear_day) ===
         if baseline_avg > 0:
-            lines.append(f"\n📊 PERFORMANCE GAINS VS BASELINE")
+            lines.append(f"\n📊 PERFORMANCE GAINS VS {baseline_label.upper()}")
             lines.append("-" * 80)
+            lines.append(f"Reference: {baseline_label} with avg mIoU = {baseline_avg:.2f}%")
+            lines.append(f"(Using models trained on clear_day domain as baseline reference)")
+            lines.append("")
             lines.append(f"{'Strategy':<25} {'Baseline':>10} {'Strategy':>10} {'Gain':>10} {'%Improvement':>12}")
             lines.append("-" * 80)
             
@@ -651,7 +667,7 @@ class TestResultAnalyzer:
         
         if baseline_avg > 0 and gains:
             best_gain = gains[0]
-            lines.append(f"• Largest Improvement over Baseline: {best_gain[0]} "
+            lines.append(f"• Largest Improvement over {baseline_label}: {best_gain[0]} "
                         f"with +{best_gain[3]:.2f}% mIoU ({best_gain[4]:.1f}% relative improvement)")
         
         lines.append("\n" + "=" * 80)
