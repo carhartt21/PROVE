@@ -6,7 +6,12 @@ This script provides detailed test results including:
 - Per-domain (weather condition) metrics
 - Per-class IoU breakdown
 - Timestamped output folders
-- Multiple granularity levels in separate JSON files
+- Comprehensive JSON output with all metrics
+
+Output Structure:
+    {timestamp}/
+    ├── results.json          # Complete metrics (overall, per-domain, per-class)
+    └── test_report.txt       # Human-readable summary
 
 Usage:
     python fine_grained_test.py --config /path/to/config.py --checkpoint /path/to/checkpoint.pth \
@@ -219,7 +224,7 @@ def run_fine_grained_test(
     print(f"Model loaded on {device}")
     
     # Get domains for this dataset
-    domains = DATASET_DOMAINS.get(dataset_name, None)
+    domains = ['clear_day', 'cloudy', 'dawn_dusk', 'foggy', 'night', 'rainy', 'snowy']
     
     # Results storage
     all_results = {
@@ -466,50 +471,13 @@ def run_fine_grained_test(
         all_results['overall'] = overall_metrics
         all_results['per_class'] = overall_per_class
     
-    # Save results at different granularity levels
-    
-    # 1. Summary metrics (overall)
-    summary_file = output_path / 'metrics_summary.json'
-    with open(summary_file, 'w') as f:
-        json.dump({
-            'config': all_results['config'],
-            'overall': all_results.get('overall', {})
-        }, f, indent=2)
-    print(f"\nSummary saved to: {summary_file}")
-    
-    # 2. Per-domain metrics
-    if all_results['per_domain']:
-        domain_file = output_path / 'metrics_per_domain.json'
-        # Simplify per-domain to just summary metrics
-        per_domain_summary = {
-            d: v['summary'] if isinstance(v, dict) and 'summary' in v else v
-            for d, v in all_results['per_domain'].items()
-        }
-        with open(domain_file, 'w') as f:
-            json.dump({
-                'config': all_results['config'],
-                'per_domain': per_domain_summary
-            }, f, indent=2)
-        print(f"Per-domain metrics saved to: {domain_file}")
-    
-    # 3. Per-class metrics
-    if all_results['per_class']:
-        class_file = output_path / 'metrics_per_class.json'
-        with open(class_file, 'w') as f:
-            json.dump({
-                'config': all_results['config'],
-                'overall': all_results.get('overall', {}),
-                'per_class': all_results['per_class']
-            }, f, indent=2)
-        print(f"Per-class metrics saved to: {class_file}")
-    
-    # 4. Full detailed results
-    full_file = output_path / 'metrics_full.json'
-    with open(full_file, 'w') as f:
+    # Save results - Single unified JSON output
+    results_file = output_path / 'results.json'
+    with open(results_file, 'w') as f:
         json.dump(all_results, f, indent=2)
-    print(f"Full metrics saved to: {full_file}")
+    print(f"\nResults saved to: {results_file}")
     
-    # 5. Create readable text report
+    # Create readable text report
     report_file = output_path / 'test_report.txt'
     with open(report_file, 'w') as f:
         f.write(f"PROVE Fine-Grained Test Report\n")
@@ -553,45 +521,7 @@ def run_fine_grained_test(
             for class_name, metrics in all_results['per_class'].items():
                 f.write(f"{class_name:<20} {metrics['IoU']:>10.2f} {metrics['Acc']:>10.2f}\n")
     
-    print(f"Text report saved to: {report_file}")
-    
-    # 6. CSV files for easy analysis
-    import csv
-    
-    # Per-domain CSV
-    if all_results['per_domain']:
-        csv_file = output_path / 'per_domain_metrics.csv'
-        with open(csv_file, 'w', newline='') as f:
-            writer = csv.writer(f)
-            writer.writerow(['domain', 'mIoU', 'fwIoU', 'mAcc', 'aAcc', 'num_images'])
-            for domain, data in all_results['per_domain'].items():
-                metrics = data.get('summary', data) if isinstance(data, dict) else {}
-                writer.writerow([
-                    domain,
-                    f"{metrics.get('mIoU', 0):.2f}",
-                    f"{metrics.get('fwIoU', 0):.2f}",
-                    f"{metrics.get('mAcc', 0):.2f}",
-                    f"{metrics.get('aAcc', 0):.2f}",
-                    metrics.get('num_images', 0)
-                ])
-        print(f"Per-domain CSV saved to: {csv_file}")
-    
-    # Per-class CSV
-    if all_results['per_class']:
-        csv_file = output_path / 'per_class_metrics.csv'
-        with open(csv_file, 'w', newline='') as f:
-            writer = csv.writer(f)
-            writer.writerow(['class', 'IoU', 'Acc', 'area_intersect', 'area_union', 'area_label'])
-            for class_name, metrics in all_results['per_class'].items():
-                writer.writerow([
-                    class_name,
-                    f"{metrics.get('IoU', 0):.2f}",
-                    f"{metrics.get('Acc', 0):.2f}",
-                    f"{metrics.get('area_intersect', 0):.0f}",
-                    f"{metrics.get('area_union', 0):.0f}",
-                    f"{metrics.get('area_label', 0):.0f}"
-                ])
-        print(f"Per-class CSV saved to: {csv_file}")
+    print(f"Report saved to: {report_file}")
     
     # Print final summary
     print(f"\n{'='*60}")
@@ -616,8 +546,6 @@ def main():
                        help='Data root directory')
     parser.add_argument('--test-split', default='test', choices=['val', 'test'],
                        help='Test split to use')
-    parser.add_argument('--mode', default='per-domain', choices=['per-domain', 'per-class', 'full'],
-                       help='Test mode (all modes output the same comprehensive results)')
     
     args = parser.parse_args()
     

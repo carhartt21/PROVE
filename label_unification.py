@@ -535,17 +535,27 @@ class MapillarytoCityscapes(MappingStrategy):
     
     def __init__(self, ignore_index: int = 255):
         super().__init__(ignore_index)
-        self.lookup_table = self.create_lookup_table(66)
+        # Use 256 to cover all possible uint8 values (0-255)
+        # Mapillary has 66 official classes but labels can contain higher values
+        self.lookup_table = self.create_lookup_table(256)
     
-    def create_lookup_table(self, source_num_classes: int = 66) -> np.ndarray:
-        """Create lookup table for Mapillary -> Cityscapes mapping"""
+    def create_lookup_table(self, source_num_classes: int = 256) -> np.ndarray:
+        """Create lookup table for Mapillary -> Cityscapes mapping
+        
+        Args:
+            source_num_classes: Size of lookup table (default 256 to handle all uint8 values)
+        """
         lut = np.full(source_num_classes, self.ignore_index, dtype=np.uint8)
         for mapillary_id, cityscapes_id in self.MAPPING.items():
             lut[mapillary_id] = cityscapes_id
         return lut
     
     def transform_label(self, label: np.ndarray) -> np.ndarray:
-        """Transform Mapillary label to Cityscapes format"""
+        """Transform Mapillary label to Cityscapes format
+        
+        Note: Handles label values beyond the 66 official Mapillary classes
+        by mapping them to ignore_index.
+        """
         return self.lookup_table[label].astype(np.uint8)
 
 
@@ -697,17 +707,27 @@ class MapillaryToUnified(MappingStrategy):
     
     def __init__(self, ignore_index: int = 255):
         super().__init__(ignore_index)
-        self.lookup_table = self.create_lookup_table(66)
+        # Use 256 to cover all possible uint8 values (0-255)
+        # Mapillary has 66 official classes but labels can contain higher values
+        self.lookup_table = self.create_lookup_table(256)
     
-    def create_lookup_table(self, source_num_classes: int = 66) -> np.ndarray:
-        """Create lookup table for Mapillary -> Unified mapping"""
+    def create_lookup_table(self, source_num_classes: int = 256) -> np.ndarray:
+        """Create lookup table for Mapillary -> Unified mapping
+        
+        Args:
+            source_num_classes: Size of lookup table (default 256 to handle all uint8 values)
+        """
         lut = np.full(source_num_classes, self.ignore_index, dtype=np.uint8)
         for mapillary_id, unified_id in self.MAPPING.items():
             lut[mapillary_id] = unified_id
         return lut
     
     def transform_label(self, label: np.ndarray) -> np.ndarray:
-        """Transform Mapillary label to unified format"""
+        """Transform Mapillary label to unified format
+        
+        Note: Handles label values beyond the 66 official Mapillary classes
+        by mapping them to ignore_index.
+        """
         return self.lookup_table[label].astype(np.uint8)
 
 

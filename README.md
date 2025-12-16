@@ -850,6 +850,33 @@ python prove.py train \
 
 **Solution**: This warning has been suppressed in PROVE scripts. The functionality remains unaffected, and training/testing will continue normally. The warning appears in logs but doesn't impact performance.
 
+#### Custom Transform Registration Errors
+
+**Problem**: `KeyError: 'MapillaryLabelTransform is not in the mmseg::transform registry'`
+
+**Cause**: Custom transforms from `unified_datasets.py` need to be imported before the config is loaded to register them with MMSegmentation.
+
+**Solution**: The training scripts automatically import `custom_transforms` and `unified_datasets` before loading configs. If running training manually, ensure you import these modules first:
+
+```python
+import sys
+sys.path.insert(0, '/path/to/PROVE')
+import custom_transforms
+import unified_datasets
+
+# Now load and use config
+from mmengine.config import Config
+cfg = Config.fromfile('config.py')
+```
+
+#### Mapillary Label IndexError
+
+**Problem**: `IndexError: index 70 is out of bounds for axis 0 with size 66` when training with Mapillary Vistas dataset.
+
+**Cause**: While Mapillary Vistas officially has 66 classes (IDs 0-65), some label images contain higher values (up to 70 or more) due to dataset artifacts or annotation errors.
+
+**Solution**: The label transformation lookup tables are sized to 256 (covering all possible uint8 values). Any label values beyond the official 66 classes are automatically mapped to the ignore index (255). No action needed - this is handled automatically.
+
 ### Performance Optimization
 
 If you encounter slow training or inference:
@@ -862,6 +889,118 @@ python unified_training.py --fp16
 # Optimize data loading
 export NUM_WORKERS=4  # Adjust based on CPU cores
 python unified_training.py --workers-per-gpu 4
+```
+
+## Utilities
+
+### Weights Directory Analyzer
+
+PROVE includes a helper script to analyze and summarize all training configurations and checkpoints stored in the weights directory:
+
+```bash
+# Display formatted table with summary statistics
+python weights_analyzer.py
+
+# Show only summary statistics
+python weights_analyzer.py --summary-only
+
+# Export to JSON for programmatic processing
+python weights_analyzer.py --format json --output weights_summary.json
+
+# Export to CSV for spreadsheet analysis
+python weights_analyzer.py --format csv --output weights_summary.csv
+
+# Verbose output during scanning
+python weights_analyzer.py --verbose
+
+# Analyze a custom directory
+python weights_analyzer.py --root /path/to/weights/
+```
+
+**Output Information:**
+- Strategy/Dataset/Model configuration matrix
+- Number of checkpoints per configuration
+- Total storage size per configuration
+- Latest checkpoint timestamp
+- Test results availability
+- Summary statistics by strategy and dataset
+- Total checkpoints and storage across all configurations
+
+**Example Output:**
+```
+┌─────────────┬─────────┬───────────────────┬─────────────┬────────────┬────────────┬──────────────┐
+│ Strategy    │ Dataset │ Model             │ Checkpoints │ Total Size │ Latest     │ Test Results │
+├─────────────┼─────────┼───────────────────┼─────────────┼────────────┼────────────┼──────────────┤
+│ baseline    │ acdc    │ deeplabv3plus_r50 │ 8           │ 2.65 GB    │ 2025-12-09 │ ✓ (2)        │
+│ baseline    │ acdc    │ pspnet_r50        │ 8           │ 2.97 GB    │ 2025-12-11 │ —            │
+│ gen_CUT     │ bdd10k  │ segformer_mit-b5  │ 3           │ 2.76 GB    │ 2025-12-15 │ —            │
+└─────────────┴─────────┴───────────────────┴─────────────┴────────────┴────────────┴──────────────┘
+
+======================================================================
+WEIGHTS DIRECTORY SUMMARY
+======================================================================
+Total Configurations: 224
+Total Checkpoints: 1703
+Total Storage: 915.03 GB
+Configurations with Test Results: 1
+```
+
+This tool is particularly useful for:
+- Tracking which experiments have been completed
+- Identifying configurations that need testing
+- Managing storage and cleanup decisions
+- Generating reports for documentation
+- Exporting data for further analysis
+
+### Submit Untested Tests
+
+Automatically identify and submit test jobs for configurations that haven't been tested yet:
+
+```bash
+# Preview untested configurations (dry-run)
+./submit_untested_tests.sh --dry-run
+
+# Submit all untested standard configurations
+./submit_untested_tests.sh
+
+# Include clear_day domain-filtered variants
+./submit_untested_tests.sh --include-clear-day
+
+# Filter by strategy
+./submit_untested_tests.sh --strategy photometric_distort
+
+# Limit number of jobs to submit
+./submit_untested_tests.sh --limit 10
+
+# Custom queue and GPU memory settings
+./submit_untested_tests.sh --queue BatchGPU --gpu-mem 32G
+```
+
+**Options:**
+| Option | Description | Default |
+|--------|-------------|---------|
+| `--dry-run` | Preview commands without submitting | off |
+| `--include-clear-day` | Include domain-filtered model variants | off |
+| `--include-multi` | Include multi-dataset configurations | off |
+| `--strategy <name>` | Filter by specific strategy | all |
+| `--dataset <name>` | Filter by specific dataset | all |
+| `--model <name>` | Filter by specific model | all |
+| `--queue <name>` | LSF queue name | BatchGPU |
+| `--gpu-mem <size>` | GPU memory requirement | 24G |
+| `--limit <n>` | Maximum number of jobs | unlimited |
+
+**Example Output:**
+```
+Found 15 untested configurations to submit
+
+Summary by strategy:
+  photometric_distort: 15
+
+Configurations to test:
+  [  1] photometric_distort  | acdc      | deeplabv3plus_r50
+  [  2] photometric_distort  | acdc      | pspnet_r50
+  [  3] photometric_distort  | acdc      | segformer_mit-b5
+  ...
 ```
 
 ## Examples
