@@ -720,6 +720,286 @@ class TestResultAnalyzer:
         
         return "\n".join(lines)
     
+    def format_dataset_insights(self) -> str:
+        """
+        Generate high-level insights per dataset.
+        
+        Returns:
+            Formatted per-dataset insights string
+        """
+        if not self.test_results:
+            return "No test results available for dataset insights"
+        
+        valid_results = [r for r in self.test_results if r.get('mIoU') is not None]
+        if not valid_results:
+            return "No valid test results with metrics for dataset insights"
+        
+        lines = []
+        lines.append("\n" + "=" * 80)
+        lines.append("📊 PER-DATASET INSIGHTS")
+        lines.append("=" * 80)
+        
+        datasets = sorted(set(r['dataset'] for r in valid_results))
+        
+        for dataset in datasets:
+            dataset_results = [r for r in valid_results if r['dataset'] == dataset]
+            if not dataset_results:
+                continue
+            
+            lines.append(f"\n{'─' * 80}")
+            lines.append(f"📁 DATASET: {dataset.upper()}")
+            lines.append(f"{'─' * 80}")
+            
+            # Calculate statistics
+            mious = [r['mIoU'] for r in dataset_results]
+            avg_miou = sum(mious) / len(mious)
+            max_miou = max(mious)
+            min_miou = min(mious)
+            std_miou = (sum((x - avg_miou) ** 2 for x in mious) / len(mious)) ** 0.5
+            
+            lines.append(f"\n📈 Overall Performance:")
+            lines.append(f"   • Configurations tested: {len(dataset_results)}")
+            lines.append(f"   • Average mIoU: {avg_miou:.2f}%")
+            lines.append(f"   • Best mIoU: {max_miou:.2f}%")
+            lines.append(f"   • Worst mIoU: {min_miou:.2f}%")
+            lines.append(f"   • Std. Deviation: {std_miou:.2f}%")
+            lines.append(f"   • Performance Spread: {max_miou - min_miou:.2f}%")
+            
+            # Best configuration
+            best = max(dataset_results, key=lambda x: x['mIoU'])
+            worst = min(dataset_results, key=lambda x: x['mIoU'])
+            
+            lines.append(f"\n🏆 Best Configuration:")
+            lines.append(f"   • Strategy: {best['strategy']}")
+            lines.append(f"   • Model: {best['model']}")
+            lines.append(f"   • mIoU: {best['mIoU']:.2f}%")
+            
+            lines.append(f"\n⚠️  Worst Configuration:")
+            lines.append(f"   • Strategy: {worst['strategy']}")
+            lines.append(f"   • Model: {worst['model']}")
+            lines.append(f"   • mIoU: {worst['mIoU']:.2f}%")
+            
+            # Strategy breakdown for this dataset
+            lines.append(f"\n📋 Strategy Performance on {dataset}:")
+            strategy_stats = {}
+            for r in dataset_results:
+                strategy = r['strategy']
+                if strategy not in strategy_stats:
+                    strategy_stats[strategy] = []
+                strategy_stats[strategy].append(r['mIoU'])
+            
+            sorted_strategies = sorted(
+                strategy_stats.items(), 
+                key=lambda x: sum(x[1])/len(x[1]), 
+                reverse=True
+            )
+            
+            for strategy, mious in sorted_strategies:
+                avg = sum(mious) / len(mious)
+                lines.append(f"   • {strategy:<25} avg: {avg:.2f}% ({len(mious)} configs)")
+            
+            # Model breakdown for this dataset
+            lines.append(f"\n🔧 Model Performance on {dataset}:")
+            model_stats = {}
+            for r in dataset_results:
+                # Group by base model (remove _clear_day suffix)
+                model_base = r['model'].replace('_clear_day', '')
+                if model_base not in model_stats:
+                    model_stats[model_base] = []
+                model_stats[model_base].append(r['mIoU'])
+            
+            sorted_models = sorted(
+                model_stats.items(),
+                key=lambda x: sum(x[1])/len(x[1]),
+                reverse=True
+            )
+            
+            for model, mious in sorted_models:
+                avg = sum(mious) / len(mious)
+                lines.append(f"   • {model:<30} avg: {avg:.2f}% ({len(mious)} configs)")
+            
+            # Insight: best strategy-model combination
+            lines.append(f"\n💡 Key Insight for {dataset}:")
+            best_strategy = sorted_strategies[0][0] if sorted_strategies else "N/A"
+            best_model = sorted_models[0][0] if sorted_models else "N/A"
+            lines.append(f"   Best strategy: {best_strategy}")
+            lines.append(f"   Best model architecture: {best_model}")
+            
+            # Check for baseline comparison
+            baseline_results = [r for r in dataset_results if r['strategy'] == 'baseline']
+            if baseline_results:
+                baseline_avg = sum(r['mIoU'] for r in baseline_results) / len(baseline_results)
+                improvement = avg_miou - baseline_avg
+                if improvement > 0:
+                    lines.append(f"   Average improvement over baseline: +{improvement:.2f}%")
+                else:
+                    lines.append(f"   Performance vs baseline: {improvement:.2f}%")
+        
+        lines.append("\n" + "=" * 80)
+        return "\n".join(lines)
+    
+    def format_domain_insights(self) -> str:
+        """
+        Generate high-level insights per weather domain.
+        
+        Returns:
+            Formatted per-domain insights string
+        """
+        # Filter results with per-domain metrics
+        domain_results = [
+            r for r in self.test_results 
+            if r.get('per_domain_metrics') and len(r['per_domain_metrics']) > 0
+        ]
+        
+        if not domain_results:
+            return "No per-domain test results available for domain insights"
+        
+        lines = []
+        lines.append("\n" + "=" * 80)
+        lines.append("🌤️  PER-DOMAIN INSIGHTS (WEATHER CONDITIONS)")
+        lines.append("=" * 80)
+        
+        # Aggregate domain metrics across all configurations
+        domain_aggregates = defaultdict(list)
+        
+        for result in domain_results:
+            for domain, metrics in result['per_domain_metrics'].items():
+                if metrics.get('mIoU') is not None:
+                    domain_aggregates[domain].append({
+                        'mIoU': metrics['mIoU'],
+                        'strategy': result['strategy'],
+                        'dataset': result['dataset'],
+                        'model': result['model'],
+                        'mAcc': metrics.get('mAcc'),
+                        'aAcc': metrics.get('aAcc'),
+                        'fwIoU': metrics.get('fwIoU')
+                    })
+        
+        if not domain_aggregates:
+            return "No valid per-domain metrics found"
+        
+        # Calculate overall domain statistics
+        lines.append(f"\n📊 DOMAIN DIFFICULTY RANKING (by average mIoU)")
+        lines.append("-" * 80)
+        
+        domain_stats = {}
+        for domain, results in domain_aggregates.items():
+            mious = [r['mIoU'] for r in results]
+            domain_stats[domain] = {
+                'avg': sum(mious) / len(mious),
+                'max': max(mious),
+                'min': min(mious),
+                'count': len(results),
+                'std': (sum((x - sum(mious)/len(mious)) ** 2 for x in mious) / len(mious)) ** 0.5
+            }
+        
+        # Sort by average mIoU (descending = easiest first)
+        sorted_domains = sorted(domain_stats.items(), key=lambda x: x[1]['avg'], reverse=True)
+        
+        lines.append(f"{'Rank':<5} {'Domain':<20} {'Avg mIoU':>10} {'Best':>10} {'Worst':>10} {'Std':>8} {'Configs':>8}")
+        lines.append("-" * 80)
+        
+        for i, (domain, stats) in enumerate(sorted_domains, 1):
+            difficulty = "🟢 Easy" if stats['avg'] > 70 else "🟡 Medium" if stats['avg'] > 50 else "🔴 Hard"
+            lines.append(f"{i:<5} {domain:<20} {stats['avg']:>9.2f}% {stats['max']:>9.2f}% "
+                        f"{stats['min']:>9.2f}% {stats['std']:>7.2f} {stats['count']:>8}")
+        
+        lines.append("")
+        
+        # Identify easiest and hardest domains
+        easiest = sorted_domains[0]
+        hardest = sorted_domains[-1]
+        
+        lines.append(f"✅ Easiest Domain: {easiest[0]} (avg mIoU: {easiest[1]['avg']:.2f}%)")
+        lines.append(f"❌ Hardest Domain: {hardest[0]} (avg mIoU: {hardest[1]['avg']:.2f}%)")
+        
+        performance_gap = easiest[1]['avg'] - hardest[1]['avg']
+        lines.append(f"📏 Domain Performance Gap: {performance_gap:.2f}% mIoU")
+        
+        # Best configuration per domain
+        lines.append(f"\n🏆 BEST CONFIGURATION PER DOMAIN")
+        lines.append("-" * 80)
+        
+        for domain in sorted(domain_aggregates.keys()):
+            results = domain_aggregates[domain]
+            best = max(results, key=lambda x: x['mIoU'])
+            lines.append(f"\n  {domain.upper()}:")
+            lines.append(f"    • Strategy: {best['strategy']}")
+            lines.append(f"    • Model: {best['model']}")
+            lines.append(f"    • Dataset: {best['dataset']}")
+            lines.append(f"    • mIoU: {best['mIoU']:.2f}%")
+        
+        # Strategy effectiveness per domain
+        lines.append(f"\n📈 STRATEGY EFFECTIVENESS BY DOMAIN")
+        lines.append("-" * 80)
+        lines.append("(Average mIoU per strategy for each domain)")
+        lines.append("")
+        
+        # Get unique strategies
+        strategies = sorted(set(r['strategy'] for d in domain_aggregates.values() for r in d))
+        
+        # Build header
+        header = f"{'Strategy':<25}"
+        for domain, _ in sorted_domains[:6]:  # Top 6 domains
+            header += f" {domain[:8]:>10}"
+        lines.append(header)
+        lines.append("-" * 80)
+        
+        # Build rows
+        strategy_domain_avg = {}
+        for strategy in strategies:
+            row = f"{strategy:<25}"
+            for domain, _ in sorted_domains[:6]:
+                domain_strategy_results = [
+                    r for r in domain_aggregates[domain] 
+                    if r['strategy'] == strategy
+                ]
+                if domain_strategy_results:
+                    avg = sum(r['mIoU'] for r in domain_strategy_results) / len(domain_strategy_results)
+                    row += f" {avg:>9.2f}%"
+                    if strategy not in strategy_domain_avg:
+                        strategy_domain_avg[strategy] = {}
+                    strategy_domain_avg[strategy][domain] = avg
+                else:
+                    row += f" {'—':>10}"
+            lines.append(row)
+        
+        # Key insights per domain
+        lines.append(f"\n💡 KEY DOMAIN INSIGHTS")
+        lines.append("-" * 80)
+        
+        for domain, stats in sorted_domains:
+            # Find best strategy for this domain
+            domain_by_strategy = {}
+            for r in domain_aggregates[domain]:
+                if r['strategy'] not in domain_by_strategy:
+                    domain_by_strategy[r['strategy']] = []
+                domain_by_strategy[r['strategy']].append(r['mIoU'])
+            
+            if domain_by_strategy:
+                best_strategy = max(
+                    domain_by_strategy.items(),
+                    key=lambda x: sum(x[1])/len(x[1])
+                )
+                lines.append(f"\n  {domain}:")
+                lines.append(f"    • Best strategy: {best_strategy[0]} "
+                           f"(avg {sum(best_strategy[1])/len(best_strategy[1]):.2f}%)")
+                
+                # Calculate improvement potential (gap to best)
+                gap_to_best = stats['max'] - stats['avg']
+                lines.append(f"    • Improvement potential: +{gap_to_best:.2f}% (gap to best config)")
+                
+                # Variability insight
+                if stats['std'] > 5:
+                    lines.append(f"    • High variability (std={stats['std']:.1f}%): Strategy choice matters significantly")
+                elif stats['std'] > 2:
+                    lines.append(f"    • Moderate variability (std={stats['std']:.1f}%): Some strategy impact")
+                else:
+                    lines.append(f"    • Low variability (std={stats['std']:.1f}%): Consistent across strategies")
+        
+        lines.append("\n" + "=" * 80)
+        return "\n".join(lines)
+    
     def export_json(self, output_path: str):
         """Export data to JSON file."""
         # Convert to serializable format
@@ -799,6 +1079,21 @@ def main():
         help="Show comprehensive summary with top performers and strategy comparisons"
     )
     parser.add_argument(
+        '--dataset-insights',
+        action='store_true',
+        help="Show high-level insights per dataset"
+    )
+    parser.add_argument(
+        '--domain-insights',
+        action='store_true',
+        help="Show high-level insights per weather domain"
+    )
+    parser.add_argument(
+        '--all-insights',
+        action='store_true',
+        help="Show all insights (comprehensive + dataset + domain)"
+    )
+    parser.add_argument(
         '--top-n',
         type=int,
         default=5,
@@ -823,6 +1118,14 @@ def main():
         
         if args.domain_breakdown:
             print(analyzer.format_per_domain_table())
+        
+        # Show dataset insights if requested or all-insights
+        if args.dataset_insights or args.all_insights:
+            print(analyzer.format_dataset_insights())
+        
+        # Show domain insights if requested or all-insights
+        if args.domain_insights or args.all_insights:
+            print(analyzer.format_domain_insights())
     elif args.format == 'json':
         output_path = args.output or 'test_results_summary.json'
         analyzer.export_json(output_path)

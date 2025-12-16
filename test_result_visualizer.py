@@ -224,6 +224,105 @@ class TestResultVisualizer:
         
         return data
     
+    def print_insights(self) -> None:
+        """Print high-level insights about the test results."""
+        lines = []
+        lines.append("\n" + "=" * 70)
+        lines.append("📊 TEST RESULT INSIGHTS")
+        lines.append("=" * 70)
+        
+        # Overall performance
+        if 'summary' in self.data and self.data['summary']:
+            summary = self.data['summary']
+            metrics = summary.get('metrics', summary.get('overall', {}))
+            
+            lines.append("\n📈 OVERALL PERFORMANCE:")
+            if metrics.get('mIoU') is not None:
+                lines.append(f"   • mIoU:  {metrics['mIoU']:.2f}%")
+            if metrics.get('fwIoU') is not None:
+                lines.append(f"   • fwIoU: {metrics['fwIoU']:.2f}%")
+            if metrics.get('mAcc') is not None:
+                lines.append(f"   • mAcc:  {metrics['mAcc']:.2f}%")
+            if metrics.get('aAcc') is not None:
+                lines.append(f"   • aAcc:  {metrics['aAcc']:.2f}%")
+        
+        # Per-domain insights
+        per_domain = self.data.get('per_domain', {}).get('per_domain', {})
+        if not per_domain and 'full' in self.data:
+            per_domain = self.data['full'].get('per_domain', {})
+        
+        if per_domain:
+            lines.append("\n🌤️  DOMAIN PERFORMANCE:")
+            
+            # Sort domains by mIoU
+            domain_mious = []
+            for domain, metrics in per_domain.items():
+                if isinstance(metrics, dict) and metrics.get('mIoU') is not None:
+                    domain_mious.append((domain, metrics['mIoU']))
+            
+            if domain_mious:
+                domain_mious.sort(key=lambda x: x[1], reverse=True)
+                
+                best_domain = domain_mious[0]
+                worst_domain = domain_mious[-1]
+                avg_miou = sum(m[1] for m in domain_mious) / len(domain_mious)
+                gap = best_domain[1] - worst_domain[1]
+                
+                lines.append(f"   • Best Domain:  {best_domain[0]} ({best_domain[1]:.2f}% mIoU)")
+                lines.append(f"   • Worst Domain: {worst_domain[0]} ({worst_domain[1]:.2f}% mIoU)")
+                lines.append(f"   • Average across domains: {avg_miou:.2f}% mIoU")
+                lines.append(f"   • Performance Gap: {gap:.2f}% mIoU")
+                
+                # Domain difficulty categorization
+                lines.append(f"\n   Domain Breakdown:")
+                for domain, miou in domain_mious:
+                    difficulty = "🟢" if miou > 70 else "🟡" if miou > 50 else "🔴"
+                    lines.append(f"   {difficulty} {domain:<15} {miou:>6.2f}%")
+        
+        # Per-class insights
+        per_class = self.data.get('per_class', {}).get('per_class', {})
+        if not per_class and 'full' in self.data:
+            per_class = self.data['full'].get('per_class', {})
+        
+        if per_class:
+            lines.append("\n🏷️  CLASS PERFORMANCE:")
+            
+            # Sort classes by IoU
+            class_ious = []
+            for cls, metrics in per_class.items():
+                if isinstance(metrics, dict) and metrics.get('IoU') is not None:
+                    class_ious.append((cls, metrics['IoU']))
+            
+            if class_ious:
+                class_ious.sort(key=lambda x: x[1], reverse=True)
+                
+                # Top and bottom performers
+                top3 = class_ious[:3]
+                bottom3 = class_ious[-3:]
+                avg_iou = sum(m[1] for m in class_ious) / len(class_ious)
+                
+                lines.append(f"   • Number of classes: {len(class_ious)}")
+                lines.append(f"   • Average class IoU: {avg_iou:.2f}%")
+                
+                lines.append(f"\n   Top 3 Classes:")
+                for cls, iou in top3:
+                    lines.append(f"   🟢 {cls:<20} {iou:>6.2f}%")
+                
+                lines.append(f"\n   Bottom 3 Classes (need improvement):")
+                for cls, iou in bottom3:
+                    difficulty = "🔴" if iou < 30 else "🟡"
+                    lines.append(f"   {difficulty} {cls:<20} {iou:>6.2f}%")
+                
+                # Identify zero/near-zero classes
+                weak_classes = [c for c, iou in class_ious if iou < 10]
+                if weak_classes:
+                    lines.append(f"\n   ⚠️  Failing Classes (IoU < 10%):")
+                    for cls in weak_classes:
+                        lines.append(f"      • {cls}")
+        
+        lines.append("\n" + "=" * 70)
+        print("\n".join(lines))
+    
     def plot_domain_metrics(
         self,
         metrics: List[str] = ['mIoU', 'fwIoU'],
@@ -1368,6 +1467,12 @@ Examples:
                                'gap', 'boxplot', 'freq', 'training', 'all'],
                        default=['all'], help='Types of plots to generate')
     
+    # Insights options
+    parser.add_argument('--insights', action='store_true', 
+                       help='Print high-level insights about test results')
+    parser.add_argument('--no-insights', action='store_true',
+                       help='Skip printing insights (default: insights are shown)')
+    
     # Output options
     parser.add_argument('--format', type=str, default='png', choices=['png', 'pdf', 'svg'],
                        help='Output format')
@@ -1401,6 +1506,10 @@ Examples:
         output_dir=args.output_dir,
         dpi=args.dpi,
     )
+    
+    # Print insights by default unless --no-insights specified
+    if not args.no_insights or args.insights:
+        visualizer.print_insights()
     
     if 'all' in args.plots:
         visualizer.generate_all_plots(show=args.show)

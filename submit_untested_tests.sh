@@ -145,12 +145,9 @@ done
 
 # Determine mode
 if [ "$MISSING_DETAILED" = true ]; then
+    # When looking for missing detailed tests, always submit detailed tests
     MODE_DESC="missing detailed tests"
-    if [ "$DETAILED_MODE" = true ]; then
-        TEST_CMD="submit-detailed"
-    else
-        TEST_CMD="submit"
-    fi
+    TEST_CMD="submit-detailed"
 elif [ "$DETAILED_MODE" = true ]; then
     MODE_DESC="untested (detailed mode)"
     TEST_CMD="submit-detailed"
