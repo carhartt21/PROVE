@@ -97,6 +97,52 @@ class GeneratedImagesManifest:
                 results.append((entry['gen_path'], entry['original_path']))
         return results
     
+    def get_dataset_entries(self, dataset_name: str) -> List[dict]:
+        """
+        Get all entries that match a specific dataset name.
+        
+        Args:
+            dataset_name: Dataset name to filter by (e.g., 'ACDC', 'BDD10k', 'MapillaryVistas')
+            
+        Returns:
+            List of manifest entries for the specified dataset
+        """
+        results = []
+        for entry in self.entries:
+            # Check if dataset name is in the original path
+            if dataset_name in entry.get('original_path', ''):
+                results.append(entry)
+        return results
+    
+    def get_dataset_count(self, dataset_name: str) -> int:
+        """
+        Get the count of generated images for a specific dataset.
+        
+        Args:
+            dataset_name: Dataset name to count (e.g., 'ACDC', 'BDD10k')
+            
+        Returns:
+            Number of generated images for the dataset
+        """
+        return len(self.get_dataset_entries(dataset_name))
+    
+    def get_available_datasets(self) -> Dict[str, int]:
+        """
+        Get a count of images per dataset in the manifest.
+        
+        Returns:
+            Dictionary mapping dataset names to image counts
+        """
+        dataset_counts = {}
+        for entry in self.entries:
+            original_path = entry.get('original_path', '')
+            # Extract dataset name from path like /path/to/images/ACDC/...
+            for dataset in ['ACDC', 'BDD10k', 'BDD100k', 'IDD-AW', 'MapillaryVistas', 'OUTSIDE15k']:
+                if dataset in original_path:
+                    dataset_counts[dataset] = dataset_counts.get(dataset, 0) + 1
+                    break
+        return dataset_counts
+    
     def __len__(self):
         return len(self.entries)
 

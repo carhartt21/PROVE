@@ -27,7 +27,15 @@ SEGMENTATION_MODELS="deeplabv3plus_r50 pspnet_r50 segformer_mit-b5"
 DETECTION_MODELS="faster_rcnn_r50_fpn_1x yolox_l rtmdet_l"
 
 # Available strategies
-STRATEGIES="baseline photometric_distort std_cutmix std_mixup std_autoaugment std_randaugment gen_cycleGAN gen_CUT gen_stargan_v2 gen_SUSTechGAN gen_EDICT gen_Img2Img gen_IP2P gen_UniControl gen_step1x_new gen_StyleID gen_NST gen_albumentations gen_automold gen_imgaug_weather gen_Weather_Effect_Generator gen_Attribute_Hallucination gen_cnet_seg gen_tunit gen_flux1_kontext"
+# - Base strategies: baseline, photometric_distort
+# - Standard augmentations: std_cutmix, std_mixup, std_autoaugment, std_randaugment
+# - Generative models: gen_albumentations_weather, gen_AOD_Net, gen_Attribute_Hallucination,
+#                      gen_augmenters, gen_automold, gen_CNetSeg, gen_CUT, gen_cyclediffusion,
+#                      gen_cycleGAN, gen_EDICT, gen_flux2, gen_flux_kontext, gen_Img2Img,
+#                      gen_IP2P, gen_LANIT, gen_NST, gen_Qwen_Image_Edit, gen_stargan_v2,
+#                      gen_step1x_new, gen_step1x_v1p2, gen_StyleID, gen_SUSTechGAN, gen_TSIT,
+#                      gen_tunit, gen_UniControl, gen_VisualCloze, gen_Weather_Effect_Generator
+STRATEGIES="baseline photometric_distort std_cutmix std_mixup std_autoaugment std_randaugment gen_albumentations_weather gen_AOD_Net gen_Attribute_Hallucination gen_augmenters gen_automold gen_CNetSeg gen_CUT gen_cyclediffusion gen_cycleGAN gen_EDICT gen_flux2 gen_flux_kontext gen_Img2Img gen_IP2P gen_LANIT gen_NST gen_Qwen_Image_Edit gen_stargan_v2 gen_step1x_new gen_step1x_v1p2 gen_StyleID gen_SUSTechGAN gen_TSIT gen_tunit gen_UniControl gen_VisualCloze gen_Weather_Effect_Generator"
 
 # ============================================================================
 # Helper Functions
@@ -1252,7 +1260,6 @@ cmd_submit_detailed() {
     local gpu_mem="12G"
     local gpu_mode="shared"
     local num_cpus="4"
-    local mode="per-domain"
     local data_root="${PROVE_DATA_ROOT:-/scratch/aaa_exchange/AWARE/FINAL_SPLITS}"
     local dry_run=false
     
@@ -1268,7 +1275,7 @@ cmd_submit_detailed() {
             --gpu-mem) gpu_mem="$2"; shift 2 ;;
             --gpu-mode) gpu_mode="$2"; shift 2 ;;
             --num-cpus) num_cpus="$2"; shift 2 ;;
-            --mode) mode="$2"; shift 2 ;;
+            # --mode) mode="$2"; shift 2 ;;
             --data-root) data_root="$2"; shift 2 ;;
             --dry-run) dry_run=true; shift ;;
             *) echo "Unknown option: $1"; exit 1 ;;
@@ -1281,7 +1288,7 @@ cmd_submit_detailed() {
     fi
     
     local job_name="prove_detailed_${dataset}_${model}_${strategy}"
-    local test_cmd="./test_unified.sh detailed --dataset $dataset --model $model --strategy $strategy --ratio $ratio --work-dir $work_dir --mode $mode --data-root $data_root"
+    local test_cmd="./test_unified.sh detailed --dataset $dataset --model $model --strategy $strategy --ratio $ratio --work-dir $work_dir --data-root $data_root"
     
     mkdir -p logs
     
@@ -1307,7 +1314,6 @@ cmd_submit_detailed() {
     echo "Dataset:   $dataset"
     echo "Model:     $model"
     echo "Strategy:  $strategy"
-    echo "Mode:      $mode"
     echo "Queue:     $queue"
     echo "GPU mem:   $gpu_mem"
     echo "GPU mode:  $gpu_mode"
@@ -1332,7 +1338,7 @@ cmd_submit_detailed_batch() {
     local gpu_mem="12G"
     local gpu_mode="shared"
     local num_cpus="8"
-    local mode="per-domain"
+
     local data_root="${PROVE_DATA_ROOT:-/scratch/aaa_exchange/AWARE/FINAL_SPLITS}"
     local all_seg_datasets=false
     local all_det_datasets=false
@@ -1369,7 +1375,7 @@ cmd_submit_detailed_batch() {
             --gpu-mem) gpu_mem="$2"; shift 2 ;;
             --gpu-mode) gpu_mode="$2"; shift 2 ;;
             --num-cpus) num_cpus="$2"; shift 2 ;;
-            --mode) mode="$2"; shift 2 ;;
+            # --mode) mode="$2"; shift 2 ;;
             --data-root) data_root="$2"; shift 2 ;;
             --all-seg-datasets) all_seg_datasets=true; shift ;;
             --all-det-datasets) all_det_datasets=true; shift ;;

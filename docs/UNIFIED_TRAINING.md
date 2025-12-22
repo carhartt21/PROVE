@@ -68,12 +68,42 @@ python unified_training.py --batch --datasets ACDC BDD10k --strategies baseline 
 
 | Strategy | Description |
 |----------|-------------|
+| **Base Strategies** | |
 | `baseline` | No augmentation |
 | `photometric_distort` | Random brightness, contrast, saturation |
-| `gen_cycleGAN` | Generated images from CycleGAN |
-| `gen_CUT` | Generated images from CUT |
-| `gen_stargan_v2` | Generated images from StarGAN v2 |
-| ... | (and more generative models) |
+| **Standard Augmentations** | |
+| `std_cutmix` | CutMix augmentation |
+| `std_mixup` | MixUp augmentation |
+| `std_autoaugment` | AutoAugment augmentation |
+| `std_randaugment` | RandAugment augmentation |
+| **Generative Models** | |
+| `gen_albumentations_weather` | Albumentations weather effects |
+| `gen_AOD_Net` | AOD-Net dehazing model |
+| `gen_Attribute_Hallucination` | Attribute hallucination |
+| `gen_augmenters` | General augmenters |
+| `gen_automold` | Automold weather simulation |
+| `gen_CNetSeg` | ControlNet segmentation |
+| `gen_CUT` | Contrastive Unpaired Translation |
+| `gen_cyclediffusion` | Cycle diffusion |
+| `gen_cycleGAN` | CycleGAN image translation |
+| `gen_EDICT` | EDICT inversion editing |
+| `gen_flux2` | Flux 2 generation |
+| `gen_flux_kontext` | Flux Kontext editing |
+| `gen_Img2Img` | Image-to-image diffusion |
+| `gen_IP2P` | InstructPix2Pix |
+| `gen_LANIT` | LANIT translation |
+| `gen_NST` | Neural Style Transfer |
+| `gen_Qwen_Image_Edit` | Qwen Image Edit |
+| `gen_stargan_v2` | StarGAN v2 |
+| `gen_step1x_new` | Step1X (new version) |
+| `gen_step1x_v1p2` | Step1X v1.2 |
+| `gen_StyleID` | StyleID editing |
+| `gen_SUSTechGAN` | SUSTechGAN |
+| `gen_TSIT` | TSIT translation |
+| `gen_tunit` | TuNIT translation |
+| `gen_UniControl` | UniControl |
+| `gen_VisualCloze` | VisualCloze |
+| `gen_Weather_Effect_Generator` | Weather effect generator |
 
 ### Real-to-Generated Ratio
 

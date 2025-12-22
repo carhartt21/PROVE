@@ -25,12 +25,13 @@ DETECTION_MODELS="faster_rcnn_r50_fpn_1x yolox_l rtmdet_l"
 # Available strategies
 # - Base strategies: baseline, photometric_distort
 # - Standard augmentations: std_cutmix, std_mixup, std_autoaugment, std_randaugment
-# - Generative models: gen_cycleGAN, gen_CUT, gen_stargan_v2, gen_SUSTechGAN, gen_EDICT,
-#                      gen_Img2Img, gen_IP2P, gen_UniControl, gen_step1x_new, gen_StyleID,
-#                      gen_NST, gen_albumentations, gen_automold, gen_imgaug_weather,
-#                      gen_Weather_Effect_Generator, gen_Attribute_Hallucination, 
-#                      gen_cnet_seg, gen_tunit, gen_flux1_kontext
-STRATEGIES="baseline photometric_distort std_cutmix std_mixup std_autoaugment std_randaugment gen_cycleGAN gen_CUT gen_stargan_v2 gen_SUSTechGAN gen_EDICT gen_Img2Img gen_IP2P gen_UniControl gen_step1x_new gen_StyleID gen_NST gen_albumentations gen_automold gen_imgaug_weather gen_Weather_Effect_Generator gen_Attribute_Hallucination gen_cnet_seg gen_tunit gen_flux1_kontext"
+# - Generative models: gen_albumentations_weather, gen_AOD_Net, gen_Attribute_Hallucination,
+#                      gen_augmenters, gen_automold, gen_CNetSeg, gen_CUT, gen_cyclediffusion,
+#                      gen_cycleGAN, gen_EDICT, gen_flux2, gen_flux_kontext, gen_Img2Img,
+#                      gen_IP2P, gen_LANIT, gen_NST, gen_Qwen_Image_Edit, gen_stargan_v2,
+#                      gen_step1x_new, gen_step1x_v1p2, gen_StyleID, gen_SUSTechGAN, gen_TSIT,
+#                      gen_tunit, gen_UniControl, gen_VisualCloze, gen_Weather_Effect_Generator
+STRATEGIES="baseline photometric_distort std_cutmix std_mixup std_autoaugment std_randaugment gen_albumentations_weather gen_AOD_Net gen_Attribute_Hallucination gen_augmenters gen_automold gen_CNetSeg gen_CUT gen_cyclediffusion gen_cycleGAN gen_EDICT gen_flux2 gen_flux_kontext gen_Img2Img gen_IP2P gen_LANIT gen_NST gen_Qwen_Image_Edit gen_stargan_v2 gen_step1x_new gen_step1x_v1p2 gen_StyleID gen_SUSTechGAN gen_TSIT gen_tunit gen_UniControl gen_VisualCloze gen_Weather_Effect_Generator"
 
 # Real-to-generated ratios to try
 RATIOS="1.0 0.875 0.625 0.5 0.375 0.25 0.125 0.0"
@@ -105,11 +106,12 @@ print_usage() {
     echo "Strategies:"
     echo "  Base:        baseline, photometric_distort"
     echo "  Standard:    std_cutmix, std_mixup, std_autoaugment, std_randaugment"
-    echo "  Generative:  gen_cycleGAN, gen_CUT, gen_stargan_v2, gen_SUSTechGAN, gen_EDICT,"
-    echo "               gen_Img2Img, gen_IP2P, gen_UniControl, gen_step1x_new, gen_StyleID,"
-    echo "               gen_NST, gen_albumentations, gen_automold, gen_imgaug_weather,"
-    echo "               gen_Weather_Effect_Generator, gen_Attribute_Hallucination,"
-    echo "               gen_cnet_seg, gen_tunit, gen_flux1_kontext, gen_qwen_image_edit"
+    echo "  Generative:  gen_albumentations_weather, gen_AOD_Net, gen_Attribute_Hallucination,"
+    echo "               gen_augmenters, gen_automold, gen_CNetSeg, gen_CUT, gen_cyclediffusion,"
+    echo "               gen_cycleGAN, gen_EDICT, gen_flux2, gen_flux_kontext, gen_Img2Img,"
+    echo "               gen_IP2P, gen_LANIT, gen_NST, gen_Qwen_Image_Edit, gen_stargan_v2,"
+    echo "               gen_step1x_new, gen_step1x_v1p2, gen_StyleID, gen_SUSTechGAN, gen_TSIT,"
+    echo "               gen_tunit, gen_UniControl, gen_VisualCloze, gen_Weather_Effect_Generator"
     echo ""
     echo "Examples:"
     echo "  $0 single --dataset ACDC --model deeplabv3plus_r50 --strategy baseline"

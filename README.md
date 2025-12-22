@@ -986,6 +986,71 @@ python unified_training.py --workers-per-gpu 4
 
 ## Utilities
 
+### Manifest Generator for Generated Images
+
+PROVE includes a standalone tool for creating manifest files that map generated images to their original counterparts. These manifests are required for training with generative augmentation strategies.
+
+```bash
+# Check manifest status for all methods
+python tools/generate_manifests.py --status
+
+# Generate manifests for all methods missing them (writable directories only)
+python tools/generate_manifests.py --all-missing
+
+# Generate manifest for a specific method
+python tools/generate_manifests.py --method cycleGAN
+
+# Regenerate all manifests (even existing ones)
+python tools/generate_manifests.py --all
+
+# Preview what would be done without writing files
+python tools/generate_manifests.py --all-missing --dry-run
+
+# Verbose output showing detailed progress
+python tools/generate_manifests.py --method SUSTechGAN --verbose
+```
+
+**Output Files:**
+Each method directory gets two manifest files:
+- `manifest.csv`: CSV mapping generated images to originals (gen_path, original_path, name, domain, dataset, target_domain)
+- `manifest.json`: Summary statistics including total images, match rate, domain/dataset breakdown
+
+**Directory Structure Detection:**
+The tool automatically detects and handles multiple directory structures:
+- `domain_dataset`: e.g., `foggy/ACDC/` hierarchy
+- `dataset_domain`: e.g., `ACDC/foggy/` hierarchy
+- `flat_domain`: domain folders with images directly inside
+
+**Domain Name Handling:**
+The tool normalizes various domain naming conventions:
+- `fog` → `foggy`, `rain` → `rainy`, `snow` → `snowy`
+- `sunny` → `clear_day`, `overcast` → `cloudy`
+- `clear_day2foggy` or `clear_day_to_foggy` → recognized as source→target translation
+
+**Filename Normalization:**
+Generated image filenames are normalized to match originals:
+- Removes suffixes: `_fake`, `_translated`, `_output`, `_gen`, `_generated`
+- Removes style suffixes: `_lat`, `_ref`, `_stylized`, `_styled`, `_style0`
+- Removes weather effect suffixes: `-fsyn`, `-rsyn`, `-ssyn`
+- Removes NST pattern: `_sa_<number>`
+
+**Status Output:**
+```
+Manifest Status:
+==========================================================================================
+Method                         Status                Images   Writable
+------------------------------------------------------------------------------------------
+Attribute_Hallucination        ✓ Ready              191,400        Yes
+cycleGAN                       ✓ Ready              187,398        Yes
+flux2                          ✗ Missing                  -         No
+------------------------------------------------------------------------------------------
+Total: 26 methods, 3 missing manifests
+```
+
+**Environment Variables:**
+- `PROVE_GEN_ROOT`: Base directory for generated images (default: `/scratch/aaa_exchange/AWARE/GENERATED_IMAGES`)
+- `PROVE_DATA_ROOT`: Base directory for original images (default: `/scratch/aaa_exchange/AWARE/FINAL_SPLITS`)
+
 ### Weights Directory Analyzer
 
 PROVE includes a helper script to analyze and summarize all training configurations and checkpoints stored in the weights directory:

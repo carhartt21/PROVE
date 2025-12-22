@@ -135,13 +135,31 @@ DEFAULT_CONFIG_ROOT = os.environ.get('PROVE_CONFIG_ROOT', './multi_model_configs
 # Adverse weather conditions
 ADVERSE_CONDITIONS = ['cloudy', 'dawn_dusk', 'fog', 'night', 'rainy', 'snowy']
 
-# Available generative models
-GENERATIVE_MODELS = [
-    'cycleGAN', 'CUT', 'stargan_v2', 'SUSTechGAN', 'EDICT', 'Img2Img',
-    'IP2P', 'UniControl', 'step1x_new', 'StyleID', 'NST', 'albumentations',
-    'automold', 'imgaug_weather', 'Weather_Effect_Generator',
-    'Attribute_Hallucination', 'cnet_seg', 'tunit', 'flux1_kontext'
+# Available generative models (directory names in GENERATED_IMAGES)
+# These are the actual directory names - some have hyphens
+GENERATIVE_MODEL_DIRS = [
+    'albumentations_weather', 'AOD-Net', 'Attribute_Hallucination', 'augmenters',
+    'automold', 'CNetSeg', 'CUT', 'cyclediffusion', 'cycleGAN', 'EDICT',
+    'flux2', 'flux_kontext', 'Img2Img', 'IP2P', 'LANIT', 'NST',
+    'Qwen-Image-Edit', 'stargan_v2', 'step1x_new', 'step1x_v1p2', 'StyleID',
+    'SUSTechGAN', 'TSIT', 'tunit', 'UniControl', 'VisualCloze',
+    'Weather_Effect_Generator'
 ]
+
+# Mapping from strategy name (with underscores) to directory name (with hyphens)
+# Strategy names are used in shell scripts and need to be bash-compatible
+def _strategy_name_to_dir(name: str) -> str:
+    """Convert strategy-friendly name to actual directory name"""
+    # Map underscores back to hyphens for specific directories
+    hyphen_dirs = {'Qwen_Image_Edit': 'Qwen-Image-Edit'}
+    return hyphen_dirs.get(name, name)
+
+def _dir_to_strategy_name(dir_name: str) -> str:
+    """Convert directory name to strategy-friendly name (bash-compatible)"""
+    return dir_name.replace('-', '_')
+
+# Strategy-friendly names (for use in bash scripts)
+GENERATIVE_MODELS = [_dir_to_strategy_name(d) for d in GENERATIVE_MODEL_DIRS]
 
 DATA_RESTORATION_MODELS = [
     'maxim', 'MPRNet', 'weatherformer', '2stageMultipleAdverseWeatherRemoval',
@@ -822,12 +840,14 @@ AUGMENTATION_STRATEGIES = {
 }
 
 # Add generative model strategies dynamically
+# gen_model is the strategy-friendly name (bash-compatible, underscores)
+# The actual directory lookup is done via _strategy_name_to_dir() when constructing paths
 for gen_model in GENERATIVE_MODELS:
     AUGMENTATION_STRATEGIES[f'gen_{gen_model}'] = AugmentationStrategy(
         name=f'gen_{gen_model}',
         type='generated',
         transforms=[],
-        generative_model=gen_model,
+        generative_model=gen_model,  # Strategy-friendly name, converted to dir when needed
     )
 
 # Add standard augmentation strategies (SOTA baselines)
@@ -933,6 +953,9 @@ class UnifiedTrainingConfig:
             
         Returns:
             Complete configuration dictionary
+            
+        Raises:
+            ValueError: If inputs are invalid or no generated images available for dataset
         """
         # Validate inputs
         if dataset not in DATASET_CONFIGS:
@@ -946,6 +969,37 @@ class UnifiedTrainingConfig:
         model_cfg = ALL_MODELS[model]
         aug_strategy = AUGMENTATION_STRATEGIES[strategy]
         training_cfg = TRAINING_CONFIGS.get(dataset_cfg.task, TRAINING_CONFIGS['segmentation'])
+        
+        # Validate generated images exist for this dataset if using generative strategy
+        if aug_strategy.type == 'generated' and aug_strategy.generative_model:
+            gen_model = aug_strategy.generative_model
+            gen_model_dir = _strategy_name_to_dir(gen_model)
+            manifest_path = os.path.join(self.gen_root, gen_model_dir, 'manifest.csv')
+            
+            if not os.path.exists(manifest_path):
+                raise ValueError(
+                    f"No generated images manifest found for strategy '{strategy}'.\n"
+                    f"Expected manifest at: {manifest_path}\n"
+                    f"Available generative models in {self.gen_root}:\n"
+                    f"  {os.listdir(self.gen_root) if os.path.exists(self.gen_root) else 'Directory not found'}"
+                )
+            
+            # Check if this dataset has any generated images in the manifest
+            from generated_images_dataset import GeneratedImagesManifest
+            manifest = GeneratedImagesManifest(manifest_path)
+            dataset_count = manifest.get_dataset_count(dataset)
+            
+            if dataset_count == 0:
+                available_datasets = manifest.get_available_datasets()
+                raise ValueError(
+                    f"No generated images found for dataset '{dataset}' in strategy '{strategy}'.\n"
+                    f"Manifest path: {manifest_path}\n"
+                    f"Available datasets in manifest:\n"
+                    f"  {available_datasets if available_datasets else 'None'}\n"
+                    f"Skipping training. Use 'baseline' strategy or choose a different dataset."
+                )
+            else:
+                print(f"✓ Found {dataset_count} generated images for dataset '{dataset}' in strategy '{strategy}'")
         
         # Apply custom training config if provided
         if custom_training_config:
@@ -1030,6 +1084,32 @@ class UnifiedTrainingConfig:
             if cfg.task != first_cfg.task:
                 raise ValueError(f"All datasets must have the same task. {datasets[0]} is '{first_cfg.task}' but {datasets[i]} is '{cfg.task}'")
         
+        # Validate generated images exist for all datasets if using generative strategy
+        if aug_strategy.type == 'generated' and aug_strategy.generative_model:
+            gen_model = aug_strategy.generative_model
+            gen_model_dir = _strategy_name_to_dir(gen_model)
+            manifest_path = os.path.join(self.gen_root, gen_model_dir, 'manifest.csv')
+            
+            if not os.path.exists(manifest_path):
+                raise ValueError(
+                    f"No generated images manifest found for strategy '{strategy}'.\n"
+                    f"Expected manifest at: {manifest_path}"
+                )
+            
+            from generated_images_dataset import GeneratedImagesManifest
+            manifest = GeneratedImagesManifest(manifest_path)
+            
+            for ds_name in datasets:
+                dataset_count = manifest.get_dataset_count(ds_name)
+                if dataset_count == 0:
+                    available_datasets = manifest.get_available_datasets()
+                    raise ValueError(
+                        f"No generated images found for dataset '{ds_name}' in strategy '{strategy}'.\n"
+                        f"Available datasets in manifest: {available_datasets}\n"
+                        f"Skipping training. Use 'baseline' strategy or remove '{ds_name}' from datasets."
+                    )
+                print(f"✓ Found {dataset_count} generated images for dataset '{ds_name}' in strategy '{strategy}'")
+        
         # Apply custom training config if provided
         if custom_training_config:
             training_cfg = copy.deepcopy(training_cfg)
@@ -1045,7 +1125,7 @@ class UnifiedTrainingConfig:
         config = self._add_augmentation_config(config, aug_strategy, conditions, real_gen_ratio)
         
         # Build multi-dataset train dataloader with ConcatDataset
-        config = self._add_multi_dataset_config(config, dataset_cfgs, datasets, weights, real_gen_ratio)
+        config = self._add_multi_dataset_config(config, dataset_cfgs, datasets, weights, real_gen_ratio, aug_strategy)
         
         # Set work directory for multi-dataset training
         config = self._set_multi_dataset_work_dir(config, datasets, model, strategy, real_gen_ratio)
@@ -1065,6 +1145,7 @@ class UnifiedTrainingConfig:
         dataset_names: List[str],
         weights: List[float],
         real_gen_ratio: float,
+        aug_strategy: AugmentationStrategy,
     ) -> Dict[str, Any]:
         """
         Add multi-dataset configuration using ConcatDataset with per-dataset pipelines.
@@ -1102,20 +1183,24 @@ class UnifiedTrainingConfig:
         train_datasets = []
         for i, (cfg, name, weight) in enumerate(zip(dataset_cfgs, dataset_names, weights)):
             # Create per-dataset pipeline reference
-            pipeline_name = f'train_pipeline_{name.lower()}'
+            # Sanitize dataset name for valid Python variable (hyphens -> underscores)
+            pipeline_name = f'train_pipeline_{name.lower().replace("-", "_")}'
             
             # Build custom pipeline based on dataset's label format
+            # Check if baseline (no augmentation)
+            is_baseline = aug_strategy.name == 'baseline'
+            
             if name in MAPILLARY_DATASETS:
                 # MapillaryVistas: needs MapillaryLabelTransform (66 → 19 classes)
-                config[pipeline_name] = self._build_mapillary_training_pipeline(cfg)
+                config[pipeline_name] = self._build_mapillary_training_pipeline(cfg, is_baseline)
                 pipeline_ref = '{{' + pipeline_name + '}}'
             elif name in CITYSCAPES_LABEL_ID_DATASETS:
                 # ACDC: uses Cityscapes label IDs, needs CityscapesLabelIdToTrainId
-                config[pipeline_name] = self._build_cityscapes_training_pipeline(cfg)
+                config[pipeline_name] = self._build_cityscapes_training_pipeline(cfg, is_baseline)
                 pipeline_ref = '{{' + pipeline_name + '}}'
             else:
                 # BDD10k, IDD-AW: already have trainIDs, just need ReduceToSingleChannel
-                config[pipeline_name] = self._build_trainid_training_pipeline(cfg)
+                config[pipeline_name] = self._build_trainid_training_pipeline(cfg, is_baseline)
                 pipeline_ref = '{{' + pipeline_name + '}}'
             
             ds_config = dict(
@@ -1183,7 +1268,7 @@ class UnifiedTrainingConfig:
         
         return config
     
-    def _build_mapillary_training_pipeline(self, dataset_cfg: DatasetConfig) -> List[Dict]:
+    def _build_mapillary_training_pipeline(self, dataset_cfg: DatasetConfig, is_baseline: bool = False) -> List[Dict]:
         """
         Build a training pipeline for Mapillary datasets with automatic label transformation.
         
@@ -1192,6 +1277,7 @@ class UnifiedTrainingConfig:
         
         Args:
             dataset_cfg: Dataset configuration object
+            is_baseline: If True, skip data augmentation transforms
             
         Returns:
             List of pipeline transforms
@@ -1208,15 +1294,21 @@ class UnifiedTrainingConfig:
             # MapillaryLabelTransform is registered in unified_datasets.py
             dict(type='MapillaryLabelTransform', target_space='cityscapes'),
             dict(type='Resize', scale=(1024, 512), keep_ratio=True),
-            dict(type='RandomCrop', crop_size=crop_size, cat_max_ratio=0.75),
-            dict(type='RandomFlip', prob=0.5),
-            dict(type='PhotoMetricDistortion'),
-            dict(type='PackSegInputs'),
         ]
+        
+        # Only add augmentations if not baseline
+        if not is_baseline:
+            pipeline.extend([
+                dict(type='RandomCrop', crop_size=crop_size, cat_max_ratio=0.75),
+                dict(type='RandomFlip', prob=0.5),
+                dict(type='PhotoMetricDistortion'),
+            ])
+        
+        pipeline.append(dict(type='PackSegInputs'))
         
         return pipeline
     
-    def _build_cityscapes_training_pipeline(self, dataset_cfg: DatasetConfig) -> List[Dict]:
+    def _build_cityscapes_training_pipeline(self, dataset_cfg: DatasetConfig, is_baseline: bool = False) -> List[Dict]:
         """
         Build a training pipeline for datasets using Cityscapes label ID format.
         
@@ -1228,6 +1320,7 @@ class UnifiedTrainingConfig:
         
         Args:
             dataset_cfg: Dataset configuration object
+            is_baseline: If True, skip data augmentation transforms
             
         Returns:
             List of pipeline transforms
@@ -1242,15 +1335,21 @@ class UnifiedTrainingConfig:
             # Convert Cityscapes label IDs (0-33) to trainIDs (0-18)
             dict(type='CityscapesLabelIdToTrainId'),
             dict(type='Resize', scale=(1024, 512), keep_ratio=True),
-            dict(type='RandomCrop', crop_size=crop_size, cat_max_ratio=0.75),
-            dict(type='RandomFlip', prob=0.5),
-            dict(type='PhotoMetricDistortion'),
-            dict(type='PackSegInputs'),
         ]
+        
+        # Only add augmentations if not baseline
+        if not is_baseline:
+            pipeline.extend([
+                dict(type='RandomCrop', crop_size=crop_size, cat_max_ratio=0.75),
+                dict(type='RandomFlip', prob=0.5),
+                dict(type='PhotoMetricDistortion'),
+            ])
+        
+        pipeline.append(dict(type='PackSegInputs'))
         
         return pipeline
     
-    def _build_trainid_training_pipeline(self, dataset_cfg: DatasetConfig) -> List[Dict]:
+    def _build_trainid_training_pipeline(self, dataset_cfg: DatasetConfig, is_baseline: bool = False) -> List[Dict]:
         """
         Build a training pipeline for datasets that already use trainID format.
         
@@ -1262,6 +1361,7 @@ class UnifiedTrainingConfig:
         
         Args:
             dataset_cfg: Dataset configuration object
+            is_baseline: If True, skip data augmentation transforms
             
         Returns:
             List of pipeline transforms
@@ -1275,11 +1375,17 @@ class UnifiedTrainingConfig:
             dict(type='ReduceToSingleChannel'),
             # NO CityscapesLabelIdToTrainId - labels already in trainID format
             dict(type='Resize', scale=(1024, 512), keep_ratio=True),
-            dict(type='RandomCrop', crop_size=crop_size, cat_max_ratio=0.75),
-            dict(type='RandomFlip', prob=0.5),
-            dict(type='PhotoMetricDistortion'),
-            dict(type='PackSegInputs'),
         ]
+        
+        # Only add augmentations if not baseline
+        if not is_baseline:
+            pipeline.extend([
+                dict(type='RandomCrop', crop_size=crop_size, cat_max_ratio=0.75),
+                dict(type='RandomFlip', prob=0.5),
+                dict(type='PhotoMetricDistortion'),
+            ])
+        
+        pipeline.append(dict(type='PackSegInputs'))
         
         return pipeline
     
@@ -1688,6 +1794,7 @@ class UnifiedTrainingConfig:
         """Add training data pipeline"""
         
         crop_size = (512, 512)
+        is_baseline = aug_strategy.name == 'baseline'
         
         pipeline = [
             dict(type='LoadImageFromFile'),
@@ -1697,12 +1804,17 @@ class UnifiedTrainingConfig:
             # Convert Cityscapes full label IDs (0-33) to trainIds (0-18)
             dict(type='CityscapesLabelIdToTrainId'),
             dict(type='Resize', scale=(1024, 512), keep_ratio=True),
-            dict(type='RandomCrop', crop_size=crop_size, cat_max_ratio=0.75),
-            dict(type='RandomFlip', prob=0.5),
-            dict(type='PhotoMetricDistortion'),
         ]
         
-        # Add augmentation transforms from strategy
+        # Only add augmentations if not baseline
+        if not is_baseline:
+            pipeline.extend([
+                dict(type='RandomCrop', crop_size=crop_size, cat_max_ratio=0.75),
+                dict(type='RandomFlip', prob=0.5),
+                dict(type='PhotoMetricDistortion'),
+            ])
+        
+        # Add augmentation transforms from strategy (non-baseline strategies may add more)
         pipeline.extend(aug_strategy.get_pipeline_transforms())
         
         # Add final packing
@@ -1746,11 +1858,13 @@ class UnifiedTrainingConfig:
         
         if aug_strategy.type == 'generated' and aug_strategy.generative_model:
             gen_model = aug_strategy.generative_model
+            # Convert strategy name to actual directory name (handles hyphens)
+            gen_model_dir = _strategy_name_to_dir(gen_model)
             config['generated_augmentation'] = {
                 'enabled': True,
                 'generative_model': gen_model,
-                'manifest_path': os.path.join(self.gen_root, gen_model, 'manifest.csv'),
-                'gen_root': os.path.join(self.gen_root, gen_model),
+                'manifest_path': os.path.join(self.gen_root, gen_model_dir, 'manifest.csv'),
+                'gen_root': os.path.join(self.gen_root, gen_model_dir),
                 'conditions': conditions,
                 'augmentation_multiplier': 1 + len(conditions),
                 'real_gen_ratio': real_gen_ratio,
@@ -1794,6 +1908,8 @@ class UnifiedTrainingConfig:
             return config
         
         gen_model = aug_strategy.generative_model
+        # Convert strategy name to actual directory name (handles hyphens)
+        gen_model_dir = _strategy_name_to_dir(gen_model)
         
         # Apply domain filter to training directories if specified
         train_img_dir = dataset_cfg.train_img_dir
@@ -1816,8 +1932,8 @@ class UnifiedTrainingConfig:
             'generated_dataset': {
                 'type': 'GeneratedAugmentedDataset',
                 'data_root': self.data_root,
-                'generated_root': os.path.join(self.gen_root, gen_model),
-                'manifest_path': os.path.join(self.gen_root, gen_model, 'manifest.csv'),
+                'generated_root': os.path.join(self.gen_root, gen_model_dir),
+                'manifest_path': os.path.join(self.gen_root, gen_model_dir, 'manifest.csv'),
                 'conditions': aug_strategy.conditions,
                 'include_original': False,  # Only generated images
             },
