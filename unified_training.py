@@ -99,6 +99,7 @@ class UnifiedTrainer:
         dataset: str,
         model: str,
         strategy: str = 'baseline',
+        std_strategy: Optional[str] = None,
         real_gen_ratio: float = 1.0,
         custom_conditions: Optional[List[str]] = None,
         domain_filter: Optional[str] = None,
@@ -116,6 +117,7 @@ class UnifiedTrainer:
         self.dataset = dataset
         self.model = model
         self.strategy = strategy
+        self.std_strategy = std_strategy
         self.real_gen_ratio = real_gen_ratio
         self.custom_conditions = custom_conditions
         self.domain_filter = domain_filter
@@ -148,6 +150,7 @@ class UnifiedTrainer:
             dataset=self.dataset,
             model=self.model,
             strategy=self.strategy,
+            std_strategy=self.std_strategy,
             real_gen_ratio=self.real_gen_ratio,
             custom_conditions=self.custom_conditions,
             domain_filter=self.domain_filter,
@@ -209,6 +212,8 @@ class UnifiedTrainer:
         print(f"Dataset: {self.dataset}")
         print(f"Model: {self.model}")
         print(f"Strategy: {self.strategy}")
+        if self.std_strategy:
+            print(f"Standard Augmentation: {self.std_strategy}")
         print(f"Real/Gen Ratio: {self.real_gen_ratio}")
         print(f"Work Dir: {self.config['work_dir']}")
         print(f"Training Method: {method}")
@@ -428,6 +433,7 @@ runner.train()
             'dataset': self.dataset,
             'model': self.model,
             'strategy': self.strategy,
+            'std_strategy': self.std_strategy,
             'real_gen_ratio': self.real_gen_ratio,
             'work_dir': self.config['work_dir'],
             'max_iters': max_iters,
@@ -447,6 +453,9 @@ class UnifiedMultiTrainer:
         datasets: List of dataset names (e.g., ['ACDC', 'MapillaryVistas'])
         model: Model name (e.g., 'deeplabv3plus_r50')
         strategy: Augmentation strategy (e.g., 'baseline', 'gen_cycleGAN')
+        std_strategy: Optional standard augmentation to combine with gen_* strategy
+                     (e.g., 'std_cutmix', 'std_mixup'). When provided with a gen_* 
+                     strategy, both augmentations will be applied.
         weights: Optional sampling weights for each dataset (must sum to 1.0)
         real_gen_ratio: Ratio of real images (0.0-1.0). Default: 1.0
         custom_conditions: Optional list of weather conditions to use
@@ -464,6 +473,7 @@ class UnifiedMultiTrainer:
         datasets: List[str],
         model: str,
         strategy: str = 'baseline',
+        std_strategy: Optional[str] = None,
         weights: Optional[List[float]] = None,
         real_gen_ratio: float = 1.0,
         custom_conditions: Optional[List[str]] = None,
@@ -478,6 +488,7 @@ class UnifiedMultiTrainer:
         self.datasets = datasets
         self.model = model
         self.strategy = strategy
+        self.std_strategy = std_strategy
         self.weights = weights
         self.real_gen_ratio = real_gen_ratio
         self.custom_conditions = custom_conditions
@@ -506,6 +517,7 @@ class UnifiedMultiTrainer:
             datasets=self.datasets,
             model=self.model,
             strategy=self.strategy,
+            std_strategy=self.std_strategy,
             real_gen_ratio=self.real_gen_ratio,
             weights=self.weights,
             custom_conditions=self.custom_conditions,
@@ -550,7 +562,10 @@ class UnifiedMultiTrainer:
             weight_strs = [f"{d}: {w:.1%}" for d, w in zip(self.datasets, self.weights)]
             print(f"Weights: {', '.join(weight_strs)}")
         print(f"Model: {self.model}")
-        print(f"Strategy: {self.strategy}")
+        if self.std_strategy:
+            print(f"Strategy: {self.strategy} + {self.std_strategy}")
+        else:
+            print(f"Strategy: {self.strategy}")
         print(f"Real/Gen Ratio: {self.real_gen_ratio}")
         print(f"Work Dir: {self.config['work_dir']}")
         print("=" * 60 + "\n")
@@ -611,7 +626,7 @@ runner.train()
         max_iters = self.config.get('train_cfg', {}).get('max_iters', 40000)
         batch_size = self.config.get('train_dataloader', {}).get('batch_size', 2)
         
-        return {
+        summary = {
             'datasets': self.datasets,
             'datasets_str': '+'.join(self.datasets),
             'model': self.model,
@@ -623,6 +638,12 @@ runner.train()
             'batch_size': batch_size,
             'multi_dataset': True,
         }
+        
+        if self.std_strategy:
+            summary['std_strategy'] = self.std_strategy
+            summary['combined_strategy'] = f"{self.strategy}+{self.std_strategy}"
+        
+        return summary
 
 
 
@@ -891,6 +912,12 @@ Examples:
   # Train with 50%% real, 50%% generated
   python unified_training.py --dataset ACDC --model deeplabv3plus_r50 --strategy gen_cycleGAN --real-gen-ratio 0.5
 
+  # Train with standard augmentation only (CutMix)
+  python unified_training.py --dataset ACDC --model deeplabv3plus_r50 --strategy std_cutmix
+
+  # Combine gen_* strategy with standard augmentation (gen + std)
+  python unified_training.py --dataset ACDC --model deeplabv3plus_r50 --strategy gen_cycleGAN --std-strategy std_cutmix
+
   # Train only on clear_day images
   python unified_training.py --dataset ACDC --model deeplabv3plus_r50 --domain-filter clear_day
 
@@ -918,7 +945,11 @@ Examples:
     
     # Training configuration
     parser.add_argument('--strategy', type=str, default='baseline',
-                       help='Augmentation strategy')
+                       help='Main augmentation strategy (baseline, gen_*, or std_*)')
+    parser.add_argument('--std-strategy', type=str, default=None,
+                       help='Standard augmentation to combine with gen_* strategy '
+                            '(e.g., std_cutmix, std_mixup, std_autoaugment, std_randaugment). '
+                            'When used with a gen_* strategy, both augmentations are applied.')
     parser.add_argument('--real-gen-ratio', type=float, default=1.0,
                        help='Ratio of real images (0.0-1.0)')
     parser.add_argument('--domain-filter', type=str, default=None,
@@ -1151,6 +1182,7 @@ def main():
         dataset=args.dataset,
         model=args.model,
         strategy=args.strategy,
+        std_strategy=args.std_strategy,
         real_gen_ratio=args.real_gen_ratio,
         custom_conditions=args.conditions,
         domain_filter=args.domain_filter,

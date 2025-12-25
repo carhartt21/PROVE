@@ -61,6 +61,8 @@ print_usage() {
     echo "  --dataset <name>          Dataset name (ACDC, BDD10k, BDD100k, IDD-AW, MapillaryVistas, OUTSIDE15k)"
     echo "  --model <name>            Model name (deeplabv3plus_r50, pspnet_r50, segformer_mit-b5, etc.)"
     echo "  --strategy <name>         Augmentation strategy (see below)"
+    echo "  --std-strategy <name>     Standard augmentation to combine with main strategy"
+    echo "                            (std_cutmix, std_mixup, std_autoaugment, std_randaugment)"
     echo "  --real-gen-ratio <ratio>  Ratio of real to generated images (0.0 to 1.0)"
     echo "  --domain-filter <domain>  Filter training data to specific domain (e.g., clear_day)"
     echo "  --cache-dir <path>        Directory for caching pretrained weights"
@@ -72,12 +74,14 @@ print_usage() {
     echo "  --weights <floats...>     Optional sampling weights per dataset (must sum to 1.0)"
     echo "  --model <name>            Model name"
     echo "  --strategy <name>         Augmentation strategy"
+    echo "  --std-strategy <name>     Standard augmentation to combine with main strategy"
     echo "  --config-only             Only generate config, do not train"
     echo ""
     echo "Single Training Options:"
     echo "  --dataset <name>          Dataset name (ACDC, BDD10k, BDD100k, IDD-AW, MapillaryVistas, OUTSIDE15k)"
     echo "  --model <name>            Model name (deeplabv3plus_r50, pspnet_r50, segformer_mit-b5, etc.)"
     echo "  --strategy <name>         Augmentation strategy (see below)"
+    echo "  --std-strategy <name>     Standard augmentation to combine with main strategy"
     echo "  --real-gen-ratio <ratio>  Ratio of real to generated images (0.0 to 1.0)"
     echo "  --domain-filter <domain>  Filter training data to specific domain (e.g., clear_day)"
     echo "  --cache-dir <path>        Directory for caching pretrained weights"
@@ -113,12 +117,17 @@ print_usage() {
     echo "               gen_step1x_new, gen_step1x_v1p2, gen_StyleID, gen_SUSTechGAN, gen_TSIT,"
     echo "               gen_tunit, gen_UniControl, gen_VisualCloze, gen_Weather_Effect_Generator"
     echo ""
+    echo "Combined Strategies (--std-strategy):"
+    echo "  Use --std-strategy to combine standard augmentations with gen_* or baseline strategies."
+    echo "  Example: --strategy gen_cycleGAN --std-strategy std_cutmix"
+    echo ""
     echo "Examples:"
     echo "  $0 single --dataset ACDC --model deeplabv3plus_r50 --strategy baseline"
+    echo "  $0 single --dataset ACDC --model deeplabv3plus_r50 --strategy gen_cycleGAN --std-strategy std_cutmix"
     echo "  $0 single --dataset ACDC --model deeplabv3plus_r50 --domain-filter clear_day"
     echo "  $0 single --dataset ACDC --model deeplabv3plus_r50 --cache-dir /data/pretrained"
     echo "  $0 submit --dataset ACDC --model deeplabv3plus_r50 --strategy baseline"
-    echo "  $0 submit --dataset ACDC --model deeplabv3plus_r50 --strategy gen_cycleGAN --queue BatchGPU"
+    echo "  $0 submit --dataset ACDC --model deeplabv3plus_r50 --strategy gen_cycleGAN --std-strategy std_mixup"
     echo "  $0 submit-batch --all-seg-datasets --all-seg-models --strategy baseline"
     echo "  $0 submit-batch --unified-seg-dataset --all-seg-models --strategy baseline"
     echo "  $0 submit-batch --datasets ACDC BDD10k --models deeplabv3plus_r50 --strategy gen_cycleGAN --dry-run"
@@ -129,6 +138,7 @@ print_usage() {
     echo "  $0 batch --all-det-datasets --all-det-models --strategy baseline --dry-run"
     echo "  $0 batch --datasets ACDC BDD10k --strategy gen_cycleGAN"
     echo "  $0 single-multi --datasets ACDC MapillaryVistas --model deeplabv3plus_r50"
+    echo "  $0 single-multi --datasets ACDC MapillaryVistas --model deeplabv3plus_r50 --strategy gen_CUT --std-strategy std_autoaugment"
     echo "  $0 single-multi --datasets ACDC MapillaryVistas --weights 0.7 0.3 --model deeplabv3plus_r50"
     echo "  $0 ratio-exp --dataset ACDC --model deeplabv3plus_r50 --strategy gen_cycleGAN"
     echo "  $0 generate --strategy baseline --all"
@@ -170,6 +180,7 @@ cmd_single() {
     local dataset=""
     local model=""
     local strategy="baseline"
+    local std_strategy=""
     local ratio="1.0"
     local domain_filter=""
     local cache_dir=""
@@ -181,6 +192,7 @@ cmd_single() {
             --dataset) dataset="$2"; shift 2 ;;
             --model) model="$2"; shift 2 ;;
             --strategy) strategy="$2"; shift 2 ;;
+            --std-strategy) std_strategy="$2"; shift 2 ;;
             --ratio) ratio="$2"; shift 2 ;;
             --domain-filter) domain_filter="$2"; shift 2 ;;
             --cache-dir) cache_dir="$2"; shift 2 ;;
@@ -205,6 +217,9 @@ cmd_single() {
         
         # Build arguments for cmd_single_multi
         local multi_args="--datasets $datasets_space --model $model --strategy $strategy --ratio $ratio"
+        if [ -n "$std_strategy" ]; then
+            multi_args="$multi_args --std-strategy $std_strategy"
+        fi
         if [ -n "$cache_dir" ]; then
             multi_args="$multi_args --cache-dir $cache_dir"
         fi
@@ -223,6 +238,9 @@ cmd_single() {
     # Build command with optional parameters
     local cmd="mamba run -n prove python unified_training.py --dataset $dataset --model $model --strategy $strategy --real-gen-ratio $ratio"
     
+    if [ -n "$std_strategy" ]; then
+        cmd="$cmd --std-strategy $std_strategy"
+    fi
     if [ -n "$domain_filter" ]; then
         cmd="$cmd --domain-filter $domain_filter"
     fi
@@ -236,7 +254,11 @@ cmd_single() {
         cmd="$cmd --early-stop-patience $early_stop_patience"
     fi
     
-    echo "Training: $dataset / $model / $strategy (ratio=$ratio)"
+    if [ -n "$std_strategy" ]; then
+        echo "Training: $dataset / $model / $strategy + $std_strategy (ratio=$ratio)"
+    else
+        echo "Training: $dataset / $model / $strategy (ratio=$ratio)"
+    fi
     if [ -n "$domain_filter" ]; then
         echo "Domain filter: $domain_filter"
     fi
@@ -253,6 +275,7 @@ cmd_single_multi() {
     local weights=""
     local model=""
     local strategy="baseline"
+    local std_strategy=""
     local ratio="1.0"
     local cache_dir=""
     local no_early_stop=false
@@ -275,6 +298,7 @@ cmd_single_multi() {
                 ;;
             --model) model="$2"; shift 2 ;;
             --strategy) strategy="$2"; shift 2 ;;
+            --std-strategy) std_strategy="$2"; shift 2 ;;
             --ratio) ratio="$2"; shift 2 ;;
             --cache-dir) cache_dir="$2"; shift 2 ;;
             --no-early-stop) no_early_stop=true; shift ;;
@@ -297,6 +321,9 @@ cmd_single_multi() {
     # Build command
     local cmd="mamba run -n prove python unified_training.py --multi-dataset --datasets $datasets --model $model --strategy $strategy --real-gen-ratio $ratio"
     
+    if [ -n "$std_strategy" ]; then
+        cmd="$cmd --std-strategy $std_strategy"
+    fi
     if [ -n "$weights" ]; then
         cmd="$cmd --weights $weights"
     fi
@@ -320,7 +347,11 @@ cmd_single_multi() {
         echo "Weights: $weights"
     fi
     echo "Model: $model"
-    echo "Strategy: $strategy"
+    if [ -n "$std_strategy" ]; then
+        echo "Strategy: $strategy + $std_strategy"
+    else
+        echo "Strategy: $strategy"
+    fi
     echo ""
     
     eval $cmd
@@ -469,6 +500,7 @@ cmd_submit_batch() {
     local datasets=""
     local models=""
     local strategy="baseline"
+    local std_strategy=""
     local ratio="1.0"
     local queue="BatchGPU"
     local gpu_mem="12G"
@@ -501,6 +533,7 @@ cmd_submit_batch() {
                 done
                 ;;
             --strategy) strategy="$2"; shift 2 ;;
+            --std-strategy) std_strategy="$2"; shift 2 ;;
             --ratio) ratio="$2"; shift 2 ;;
             --domain-filter) domain_filter="$2"; shift 2 ;;
             --with-domain-variants) with_domain_variants=true; shift ;;
@@ -554,7 +587,11 @@ cmd_submit_batch() {
     echo "========================"
     echo "Datasets:  $datasets"
     echo "Models:    $models"
-    echo "Strategy:  $strategy"
+    if [ -n "$std_strategy" ]; then
+        echo "Strategy:  $strategy + $std_strategy"
+    else
+        echo "Strategy:  $strategy"
+    fi
     echo "Ratio:     $ratio"
     echo "Queue:     $queue"
     echo "GPU mem:   $gpu_mem"
@@ -578,6 +615,9 @@ cmd_submit_batch() {
                 
                 # Build job name
                 local job_name="prove_${dataset}_${model}_${strategy}"
+                if [ -n "$std_strategy" ]; then
+                    job_name="${job_name}+${std_strategy}"
+                fi
                 if [ -n "$variant_filter" ]; then
                     job_name="${job_name}_${variant_filter}"
                 fi            
@@ -589,6 +629,9 @@ cmd_submit_batch() {
                 # Build training command
                 local train_cmd="./train_unified.sh single --dataset $dataset --model $model --strategy $strategy --ratio $ratio"
                 
+                if [ -n "$std_strategy" ]; then
+                    train_cmd="$train_cmd --std-strategy $std_strategy"
+                fi
                 if [ -n "$variant_filter" ]; then
                     train_cmd="$train_cmd --domain-filter $variant_filter"
                 fi
@@ -637,6 +680,7 @@ cmd_submit() {
     local dataset=""
     local model=""
     local strategy="baseline"
+    local std_strategy=""
     local ratio="1.0"
     local domain_filter=""
     local cache_dir=""
@@ -653,6 +697,7 @@ cmd_submit() {
             --dataset) dataset="$2"; shift 2 ;;
             --model) model="$2"; shift 2 ;;
             --strategy) strategy="$2"; shift 2 ;;
+            --std-strategy) std_strategy="$2"; shift 2 ;;
             --ratio) ratio="$2"; shift 2 ;;
             --domain-filter) domain_filter="$2"; shift 2 ;;
             --cache-dir) cache_dir="$2"; shift 2 ;;
@@ -674,6 +719,9 @@ cmd_submit() {
     
     # Build job name
     local job_name="prove_${dataset}_${model}_${strategy}"
+    if [ -n "$std_strategy" ]; then
+        job_name="${job_name}+${std_strategy}"
+    fi
     if [ -n "$domain_filter" ]; then
         job_name="${job_name}_${domain_filter}"
     fi
@@ -685,6 +733,9 @@ cmd_submit() {
     # Build training command
     local train_cmd="./train_unified.sh single --dataset $dataset --model $model --strategy $strategy --ratio $ratio"
     
+    if [ -n "$std_strategy" ]; then
+        train_cmd="$train_cmd --std-strategy $std_strategy"
+    fi
     if [ -n "$domain_filter" ]; then
         train_cmd="$train_cmd --domain-filter $domain_filter"
     fi
@@ -717,7 +768,11 @@ cmd_submit() {
     echo "Job name:  $job_name"
     echo "Dataset:   $dataset"
     echo "Model:     $model"
-    echo "Strategy:  $strategy"
+    if [ -n "$std_strategy" ]; then
+        echo "Strategy:  $strategy + $std_strategy"
+    else
+        echo "Strategy:  $strategy"
+    fi
     echo "Ratio:     $ratio"
     echo "Queue:     $queue"
     echo "GPU mem:   $gpu_mem"

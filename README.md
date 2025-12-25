@@ -134,6 +134,9 @@ python unified_training.py --dataset ACDC --model deeplabv3plus_r50 --strategy g
 # Training with standard augmentation (CutMix, MixUp, etc.)
 python unified_training.py --dataset ACDC --model deeplabv3plus_r50 --strategy std_cutmix
 
+# Combined strategies: generative augmentation + standard augmentation
+python unified_training.py --dataset ACDC --model deeplabv3plus_r50 --strategy gen_cycleGAN --std-strategy std_cutmix
+
 # Specify custom cache directory for pretrained weights
 python unified_training.py --dataset ACDC --model deeplabv3plus_r50 --strategy baseline --cache-dir /path/to/cache
 
@@ -159,7 +162,8 @@ python unified_training.py --list
 |--------|-------------|---------|
 | `--dataset` | Dataset name (ACDC, BDD10k, BDD100k, IDD-AW, MapillaryVistas, OUTSIDE15k) | Required |
 | `--model` | Model name (deeplabv3plus_r50, pspnet_r50, segformer_mit-b5, etc.) | Required |
-| `--strategy` | Augmentation strategy (baseline, std_cutmix, gen_cycleGAN, etc.) | baseline |
+| `--strategy` | Main augmentation strategy (baseline, std_cutmix, gen_cycleGAN, etc.) | baseline |
+| `--std-strategy` | Standard augmentation to combine with main strategy (see Combined Strategies) | None |
 | `--real-gen-ratio` | Ratio of real to generated images (0.0 to 1.0) | 1.0 |
 | `--domain-filter` | Filter training data to specific domain (e.g., clear_day) | None |
 | `--work-dir` | Output directory for checkpoints and logs | Auto-generated |
@@ -168,6 +172,48 @@ python unified_training.py --list
 | `--resume-from` | Path to checkpoint to resume training from | None |
 | `--no-early-stop` | Disable early stopping (stops when no improvement for 5 validations) | Enabled |
 | `--early-stop-patience` | Number of validations without improvement before stopping | 5 |
+
+#### Combined Strategies
+
+You can combine standard augmentation strategies (std_*) with generative augmentation strategies (gen_*) or baseline using the `--std-strategy` option. This enables applying both types of augmentation during training.
+
+**Available Standard Augmentations for `--std-strategy`:**
+- `std_cutmix` - CutMix augmentation
+- `std_mixup` - MixUp augmentation
+- `std_autoaugment` - AutoAugment policy
+- `std_randaugment` - RandAugment augmentation
+
+**Usage Examples:**
+
+```bash
+# Combine generative augmentation (cycleGAN) with CutMix
+python unified_training.py --dataset ACDC --model deeplabv3plus_r50 \
+    --strategy gen_cycleGAN --std-strategy std_cutmix
+
+# Combine baseline training with MixUp augmentation
+python unified_training.py --dataset ACDC --model deeplabv3plus_r50 \
+    --strategy baseline --std-strategy std_mixup
+
+# Multi-dataset training with combined strategies
+python unified_training.py --multi-dataset --datasets ACDC MapillaryVistas \
+    --model deeplabv3plus_r50 --strategy gen_CUT --std-strategy std_autoaugment
+```
+
+**Output Directory Structure:**
+When using combined strategies, the work directory includes both strategy names:
+- `gen_cycleGAN+std_cutmix/acdc/deeplabv3plus_r50/`
+- `baseline+std_mixup/acdc/deeplabv3plus_r50/`
+
+**Shell Script Usage:**
+```bash
+# Using train_unified.sh
+./train_unified.sh single --dataset ACDC --model deeplabv3plus_r50 \
+    --strategy gen_cycleGAN --std-strategy std_cutmix
+
+# Submit to LSF cluster
+./train_unified.sh submit --dataset ACDC --model deeplabv3plus_r50 \
+    --strategy gen_cycleGAN --std-strategy std_mixup
+```
 
 #### Early Stopping
 

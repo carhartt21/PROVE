@@ -930,6 +930,7 @@ class UnifiedTrainingConfig:
         dataset: str,
         model: str,
         strategy: str = 'baseline',
+        std_strategy: Optional[str] = None,
         real_gen_ratio: float = 1.0,
         custom_training_config: Optional[Dict] = None,
         custom_conditions: Optional[List[str]] = None,
@@ -941,7 +942,10 @@ class UnifiedTrainingConfig:
         Args:
             dataset: Dataset name (e.g., 'ACDC', 'BDD10k')
             model: Model name (e.g., 'deeplabv3plus_r50')
-            strategy: Augmentation strategy (e.g., 'baseline', 'gen_cycleGAN')
+            strategy: Main augmentation strategy (e.g., 'baseline', 'gen_cycleGAN', 'std_cutmix')
+            std_strategy: Optional standard augmentation to combine with gen_* strategy
+                         (e.g., 'std_cutmix', 'std_mixup'). When provided with a gen_* 
+                         strategy, both augmentations will be applied.
             real_gen_ratio: Ratio of real images in mixed training (0.0-1.0)
                            1.0 = only real images, 0.0 = only generated images
                            0.5 = 50% real, 50% generated
@@ -964,6 +968,14 @@ class UnifiedTrainingConfig:
             raise ValueError(f"Unknown model: {model}. Available: {list(ALL_MODELS.keys())}")
         if strategy not in AUGMENTATION_STRATEGIES:
             raise ValueError(f"Unknown strategy: {strategy}. Available: {list(AUGMENTATION_STRATEGIES.keys())}")
+        
+        # Validate std_strategy if provided
+        if std_strategy is not None:
+            if std_strategy not in AUGMENTATION_STRATEGIES:
+                raise ValueError(f"Unknown std_strategy: {std_strategy}. Available: {list(AUGMENTATION_STRATEGIES.keys())}")
+            std_aug = AUGMENTATION_STRATEGIES[std_strategy]
+            if std_aug.type != 'standard':
+                raise ValueError(f"std_strategy must be a standard augmentation (std_*), got: {std_strategy}")
         
         dataset_cfg = DATASET_CONFIGS[dataset]
         model_cfg = ALL_MODELS[model]
@@ -1012,11 +1024,18 @@ class UnifiedTrainingConfig:
         
         # Build configuration
         config = self._build_base_config(dataset_cfg, model_cfg, training_cfg)
+        
+        # Add strategy info to metadata
+        config['_prove_config']['strategy'] = strategy
+        if std_strategy:
+            config['_prove_config']['std_strategy'] = std_strategy
+            config['_prove_config']['combined_strategy'] = f"{strategy}+{std_strategy}"
+        
         config = self._add_dataset_config(config, dataset_cfg, domain_filter)
-        config = self._add_training_pipeline(config, dataset_cfg.task, aug_strategy)
-        config = self._add_augmentation_config(config, aug_strategy, conditions, real_gen_ratio)
+        config = self._add_training_pipeline(config, dataset_cfg.task, aug_strategy, std_strategy)
+        config = self._add_augmentation_config(config, aug_strategy, conditions, real_gen_ratio, std_strategy)
         config = self._add_mixed_dataloader_config(config, dataset_cfg, aug_strategy, real_gen_ratio, domain_filter)
-        config = self._set_work_dir(config, dataset, model, strategy, real_gen_ratio, domain_filter)
+        config = self._set_work_dir(config, dataset, model, strategy, real_gen_ratio, domain_filter, std_strategy)
         
         return config
     
@@ -1025,6 +1044,7 @@ class UnifiedTrainingConfig:
         datasets: List[str],
         model: str,
         strategy: str = 'baseline',
+        std_strategy: Optional[str] = None,
         real_gen_ratio: float = 1.0,
         weights: Optional[List[float]] = None,
         custom_training_config: Optional[Dict] = None,
@@ -1037,6 +1057,9 @@ class UnifiedTrainingConfig:
             datasets: List of dataset names (e.g., ['ACDC', 'MapillaryVistas'])
             model: Model name (e.g., 'deeplabv3plus_r50')
             strategy: Augmentation strategy (e.g., 'baseline', 'gen_cycleGAN')
+            std_strategy: Optional standard augmentation to combine with gen_* strategy
+                         (e.g., 'std_cutmix', 'std_mixup'). When provided with a gen_* 
+                         strategy, both augmentations will be applied.
             real_gen_ratio: Ratio of real images in mixed training (0.0-1.0)
             weights: Optional sampling weights for each dataset (must sum to 1.0).
                     If None, uses balanced sampling (equal weight per dataset).
@@ -1059,6 +1082,14 @@ class UnifiedTrainingConfig:
             raise ValueError(f"Unknown model: {model}. Available: {list(ALL_MODELS.keys())}")
         if strategy not in AUGMENTATION_STRATEGIES:
             raise ValueError(f"Unknown strategy: {strategy}. Available: {list(AUGMENTATION_STRATEGIES.keys())}")
+        
+        # Validate std_strategy if provided
+        if std_strategy is not None:
+            if std_strategy not in AUGMENTATION_STRATEGIES:
+                raise ValueError(f"Unknown std_strategy: {std_strategy}. Available: {list(AUGMENTATION_STRATEGIES.keys())}")
+            std_aug = AUGMENTATION_STRATEGIES[std_strategy]
+            if std_aug.type != 'standard':
+                raise ValueError(f"std_strategy must be a standard augmentation (std_*), got: {std_strategy}")
         
         # Validate weights if provided
         if weights is not None:
@@ -1121,14 +1152,21 @@ class UnifiedTrainingConfig:
         
         # Build base configuration using first dataset as template
         config = self._build_base_config(first_cfg, model_cfg, training_cfg)
-        config = self._add_training_pipeline(config, first_cfg.task, aug_strategy)
-        config = self._add_augmentation_config(config, aug_strategy, conditions, real_gen_ratio)
+        
+        # Add strategy info to metadata
+        config['_prove_config']['strategy'] = strategy
+        if std_strategy:
+            config['_prove_config']['std_strategy'] = std_strategy
+            config['_prove_config']['combined_strategy'] = f"{strategy}+{std_strategy}"
+        
+        config = self._add_training_pipeline(config, first_cfg.task, aug_strategy, std_strategy)
+        config = self._add_augmentation_config(config, aug_strategy, conditions, real_gen_ratio, std_strategy)
         
         # Build multi-dataset train dataloader with ConcatDataset
         config = self._add_multi_dataset_config(config, dataset_cfgs, datasets, weights, real_gen_ratio, aug_strategy)
         
         # Set work directory for multi-dataset training
-        config = self._set_multi_dataset_work_dir(config, datasets, model, strategy, real_gen_ratio)
+        config = self._set_multi_dataset_work_dir(config, datasets, model, strategy, real_gen_ratio, std_strategy)
         
         # Update metadata
         config['_prove_config']['datasets'] = datasets
@@ -1396,11 +1434,13 @@ class UnifiedTrainingConfig:
         model: str,
         strategy: str,
         real_gen_ratio: float,
+        std_strategy: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Set the output work directory for multi-dataset training.
         
         Directory format: {weights_root}/{strategy}/multi_{ds1}+{ds2}/model
+        If std_strategy is provided: {weights_root}/{strategy}+{std_strategy}/multi_{ds1}+{ds2}/model
         """
         
         if real_gen_ratio < 1.0:
@@ -1411,9 +1451,15 @@ class UnifiedTrainingConfig:
         # Create combined dataset name
         datasets_str = 'multi_' + '+'.join(ds.lower() for ds in datasets)
         
+        # Build strategy name (with optional std_strategy suffix)
+        if std_strategy:
+            strategy_dir = f'{strategy}+{std_strategy}'
+        else:
+            strategy_dir = strategy
+        
         config['work_dir'] = os.path.join(
             self.weights_root,
-            strategy,
+            strategy_dir,
             datasets_str,
             f'{model}{ratio_str}',
         )
@@ -1790,11 +1836,27 @@ class UnifiedTrainingConfig:
         config: Dict[str, Any],
         task: str,
         aug_strategy: AugmentationStrategy,
+        std_strategy: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """Add training data pipeline"""
+        """Add training data pipeline
+        
+        Args:
+            config: Configuration dictionary to update
+            task: Task type ('segmentation' or 'detection')
+            aug_strategy: Main augmentation strategy
+            std_strategy: Optional standard augmentation to combine
+        """
         
         crop_size = (512, 512)
         is_baseline = aug_strategy.name == 'baseline'
+        
+        # Check if we're using standard augmentation (either as main or combined)
+        using_std_aug = (aug_strategy.type == 'standard') or (std_strategy is not None)
+        std_aug_method = None
+        if aug_strategy.type == 'standard':
+            std_aug_method = aug_strategy.standard_method
+        elif std_strategy is not None:
+            std_aug_method = AUGMENTATION_STRATEGIES[std_strategy].standard_method
         
         pipeline = [
             dict(type='LoadImageFromFile'),
@@ -1816,6 +1878,14 @@ class UnifiedTrainingConfig:
         
         # Add augmentation transforms from strategy (non-baseline strategies may add more)
         pipeline.extend(aug_strategy.get_pipeline_transforms())
+        
+        # Add standard augmentation transforms if using std_* strategy
+        if using_std_aug and std_aug_method:
+            # Standard augmentations are applied as batch-level transforms
+            # They are configured in custom_hooks, not in the pipeline directly
+            # But we can add a marker for them here
+            config['_prove_config'] = config.get('_prove_config', {})
+            config['_prove_config']['std_augmentation'] = std_aug_method
         
         # Add final packing
         if task == 'segmentation':
@@ -1853,8 +1923,17 @@ class UnifiedTrainingConfig:
         aug_strategy: AugmentationStrategy,
         conditions: List[str],
         real_gen_ratio: float,
+        std_strategy: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """Add augmentation-specific configuration"""
+        """Add augmentation-specific configuration
+        
+        Args:
+            config: Configuration dictionary to update
+            aug_strategy: Main augmentation strategy
+            conditions: List of weather conditions
+            real_gen_ratio: Ratio of real images
+            std_strategy: Optional standard augmentation to combine with main strategy
+        """
         
         if aug_strategy.type == 'generated' and aug_strategy.generative_model:
             gen_model = aug_strategy.generative_model
@@ -1869,6 +1948,16 @@ class UnifiedTrainingConfig:
                 'augmentation_multiplier': 1 + len(conditions),
                 'real_gen_ratio': real_gen_ratio,
             }
+            
+            # Add standard augmentation if combined with gen_* strategy
+            if std_strategy is not None:
+                std_aug = AUGMENTATION_STRATEGIES[std_strategy]
+                config['standard_augmentation'] = {
+                    'enabled': True,
+                    'method': std_aug.standard_method,
+                    'p_aug': std_aug.p_aug,
+                    'combined_with_gen': True,  # Flag indicating combined usage
+                }
         
         elif aug_strategy.type == 'standard' and aug_strategy.standard_method:
             # Standard augmentation (CutMix, MixUp, AutoAugment, RandAugment)
@@ -1876,6 +1965,17 @@ class UnifiedTrainingConfig:
                 'enabled': True,
                 'method': aug_strategy.standard_method,
                 'p_aug': aug_strategy.p_aug,
+                'combined_with_gen': False,
+            }
+        
+        # Handle std_strategy combined with non-generated strategies (e.g., baseline + std_cutmix)
+        elif std_strategy is not None:
+            std_aug = AUGMENTATION_STRATEGIES[std_strategy]
+            config['standard_augmentation'] = {
+                'enabled': True,
+                'method': std_aug.standard_method,
+                'p_aug': std_aug.p_aug,
+                'combined_with_gen': False,  # Not combined with generated images
             }
         
         return config
@@ -1955,6 +2055,7 @@ class UnifiedTrainingConfig:
         strategy: str,
         real_gen_ratio: float,
         domain_filter: Optional[str] = None,
+        std_strategy: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Set the output work directory.
@@ -1966,6 +2067,7 @@ class UnifiedTrainingConfig:
             strategy: Augmentation strategy name
             real_gen_ratio: Ratio of real images (0.0-1.0)
             domain_filter: Optional domain filter (e.g., 'clear_day')
+            std_strategy: Optional standard augmentation combined with strategy
         """
         
         # Include ratio in directory name if not 1.0
@@ -1980,9 +2082,15 @@ class UnifiedTrainingConfig:
         else:
             domain_str = ''
         
+        # Include std_strategy in directory name if combined
+        if std_strategy:
+            std_str = f'+{std_strategy}'
+        else:
+            std_str = ''
+        
         config['work_dir'] = os.path.join(
             self.weights_root,
-            strategy,
+            f'{strategy}{std_str}',
             dataset.lower(),
             f'{model}{ratio_str}{domain_str}',
         )
