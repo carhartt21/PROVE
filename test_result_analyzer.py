@@ -21,6 +21,95 @@ from collections import defaultdict
 import re
 
 
+# Strategy classification patterns
+COMBINED_STRATEGY_PATTERN = re.compile(r'^(.+)\+(.+)$')  # e.g., gen_cycleGAN+std_cutmix
+GEN_STRATEGY_PATTERN = re.compile(r'^gen_.+$')  # e.g., gen_cycleGAN
+STD_STRATEGY_PATTERN = re.compile(r'^std_.+$')  # e.g., std_cutmix
+
+
+def parse_strategy(strategy: str) -> Dict[str, str]:
+    """
+    Parse a strategy name and return its components.
+    
+    Args:
+        strategy: Strategy name (e.g., 'gen_cycleGAN+std_cutmix', 'gen_cycleGAN', 'baseline')
+    
+    Returns:
+        Dictionary with keys:
+        - 'full': The full strategy name
+        - 'type': 'combined', 'gen', 'std', or 'baseline'
+        - 'gen_component': The generative component (if any)
+        - 'std_component': The standard augmentation component (if any)
+    """
+    result = {
+        'full': strategy,
+        'type': 'unknown',
+        'gen_component': None,
+        'std_component': None
+    }
+    
+    # Check for combined strategy (gen_*+std_* or baseline+std_*)
+    combined_match = COMBINED_STRATEGY_PATTERN.match(strategy)
+    if combined_match:
+        first_part, second_part = combined_match.groups()
+        result['type'] = 'combined'
+        
+        # Determine which part is gen and which is std
+        if GEN_STRATEGY_PATTERN.match(first_part):
+            result['gen_component'] = first_part
+        elif first_part == 'baseline':
+            result['gen_component'] = 'baseline'
+        else:
+            result['gen_component'] = first_part
+            
+        if STD_STRATEGY_PATTERN.match(second_part):
+            result['std_component'] = second_part
+        else:
+            result['std_component'] = second_part
+        return result
+    
+    # Check for gen_* strategy
+    if GEN_STRATEGY_PATTERN.match(strategy):
+        result['type'] = 'gen'
+        result['gen_component'] = strategy
+        return result
+    
+    # Check for std_* strategy
+    if STD_STRATEGY_PATTERN.match(strategy):
+        result['type'] = 'std'
+        result['std_component'] = strategy
+        return result
+    
+    # Check for baseline
+    if strategy == 'baseline':
+        result['type'] = 'baseline'
+        return result
+    
+    # Unknown strategy type
+    result['type'] = 'other'
+    return result
+
+
+def get_strategy_type(strategy: str) -> str:
+    """Get the type of a strategy ('combined', 'gen', 'std', 'baseline', or 'other')."""
+    return parse_strategy(strategy)['type']
+
+
+def is_combined_strategy(strategy: str) -> bool:
+    """Check if a strategy is a combined gen+std strategy."""
+    return get_strategy_type(strategy) == 'combined'
+
+
+def get_gen_component(strategy: str) -> Optional[str]:
+    """Get the generative component of a strategy."""
+    return parse_strategy(strategy)['gen_component']
+
+
+def get_std_component(strategy: str) -> Optional[str]:
+    """Get the standard augmentation component of a strategy."""
+    return parse_strategy(strategy)['std_component']
+
+
 class TestResultAnalyzer:
     """Analyze PROVE test results and generate performance summaries."""
     
@@ -76,6 +165,60 @@ class TestResultAnalyzer:
         
         print(f"Found {len(self.test_results)} test result configurations")
         return self.test_results
+    
+    def deduplicate_results(self) -> None:
+        """
+        Deduplicate test results by keeping only the most recent result
+        for each unique (strategy, dataset, model) combination.
+        
+        This is useful when multiple test runs exist for the same configuration.
+        """
+        if not self.test_results:
+            return
+        
+        # Group results by (strategy, dataset, model)
+        grouped = {}
+        for result in self.test_results:
+            key = (result['strategy'], result['dataset'], result['model'])
+            if key not in grouped:
+                grouped[key] = []
+            grouped[key].append(result)
+        
+        # Keep only the most recent result for each group
+        deduplicated = []
+        duplicates_removed = 0
+        
+        def get_timestamp(r):
+            """Get timestamp as float, handling string timestamps from directory names."""
+            ts = r.get('timestamp', 0)
+            if isinstance(ts, str):
+                # Handle directory name format like "20251210_092854"
+                try:
+                    from datetime import datetime
+                    return datetime.strptime(ts, "%Y%m%d_%H%M%S").timestamp()
+                except:
+                    return 0
+            return ts if ts else 0
+        
+        for key, results in grouped.items():
+            if len(results) > 1:
+                # Sort by timestamp (most recent first), fall back to result_type preference
+                sorted_results = sorted(
+                    results,
+                    key=lambda r: (
+                        get_timestamp(r),
+                        1 if r.get('result_type') == 'detailed' else 0  # Prefer detailed results
+                    ),
+                    reverse=True
+                )
+                deduplicated.append(sorted_results[0])
+                duplicates_removed += len(results) - 1
+            else:
+                deduplicated.append(results[0])
+        
+        self.test_results = deduplicated
+        print(f"Deduplicated: Kept {len(deduplicated)} unique configurations, "
+              f"removed {duplicates_removed} duplicate test runs")
     
     def _analyze_test_results(
         self, 
@@ -469,6 +612,31 @@ class TestResultAnalyzer:
         summary.append("Results by Strategy:")
         for strategy, count in sorted(strategies.items()):
             summary.append(f"  - {strategy}: {count} results")
+        
+        # Categorize strategies by type
+        summary.append("")
+        summary.append("Results by Strategy Type:")
+        strategy_types = defaultdict(int)
+        combined_strategies = []
+        for strategy in strategies.keys():
+            stype = get_strategy_type(strategy)
+            strategy_types[stype] += strategies[strategy]
+            if stype == 'combined':
+                combined_strategies.append(strategy)
+        
+        for stype, count in sorted(strategy_types.items()):
+            emoji = {'combined': '🔗', 'gen': '🎨', 'std': '📊', 'baseline': '📌', 'other': '❓'}.get(stype, '•')
+            summary.append(f"  {emoji} {stype}: {count} results")
+        
+        # List combined strategies if any
+        if combined_strategies:
+            summary.append("")
+            summary.append("Combined Strategies (gen+std):")
+            for strategy in sorted(combined_strategies):
+                parsed = parse_strategy(strategy)
+                summary.append(f"  - {strategy}")
+                summary.append(f"      Gen: {parsed['gen_component']}, Std: {parsed['std_component']}")
+        
         summary.append("")
         summary.append("Results by Dataset:")
         for dataset, count in sorted(datasets.items()):
@@ -1000,12 +1168,291 @@ class TestResultAnalyzer:
         lines.append("\n" + "=" * 80)
         return "\n".join(lines)
     
+    def format_combined_strategy_insights(self) -> str:
+        """
+        Generate insights specifically for combined gen+std strategies.
+        
+        This method analyzes how combining generative augmentation (gen_*)
+        with standard augmentation (std_*) affects performance compared to
+        using either strategy alone.
+        
+        Returns:
+            Formatted combined strategy insights string
+        """
+        if not self.test_results:
+            return "No test results available for combined strategy insights"
+        
+        valid_results = [r for r in self.test_results if r.get('mIoU') is not None]
+        if not valid_results:
+            return "No valid test results with metrics for combined strategy insights"
+        
+        # Separate results by strategy type
+        combined_results = []
+        gen_only_results = []
+        std_only_results = []
+        baseline_results = []
+        
+        for r in valid_results:
+            stype = get_strategy_type(r['strategy'])
+            if stype == 'combined':
+                combined_results.append(r)
+            elif stype == 'gen':
+                gen_only_results.append(r)
+            elif stype == 'std':
+                std_only_results.append(r)
+            elif stype == 'baseline':
+                baseline_results.append(r)
+        
+        lines = []
+        lines.append("\n" + "=" * 80)
+        lines.append("🔗 COMBINED STRATEGY INSIGHTS (Gen + Std Augmentation)")
+        lines.append("=" * 80)
+        
+        # Summary counts
+        lines.append(f"\n📊 STRATEGY COUNTS")
+        lines.append("-" * 80)
+        lines.append(f"  Combined (gen+std): {len(combined_results)} configurations")
+        lines.append(f"  Gen-only:           {len(gen_only_results)} configurations")
+        lines.append(f"  Std-only:           {len(std_only_results)} configurations")
+        lines.append(f"  Baseline:           {len(baseline_results)} configurations")
+        
+        if not combined_results:
+            lines.append("\n⚠️  No combined strategy results found.")
+            lines.append("   To test combined strategies, use:")
+            lines.append("   ./train_unified.sh single --strategy gen_cycleGAN --std-strategy std_cutmix ...")
+            lines.append("\n" + "=" * 80)
+            return "\n".join(lines)
+        
+        # === COMBINED STRATEGY PERFORMANCE OVERVIEW ===
+        lines.append(f"\n🏆 COMBINED STRATEGY PERFORMANCE")
+        lines.append("-" * 80)
+        
+        # Group combined results by strategy
+        combined_by_strategy = defaultdict(list)
+        for r in combined_results:
+            combined_by_strategy[r['strategy']].append(r)
+        
+        lines.append(f"{'Combined Strategy':<40} {'Avg mIoU':>10} {'Max':>8} {'Min':>8} {'Count':>6}")
+        lines.append("-" * 80)
+        
+        sorted_combined = sorted(
+            combined_by_strategy.items(),
+            key=lambda x: sum(r['mIoU'] for r in x[1]) / len(x[1]),
+            reverse=True
+        )
+        
+        for strategy, results in sorted_combined:
+            mious = [r['mIoU'] for r in results]
+            avg = sum(mious) / len(mious)
+            lines.append(f"{strategy:<40} {avg:>9.2f}% {max(mious):>7.2f}% {min(mious):>7.2f}% {len(results):>6}")
+        
+        # === COMPONENT ANALYSIS ===
+        lines.append(f"\n📈 COMPONENT ANALYSIS")
+        lines.append("-" * 80)
+        lines.append("Analyzing how each gen component performs with different std components:")
+        lines.append("")
+        
+        # Group by gen component
+        gen_component_stats = defaultdict(lambda: defaultdict(list))
+        for r in combined_results:
+            parsed = parse_strategy(r['strategy'])
+            gen_comp = parsed['gen_component']
+            std_comp = parsed['std_component']
+            gen_component_stats[gen_comp][std_comp].append(r['mIoU'])
+        
+        # Find all std components
+        all_std_components = set()
+        for gen_comp, std_dict in gen_component_stats.items():
+            all_std_components.update(std_dict.keys())
+        all_std_components = sorted(all_std_components)
+        
+        # Header for component matrix
+        header = f"{'Gen Component':<20}"
+        for std in all_std_components:
+            # Abbreviate std component names
+            short_std = std.replace('std_', '')[:8]
+            header += f" {short_std:>10}"
+        header += " {'Avg':>8}"
+        lines.append(header)
+        lines.append("-" * 80)
+        
+        # Rows for each gen component
+        gen_avgs = []
+        for gen_comp in sorted(gen_component_stats.keys()):
+            row = f"{gen_comp:<20}"
+            row_values = []
+            for std in all_std_components:
+                if std in gen_component_stats[gen_comp]:
+                    mious = gen_component_stats[gen_comp][std]
+                    avg = sum(mious) / len(mious)
+                    row += f" {avg:>9.2f}%"
+                    row_values.append(avg)
+                else:
+                    row += f" {'—':>10}"
+            if row_values:
+                gen_avg = sum(row_values) / len(row_values)
+                row += f" {gen_avg:>7.2f}%"
+                gen_avgs.append((gen_comp, gen_avg))
+            else:
+                row += f" {'—':>8}"
+            lines.append(row)
+        
+        # === SYNERGY ANALYSIS ===
+        lines.append(f"\n🔬 SYNERGY ANALYSIS")
+        lines.append("-" * 80)
+        lines.append("Comparing combined performance vs individual components:")
+        lines.append("")
+        
+        # For each combined strategy, compare to its components
+        synergy_data = []
+        for strategy, results in combined_by_strategy.items():
+            parsed = parse_strategy(strategy)
+            gen_comp = parsed['gen_component']
+            std_comp = parsed['std_component']
+            
+            combined_avg = sum(r['mIoU'] for r in results) / len(results)
+            
+            # Find gen-only performance
+            gen_only_avg = None
+            for r in gen_only_results:
+                if r['strategy'] == gen_comp:
+                    # Match by dataset and model for fair comparison
+                    matching = [rr for rr in gen_only_results 
+                               if rr['strategy'] == gen_comp]
+                    if matching:
+                        gen_only_avg = sum(rr['mIoU'] for rr in matching) / len(matching)
+                    break
+            
+            # Find std-only performance
+            std_only_avg = None
+            for r in std_only_results:
+                if r['strategy'] == std_comp:
+                    matching = [rr for rr in std_only_results 
+                               if rr['strategy'] == std_comp]
+                    if matching:
+                        std_only_avg = sum(rr['mIoU'] for rr in matching) / len(matching)
+                    break
+            
+            # Find baseline performance
+            baseline_avg = None
+            if baseline_results:
+                baseline_avg = sum(r['mIoU'] for r in baseline_results) / len(baseline_results)
+            
+            synergy_data.append({
+                'strategy': strategy,
+                'combined_avg': combined_avg,
+                'gen_only_avg': gen_only_avg,
+                'std_only_avg': std_only_avg,
+                'baseline_avg': baseline_avg,
+                'gen_comp': gen_comp,
+                'std_comp': std_comp
+            })
+        
+        # Display synergy table
+        lines.append(f"{'Combined Strategy':<35} {'Combined':>9} {'Gen Only':>9} {'Std Only':>9} {'Baseline':>9} {'vs Gen':>8} {'vs Base':>8}")
+        lines.append("-" * 100)
+        
+        for data in sorted(synergy_data, key=lambda x: x['combined_avg'], reverse=True):
+            row = f"{data['strategy']:<35}"
+            row += f" {data['combined_avg']:>8.2f}%"
+            
+            if data['gen_only_avg'] is not None:
+                row += f" {data['gen_only_avg']:>8.2f}%"
+                synergy_vs_gen = data['combined_avg'] - data['gen_only_avg']
+            else:
+                row += f" {'—':>9}"
+                synergy_vs_gen = None
+            
+            if data['std_only_avg'] is not None:
+                row += f" {data['std_only_avg']:>8.2f}%"
+            else:
+                row += f" {'—':>9}"
+            
+            if data['baseline_avg'] is not None:
+                row += f" {data['baseline_avg']:>8.2f}%"
+                synergy_vs_baseline = data['combined_avg'] - data['baseline_avg']
+            else:
+                row += f" {'—':>9}"
+                synergy_vs_baseline = None
+            
+            # Synergy indicators
+            if synergy_vs_gen is not None:
+                sign = '+' if synergy_vs_gen >= 0 else ''
+                row += f" {sign}{synergy_vs_gen:>6.2f}%"
+            else:
+                row += f" {'—':>8}"
+            
+            if synergy_vs_baseline is not None:
+                sign = '+' if synergy_vs_baseline >= 0 else ''
+                row += f" {sign}{synergy_vs_baseline:>6.2f}%"
+            else:
+                row += f" {'—':>8}"
+            
+            lines.append(row)
+        
+        # === BEST COMBINATIONS ===
+        lines.append(f"\n💡 KEY INSIGHTS")
+        lines.append("-" * 80)
+        
+        if sorted_combined:
+            best = sorted_combined[0]
+            best_avg = sum(r['mIoU'] for r in best[1]) / len(best[1])
+            parsed = parse_strategy(best[0])
+            lines.append(f"• Best Combined Strategy: {best[0]}")
+            lines.append(f"  - Average mIoU: {best_avg:.2f}%")
+            lines.append(f"  - Gen component: {parsed['gen_component']}")
+            lines.append(f"  - Std component: {parsed['std_component']}")
+        
+        # Find best gen component overall
+        if gen_avgs:
+            best_gen = max(gen_avgs, key=lambda x: x[1])
+            lines.append(f"\n• Best Gen Component in Combined Strategies: {best_gen[0]}")
+            lines.append(f"  - Average across all std combinations: {best_gen[1]:.2f}%")
+        
+        # Find best std component overall
+        std_avgs = defaultdict(list)
+        for gen_comp, std_dict in gen_component_stats.items():
+            for std_comp, mious in std_dict.items():
+                std_avgs[std_comp].extend(mious)
+        
+        if std_avgs:
+            best_std = max(std_avgs.items(), key=lambda x: sum(x[1])/len(x[1]))
+            best_std_avg = sum(best_std[1]) / len(best_std[1])
+            lines.append(f"\n• Best Std Component in Combined Strategies: {best_std[0]}")
+            lines.append(f"  - Average across all gen combinations: {best_std_avg:.2f}%")
+        
+        # Recommendations
+        lines.append(f"\n📋 RECOMMENDATIONS")
+        lines.append("-" * 80)
+        
+        # Check for positive synergies
+        positive_synergies = [d for d in synergy_data 
+                            if d['gen_only_avg'] is not None 
+                            and d['combined_avg'] > d['gen_only_avg']]
+        
+        if positive_synergies:
+            lines.append(f"• {len(positive_synergies)}/{len(synergy_data)} combined strategies show positive synergy over gen-only")
+            best_synergy = max(positive_synergies, key=lambda x: x['combined_avg'] - x['gen_only_avg'])
+            gain = best_synergy['combined_avg'] - best_synergy['gen_only_avg']
+            lines.append(f"• Highest synergy: {best_synergy['strategy']} (+{gain:.2f}% over gen-only)")
+        else:
+            lines.append("• No clear positive synergies detected between gen and std augmentations")
+            lines.append("  Consider testing more combinations or different hyperparameters")
+        
+        lines.append("\n" + "=" * 80)
+        return "\n".join(lines)
+    
     def export_json(self, output_path: str):
-        """Export data to JSON file."""
-        # Convert to serializable format
+        """Export data to JSON file with strategy type information."""
+        # Convert to serializable format with enriched strategy info
         export_data = []
         for result in self.test_results:
             item = dict(result)
+            # Add strategy parsing info
+            parsed = parse_strategy(result['strategy'])
+            item['strategy_type'] = parsed['type']
+            item['gen_component'] = parsed['gen_component']
+            item['std_component'] = parsed['std_component']
             # Remove non-serializable fields
             if 'per_domain_metrics' in item:
                 item['per_domain_metrics'] = dict(item['per_domain_metrics'])
@@ -1016,24 +1463,35 @@ class TestResultAnalyzer:
         print(f"Exported JSON to {output_path}")
     
     def export_csv(self, output_path: str):
-        """Export data to CSV file."""
+        """Export data to CSV file with strategy type information."""
         import csv
         
         if not self.test_results:
             print("No data to export")
             return
         
-        # Define CSV columns
+        # Define CSV columns (including strategy type info)
         columns = [
-            'strategy', 'dataset', 'model', 'test_type', 'result_type',
+            'strategy', 'strategy_type', 'gen_component', 'std_component',
+            'dataset', 'model', 'test_type', 'result_type',
             'mIoU', 'mAcc', 'aAcc', 'fwIoU', 
             'has_per_domain', 'has_per_class', 'timestamp'
         ]
         
+        # Enrich results with strategy parsing info
+        enriched_results = []
+        for r in self.test_results:
+            item = dict(r)
+            parsed = parse_strategy(r['strategy'])
+            item['strategy_type'] = parsed['type']
+            item['gen_component'] = parsed['gen_component'] or ''
+            item['std_component'] = parsed['std_component'] or ''
+            enriched_results.append(item)
+        
         with open(output_path, 'w', newline='') as f:
             writer = csv.DictWriter(f, fieldnames=columns, extrasaction='ignore')
             writer.writeheader()
-            writer.writerows(self.test_results)
+            writer.writerows(enriched_results)
         
         print(f"Exported CSV to {output_path}")
 
@@ -1074,6 +1532,13 @@ def main():
         help="Show detailed per-domain performance breakdown"
     )
     parser.add_argument(
+        '--all-runs',
+        action='store_false',
+        dest='latest_only',
+        help="Include all test runs instead of only the most recent one (default: only latest)"
+    )
+    parser.set_defaults(latest_only=True)
+    parser.add_argument(
         '--comprehensive',
         action='store_true',
         help="Show comprehensive summary with top performers and strategy comparisons"
@@ -1089,9 +1554,14 @@ def main():
         help="Show high-level insights per weather domain"
     )
     parser.add_argument(
+        '--combined-insights',
+        action='store_true',
+        help="Show insights for combined gen+std strategies"
+    )
+    parser.add_argument(
         '--all-insights',
         action='store_true',
-        help="Show all insights (comprehensive + dataset + domain)"
+        help="Show all insights (comprehensive + dataset + domain + combined)"
     )
     parser.add_argument(
         '--top-n',
@@ -1107,6 +1577,10 @@ def main():
     
     # Scan directory
     analyzer.scan_directory(verbose=args.verbose)
+    
+    # Deduplicate results if requested
+    if args.latest_only:
+        analyzer.deduplicate_results()
     
     # Generate output
     if args.format == 'table':
@@ -1126,6 +1600,10 @@ def main():
         # Show domain insights if requested or all-insights
         if args.domain_insights or args.all_insights:
             print(analyzer.format_domain_insights())
+        
+        # Show combined strategy insights if requested or all-insights
+        if args.combined_insights or args.all_insights:
+            print(analyzer.format_combined_strategy_insights())
     elif args.format == 'json':
         output_path = args.output or 'test_results_summary.json'
         analyzer.export_json(output_path)

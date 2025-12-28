@@ -42,6 +42,15 @@ from datetime import datetime
 import numpy as np
 import pandas as pd
 
+# Import strategy parsing utilities from analyzer
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from test_result_analyzer import (
+    parse_strategy, get_strategy_type, is_combined_strategy,
+    get_gen_component, get_std_component
+)
+
 try:
     import matplotlib.pyplot as plt
     import matplotlib.patches as mpatches
@@ -67,6 +76,33 @@ DOMAIN_COLORS = {
     'partly_cloudy': '#ADD8E6',  # Light Blue
 }
 
+# Strategy type colors
+STRATEGY_TYPE_COLORS = {
+    'baseline': '#808080',       # Gray
+    'gen': '#4CAF50',            # Green
+    'std': '#2196F3',            # Blue
+    'combined': '#9C27B0',       # Purple
+    'other': '#FF9800',          # Orange
+}
+
+# Standard augmentation colors (for combined strategy breakdown)
+STD_STRATEGY_COLORS = {
+    'std_cutmix': '#E91E63',     # Pink
+    'std_mixup': '#00BCD4',      # Cyan
+    'std_autoaugment': '#FFEB3B', # Yellow
+    'std_randaugment': '#8BC34A', # Light Green
+}
+
+# Generative strategy colors
+GEN_STRATEGY_COLORS = {
+    'gen_cycleGAN': '#3F51B5',   # Indigo
+    'gen_CUT': '#009688',        # Teal
+    'gen_StyleID': '#FF5722',    # Deep Orange
+    'gen_LANIT': '#673AB7',      # Deep Purple
+    'gen_step1x_new': '#795548', # Brown
+    'gen_automold': '#607D8B',   # Blue Gray
+}
+
 CLASS_COLORS = sns.color_palette("husl", 19) if HAS_PLOTTING else None
 
 # Cityscapes class names
@@ -75,6 +111,23 @@ CITYSCAPES_CLASSES = [
     'traffic light', 'traffic sign', 'vegetation', 'terrain', 'sky',
     'person', 'rider', 'car', 'truck', 'bus', 'train', 'motorcycle', 'bicycle'
 ]
+
+
+def get_strategy_color(strategy: str) -> str:
+    """Get appropriate color for a strategy based on its type and components."""
+    parsed = parse_strategy(strategy)
+    
+    if parsed['type'] == 'combined':
+        # For combined strategies, use purple with some variation
+        return STRATEGY_TYPE_COLORS['combined']
+    elif parsed['type'] == 'gen':
+        return GEN_STRATEGY_COLORS.get(strategy, STRATEGY_TYPE_COLORS['gen'])
+    elif parsed['type'] == 'std':
+        return STD_STRATEGY_COLORS.get(strategy, STRATEGY_TYPE_COLORS['std'])
+    elif parsed['type'] == 'baseline':
+        return STRATEGY_TYPE_COLORS['baseline']
+    else:
+        return STRATEGY_TYPE_COLORS['other']
 
 
 class TestResultVisualizer:
@@ -230,6 +283,23 @@ class TestResultVisualizer:
         lines.append("\n" + "=" * 70)
         lines.append("📊 TEST RESULT INSIGHTS")
         lines.append("=" * 70)
+        
+        # Strategy information (if available in config)
+        config = self.data.get('summary', {}).get('config', {})
+        if not config and 'full' in self.data:
+            config = self.data['full'].get('config', {})
+        
+        strategy = config.get('strategy', 'unknown')
+        if strategy != 'unknown':
+            parsed = parse_strategy(strategy)
+            lines.append("\n🎯 STRATEGY INFORMATION:")
+            lines.append(f"   • Strategy: {strategy}")
+            lines.append(f"   • Type: {parsed['type']}")
+            
+            if parsed['type'] == 'combined':
+                lines.append(f"   • Gen Component: {parsed['gen_component']}")
+                lines.append(f"   • Std Component: {parsed['std_component']}")
+                lines.append("   ℹ️  This is a COMBINED strategy (gen + std augmentation)")
         
         # Overall performance
         if 'summary' in self.data and self.data['summary']:
@@ -1425,6 +1495,201 @@ def compare_results(
     return fig
 
 
+def compare_combined_strategies(
+    results_dirs: List[str],
+    output_dir: str,
+    labels: Optional[List[str]] = None,
+) -> Optional[plt.Figure]:
+    """
+    Compare results from combined strategy runs, breaking down by gen and std components.
+    
+    Args:
+        results_dirs: List of paths to result directories
+        output_dir: Output directory for comparison plots
+        labels: Labels for each result (default: directory names)
+    
+    Returns:
+        Figure object or None if plotting not available
+    """
+    if not HAS_PLOTTING:
+        print("Plotting libraries not available")
+        return None
+    
+    output_path = Path(output_dir)
+    output_path.mkdir(parents=True, exist_ok=True)
+    
+    # Load all results and categorize by strategy type
+    results_by_type = {
+        'combined': [],
+        'gen': [],
+        'std': [],
+        'baseline': []
+    }
+    
+    for results_dir in results_dirs:
+        results_path = Path(results_dir)
+        
+        # Try to load results.json (unified format) or metrics_summary.json
+        for filename in ['results.json', 'metrics_summary.json']:
+            filepath = results_path / filename
+            if filepath.exists():
+                with open(filepath) as f:
+                    data = json.load(f)
+                
+                # Get strategy from config or directory name
+                config = data.get('config', {})
+                strategy = config.get('strategy', results_path.parent.parent.parent.name)
+                
+                stype = get_strategy_type(strategy)
+                parsed = parse_strategy(strategy)
+                
+                overall = data.get('overall', {})
+                miou = overall.get('mIoU', 0)
+                
+                results_by_type[stype].append({
+                    'strategy': strategy,
+                    'parsed': parsed,
+                    'mIoU': miou,
+                    'overall': overall,
+                    'path': str(results_path)
+                })
+                break
+    
+    # Create comparison figure
+    fig = plt.figure(figsize=(16, 12))
+    gs = GridSpec(2, 2, figure=fig, hspace=0.3, wspace=0.3)
+    
+    fig.suptitle('Combined Strategy Comparison Analysis', fontsize=16, fontweight='bold', y=0.98)
+    
+    # 1. Overall comparison by strategy type (top left)
+    ax1 = fig.add_subplot(gs[0, 0])
+    
+    type_avgs = {}
+    type_colors_list = []
+    for stype in ['baseline', 'gen', 'std', 'combined']:
+        if results_by_type[stype]:
+            avg = sum(r['mIoU'] for r in results_by_type[stype]) / len(results_by_type[stype])
+            type_avgs[stype] = avg
+            type_colors_list.append(STRATEGY_TYPE_COLORS[stype])
+    
+    if type_avgs:
+        bars = ax1.bar(type_avgs.keys(), type_avgs.values(), color=type_colors_list, 
+                      edgecolor='black', linewidth=0.5, alpha=0.8)
+        for bar, val in zip(bars, type_avgs.values()):
+            ax1.annotate(f'{val:.1f}%', xy=(bar.get_x() + bar.get_width()/2, bar.get_height()),
+                        xytext=(0, 3), textcoords='offset points', ha='center', fontsize=10)
+        ax1.set_ylabel('Average mIoU (%)')
+        ax1.set_title('Performance by Strategy Type', fontweight='bold')
+        ax1.set_ylim(0, 100)
+        ax1.grid(axis='y', alpha=0.3)
+    
+    # 2. Combined strategies breakdown (top right)
+    ax2 = fig.add_subplot(gs[0, 1])
+    
+    if results_by_type['combined']:
+        combined_data = sorted(results_by_type['combined'], key=lambda x: x['mIoU'], reverse=True)
+        strategies = [r['strategy'] for r in combined_data]
+        mious = [r['mIoU'] for r in combined_data]
+        
+        # Color by gen component
+        colors = [get_strategy_color(s) for s in strategies]
+        
+        y_pos = np.arange(len(strategies))
+        bars = ax2.barh(y_pos, mious, color=colors, edgecolor='black', linewidth=0.5, alpha=0.8)
+        
+        for bar, val in zip(bars, mious):
+            ax2.annotate(f'{val:.1f}%', xy=(bar.get_width(), bar.get_y() + bar.get_height()/2),
+                        xytext=(3, 0), textcoords='offset points', ha='left', va='center', fontsize=9)
+        
+        ax2.set_yticks(y_pos)
+        ax2.set_yticklabels([s.replace('+', '\n+') for s in strategies], fontsize=8)
+        ax2.set_xlabel('mIoU (%)')
+        ax2.set_title('Combined Strategies Ranking', fontweight='bold')
+        ax2.set_xlim(0, 100)
+        ax2.grid(axis='x', alpha=0.3)
+    else:
+        ax2.text(0.5, 0.5, 'No combined strategy results', ha='center', va='center', fontsize=12)
+        ax2.set_title('Combined Strategies Ranking', fontweight='bold')
+    
+    # 3. Gen component comparison (bottom left)
+    ax3 = fig.add_subplot(gs[1, 0])
+    
+    gen_component_avgs = {}
+    for r in results_by_type['combined']:
+        gen_comp = r['parsed']['gen_component']
+        if gen_comp not in gen_component_avgs:
+            gen_component_avgs[gen_comp] = []
+        gen_component_avgs[gen_comp].append(r['mIoU'])
+    
+    # Also add gen-only results
+    for r in results_by_type['gen']:
+        gen_comp = r['strategy']
+        if gen_comp not in gen_component_avgs:
+            gen_component_avgs[gen_comp] = []
+        gen_component_avgs[gen_comp].append(r['mIoU'])
+    
+    if gen_component_avgs:
+        sorted_gen = sorted(gen_component_avgs.items(), 
+                           key=lambda x: sum(x[1])/len(x[1]), reverse=True)
+        gen_names = [g[0] for g in sorted_gen]
+        gen_avgs = [sum(g[1])/len(g[1]) for g in sorted_gen]
+        gen_colors = [GEN_STRATEGY_COLORS.get(g, STRATEGY_TYPE_COLORS['gen']) for g in gen_names]
+        
+        bars = ax3.bar(gen_names, gen_avgs, color=gen_colors, edgecolor='black', linewidth=0.5, alpha=0.8)
+        for bar, val in zip(bars, gen_avgs):
+            ax3.annotate(f'{val:.1f}%', xy=(bar.get_x() + bar.get_width()/2, bar.get_height()),
+                        xytext=(0, 3), textcoords='offset points', ha='center', fontsize=9)
+        
+        ax3.set_ylabel('Average mIoU (%)')
+        ax3.set_title('Performance by Gen Component', fontweight='bold')
+        ax3.set_xticklabels(gen_names, rotation=45, ha='right', fontsize=9)
+        ax3.set_ylim(0, 100)
+        ax3.grid(axis='y', alpha=0.3)
+    
+    # 4. Std component comparison (bottom right)
+    ax4 = fig.add_subplot(gs[1, 1])
+    
+    std_component_avgs = {}
+    for r in results_by_type['combined']:
+        std_comp = r['parsed']['std_component']
+        if std_comp not in std_component_avgs:
+            std_component_avgs[std_comp] = []
+        std_component_avgs[std_comp].append(r['mIoU'])
+    
+    # Also add std-only results
+    for r in results_by_type['std']:
+        std_comp = r['strategy']
+        if std_comp not in std_component_avgs:
+            std_component_avgs[std_comp] = []
+        std_component_avgs[std_comp].append(r['mIoU'])
+    
+    if std_component_avgs:
+        sorted_std = sorted(std_component_avgs.items(), 
+                           key=lambda x: sum(x[1])/len(x[1]), reverse=True)
+        std_names = [s[0] for s in sorted_std]
+        std_avgs = [sum(s[1])/len(s[1]) for s in sorted_std]
+        std_colors = [STD_STRATEGY_COLORS.get(s, STRATEGY_TYPE_COLORS['std']) for s in std_names]
+        
+        bars = ax4.bar(std_names, std_avgs, color=std_colors, edgecolor='black', linewidth=0.5, alpha=0.8)
+        for bar, val in zip(bars, std_avgs):
+            ax4.annotate(f'{val:.1f}%', xy=(bar.get_x() + bar.get_width()/2, bar.get_height()),
+                        xytext=(0, 3), textcoords='offset points', ha='center', fontsize=9)
+        
+        ax4.set_ylabel('Average mIoU (%)')
+        ax4.set_title('Performance by Std Component', fontweight='bold')
+        ax4.set_xticklabels(std_names, rotation=45, ha='right', fontsize=9)
+        ax4.set_ylim(0, 100)
+        ax4.grid(axis='y', alpha=0.3)
+    
+    plt.tight_layout(rect=[0, 0, 1, 0.96])
+    
+    filepath = output_path / 'combined_strategy_comparison.png'
+    fig.savefig(filepath, dpi=150, bbox_inches='tight')
+    print(f"Saved combined strategy comparison: {filepath}")
+    
+    return fig
+
+
 def main():
     parser = argparse.ArgumentParser(
         description='PROVE Test Result Visualizer',
@@ -1448,6 +1713,9 @@ Examples:
 
     # Compare with baseline
     python test_result_visualizer.py --results-dir /path/to/results --baseline /path/to/baseline
+    
+    # Compare combined strategies
+    python test_result_visualizer.py --compare-combined --results-dirs dir1 dir2 dir3
         """
     )
     
@@ -1457,6 +1725,8 @@ Examples:
     
     # Comparison mode
     parser.add_argument('--compare', action='store_true', help='Compare multiple results')
+    parser.add_argument('--compare-combined', action='store_true', 
+                       help='Compare combined (gen+std) strategies with breakdown by components')
     parser.add_argument('--results-dirs', type=str, nargs='+', help='Paths to result directories for comparison')
     parser.add_argument('--labels', type=str, nargs='+', help='Labels for comparison')
     parser.add_argument('--baseline', type=str, help='Baseline results directory for improvement comparison')
@@ -1485,6 +1755,15 @@ Examples:
         print("Error: matplotlib and seaborn are required.")
         print("Install with: pip install matplotlib seaborn")
         sys.exit(1)
+    
+    # Combined strategy comparison mode
+    if args.compare_combined:
+        if not args.results_dirs:
+            print("Error: --results-dirs required for combined strategy comparison mode")
+            sys.exit(1)
+        output_dir = args.output_dir or 'combined_strategy_comparison'
+        compare_combined_strategies(args.results_dirs, output_dir, args.labels)
+        return
     
     # Comparison mode
     if args.compare:
