@@ -130,6 +130,7 @@ class UnifiedTrainer:
         self.deterministic = deterministic
         self.early_stop = early_stop
         self.early_stop_patience = early_stop_patience
+        self.max_iters = max_iters
         self.gpu_ids = gpu_ids or [0]
         self.distributed = distributed
         
