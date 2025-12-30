@@ -324,7 +324,7 @@ for strategy in "${TOP_5_GEN_STRATEGIES[@]}"; do
                 job_name="ratio_test_${dataset}_${model}_${strategy}_${local_ratio_str}"
                 
                 # Build test command
-                test_cmd="./test_unified.sh single --dataset $dataset --model $model --strategy $strategy --ratio $ratio --work-dir $WEIGHTS_ROOT"
+                test_cmd="$SCRIPT_DIR/test_unified.sh single --dataset $dataset --model $model --strategy $strategy --ratio $ratio --work-dir $WEIGHTS_ROOT"
                 
                 if [ "$LIST_ONLY" = true ]; then
                     echo "[$FOUND] $strategy / $dataset / $model / ratio=$ratio"

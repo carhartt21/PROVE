@@ -1074,7 +1074,7 @@ cmd_submit() {
     fi
     
     local job_name="prove_test_${dataset}_${model}_${strategy}"
-    local test_cmd="./test_unified.sh single --dataset $dataset --model $model --strategy $strategy --ratio $ratio --work-dir $work_dir"
+    local test_cmd="$SCRIPT_DIR/test_unified.sh single --dataset $dataset --model $model --strategy $strategy --ratio $ratio --work-dir $work_dir"
     
     mkdir -p logs
     
@@ -1209,7 +1209,7 @@ cmd_submit_batch() {
                 
                 if [ -f "$checkpoint" ] || [ "$dry_run" = true ]; then
                     local job_name="prove_test_${dataset}_${model}_${strategy}"
-                    local test_cmd="./test_unified.sh single --dataset $dataset --model $model --strategy $strategy --ratio $ratio --work-dir $work_dir"
+                    local test_cmd="$SCRIPT_DIR/test_unified.sh single --dataset $dataset --model $model --strategy $strategy --ratio $ratio --work-dir $work_dir"
                     
                     local gpu_spec="num=1"
                     if [ "$gpu_mode" = "exclusive_process" ]; then
@@ -1288,7 +1288,7 @@ cmd_submit_detailed() {
     fi
     
     local job_name="prove_detailed_${dataset}_${model}_${strategy}"
-    local test_cmd="./test_unified.sh detailed --dataset $dataset --model $model --strategy $strategy --ratio $ratio --work-dir $work_dir --data-root $data_root"
+    local test_cmd="$SCRIPT_DIR/test_unified.sh detailed --dataset $dataset --model $model --strategy $strategy --ratio $ratio --work-dir $work_dir --data-root $data_root"
     
     mkdir -p logs
     
@@ -1436,7 +1436,7 @@ cmd_submit_detailed_batch() {
                 
                 if [ -f "$checkpoint" ] || [ "$dry_run" = true ]; then
                     local job_name="prove_detailed_${dataset}_${model}_${strategy}"
-                    local test_cmd="./test_unified.sh detailed --dataset $dataset --model $model --strategy $strategy --ratio $ratio --work-dir $work_dir --mode $mode --data-root $data_root"
+                    local test_cmd="$SCRIPT_DIR/test_unified.sh detailed --dataset $dataset --model $model --strategy $strategy --ratio $ratio --work-dir $work_dir --mode $mode --data-root $data_root"
                     
                     local gpu_spec="num=1"
                     if [ "$gpu_mode" = "exclusive_process" ]; then

@@ -1,7 +1,10 @@
 #!/bin/bash
 
-# Activate virtual environment
-source venv/bin/activate
+# Get script directory
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+# Activate virtual environment (relative to project root)
+source "$SCRIPT_DIR/../venv/bin/activate"
 
 $DATASET = acdc
 $MODEL = deeplabv3plus_r50
@@ -18,4 +21,4 @@ bsub -gpu "num=1:mode=exclusive_process:gmem=24G" \
     -eo "lsf_${jobname}_%J_gpu.err" \
     -L /bin/bash \
     -J "${jobname}" \
-    "./train_unified.sh single --dataset ${DATASET} --model ${MODEL} --strategy ${STRATEGY}"
+    "$SCRIPT_DIR/train_unified.sh single --dataset ${DATASET} --model ${MODEL} --strategy ${STRATEGY}"

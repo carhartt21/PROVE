@@ -31,7 +31,7 @@ Based on comprehensive analysis using `test_result_analyzer.py`, the script iden
 ## Usage
 
 ```bash
-./submit_gen_std_combinations.sh <command> [options]
+./scripts/submit_gen_std_combinations.sh <command> [options]
 ```
 
 ### Commands
@@ -69,7 +69,7 @@ Based on comprehensive analysis using `test_result_analyzer.py`, the script iden
 ### Preview All Jobs (Dry Run)
 
 ```bash
-./submit_gen_std_combinations.sh submit-all --dry-run
+./scripts/submit_gen_std_combinations.sh submit-all --dry-run
 ```
 
 ### Submit Top Combinations
@@ -78,10 +78,10 @@ Submit the top 3 gen strategies × top 2 std strategies = 6 combinations, across
 
 ```bash
 # Without domain variants (90 jobs)
-./submit_gen_std_combinations.sh submit-top
+./scripts/submit_gen_std_combinations.sh submit-top
 
 # With domain variants (180 jobs - both regular and clear_day)
-./submit_gen_std_combinations.sh submit-top --with-domain-variants
+./scripts/submit_gen_std_combinations.sh submit-top --with-domain-variants
 ```
 
 ### Submit All Combinations
@@ -90,28 +90,28 @@ Submit all 6 gen × 4 std = 24 combinations:
 
 ```bash
 # Without domain variants (360 jobs)
-./submit_gen_std_combinations.sh submit-all
+./scripts/submit_gen_std_combinations.sh submit-all
 
 # With domain variants (720 jobs)
-./submit_gen_std_combinations.sh submit-all --with-domain-variants
+./scripts/submit_gen_std_combinations.sh submit-all --with-domain-variants
 ```
 
 ### Submit for Specific Dataset
 
 ```bash
-./submit_gen_std_combinations.sh submit-dataset --dataset ACDC --with-domain-variants
+./scripts/submit_gen_std_combinations.sh submit-dataset --dataset ACDC --with-domain-variants
 ```
 
 ### Submit for Specific Model
 
 ```bash
-./submit_gen_std_combinations.sh submit-model --model segformer_mit-b5 --with-domain-variants
+./scripts/submit_gen_std_combinations.sh submit-model --model segformer_mit-b5 --with-domain-variants
 ```
 
 ### Submit Single Combination
 
 ```bash
-./submit_gen_std_combinations.sh submit-single \
+./scripts/submit_gen_std_combinations.sh submit-single \
     --gen gen_cycleGAN \
     --std std_cutmix \
     --dataset ACDC \
@@ -121,7 +121,7 @@ Submit all 6 gen × 4 std = 24 combinations:
 ### Check Resource Estimates
 
 ```bash
-./submit_gen_std_combinations.sh estimate
+./scripts/submit_gen_std_combinations.sh estimate
 ```
 
 Output:

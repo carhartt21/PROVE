@@ -1219,7 +1219,7 @@ class TestResultAnalyzer:
         if not combined_results:
             lines.append("\n⚠️  No combined strategy results found.")
             lines.append("   To test combined strategies, use:")
-            lines.append("   ./train_unified.sh single --strategy gen_cycleGAN --std-strategy std_cutmix ...")
+            lines.append("   ./scripts/train_unified.sh single --strategy gen_cycleGAN --std-strategy std_cutmix ...")
             lines.append("\n" + "=" * 80)
             return "\n".join(lines)
         

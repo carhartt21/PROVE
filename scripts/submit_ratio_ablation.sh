@@ -112,7 +112,6 @@ print_usage() {
     echo "  - 0.875 = 87.5% real, 12.5% generated"
     echo "  - 0.75  = 75% real, 25% generated"
     echo "  - 0.625 = 62.5% real, 37.5% generated"
-    echo "  - 0.5   = 50% real, 50% generated"
     echo "  - 0.375 = 37.5% real, 62.5% generated"
     echo "  - 0.25  = 25% real, 75% generated"
     echo "  - 0.125 = 12.5% real, 87.5% generated"
@@ -319,7 +318,7 @@ for job in "${JOBS[@]}"; do
     job_name="ratio_${dataset}_${model}_${strategy}_r${ratio_pct}"
     
     # Build training command with custom weights root via environment variable
-    train_cmd="PROVE_WEIGHTS_ROOT='${WEIGHTS_ROOT}' ./train_unified.sh single --dataset $dataset --model $model --strategy $strategy --ratio $ratio"
+    train_cmd="PROVE_WEIGHTS_ROOT='${WEIGHTS_ROOT}' $SCRIPT_DIR/train_unified.sh single --dataset $dataset --model $model --strategy $strategy --ratio $ratio"
     
     # Build bsub command
     bsub_cmd="bsub -gpu \"num=1:mode=${GPU_MODE}:gmem=${GPU_MEM}\" \

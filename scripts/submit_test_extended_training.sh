@@ -372,7 +372,7 @@ for strategy in "${TOP_15_STRATEGIES[@]}"; do
                 
                 # Build test command with specific checkpoint
                 checkpoint_path="${model_dir}/iter_${iteration}.pth"
-                test_cmd="./test_unified.sh single --dataset $dataset --model $model --strategy $strategy --checkpoint $checkpoint_path --work-dir $WEIGHTS_ROOT"
+                test_cmd="$SCRIPT_DIR/test_unified.sh single --dataset $dataset --model $model --strategy $strategy --checkpoint $checkpoint_path --work-dir $WEIGHTS_ROOT"
                 
                 if [ "$LIST_ONLY" = true ]; then
                     echo "[$FOUND] $strategy / $dataset / $model / iter=${iteration}"

@@ -50,75 +50,75 @@ The ablation uses the 15 best performing strategies based on average mIoU across
 
 ```bash
 # List all jobs that would be submitted
-./submit_extended_training.sh --list
+./scripts/submit_extended_training.sh --list
 
 # Preview commands without executing (dry run)
-./submit_extended_training.sh --dry-run
+./scripts/submit_extended_training.sh --dry-run
 
 # Submit all jobs (default: 160,000 iterations)
-./submit_extended_training.sh
+./scripts/submit_extended_training.sh
 
 # Submit with a limit
-./submit_extended_training.sh --limit 50
+./scripts/submit_extended_training.sh --limit 50
 ```
 
 ### Specifying Iteration Target
 
 ```bash
 # Train to 160,000 iterations (2× default)
-./submit_extended_training.sh --max-iters 160000
+./scripts/submit_extended_training.sh --max-iters 160000
 
 # Train to 240,000 iterations (3×)
-./submit_extended_training.sh --max-iters 240000
+./scripts/submit_extended_training.sh --max-iters 240000
 
 # Train to 320,000 iterations (4×)
-./submit_extended_training.sh --max-iters 320000
+./scripts/submit_extended_training.sh --max-iters 320000
 
 # Train to 400,000 iterations (5×)
-./submit_extended_training.sh --max-iters 400000
+./scripts/submit_extended_training.sh --max-iters 400000
 ```
 
 ### Filtering Options
 
 ```bash
 # Filter by dataset
-./submit_extended_training.sh --dataset ACDC
+./scripts/submit_extended_training.sh --dataset ACDC
 
 # Filter by model
-./submit_extended_training.sh --model deeplabv3plus_r50
+./scripts/submit_extended_training.sh --model deeplabv3plus_r50
 
 # Filter by strategy (use quotes for combined strategies)
-./submit_extended_training.sh --strategy gen_LANIT
-./submit_extended_training.sh --strategy "std_randaugment+std_mixup"
+./scripts/submit_extended_training.sh --strategy gen_LANIT
+./scripts/submit_extended_training.sh --strategy "std_randaugment+std_mixup"
 
 # Combine filters
-./submit_extended_training.sh --dataset ACDC --model deeplabv3plus_r50 --max-iters 240000
+./scripts/submit_extended_training.sh --dataset ACDC --model deeplabv3plus_r50 --max-iters 240000
 ```
 
 ### LSF Options
 
 ```bash
 # Custom queue
-./submit_extended_training.sh --queue BatchGPU
+./scripts/submit_extended_training.sh --queue BatchGPU
 
 # Custom GPU memory
-./submit_extended_training.sh --gpu-mem 32G
+./scripts/submit_extended_training.sh --gpu-mem 32G
 
 # Custom GPU mode
-./submit_extended_training.sh --gpu-mode exclusive_process
+./scripts/submit_extended_training.sh --gpu-mode exclusive_process
 
 # Custom number of CPUs
-./submit_extended_training.sh --num-cpus 4
+./scripts/submit_extended_training.sh --num-cpus 4
 ```
 
 ### Custom Paths
 
 ```bash
 # Specify source weights directory (where existing checkpoints are)
-./submit_extended_training.sh --weights-root /path/to/existing/weights
+./scripts/submit_extended_training.sh --weights-root /path/to/existing/weights
 
 # Specify output directory for extended training results
-./submit_extended_training.sh --output-root /path/to/output
+./scripts/submit_extended_training.sh --output-root /path/to/output
 ```
 
 ## Options Reference

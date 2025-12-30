@@ -285,7 +285,7 @@ visualizer = TestResultVisualizer(
 
 ```bash
 # 1. Run detailed test
-./test_unified.sh detailed --dataset ACDC --model deeplabv3plus_r50 --strategy baseline
+./scripts/test_unified.sh detailed --dataset ACDC --model deeplabv3plus_r50 --strategy baseline
 
 # 2. Find the timestamped results folder
 ls /scratch/aaa_exchange/AWARE/WEIGHTS/baseline/acdc/deeplabv3plus_r50/test_results_detailed/
@@ -304,7 +304,7 @@ You can add visualization generation directly to your testing workflow:
 
 ```bash
 # Run detailed test and generate visualizations
-./test_unified.sh detailed --dataset ACDC --model deeplabv3plus_r50 --strategy baseline && \
+./scripts/test_unified.sh detailed --dataset ACDC --model deeplabv3plus_r50 --strategy baseline && \
 python test_result_visualizer.py --results-dir $(ls -td /scratch/aaa_exchange/AWARE/WEIGHTS/baseline/acdc/deeplabv3plus_r50/test_results_detailed/*/ | head -1)
 ```
 

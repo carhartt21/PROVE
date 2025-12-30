@@ -453,7 +453,7 @@ for job in "${JOBS[@]}"; do
     job_name="${job_name//+/_}"
     
     # Build training command
-    train_cmd="PROVE_WEIGHTS_ROOT='${OUTPUT_ROOT}' ./train_unified.sh single --dataset $dataset --model $model --strategy $main_strategy --no-early-stop --max-iters $MAX_ITERS --resume-from $checkpoint"
+    train_cmd="PROVE_WEIGHTS_ROOT='${OUTPUT_ROOT}' $SCRIPT_DIR/train_unified.sh single --dataset $dataset --model $model --strategy $main_strategy --no-early-stop --max-iters $MAX_ITERS --resume-from $checkpoint"
     
     # Add std_strategy if present
     if [ -n "$std_strategy" ]; then

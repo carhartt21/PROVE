@@ -284,9 +284,9 @@ with open('${SUBMISSION_SCRIPT}', 'w') as f:
             datasets_list = ds_part.split('+')
             datasets_proper = ' '.join(dataset_map.get(d.lower(), d) for d in datasets_list)
             
-            cmd = f'./test_unified.sh {test_cmd} --datasets {datasets_proper} --model {model} --strategy {strategy} --queue {queue} --gpu-mem {gpu_mem}'
+            cmd = f'${SCRIPT_DIR}/test_unified.sh {test_cmd} --datasets {datasets_proper} --model {model} --strategy {strategy} --queue {queue} --gpu-mem {gpu_mem}'
         else:
-            cmd = f'./test_unified.sh {test_cmd} --dataset {dataset_proper} --model {model} --strategy {strategy} --queue {queue} --gpu-mem {gpu_mem}'
+            cmd = f'${SCRIPT_DIR}/test_unified.sh {test_cmd} --dataset {dataset_proper} --model {model} --strategy {strategy} --queue {queue} --gpu-mem {gpu_mem}'
         
         f.write(f"echo '[{i+1}/{len(to_test)}] {strategy}/{dataset}/{model}'\n")
         f.write(f"{cmd}\n")

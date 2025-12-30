@@ -207,11 +207,11 @@ When using combined strategies, the work directory includes both strategy names:
 **Shell Script Usage:**
 ```bash
 # Using train_unified.sh
-./train_unified.sh single --dataset ACDC --model deeplabv3plus_r50 \
+./scripts/train_unified.sh single --dataset ACDC --model deeplabv3plus_r50 \
     --strategy gen_cycleGAN --std-strategy std_cutmix
 
 # Submit to LSF cluster
-./train_unified.sh submit --dataset ACDC --model deeplabv3plus_r50 \
+./scripts/train_unified.sh submit --dataset ACDC --model deeplabv3plus_r50 \
     --strategy gen_cycleGAN --std-strategy std_mixup
 ```
 
@@ -263,13 +263,13 @@ Train on multiple datasets simultaneously (e.g., ACDC + MapillaryVistas) with au
 
 ```bash
 # Joint training on ACDC + Mapillary (labels unified automatically)
-./train_unified.sh single-multi --datasets ACDC MapillaryVistas --model deeplabv3plus_r50
+./scripts/train_unified.sh single-multi --datasets ACDC MapillaryVistas --model deeplabv3plus_r50
 
 # With custom sampling weights (70% ACDC, 30% Mapillary)
-./train_unified.sh single-multi --datasets ACDC MapillaryVistas --weights 0.7 0.3 --model deeplabv3plus_r50
+./scripts/train_unified.sh single-multi --datasets ACDC MapillaryVistas --weights 0.7 0.3 --model deeplabv3plus_r50
 
 # Generate config only (no training)
-./train_unified.sh single-multi --datasets ACDC MapillaryVistas --model deeplabv3plus_r50 --config-only
+./scripts/train_unified.sh single-multi --datasets ACDC MapillaryVistas --model deeplabv3plus_r50 --config-only
 
 # Python CLI alternative
 python unified_training.py --multi-dataset --datasets ACDC MapillaryVistas --model deeplabv3plus_r50
@@ -341,25 +341,25 @@ The unified testing script provides a streamlined interface for evaluating train
 
 ```bash
 # Test a single trained model
-./test_unified.sh single --dataset ACDC --model deeplabv3plus_r50 --strategy baseline
+./scripts/test_unified.sh single --dataset ACDC --model deeplabv3plus_r50 --strategy baseline
 
 # Test with validation split
-./test_unified.sh single --dataset ACDC --model deeplabv3plus_r50 --strategy baseline --test-split val
+./scripts/test_unified.sh single --dataset ACDC --model deeplabv3plus_r50 --strategy baseline --test-split val
 
 # Find available checkpoints
-./test_unified.sh find --all
+./scripts/test_unified.sh find --all
 
 # Batch test all models on a dataset
-./test_unified.sh batch --dataset ACDC --all-seg-models --strategy baseline --dry-run
+./scripts/test_unified.sh batch --dataset ACDC --all-seg-models --strategy baseline --dry-run
 
 # Submit test job to LSF cluster
-./test_unified.sh submit --dataset ACDC --model deeplabv3plus_r50 --strategy baseline
+./scripts/test_unified.sh submit --dataset ACDC --model deeplabv3plus_r50 --strategy baseline
 
 # Test multi-dataset trained model (e.g., ACDC+Mapillary)
-./test_unified.sh single-multi --datasets ACDC MapillaryVistas --model deeplabv3plus_r50
+./scripts/test_unified.sh single-multi --datasets ACDC MapillaryVistas --model deeplabv3plus_r50
 
 # View test results
-./test_unified.sh results --dataset ACDC
+./scripts/test_unified.sh results --dataset ACDC
 ```
 
 **Test Options:**
@@ -391,16 +391,16 @@ For detailed analysis of model performance across weather domains and semantic c
 
 ```bash
 # Run full detailed testing (per-domain and per-class metrics)
-./test_unified.sh detailed --dataset ACDC --model deeplabv3plus_r50 --strategy baseline
+./scripts/test_unified.sh detailed --dataset ACDC --model deeplabv3plus_r50 --strategy baseline
 
 # Batch detailed testing for all models
-./test_unified.sh detailed-batch --all-seg-models --dataset ACDC --strategy baseline --dry-run
+./scripts/test_unified.sh detailed-batch --all-seg-models --dataset ACDC --strategy baseline --dry-run
 
 # Submit detailed test to LSF cluster
-./test_unified.sh submit-detailed --dataset ACDC --model deeplabv3plus_r50 --strategy baseline
+./scripts/test_unified.sh submit-detailed --dataset ACDC --model deeplabv3plus_r50 --strategy baseline
 
 # Submit batch detailed tests
-./test_unified.sh submit-detailed-batch --all-seg-datasets --all-seg-models --strategy baseline --dry-run
+./scripts/test_unified.sh submit-detailed-batch --all-seg-datasets --all-seg-models --strategy baseline --dry-run
 ```
 
 **Detailed Test Output Files:**
@@ -1176,22 +1176,22 @@ Automatically identify and submit test jobs for configurations that haven't been
 
 ```bash
 # Preview untested configurations (dry-run)
-./submit_untested_tests.sh --dry-run
+./scripts/submit_untested_tests.sh --dry-run
 
 # Submit all untested standard configurations
-./submit_untested_tests.sh
+./scripts/submit_untested_tests.sh
 
 # Include clear_day domain-filtered variants
-./submit_untested_tests.sh --include-clear-day
+./scripts/submit_untested_tests.sh --include-clear-day
 
 # Filter by strategy
-./submit_untested_tests.sh --strategy photometric_distort
+./scripts/submit_untested_tests.sh --strategy photometric_distort
 
 # Limit number of jobs to submit
-./submit_untested_tests.sh --limit 10
+./scripts/submit_untested_tests.sh --limit 10
 
 # Custom queue and GPU memory settings
-./submit_untested_tests.sh --queue BatchGPU --gpu-mem 32G
+./scripts/submit_untested_tests.sh --queue BatchGPU --gpu-mem 32G
 ```
 
 **Options:**
@@ -1215,13 +1215,13 @@ Automatically identify and submit test jobs for configurations that haven't been
 
 ```bash
 # Submit detailed tests for all configurations missing them
-./submit_untested_tests.sh --missing-detailed
+./scripts/submit_untested_tests.sh --missing-detailed
 
 # Preview missing detailed tests
-./submit_untested_tests.sh --missing-detailed --dry-run
+./scripts/submit_untested_tests.sh --missing-detailed --dry-run
 
 # Submit with rate limiting (5 jobs, 2 min pause between batches)
-./submit_untested_tests.sh --batch-size 5 --batch-delay 120
+./scripts/submit_untested_tests.sh --batch-size 5 --batch-delay 120
 ```
 
 **Example Output:**

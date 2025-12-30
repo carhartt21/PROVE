@@ -243,28 +243,28 @@ The `train_unified.sh` script provides convenient shortcuts:
 
 ```bash
 # Single training
-./train_unified.sh single --dataset ACDC --model deeplabv3plus_r50 --strategy baseline
+./scripts/train_unified.sh single --dataset ACDC --model deeplabv3plus_r50 --strategy baseline
 
 # Domain-specific training
-./train_unified.sh single --dataset ACDC --model deeplabv3plus_r50 --strategy baseline --domain-filter clear_day
+./scripts/train_unified.sh single --dataset ACDC --model deeplabv3plus_r50 --strategy baseline --domain-filter clear_day
 
 # Batch training
-./train_unified.sh batch --datasets ACDC BDD10k --strategy gen_cycleGAN
+./scripts/train_unified.sh batch --datasets ACDC BDD10k --strategy gen_cycleGAN
 
 # Ratio experiment
-./train_unified.sh ratio-exp --dataset ACDC --model deeplabv3plus_r50 --strategy gen_cycleGAN
+./scripts/train_unified.sh ratio-exp --dataset ACDC --model deeplabv3plus_r50 --strategy gen_cycleGAN
 
 # Generate configs
-./train_unified.sh generate --strategy baseline --all
+./scripts/train_unified.sh generate --strategy baseline --all
 
 # Submit to a single job to lsf
-./train_unified.sh submit --dataset ACDC --model deeplabv3plus_r50 --strategy baseline
+./scripts/train_unified.sh submit --dataset ACDC --model deeplabv3plus_r50 --strategy baseline
 
 # Submit batches for all datasets and models
 ./train_unified submit-batch --all-seg-datasets --all-seg-models --strategy baseline
 
 # List options
-./train_unified.sh list
+./scripts/train_unified.sh list
 ```
 
 ## Directory Structure

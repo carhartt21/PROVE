@@ -637,7 +637,7 @@ cmd_submit_batch() {
                 fi
                 
                 # Build training command
-                local train_cmd="./train_unified.sh single --dataset $dataset --model $model --strategy $strategy --ratio $ratio"
+                local train_cmd="$SCRIPT_DIR/train_unified.sh single --dataset $dataset --model $model --strategy $strategy --ratio $ratio"
                 
                 if [ -n "$std_strategy" ]; then
                     train_cmd="$train_cmd --std-strategy $std_strategy"
@@ -749,7 +749,7 @@ cmd_submit() {
     fi
     
     # Build training command
-    local train_cmd="./train_unified.sh single --dataset $dataset --model $model --strategy $strategy --ratio $ratio"
+    local train_cmd="$SCRIPT_DIR/train_unified.sh single --dataset $dataset --model $model --strategy $strategy --ratio $ratio"
     
     if [ -n "$std_strategy" ]; then
         train_cmd="$train_cmd --std-strategy $std_strategy"

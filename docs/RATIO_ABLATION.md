@@ -39,58 +39,58 @@ The following ratios are tested (0.125 increments):
 
 ```bash
 # List all jobs that would be submitted
-./submit_ratio_ablation.sh --list
+./scripts/submit_ratio_ablation.sh --list
 
 # Preview commands without executing (dry run)
-./submit_ratio_ablation.sh --dry-run
+./scripts/submit_ratio_ablation.sh --dry-run
 
 # Submit all jobs
-./submit_ratio_ablation.sh
+./scripts/submit_ratio_ablation.sh
 
 # Submit with a limit
-./submit_ratio_ablation.sh --limit 50
+./scripts/submit_ratio_ablation.sh --limit 50
 ```
 
 ### Filtering Options
 
 ```bash
 # Filter by dataset
-./submit_ratio_ablation.sh --dataset ACDC
+./scripts/submit_ratio_ablation.sh --dataset ACDC
 
 # Filter by model
-./submit_ratio_ablation.sh --model deeplabv3plus_r50
+./scripts/submit_ratio_ablation.sh --model deeplabv3plus_r50
 
 # Filter by strategy
-./submit_ratio_ablation.sh --strategy gen_LANIT
+./scripts/submit_ratio_ablation.sh --strategy gen_LANIT
 
 # Filter by ratio
-./submit_ratio_ablation.sh --ratio 0.5
+./scripts/submit_ratio_ablation.sh --ratio 0.5
 
 # Combine filters
-./submit_ratio_ablation.sh --dataset ACDC --model deeplabv3plus_r50 --strategy gen_LANIT
+./scripts/submit_ratio_ablation.sh --dataset ACDC --model deeplabv3plus_r50 --strategy gen_LANIT
 ```
 
 ### LSF Options
 
 ```bash
 # Custom queue
-./submit_ratio_ablation.sh --queue BatchGPU
+./scripts/submit_ratio_ablation.sh --queue BatchGPU
 
 # Custom GPU memory
-./submit_ratio_ablation.sh --gpu-mem 32G
+./scripts/submit_ratio_ablation.sh --gpu-mem 32G
 
 # Custom GPU mode
-./submit_ratio_ablation.sh --gpu-mode exclusive_process
+./scripts/submit_ratio_ablation.sh --gpu-mode exclusive_process
 
 # Custom number of CPUs
-./submit_ratio_ablation.sh --num-cpus 4
+./scripts/submit_ratio_ablation.sh --num-cpus 4
 ```
 
 ### Custom Output Location
 
 ```bash
 # Specify custom weights output directory
-./submit_ratio_ablation.sh --weights-root /path/to/custom/output
+./scripts/submit_ratio_ablation.sh --weights-root /path/to/custom/output
 ```
 
 ## Options Reference

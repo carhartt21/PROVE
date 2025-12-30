@@ -16,19 +16,19 @@ The `test_unified.sh` script provides a unified interface for testing trained mo
 
 ```bash
 # Test a single trained model
-./test_unified.sh single --dataset ACDC --model deeplabv3plus_r50 --strategy baseline
+./scripts/test_unified.sh single --dataset ACDC --model deeplabv3plus_r50 --strategy baseline
 
 # Fine-grained per-domain testing
-./test_unified.sh detailed --dataset ACDC --model deeplabv3plus_r50 --strategy baseline --mode per-domain
+./scripts/test_unified.sh detailed --dataset ACDC --model deeplabv3plus_r50 --strategy baseline --mode per-domain
 
 # Find available checkpoints
-./test_unified.sh find --all
+./scripts/test_unified.sh find --all
 
 # Batch test all segmentation models on ACDC
-./test_unified.sh batch --dataset ACDC --all-seg-models --strategy baseline --dry-run
+./scripts/test_unified.sh batch --dataset ACDC --all-seg-models --strategy baseline --dry-run
 
 # Submit test job to LSF cluster
-./test_unified.sh submit --dataset ACDC --model deeplabv3plus_r50 --strategy baseline
+./scripts/test_unified.sh submit --dataset ACDC --model deeplabv3plus_r50 --strategy baseline
 ```
 
 ## Commands
@@ -38,7 +38,7 @@ The `test_unified.sh` script provides a unified interface for testing trained mo
 Run detailed testing with metrics breakdown by domain and class:
 
 ```bash
-./test_unified.sh detailed --dataset ACDC --model deeplabv3plus_r50 --strategy baseline --mode per-domain
+./scripts/test_unified.sh detailed --dataset ACDC --model deeplabv3plus_r50 --strategy baseline --mode per-domain
 ```
 
 **Options:**
@@ -104,7 +104,7 @@ Per-Domain Results:
 Test a single trained checkpoint:
 
 ```bash
-./test_unified.sh single --dataset ACDC --model deeplabv3plus_r50 --strategy baseline
+./scripts/test_unified.sh single --dataset ACDC --model deeplabv3plus_r50 --strategy baseline
 ```
 
 **Options:**
@@ -127,16 +127,16 @@ Test a single trained checkpoint:
 
 ```bash
 # Basic test with baseline strategy
-./test_unified.sh single --dataset ACDC --model deeplabv3plus_r50 --strategy baseline
+./scripts/test_unified.sh single --dataset ACDC --model deeplabv3plus_r50 --strategy baseline
 
 # Test with generative augmentation model
-./test_unified.sh single --dataset ACDC --model deeplabv3plus_r50 --strategy gen_cycleGAN --ratio 0.5
+./scripts/test_unified.sh single --dataset ACDC --model deeplabv3plus_r50 --strategy gen_cycleGAN --ratio 0.5
 
 # Test on validation split
-./test_unified.sh single --dataset ACDC --model deeplabv3plus_r50 --strategy baseline --test-split val
+./scripts/test_unified.sh single --dataset ACDC --model deeplabv3plus_r50 --strategy baseline --test-split val
 
 # Test with custom checkpoint
-./test_unified.sh single --checkpoint /path/to/checkpoint.pth --dataset ACDC --model deeplabv3plus_r50
+./scripts/test_unified.sh single --checkpoint /path/to/checkpoint.pth --dataset ACDC --model deeplabv3plus_r50
 ```
 
 ### `batch` - Batch Testing
@@ -144,7 +144,7 @@ Test a single trained checkpoint:
 Test multiple configurations:
 
 ```bash
-./test_unified.sh batch --all-seg-datasets --all-seg-models --strategy baseline --dry-run
+./scripts/test_unified.sh batch --all-seg-datasets --all-seg-models --strategy baseline --dry-run
 ```
 
 **Options:**
@@ -165,13 +165,13 @@ Test multiple configurations:
 
 ```bash
 # Preview all segmentation tests
-./test_unified.sh batch --all-seg-datasets --all-seg-models --strategy baseline --dry-run
+./scripts/test_unified.sh batch --all-seg-datasets --all-seg-models --strategy baseline --dry-run
 
 # Test all models on a single dataset
-./test_unified.sh batch --dataset ACDC --all-seg-models --strategies baseline gen_cycleGAN
+./scripts/test_unified.sh batch --dataset ACDC --all-seg-models --strategies baseline gen_cycleGAN
 
 # Test multiple strategies on all datasets
-./test_unified.sh batch --all-seg-datasets --model deeplabv3plus_r50 --strategies baseline std_cutmix gen_cycleGAN
+./scripts/test_unified.sh batch --all-seg-datasets --model deeplabv3plus_r50 --strategies baseline std_cutmix gen_cycleGAN
 ```
 
 ### `submit` - Submit to LSF Cluster
@@ -179,7 +179,7 @@ Test multiple configurations:
 Submit a single test job to LSF cluster:
 
 ```bash
-./test_unified.sh submit --dataset ACDC --model deeplabv3plus_r50 --strategy baseline
+./scripts/test_unified.sh submit --dataset ACDC --model deeplabv3plus_r50 --strategy baseline
 ```
 
 **LSF Options:**
@@ -196,7 +196,7 @@ Submit a single test job to LSF cluster:
 Submit multiple test jobs to LSF cluster:
 
 ```bash
-./test_unified.sh submit-batch --all-seg-datasets --all-seg-models --strategy baseline --dry-run
+./scripts/test_unified.sh submit-batch --all-seg-datasets --all-seg-models --strategy baseline --dry-run
 ```
 
 ### `detailed-batch` - Batch Detailed Testing
@@ -204,7 +204,7 @@ Submit multiple test jobs to LSF cluster:
 Run fine-grained (per-domain, per-class) tests on multiple configurations locally:
 
 ```bash
-./test_unified.sh detailed-batch --all-seg-models --dataset ACDC --strategy baseline --dry-run
+./scripts/test_unified.sh detailed-batch --all-seg-models --dataset ACDC --strategy baseline --dry-run
 ```
 
 **Options:**
@@ -225,10 +225,10 @@ Run fine-grained (per-domain, per-class) tests on multiple configurations locall
 
 ```bash
 # Detailed test for all models on ACDC
-./test_unified.sh detailed-batch --dataset ACDC --all-seg-models --strategy baseline
+./scripts/test_unified.sh detailed-batch --dataset ACDC --all-seg-models --strategy baseline
 
 # Detailed test for specific strategy variants
-./test_unified.sh detailed-batch --dataset ACDC --model deeplabv3plus_r50 --strategies baseline gen_cycleGAN
+./scripts/test_unified.sh detailed-batch --dataset ACDC --model deeplabv3plus_r50 --strategies baseline gen_cycleGAN
 ```
 
 ### `submit-detailed` - Submit Detailed Test to LSF
@@ -236,7 +236,7 @@ Run fine-grained (per-domain, per-class) tests on multiple configurations locall
 Submit a single detailed test job to LSF cluster:
 
 ```bash
-./test_unified.sh submit-detailed --dataset ACDC --model deeplabv3plus_r50 --strategy baseline
+./scripts/test_unified.sh submit-detailed --dataset ACDC --model deeplabv3plus_r50 --strategy baseline
 ```
 
 **Options:**
@@ -253,17 +253,17 @@ Submit a single detailed test job to LSF cluster:
 Submit multiple detailed test jobs to LSF cluster:
 
 ```bash
-./test_unified.sh submit-detailed-batch --all-seg-datasets --all-seg-models --strategy baseline --dry-run
+./scripts/test_unified.sh submit-detailed-batch --all-seg-datasets --all-seg-models --strategy baseline --dry-run
 ```
 
 **Examples:**
 
 ```bash
 # Submit detailed tests for all segmentation models
-./test_unified.sh submit-detailed-batch --dataset ACDC --all-seg-models --strategy baseline
+./scripts/test_unified.sh submit-detailed-batch --dataset ACDC --all-seg-models --strategy baseline
 
 # Submit detailed tests for all datasets and models
-./test_unified.sh submit-detailed-batch --all-seg-datasets --all-seg-models --strategy baseline --mode full
+./scripts/test_unified.sh submit-detailed-batch --all-seg-datasets --all-seg-models --strategy baseline --mode full
 ```
 
 ### `find` - Find Checkpoints
@@ -272,13 +272,13 @@ Search for available checkpoints:
 
 ```bash
 # Find all checkpoints
-./test_unified.sh find --all
+./scripts/test_unified.sh find --all
 
 # Find checkpoints for specific dataset
-./test_unified.sh find --dataset ACDC
+./scripts/test_unified.sh find --dataset ACDC
 
 # Find checkpoints for specific configuration
-./test_unified.sh find --dataset ACDC --model deeplabv3plus_r50 --strategy baseline
+./scripts/test_unified.sh find --dataset ACDC --model deeplabv3plus_r50 --strategy baseline
 ```
 
 ### `results` - View Results
@@ -287,13 +287,13 @@ Display test results summary:
 
 ```bash
 # View all results
-./test_unified.sh results
+./scripts/test_unified.sh results
 
 # View results for specific dataset
-./test_unified.sh results --dataset ACDC
+./scripts/test_unified.sh results --dataset ACDC
 
 # View results for specific model
-./test_unified.sh results --model deeplabv3plus_r50
+./scripts/test_unified.sh results --model deeplabv3plus_r50
 ```
 
 ### `list` - List Options
@@ -301,7 +301,7 @@ Display test results summary:
 Display available datasets, models, and strategies:
 
 ```bash
-./test_unified.sh list
+./scripts/test_unified.sh list
 ```
 
 ## Output Structure
@@ -385,10 +385,10 @@ The test script automatically registers custom transforms required for some data
 **1. Checkpoint not found**
 ```bash
 # Check if checkpoint exists
-./test_unified.sh find --dataset ACDC --model deeplabv3plus_r50 --strategy baseline
+./scripts/test_unified.sh find --dataset ACDC --model deeplabv3plus_r50 --strategy baseline
 
 # Use explicit checkpoint path
-./test_unified.sh single --checkpoint /path/to/iter_80000.pth --dataset ACDC --model deeplabv3plus_r50
+./scripts/test_unified.sh single --checkpoint /path/to/iter_80000.pth --dataset ACDC --model deeplabv3plus_r50
 ```
 
 **2. Config file missing**
@@ -397,7 +397,7 @@ The test script looks for `configs/training_config.py` in the work directory. En
 **3. CUDA out of memory**
 Reduce batch size or use a GPU with more memory:
 ```bash
-./test_unified.sh submit --dataset ACDC --model deeplabv3plus_r50 --gpu-mem 32G
+./scripts/test_unified.sh submit --dataset ACDC --model deeplabv3plus_r50 --gpu-mem 32G
 ```
 
 **4. Custom transforms not registered**
@@ -409,10 +409,10 @@ The test script is designed to work seamlessly with checkpoints from `train_unif
 
 ```bash
 # Train model
-./train_unified.sh single --dataset ACDC --model deeplabv3plus_r50 --strategy baseline
+./scripts/train_unified.sh single --dataset ACDC --model deeplabv3plus_r50 --strategy baseline
 
 # Test trained model
-./test_unified.sh single --dataset ACDC --model deeplabv3plus_r50 --strategy baseline
+./scripts/test_unified.sh single --dataset ACDC --model deeplabv3plus_r50 --strategy baseline
 ```
 
 The checkpoint path is automatically inferred from the same directory structure used by training.
