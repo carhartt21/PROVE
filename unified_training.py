@@ -111,6 +111,7 @@ class UnifiedTrainer:
         deterministic: bool = True,
         early_stop: bool = True,
         early_stop_patience: int = 5,
+        max_iters: Optional[int] = None,
         gpu_ids: List[int] = None,
         distributed: bool = False,
     ):
@@ -140,11 +141,13 @@ class UnifiedTrainer:
     
     def _build_config(self) -> Dict[str, Any]:
         """Build training configuration"""
-        # Build custom training config to override early stopping settings
+        # Build custom training config to override early stopping and iteration settings
         custom_training_config = {
             'early_stop': self.early_stop,
             'early_stop_patience': self.early_stop_patience,
         }
+        if self.max_iters is not None:
+            custom_training_config['max_iters'] = self.max_iters
         
         config = self.config_builder.build(
             dataset=self.dataset,
@@ -968,6 +971,8 @@ Examples:
                        help='Disable early stopping (enabled by default)')
     parser.add_argument('--early-stop-patience', type=int, default=5,
                        help='Early stopping patience (number of validations without improvement)')
+    parser.add_argument('--max-iters', type=int, default=None,
+                       help='Maximum training iterations (default: 80000 for segmentation, 40000 for detection)')
     parser.add_argument('--gpu-ids', type=int, nargs='+', default=[0],
                        help='GPU IDs to use')
     parser.add_argument('--distributed', action='store_true',
@@ -1193,6 +1198,7 @@ def main():
         seed=args.seed,
         early_stop=not args.no_early_stop,
         early_stop_patience=args.early_stop_patience,
+        max_iters=args.max_iters,
         gpu_ids=args.gpu_ids,
         distributed=args.distributed,
     )

@@ -186,6 +186,8 @@ cmd_single() {
     local cache_dir=""
     local no_early_stop=false
     local early_stop_patience=""
+    local max_iters=""
+    local resume_from=""
     
     while [[ $# -gt 0 ]]; do
         case $1 in
@@ -198,6 +200,8 @@ cmd_single() {
             --cache-dir) cache_dir="$2"; shift 2 ;;
             --no-early-stop) no_early_stop=true; shift ;;
             --early-stop-patience) early_stop_patience="$2"; shift 2 ;;
+            --max-iters) max_iters="$2"; shift 2 ;;
+            --resume-from) resume_from="$2"; shift 2 ;;
             *) echo "Unknown option: $1"; exit 1 ;;
         esac
     done
@@ -252,6 +256,12 @@ cmd_single() {
     fi
     if [ -n "$early_stop_patience" ]; then
         cmd="$cmd --early-stop-patience $early_stop_patience"
+    fi
+    if [ -n "$max_iters" ]; then
+        cmd="$cmd --max-iters $max_iters"
+    fi
+    if [ -n "$resume_from" ]; then
+        cmd="$cmd --resume-from $resume_from"
     fi
     
     if [ -n "$std_strategy" ]; then
@@ -686,6 +696,8 @@ cmd_submit() {
     local cache_dir=""
     local no_early_stop=true
     local early_stop_patience=""
+    local max_iters=""
+    local resume_from=""
     local queue="BatchGPU"
     local gpu_mem="12G"
     local gpu_mode="shared"
@@ -703,6 +715,8 @@ cmd_submit() {
             --cache-dir) cache_dir="$2"; shift 2 ;;
             --no-early-stop) no_early_stop=true; shift ;;
             --early-stop-patience) early_stop_patience="$2"; shift 2 ;;
+            --max-iters) max_iters="$2"; shift 2 ;;
+            --resume-from) resume_from="$2"; shift 2 ;;
             --queue) queue="$2"; shift 2 ;;
             --gpu-mem) gpu_mem="$2"; shift 2 ;;
             --gpu-mode) gpu_mode="$2"; shift 2 ;;
@@ -729,6 +743,10 @@ cmd_submit() {
         local ratio_int=$(echo "$ratio * 100" | bc | cut -d. -f1)
         job_name="${job_name}_r${ratio_int}"
     fi
+    if [ -n "$max_iters" ]; then
+        local iters_k=$((max_iters / 1000))
+        job_name="${job_name}_${iters_k}k"
+    fi
     
     # Build training command
     local train_cmd="./train_unified.sh single --dataset $dataset --model $model --strategy $strategy --ratio $ratio"
@@ -747,6 +765,12 @@ cmd_submit() {
     fi
     if [ -n "$early_stop_patience" ]; then
         train_cmd="$train_cmd --early-stop-patience $early_stop_patience"
+    fi
+    if [ -n "$max_iters" ]; then
+        train_cmd="$train_cmd --max-iters $max_iters"
+    fi
+    if [ -n "$resume_from" ]; then
+        train_cmd="$train_cmd --resume-from $resume_from"
     fi
     
     # Create logs directory
