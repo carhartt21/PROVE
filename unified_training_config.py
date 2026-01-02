@@ -2019,13 +2019,20 @@ class UnifiedTrainingConfig:
             train_img_dir = os.path.join(train_img_dir, domain_filter)
             train_ann_dir = os.path.join(train_ann_dir, domain_filter)
         
+        # Get batch size from train_dataloader (new mmengine format)
+        batch_size = config['train_dataloader']['batch_size']
+        
+        # Get dataset type from train_dataloader
+        train_dataset = config['train_dataloader']['dataset']
+        dataset_type = train_dataset.get('type', 'CityscapesDataset')
+        
         config['mixed_dataloader'] = {
             'enabled': True,
             'real_gen_ratio': real_gen_ratio,
             'domain_filter': domain_filter,
             'real_dataset': {
-                'type': config['data']['train']['type'],
-                'data_root': config['data']['train'].get('data_root', self.data_root),
+                'type': dataset_type,
+                'data_root': train_dataset.get('data_root', self.data_root),
                 'img_dir': train_img_dir,
                 'ann_dir': train_ann_dir,
             },
@@ -2039,9 +2046,9 @@ class UnifiedTrainingConfig:
             },
             'sampling_strategy': 'ratio',  # 'ratio', 'alternating', 'batch_split'
             'batch_composition': {
-                'total_batch_size': config['data']['samples_per_gpu'],
-                'real_samples': int(config['data']['samples_per_gpu'] * real_gen_ratio),
-                'generated_samples': int(config['data']['samples_per_gpu'] * (1 - real_gen_ratio)),
+                'total_batch_size': batch_size,
+                'real_samples': int(batch_size * real_gen_ratio),
+                'generated_samples': int(batch_size * (1 - real_gen_ratio)),
             },
         }
         
