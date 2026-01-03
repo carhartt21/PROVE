@@ -1388,3 +1388,31 @@ For questions and support:
 - Built on top of OpenMMLab's MMDetection framework
 - Inspired by reproducible ML practices
 - Dataset format support based on community contributions
+## Extended Training and Trajectory Testing
+
+### Extended Training Ablation
+
+Investigate model performance beyond the standard 80,000 iterations (e.g., 160k, 240k, 320k).
+
+```bash
+# Submit extended training jobs (resumes from 80k)
+./scripts/submit_extended_training.sh --max-iters 160000
+```
+
+See [EXTENDED_TRAINING.md](docs/EXTENDED_TRAINING.md) for more details.
+
+### Automated Trajectory Testing
+
+Evaluate performance across the entire training trajectory by testing all available checkpoints sequentially.
+
+```bash
+# Submit sequential tests for all checkpoints of a strategy
+./scripts/submit_all_tests.sh gen_LANIT
+```
+
+**Features:**
+- Automatically detects all `iter_*.pth` checkpoints.
+- Groups tests by model to run **sequentially** in a single LSF job.
+- Optimized for cluster usage to minimize queue length.
+- Results are saved to `test_results/` within each model's directory.
+

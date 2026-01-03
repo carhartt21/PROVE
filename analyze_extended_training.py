@@ -159,8 +159,121 @@ class ExtendedTrainingAnalyzer:
                 self.results.append(result)
                 count += 1
         
+        # Pattern 4: test_results/test/TIMESTAMP/TIMESTAMP.json (MMEngine standard)
+        # OR test_results/TIMESTAMP/results.json (fine_grained_test.py)
+        test_results_dir = model_dir / "test_results"
+        if test_results_dir.exists():
+            # Check for Pattern 4a: test/TIMESTAMP/TIMESTAMP.json
+            mmengine_test_dir = test_results_dir / "test"
+            if mmengine_test_dir.exists():
+                for ts_dir in mmengine_test_dir.iterdir():
+                    if not ts_dir.is_dir():
+                        continue
+                    
+                    timestamp = ts_dir.name
+                    result_file = ts_dir / f"{timestamp}.json"
+                    if result_file.exists():
+                        config_file = ts_dir / "vis_data" / "config.py"
+                        iteration = None
+                        if config_file.exists():
+                            iteration = self._extract_iteration_from_config(config_file)
+                        
+                        if iteration is None:
+                            iteration = self._infer_iteration_from_context(model_dir)
+                        
+                        result = self._parse_result_file(
+                            result_file, strategy, dataset, model, iteration
+                        )
+                        if result:
+                            self.results.append(result)
+                            count += 1
+            
+            # Check for Pattern 4b: TIMESTAMP/results.json (fine_grained_test.py)
+            for ts_dir in test_results_dir.iterdir():
+                if not ts_dir.is_dir() or ts_dir.name == "test":
+                    continue
+                
+                result_file = ts_dir / "results.json"
+                if result_file.exists():
+                    # Try to get iteration from results.json config info
+                    iteration = self._extract_iteration_from_fine_grained_results(result_file)
+                    
+                    if iteration is None:
+                        iteration = self._infer_iteration_from_context(model_dir)
+                    
+                    result = self._parse_fine_grained_result_file(
+                        result_file, strategy, dataset, model, iteration
+                    )
+                    if result:
+                        self.results.append(result)
+                        count += 1
+        
         return count
+
+    def _extract_iteration_from_fine_grained_results(self, result_file: Path) -> Optional[int]:
+        """Extract iteration number from fine_grained_test.py results.json."""
+        try:
+            with open(result_file, 'r') as f:
+                data = json.load(f)
+            
+            checkpoint_path = data.get('config', {}).get('checkpoint_path', '')
+            match = re.search(r"iter_(\d+)\.pth", checkpoint_path)
+            if match:
+                return int(match.group(1))
+        except Exception:
+            pass
+        return None
+
+    def _parse_fine_grained_result_file(self, result_file: Path, strategy: str, 
+                                     dataset: str, model: str, iteration: int) -> Optional[ExtendedTrainingResult]:
+        """Parse results.json from fine_grained_test.py."""
+        try:
+            with open(result_file, 'r') as f:
+                data = json.load(f)
+            
+            # Extract mIoU from overall metrics
+            # fine_grained_test.py stores it as 'mIoU' (0-100 scale usually)
+            overall = data.get('overall', {})
+            miou = overall.get('mIoU')
+            pixel_acc = overall.get('aAcc', 0.0)
+            
+            if miou is not None:
+                return ExtendedTrainingResult(
+                    strategy=strategy,
+                    dataset=dataset,
+                    model=model,
+                    iteration=iteration,
+                    miou=float(miou),
+                    pixel_acc=float(pixel_acc),
+                    result_file=str(result_file)
+                )
+        except Exception as e:
+            print(f"Error parsing {result_file}: {e}")
+        
+        return None
     
+    def _extract_iteration_from_config(self, config_file: Path) -> Optional[int]:
+        """Extract iteration number from config.py file."""
+        try:
+            with open(config_file, 'r') as f:
+                content = f.read()
+            
+            # Look for load_from = '...iter_160000.pth'
+            match = re.search(r"load_from\s*=\s*['\"].*iter_(\d+)\.pth['\"]", content)
+            if match:
+                return int(match.group(1))
+            
+            # Look for resume_from = '...iter_160000.pth'
+            match = re.search(r"resume_from\s*=\s*['\"].*iter_(\d+)\.pth['\"]", content)
+            if match:
+                return int(match.group(1))
+                
+        except Exception as e:
+            if "No such file" not in str(e):
+                print(f"Warning: Could not read config {config_file}: {e}")
+            
+        return None
+
     def _extract_iteration_from_filename(self, filename: str) -> Optional[int]:
         """Extract iteration number from result filename."""
         # Match patterns like: test_results_iter_80000.json, eval_160000.json
@@ -183,10 +296,14 @@ class ExtendedTrainingAnalyzer:
         Default to 80000 (standard training length).
         """
         # Look for checkpoint files
+        checkpoints = []
         for ckpt_file in model_dir.glob("iter_*.pth"):
             match = re.search(r'iter_(\d+)', ckpt_file.name)
             if match:
-                return int(match.group(1))
+                checkpoints.append(int(match.group(1)))
+        
+        if checkpoints:
+            return max(checkpoints)
         
         # Check config file
         config_file = model_dir / "config.json"

@@ -225,3 +225,44 @@ ls -la /scratch/aaa_exchange/AWARE/WEIGHTS/gen_LANIT/acdc/deeplabv3plus_r50/iter
 - [UNIFIED_TRAINING.md](UNIFIED_TRAINING.md) - General training documentation
 - [RATIO_ABLATION.md](RATIO_ABLATION.md) - Ratio ablation study
 - [GEN_STD_BATCH_SUBMISSION.md](GEN_STD_BATCH_SUBMISSION.md) - Batch submission for gen+std combinations
+
+## Technical Notes
+
+### Resumption Logic Fix (MMEngine 1.x)
+
+A critical fix was applied to `unified_training.py` to ensure that training resumes correctly from the specified iteration count. 
+
+**Issue**: Using the deprecated `resume_from` parameter in MMEngine 1.x caused the iteration counter to reset to 0, even if weights were loaded. This resulted in training starting from "Iter 0" instead of "Iter 80,000".
+
+**Fix**: The pipeline now uses the modern MMEngine resumption pattern:
+```python
+config['load_from'] = checkpoint_path
+config['resume'] = True
+```
+This ensures that the iteration counter, optimizer state, and scheduler state are all correctly restored.
+
+### Automated Sequential Testing
+
+To evaluate the performance across the entire training trajectory, a new script `scripts/submit_all_tests.sh` was introduced.
+
+**Features**:
+- Finds all `iter_*.pth` checkpoints for a given strategy.
+- Groups tests by model and runs them **sequentially** in a single LSF job.
+- Significantly reduces queue load (from thousands of jobs to ~175).
+- Saves results to `test_results/` within each model directory.
+
+**Usage**:
+```bash
+# Submit sequential tests for a strategy
+./scripts/submit_all_tests.sh gen_LANIT
+```
+
+## Preliminary Results (160k Iterations)
+
+Initial analysis of the `gen_LANIT` strategy shows significant gains from extended training:
+
+- **Baseline (80k)**: 55.71 mIoU
+- **Extended (160k)**: 61.25 mIoU
+- **Improvement**: **+5.54 mIoU**
+
+Approximately **86.7%** of configurations showed improvement when trained for 160k iterations compared to the 80k baseline.

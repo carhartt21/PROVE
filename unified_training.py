@@ -167,7 +167,8 @@ class UnifiedTrainer:
         
         # Add resume/load paths
         if self.resume_from:
-            config['resume_from'] = self.resume_from
+            config['load_from'] = self.resume_from
+            config['resume'] = True
         if self.load_from:
             config['load_from'] = self.load_from
         
