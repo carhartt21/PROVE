@@ -472,6 +472,8 @@ def run_fine_grained_test(
         all_results['per_class'] = overall_per_class
     
     # Save results - Single unified JSON output
+    # Ensure output directory exists (NFS filesystem can have race conditions)
+    output_path.mkdir(parents=True, exist_ok=True)
     results_file = output_path / 'results.json'
     with open(results_file, 'w') as f:
         json.dump(all_results, f, indent=2)
