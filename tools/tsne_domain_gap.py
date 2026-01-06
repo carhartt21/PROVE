@@ -71,8 +71,18 @@ TSNE_PARAMS = {
 }
 
 # Feature extraction layer names by model type
+# Support both MMSeg (decode_head.*) and torchvision (classifier.*) naming
 FEATURE_LAYERS = {
-    'deeplabv3plus': ['decode_head.bottleneck', 'decode_head.aspp'],
+    'deeplabv3plus': [
+        # MMSeg naming
+        'decode_head.bottleneck', 
+        'decode_head.aspp',
+        # Torchvision naming
+        'classifier.0',  # ASPP module
+        'classifier.4',  # final conv before upsampling
+        'classifier',
+        'backbone.layer4',  # Backbone final layer (fallback)
+    ],
     'pspnet': ['decode_head.bottleneck'],
     'segformer': ['decode_head.linear_fuse'],
 }
@@ -100,16 +110,30 @@ class FeatureExtractor:
     def _register_hooks(self):
         """Register forward hooks on target layers."""
         target_layers = FEATURE_LAYERS.get(self.model_type, [])
+        registered = False
+        
+        # First, print all available layer names for debugging
+        all_layers = [name for name, _ in self.model.named_modules()]
+        print(f"[FeatureExtractor] Model has {len(all_layers)} layers")
+        print(f"[FeatureExtractor] Target layers: {target_layers}")
         
         for name, module in self.model.named_modules():
             for target in target_layers:
-                if target in name:
+                # Exact match or partial match
+                if target == name or (target in name and len(name) < len(target) + 20):
                     hook = module.register_forward_hook(
                         self._create_hook(name)
                     )
                     self.hooks.append(hook)
                     print(f"[FeatureExtractor] Registered hook on: {name}")
+                    registered = True
                     break
+        
+        if not registered:
+            print(f"[WARNING] No hooks registered! Available layers with 'layer4' or 'classifier':")
+            for name, _ in self.model.named_modules():
+                if 'layer4' in name or 'classifier' in name or 'decode' in name:
+                    print(f"  - {name}")
     
     def _create_hook(self, name: str):
         """Create a forward hook that stores features."""
@@ -198,6 +222,9 @@ class WeatherDomainDataset:
     Simple dataset loader for weather domain images.
     
     Loads images from domain-specific subdirectories.
+    Supports multiple directory structures:
+    1. Cityscapes style: {data_root}/leftImg8bit/{split}/{domain}/
+    2. PROVE style: {data_root}/{split}/images/{dataset}/{domain}/
     """
     
     def __init__(
@@ -207,12 +234,14 @@ class WeatherDomainDataset:
         domains: List[str] = None,
         max_images_per_domain: int = 100,
         img_size: Tuple[int, int] = (512, 512),
+        dataset_name: str = None,
     ):
         self.data_root = Path(data_root)
         self.split = split
         self.domains = domains or list(WEATHER_COLORS.keys())
         self.max_images_per_domain = max_images_per_domain
         self.img_size = img_size
+        self.dataset_name = dataset_name or "ACDC"
         
         self.samples = self._collect_samples()
     
@@ -220,14 +249,64 @@ class WeatherDomainDataset:
         """Collect image samples from each domain."""
         samples = []
         
-        img_base = self.data_root / 'leftImg8bit' / self.split
-        ann_base = self.data_root / 'gtFine' / self.split
+        # Try different directory structures
+        possible_img_bases = [
+            # Cityscapes style
+            self.data_root / 'leftImg8bit' / self.split,
+            # PROVE style
+            self.data_root / self.split / 'images' / self.dataset_name,
+            self.data_root / 'test' / 'images' / self.dataset_name,
+            self.data_root / 'val' / 'images' / self.dataset_name,
+            # Direct domain folders
+            self.data_root,
+        ]
+        
+        possible_ann_bases = [
+            # Cityscapes style
+            self.data_root / 'gtFine' / self.split,
+            # PROVE style
+            self.data_root / self.split / 'labels_adjusted' / self.dataset_name,
+            self.data_root / 'test' / 'labels_adjusted' / self.dataset_name,
+            self.data_root / 'val' / 'labels_adjusted' / self.dataset_name,
+            # Direct domain folders
+            self.data_root.parent / 'labels_adjusted' / self.dataset_name if 'images' in str(self.data_root) else None,
+        ]
+        
+        def safe_exists(path):
+            """Check if path exists, handling permission errors."""
+            try:
+                return path.exists()
+            except (PermissionError, OSError):
+                return False
+        
+        img_base = None
+        ann_base = None
+        
+        for base in possible_img_bases:
+            if base and safe_exists(base):
+                # Check if domains exist
+                test_domain = self.domains[0] if self.domains else 'foggy'
+                if safe_exists(base / test_domain) or safe_exists(base / 'foggy'):
+                    img_base = base
+                    print(f"[WeatherDomainDataset] Found image base: {img_base}")
+                    break
+        
+        for base in possible_ann_bases:
+            if base and safe_exists(base):
+                ann_base = base
+                print(f"[WeatherDomainDataset] Found annotation base: {ann_base}")
+                break
+        
+        if img_base is None:
+            print(f"[WARNING] No valid image directory found in {self.data_root}")
+            print(f"[DEBUG] Tried: {[str(p) for p in possible_img_bases if p]}")
+            return samples
         
         for domain in self.domains:
             domain_img_dir = img_base / domain
-            domain_ann_dir = ann_base / domain
+            domain_ann_dir = ann_base / domain if ann_base else None
             
-            if not domain_img_dir.exists():
+            if not safe_exists(domain_img_dir):
                 print(f"[WARNING] Domain directory not found: {domain_img_dir}")
                 continue
             
@@ -239,19 +318,21 @@ class WeatherDomainDataset:
             image_files = image_files[:self.max_images_per_domain]
             
             for img_path in image_files:
-                # Try to find corresponding annotation
-                rel_path = img_path.relative_to(domain_img_dir)
-                ann_path = domain_ann_dir / str(rel_path).replace(
-                    '_leftImg8bit', '_gtFine_labelTrainIds'
-                ).replace('.jpg', '.png')
-                
-                if not ann_path.exists():
-                    # Try alternative naming
-                    ann_path = domain_ann_dir / str(rel_path).replace('.jpg', '.png')
+                ann_path = None
+                if domain_ann_dir and domain_ann_dir.exists():
+                    # Try to find corresponding annotation
+                    rel_path = img_path.relative_to(domain_img_dir)
+                    ann_path = domain_ann_dir / str(rel_path).replace(
+                        '_leftImg8bit', '_gtFine_labelTrainIds'
+                    ).replace('.jpg', '.png')
+                    
+                    if not ann_path.exists():
+                        # Try alternative naming
+                        ann_path = domain_ann_dir / str(rel_path).replace('.jpg', '.png')
                 
                 samples.append({
                     'img_path': str(img_path),
-                    'ann_path': str(ann_path) if ann_path.exists() else None,
+                    'ann_path': str(ann_path) if ann_path and ann_path.exists() else None,
                     'domain': domain,
                 })
         
@@ -561,7 +642,9 @@ def _load_default_model(
     if model_type == 'deeplabv3plus':
         try:
             from torchvision.models.segmentation import deeplabv3_resnet50
-            model = deeplabv3_resnet50(num_classes=19)
+            # Use weights=None to avoid downloading pretrained weights
+            # We will load from the checkpoint instead
+            model = deeplabv3_resnet50(weights=None, num_classes=19)
         except:
             raise RuntimeError("Cannot load default DeepLabv3+ model")
     else:

@@ -53,8 +53,9 @@ TOP_5_GEN_STRATEGIES=(
     "gen_NST"
 )
 
-# Ratios to test (0.125 to 1.0 in 0.125 increments)
-RATIOS=(0.125 0.25 0.375 0.625 0.75 0.875 1.0)
+# Ratios to test (0.0 to 1.0 in 0.125 increments)
+# Note: 0.0 = 100% synthetic, 0.5 is excluded (same as standard gen_* training in WEIGHTS)
+RATIOS=(0.0 0.125 0.25 0.375 0.625 0.75 0.875 1.0)
 
 # Datasets and models for ablation
 DATASETS=("ACDC" "BDD10k" "IDD-AW" "MapillaryVistas" "OUTSIDE15k")

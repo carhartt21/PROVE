@@ -22,16 +22,19 @@ The ablation uses the 5 best performing `gen_*` strategies based on average mIoU
 
 The following ratios are tested (0.125 increments):
 
-| Ratio | Real Images | Generated Images |
-|-------|-------------|------------------|
-| 1.0 | 100% | 0% |
-| 0.875 | 87.5% | 12.5% |
-| 0.75 | 75% | 25% |
-| 0.625 | 62.5% | 37.5% |
-| 0.5 | 50% | 50% |
-| 0.375 | 37.5% | 62.5% |
-| 0.25 | 25% | 75% |
-| 0.125 | 12.5% | 87.5% |
+| Ratio | Real Images | Generated Images | Notes |
+|-------|-------------|------------------|-------|
+| 1.0 | 100% | 0% | Pure real images (baseline) |
+| 0.875 | 87.5% | 12.5% | |
+| 0.75 | 75% | 25% | |
+| 0.625 | 62.5% | 37.5% | |
+| 0.5 | 50% | 50% | Standard training (in WEIGHTS) |
+| 0.375 | 37.5% | 62.5% | |
+| 0.25 | 25% | 75% | |
+| 0.125 | 12.5% | 87.5% | |
+| 0.0 | 0% | 100% | Pure synthetic images |
+
+**Note:** Ratio 0.5 is excluded from ablation since it's equivalent to standard `gen_*` strategy training already present in the `WEIGHTS` folder. Ratio 0.0 (100% synthetic) tests training with only generated images.
 
 ## Usage
 
