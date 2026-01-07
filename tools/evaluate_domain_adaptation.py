@@ -1,23 +1,38 @@
 #!/usr/bin/env python3
 """
-Domain Adaptation Ablation: Evaluate models trained on BDD10k/IDD-AW/MapillaryVistas on ACDC
+Domain Adaptation Ablation: Evaluate models trained on BDD10k/IDD-AW/MapillaryVistas
 
 This script evaluates cross-dataset domain adaptation by testing models trained on
-traffic-focused datasets against the ACDC adverse weather benchmark.
+traffic-focused datasets against:
+- Cityscapes (clear_day condition)
+- ACDC adverse weather conditions (foggy, night, rainy, snowy)
 
 Key features:
-1. Filters out ACDC reference images (_ref_ suffix) with mismatched labels
-2. Excludes clear_day and dawn_dusk domains (no valid non-ref images)
-3. Handles label unification (Cityscapes labelID → trainID for ACDC)
-4. Reports per-domain (weather condition) metrics
+1. Evaluates both full dataset models and clear_day baseline models (_clear_day variant)
+2. Handles label unification (Cityscapes labelID → trainID for both datasets)
+3. Reports per-domain (weather condition) metrics
+4. Supports comparing full vs. clear_day training effect on domain adaptation
 
 Usage:
+    # Evaluate full dataset model
+    python evaluate_domain_adaptation.py \
+        --source-dataset BDD10k \
+        --model deeplabv3plus_r50
+
+    # Evaluate clear_day baseline model
     python evaluate_domain_adaptation.py \
         --source-dataset BDD10k \
         --model deeplabv3plus_r50 \
-        --checkpoint /path/to/checkpoint.pth
+        --variant _clear_day
 
-    python evaluate_domain_adaptation.py --all  # Evaluate all combinations
+    # Evaluate all combinations (full + clear_day for all source/model pairs)
+    python evaluate_domain_adaptation.py --all
+
+    # Evaluate all without variants (full dataset models only)
+    python evaluate_domain_adaptation.py --all --no-variants
+
+    # List available checkpoints
+    python evaluate_domain_adaptation.py --list-checkpoints
 """
 
 import os
@@ -47,11 +62,23 @@ OUTPUT_ROOT = WEIGHTS_ROOT / 'domain_adaptation_ablation'
 # Source datasets for training
 SOURCE_DATASETS = ['BDD10k', 'IDD-AW', 'MapillaryVistas']
 
-# Models to evaluate
-MODELS = ['deeplabv3plus_r50', 'pspnet_r50', 'segformer_mit-b5']
+# Base models to evaluate
+BASE_MODELS = ['deeplabv3plus_r50', 'pspnet_r50', 'segformer_mit-b5']
 
-# ACDC domains to evaluate (excluding clear_day and dawn_dusk with no valid images)
-ACDC_VALID_DOMAINS = ['foggy', 'rainy', 'snowy', 'night', 'cloudy']
+# Model variants (including clear_day trained baseline)
+MODELS = BASE_MODELS  # For backward compatibility
+MODEL_VARIANTS = ['', '_clear_day']  # '' = full dataset, '_clear_day' = clear_day only
+
+# ACDC domains to evaluate - adverse weather conditions
+# Note: ACDC now has flat structure in test/images/ACDC/{domain}/ and test/labels/ACDC/{domain}/
+ACDC_DOMAINS = ['foggy', 'night', 'rainy', 'snowy']
+
+# Cityscapes represents "clear_day" condition for domain adaptation study
+# Structure: test/images/Cityscapes/{city}/ and test/labels/Cityscapes/{city}/
+CITYSCAPES_CITIES = ['berlin', 'bielefeld', 'bonn', 'leverkusen', 'mainz', 'munich']
+
+# Combined domains for evaluation: clear_day (Cityscapes) + adverse (ACDC)
+ALL_DOMAINS = ['clear_day'] + ACDC_DOMAINS
 
 # Cityscapes classes
 CITYSCAPES_CLASSES = (
@@ -113,7 +140,11 @@ def transform_acdc_label(label: np.ndarray) -> np.ndarray:
 
 def get_acdc_file_pairs(split: str = 'test') -> Dict[str, List[Tuple[Path, Path]]]:
     """
-    Get ACDC image-label pairs, filtering out reference images.
+    Get ACDC image-label pairs from the flat folder structure.
+    
+    New structure (post-reorganization):
+    - test/images/ACDC/{domain}/*.png - flat image files
+    - test/labels/ACDC/{domain}/*.png - flat label files (labelID format)
     
     Returns:
         Dict mapping domain name to list of (image_path, label_path) tuples
@@ -123,7 +154,7 @@ def get_acdc_file_pairs(split: str = 'test') -> Dict[str, List[Tuple[Path, Path]
     
     domain_pairs = {}
     
-    for domain in ACDC_VALID_DOMAINS:
+    for domain in ACDC_DOMAINS:
         domain_img_dir = img_root / domain
         domain_label_dir = label_root / domain
         
@@ -132,13 +163,18 @@ def get_acdc_file_pairs(split: str = 'test') -> Dict[str, List[Tuple[Path, Path]
             continue
         
         pairs = []
-        for img_file in sorted(domain_img_dir.glob('*.png')):
-            # Filter out reference images
+        # New flat structure: images are directly in domain folder with _rgb_anon.png suffix
+        for img_file in sorted(domain_img_dir.glob('*_rgb_anon.png')):
+            # Skip reference images (should not exist in new structure, but check anyway)
             if '_ref' in img_file.name:
                 continue
             
             # Find corresponding label file
-            label_file = domain_label_dir / img_file.name
+            # Image: GOPR0475_frame_000041_rgb_anon.png
+            # Label: GOPR0475_frame_000041_gt_labelIds.png
+            base_name = img_file.name.replace('_rgb_anon.png', '_gt_labelIds.png')
+            label_file = domain_label_dir / base_name
+            
             if label_file.exists():
                 pairs.append((img_file, label_file))
             else:
@@ -151,14 +187,79 @@ def get_acdc_file_pairs(split: str = 'test') -> Dict[str, List[Tuple[Path, Path]
     return domain_pairs
 
 
+def get_cityscapes_file_pairs(split: str = 'test') -> List[Tuple[Path, Path]]:
+    """
+    Get Cityscapes image-label pairs. Used as "clear_day" condition.
+    
+    Structure:
+    - test/images/Cityscapes/{city}/*_leftImg8bit.png
+    - test/labels/Cityscapes/{city}/*_gtFine_labelIds.png
+    
+    Returns:
+        List of (image_path, label_path) tuples
+    """
+    img_root = DATA_ROOT / split / 'images' / 'Cityscapes'
+    label_root = DATA_ROOT / split / 'labels' / 'Cityscapes'
+    
+    pairs = []
+    
+    for city in CITYSCAPES_CITIES:
+        city_img_dir = img_root / city
+        city_label_dir = label_root / city
+        
+        if not city_img_dir.exists():
+            print(f"Warning: City directory not found: {city_img_dir}")
+            continue
+        
+        for img_file in sorted(city_img_dir.glob('*_leftImg8bit.png')):
+            # Find corresponding label file
+            # Image: berlin_000000_000019_leftImg8bit.png
+            # Label: berlin_000000_000019_gtFine_labelIds.png
+            base_name = img_file.name.replace('_leftImg8bit.png', '_gtFine_labelIds.png')
+            label_file = city_label_dir / base_name
+            
+            if label_file.exists():
+                pairs.append((img_file, label_file))
+            else:
+                print(f"Warning: Label not found for {img_file.name}")
+    
+    if pairs:
+        print(f"  clear_day (Cityscapes): {len(pairs)} valid image-label pairs")
+    
+    return pairs
+    
+    return domain_pairs
+
+
+def get_all_domain_file_pairs(split: str = 'test') -> Dict[str, List[Tuple[Path, Path]]]:
+    """
+    Get all domain file pairs including Cityscapes (clear_day) and ACDC (adverse).
+    
+    Returns:
+        Dict mapping domain name to list of (image_path, label_path) tuples
+        Domains: clear_day, foggy, night, rainy, snowy
+    """
+    domain_pairs = {}
+    
+    # Add Cityscapes as clear_day
+    cityscapes_pairs = get_cityscapes_file_pairs(split)
+    if cityscapes_pairs:
+        domain_pairs['clear_day'] = cityscapes_pairs
+    
+    # Add ACDC domains
+    acdc_pairs = get_acdc_file_pairs(split)
+    domain_pairs.update(acdc_pairs)
+    
+    return domain_pairs
+
+
 def get_acdc_combined_files(split: str = 'test') -> List[Tuple[Path, Path]]:
-    """Get all ACDC files combined (train + test) excluding reference images."""
+    """Get all ACDC files combined (for backward compatibility)."""
     all_pairs = []
     
-    for s in ['train', 'test'] if split == 'all' else [split]:
-        domain_pairs = get_acdc_file_pairs(s)
-        for pairs in domain_pairs.values():
-            all_pairs.extend(pairs)
+    acdc_pairs = get_acdc_file_pairs(split)
+    for pairs in acdc_pairs.values():
+        all_pairs.extend(pairs)
     
     return all_pairs
 
@@ -390,9 +491,21 @@ def evaluate_model_on_acdc(
 # Main Entry Point
 # ============================================================================
 
-def get_checkpoint_path(source_dataset: str, model: str) -> Optional[Path]:
-    """Get checkpoint path for a source dataset and model."""
-    checkpoint_dir = WEIGHTS_ROOT / 'baseline' / source_dataset.lower() / model
+def get_checkpoint_path(source_dataset: str, model: str, variant: str = '') -> Optional[Path]:
+    """
+    Get checkpoint path for a source dataset and model.
+    
+    Args:
+        source_dataset: Source dataset name (e.g., 'BDD10k')
+        model: Base model name (e.g., 'deeplabv3plus_r50')
+        variant: Model variant suffix (e.g., '' or '_clear_day')
+    
+    Returns:
+        Path to checkpoint or None if not found
+    """
+    # Build model directory name (e.g., 'deeplabv3plus_r50' or 'deeplabv3plus_r50_clear_day')
+    model_dir_name = model + variant
+    checkpoint_dir = WEIGHTS_ROOT / 'baseline' / source_dataset.lower() / model_dir_name
     
     # Try different checkpoint names
     candidates = [
@@ -411,46 +524,46 @@ def get_checkpoint_path(source_dataset: str, model: str) -> Optional[Path]:
     return None
 
 
-def run_evaluation(source_dataset: str, model: str, checkpoint_path: str = None, device: str = 'cuda'):
+def run_evaluation(source_dataset: str, model: str, checkpoint_path: str = None, device: str = 'cuda', variant: str = ''):
     """Run domain adaptation evaluation for a single configuration."""
+    
+    # Build full model name
+    full_model_name = model + variant
     
     print(f"\n{'='*70}")
     print(f"Domain Adaptation Evaluation")
     print(f"  Source Dataset: {source_dataset}")
-    print(f"  Model: {model}")
+    print(f"  Model: {full_model_name}")
+    print(f"  Variant: {variant if variant else 'full_dataset (default)'}")
     print(f"{'='*70}")
     
     # Get checkpoint path if not provided
     if checkpoint_path is None:
-        checkpoint_path = get_checkpoint_path(source_dataset, model)
+        checkpoint_path = get_checkpoint_path(source_dataset, model, variant)
         if checkpoint_path is None:
-            print(f"ERROR: No checkpoint found for {source_dataset}/{model}")
+            print(f"ERROR: No checkpoint found for {source_dataset}/{full_model_name}")
             return None
     
     checkpoint_path = Path(checkpoint_path)
     print(f"  Checkpoint: {checkpoint_path}")
     
-    # Load ACDC evaluation data (combining train + test, excluding _ref images)
-    print("\nLoading ACDC evaluation data (train + test splits)...")
+    # Load evaluation data: Cityscapes (clear_day) + ACDC (adverse conditions)
+    print("\nLoading evaluation data...")
+    print("  Cityscapes = clear_day condition")
+    print("  ACDC = adverse weather conditions (foggy, night, rainy, snowy)")
     
-    # Get pairs from both splits and combine
-    domain_pairs = {}
-    for split in ['train', 'test']:
-        split_pairs = get_acdc_file_pairs(split)
-        for domain, pairs in split_pairs.items():
-            if domain not in domain_pairs:
-                domain_pairs[domain] = []
-            domain_pairs[domain].extend(pairs)
+    # Get all domain pairs from test split
+    domain_pairs = get_all_domain_file_pairs('test')
     
     # Print summary
-    print("\nCombined dataset summary:")
+    print("\nDataset summary:")
     total_images = 0
     for domain, pairs in domain_pairs.items():
         print(f"  {domain}: {len(pairs)} images")
         total_images += len(pairs)
     print(f"Total evaluation images: {total_images}")
     
-    # Load model
+    # Load model (use base model name for config)
     print("\nLoading model...")
     try:
         loaded_model = load_model(model, str(checkpoint_path), device)
@@ -466,17 +579,25 @@ def run_evaluation(source_dataset: str, model: str, checkpoint_path: str = None,
     results['metadata'] = {
         'source_dataset': source_dataset,
         'model': model,
+        'model_full': full_model_name,
+        'variant': variant if variant else 'full_dataset',
         'checkpoint': str(checkpoint_path),
-        'target_dataset': 'ACDC',
-        'excluded_domains': ['clear_day', 'dawn_dusk'],
-        'excluded_pattern': '_ref'
+        'target_datasets': 'ACDC + Cityscapes',
+        'domains': {
+            'clear_day': 'Cityscapes (6 cities)',
+            'foggy': 'ACDC foggy',
+            'night': 'ACDC night',
+            'rainy': 'ACDC rainy',
+            'snowy': 'ACDC snowy'
+        },
+        'label_format': 'Cityscapes labelID (0-33) converted to trainID (0-18)'
     }
     
-    # Save results
-    output_dir = OUTPUT_ROOT / source_dataset.lower() / model
+    # Save results - use full model name for output path
+    output_dir = OUTPUT_ROOT / source_dataset.lower() / full_model_name
     output_dir.mkdir(parents=True, exist_ok=True)
     
-    result_file = output_dir / 'acdc_evaluation.json'
+    result_file = output_dir / 'domain_adaptation_evaluation.json'
     with open(result_file, 'w') as f:
         json.dump(results, f, indent=2)
     
@@ -493,18 +614,23 @@ def run_evaluation(source_dataset: str, model: str, checkpoint_path: str = None,
     return results
 
 
-def run_all_evaluations(device: str = 'cuda'):
+def run_all_evaluations(device: str = 'cuda', include_variants: bool = True):
     """Run evaluation for all source dataset / model combinations."""
     
     all_results = {}
     
+    # Determine which variants to evaluate
+    variants_to_eval = MODEL_VARIANTS if include_variants else ['']
+    
     for source_dataset in SOURCE_DATASETS:
-        for model in MODELS:
-            key = f"{source_dataset}_{model}"
-            
-            results = run_evaluation(source_dataset, model, device=device)
-            if results:
-                all_results[key] = results
+        for model in BASE_MODELS:
+            for variant in variants_to_eval:
+                full_model = model + variant
+                key = f"{source_dataset}_{full_model}"
+                
+                results = run_evaluation(source_dataset, model, device=device, variant=variant)
+                if results:
+                    all_results[key] = results
     
     # Save combined results
     combined_file = OUTPUT_ROOT / 'all_results.json'
@@ -526,12 +652,18 @@ def main():
     
     parser.add_argument('--source-dataset', type=str, choices=SOURCE_DATASETS,
                         help='Source dataset the model was trained on')
-    parser.add_argument('--model', type=str, choices=MODELS,
-                        help='Model architecture')
+    parser.add_argument('--model', type=str, choices=BASE_MODELS,
+                        help='Base model architecture')
+    parser.add_argument('--variant', type=str, default='', choices=['', '_clear_day'],
+                        help='Model variant: "" for full dataset, "_clear_day" for clear_day only')
     parser.add_argument('--checkpoint', type=str, default=None,
                         help='Path to checkpoint (auto-detected if not provided)')
     parser.add_argument('--all', action='store_true',
                         help='Evaluate all source dataset / model combinations')
+    parser.add_argument('--include-variants', action='store_true', default=True,
+                        help='Include _clear_day variants when using --all')
+    parser.add_argument('--no-variants', action='store_true',
+                        help='Exclude _clear_day variants when using --all')
     parser.add_argument('--device', type=str, default='cuda',
                         help='Device to run on (cuda or cpu)')
     parser.add_argument('--list-checkpoints', action='store_true',
@@ -542,21 +674,26 @@ def main():
     if args.list_checkpoints:
         print("Available checkpoints:")
         for source in SOURCE_DATASETS:
-            for model in MODELS:
-                ckpt = get_checkpoint_path(source, model)
-                status = "✓" if ckpt else "✗"
-                print(f"  {status} {source}/{model}: {ckpt if ckpt else 'NOT FOUND'}")
+            for model in BASE_MODELS:
+                for variant in MODEL_VARIANTS:
+                    full_model = model + variant
+                    ckpt = get_checkpoint_path(source, model, variant)
+                    status = "✓" if ckpt else "✗"
+                    print(f"  {status} {source}/{full_model}: {ckpt if ckpt else 'NOT FOUND'}")
         return
     
     if args.all:
-        run_all_evaluations(device=args.device)
+        include_variants = not args.no_variants
+        run_all_evaluations(device=args.device, include_variants=include_variants)
     elif args.source_dataset and args.model:
-        run_evaluation(args.source_dataset, args.model, args.checkpoint, args.device)
+        run_evaluation(args.source_dataset, args.model, args.checkpoint, args.device, args.variant)
     else:
         parser.print_help()
         print("\nExample usage:")
         print("  python evaluate_domain_adaptation.py --source-dataset BDD10k --model deeplabv3plus_r50")
+        print("  python evaluate_domain_adaptation.py --source-dataset BDD10k --model deeplabv3plus_r50 --variant _clear_day")
         print("  python evaluate_domain_adaptation.py --all")
+        print("  python evaluate_domain_adaptation.py --all --no-variants  # Skip _clear_day variants")
 
 
 if __name__ == '__main__':

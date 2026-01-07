@@ -2,13 +2,19 @@
 # PROVE Domain Adaptation Ablation - Job Submission Script
 #
 # This script submits evaluation jobs for the domain adaptation ablation study.
-# It evaluates models trained on BDD10k/IDD-AW/MapillaryVistas on the ACDC dataset.
+# It evaluates models trained on BDD10k/IDD-AW/MapillaryVistas on:
+#   - Cityscapes (clear_day condition)
+#   - ACDC (adverse weather conditions: foggy, night, rainy, snowy)
 #
 # Key features:
 # - Evaluates cross-dataset domain adaptation capability
-# - Filters out ACDC reference images (_ref_) with mismatched labels
-# - Excludes clear_day and dawn_dusk domains (no valid images)
+# - Uses Cityscapes as the "clear_day" baseline condition
+# - Evaluates on ACDC adverse weather domains
 # - Reports per-domain (weather condition) metrics
+#
+# Data structure:
+#   test/images/Cityscapes/{city}/*_leftImg8bit.png (clear_day)
+#   test/images/ACDC/{domain}/*_rgb_anon.png (adverse)
 #
 # Usage:
 #   ./submit_domain_adaptation_ablation.sh [options]
@@ -38,8 +44,12 @@ set +e
 # Source datasets (models trained on these)
 SOURCE_DATASETS=("BDD10k" "IDD-AW" "MapillaryVistas")
 
-# Models to evaluate
+# Models to evaluate (base models)
 MODELS=("deeplabv3plus_r50" "pspnet_r50" "segformer_mit-b5")
+
+# Model variants
+# "" = full dataset training, "_clear_day" = clear_day only training
+MODEL_VARIANTS=("" "_clear_day")
 
 # Default LSF settings
 DEFAULT_QUEUE="BatchGPU"
@@ -66,15 +76,22 @@ print_usage() {
     echo ""
     echo "Evaluates cross-dataset domain adaptation:"
     echo "  Source: BDD10k, IDD-AW, MapillaryVistas (trained models)"
-    echo "  Target: ACDC (adverse weather evaluation)"
+    echo "  Target: Cityscapes (clear_day) + ACDC (foggy, night, rainy, snowy)"
+    echo ""
+    echo "Model variants:"
+    echo "  '' (default)  - Models trained on full source dataset"
+    echo "  '_clear_day'  - Models trained on clear_day subset only (baseline condition)"
     echo ""
     echo "Usage: $0 [options]"
     echo ""
     echo "Options:"
-    echo "  --all               Submit jobs for all source/model combinations (9 jobs)"
+    echo "  --all               Submit jobs for all source/model combinations (18 jobs: 9 full + 9 clear_day)"
+    echo "  --all-clear-day     Submit jobs only for _clear_day variants (9 jobs)"
+    echo "  --all-full          Submit jobs only for full dataset models (9 jobs, no _clear_day)"
     echo "  --source-dataset <name>"
     echo "                      Specific source dataset: ${SOURCE_DATASETS[*]}"
     echo "  --model <name>      Specific model: ${MODELS[*]}"
+    echo "  --variant <v>       Model variant: '' or '_clear_day' (default: '')"
     echo "  --dry-run           Show commands without executing"
     echo "  --list              List all jobs that would be submitted"
     echo "  --queue <name>      LSF queue name (default: $DEFAULT_QUEUE)"
@@ -84,11 +101,17 @@ print_usage() {
     echo "  --skip-existing     Skip jobs with existing results"
     echo ""
     echo "Examples:"
-    echo "  # Submit all 9 evaluation jobs"
+    echo "  # Submit all 18 evaluation jobs (full + clear_day)"
     echo "  $0 --all"
     echo ""
-    echo "  # Submit single job"
-    echo "  $0 --source-dataset BDD10k --model deeplabv3plus_r50"
+    echo "  # Submit only the 9 clear_day baseline jobs"
+    echo "  $0 --all-clear-day"
+    echo ""
+    echo "  # Submit only the 9 full dataset jobs (no clear_day)"
+    echo "  $0 --all-full"
+    echo ""
+    echo "  # Submit single job with clear_day variant"
+    echo "  $0 --source-dataset BDD10k --model deeplabv3plus_r50 --variant _clear_day"
     echo ""
     echo "  # Dry run - show what would be submitted"
     echo "  $0 --all --dry-run"
@@ -129,7 +152,7 @@ check_results_exist() {
     local source_dataset="$1"
     local model="$2"
     
-    local result_file="${OUTPUT_ROOT}/${source_dataset,,}/${model}/acdc_evaluation.json"
+    local result_file="${OUTPUT_ROOT}/${source_dataset,,}/${model}/domain_adaptation_evaluation.json"
     [ -f "$result_file" ]
 }
 
@@ -137,30 +160,39 @@ check_results_exist() {
 submit_job() {
     local source_dataset="$1"
     local model="$2"
-    local queue="$3"
-    local gpu_mem="$4"
-    local gpu_mode="$5"
-    local num_cpus="$6"
-    local dry_run="$7"
+    local variant="$3"  # "" or "_clear_day"
+    local queue="$4"
+    local gpu_mem="$5"
+    local gpu_mode="$6"
+    local num_cpus="$7"
+    local dry_run="$8"
+    
+    # Build full model name
+    local full_model="${model}${variant}"
     
     # Check for checkpoint
-    local checkpoint=$(check_checkpoint "$source_dataset" "$model")
+    local checkpoint=$(check_checkpoint "$source_dataset" "$full_model")
     if [ -z "$checkpoint" ]; then
-        echo "  SKIP: No checkpoint found for ${source_dataset}/${model}"
+        echo "  SKIP: No checkpoint found for ${source_dataset}/${full_model}"
         return 1
     fi
     
-    # Job name
-    local jobname="da_${source_dataset,,}_${model}_to_acdc"
+    # Job name (include variant in job name)
+    local variant_suffix=""
+    if [ -n "$variant" ]; then
+        variant_suffix="${variant}"
+    fi
+    local jobname="da_${source_dataset,,}_${model}${variant_suffix}_to_acdc"
     
     # Log directory
     local log_dir="${PROJECT_ROOT}/logs/domain_adaptation"
     mkdir -p "$log_dir"
     
-    # Build the evaluation command
+    # Build the evaluation command (include variant if set)
     local eval_cmd="python ${PROJECT_ROOT}/tools/evaluate_domain_adaptation.py \
         --source-dataset ${source_dataset} \
         --model ${model} \
+        --variant '${variant}' \
         --checkpoint ${checkpoint}"
     
     # LSF submission command
@@ -177,6 +209,7 @@ submit_job() {
     if [ "$dry_run" = true ]; then
         echo "  [DRY-RUN] Would submit: $jobname"
         echo "    Checkpoint: $checkpoint"
+        echo "    Full model: $full_model"
         echo "    Command: $eval_cmd"
         echo ""
     else
@@ -193,29 +226,39 @@ list_configurations() {
     echo "Available Domain Adaptation Ablation Configurations"
     echo "===================================================="
     echo ""
-    echo "Source Dataset / Model / Checkpoint Status"
-    echo "-------------------------------------------"
+    echo "Source Dataset / Model (Variant) / Checkpoint Status"
+    echo "-----------------------------------------------------"
     
     for source_dataset in "${SOURCE_DATASETS[@]}"; do
         for model in "${MODELS[@]}"; do
-            local checkpoint=$(check_checkpoint "$source_dataset" "$model")
-            local result_exists=""
-            
-            if check_results_exist "$source_dataset" "$model"; then
-                result_exists=" [RESULTS EXIST]"
-            fi
-            
-            if [ -n "$checkpoint" ]; then
-                echo "  ✓ ${source_dataset} / ${model}${result_exists}"
-                echo "    Checkpoint: ${checkpoint}"
-            else
-                echo "  ✗ ${source_dataset} / ${model} - NO CHECKPOINT"
-            fi
+            for variant in "${MODEL_VARIANTS[@]}"; do
+                local full_model="${model}${variant}"
+                local checkpoint=$(check_checkpoint "$source_dataset" "$full_model")
+                local result_exists=""
+                local variant_label=""
+                
+                if [ -n "$variant" ]; then
+                    variant_label=" (${variant})"
+                else
+                    variant_label=" (full)"
+                fi
+                
+                if check_results_exist "$source_dataset" "$full_model"; then
+                    result_exists=" [RESULTS EXIST]"
+                fi
+                
+                if [ -n "$checkpoint" ]; then
+                    echo "  ✓ ${source_dataset} / ${model}${variant_label}${result_exists}"
+                    echo "    Checkpoint: ${checkpoint}"
+                else
+                    echo "  ✗ ${source_dataset} / ${model}${variant_label} - NO CHECKPOINT"
+                fi
+            done
         done
     done
     
     echo ""
-    echo "Total configurations: $((${#SOURCE_DATASETS[@]} * ${#MODELS[@]}))"
+    echo "Total configurations: $((${#SOURCE_DATASETS[@]} * ${#MODELS[@]} * ${#MODEL_VARIANTS[@]}))"
 }
 
 # ============================================================================
@@ -223,6 +266,8 @@ list_configurations() {
 # ============================================================================
 
 ALL_MODE=false
+ALL_CLEAR_DAY_MODE=false
+ALL_FULL_MODE=false
 DRY_RUN=false
 LIST_MODE=false
 SKIP_EXISTING=false
@@ -232,11 +277,20 @@ GPU_MODE="$DEFAULT_GPU_MODE"
 NUM_CPUS="$DEFAULT_NUM_CPUS"
 FILTER_SOURCE=""
 FILTER_MODEL=""
+FILTER_VARIANT=""
 
 while [[ $# -gt 0 ]]; do
     case $1 in
         --all)
             ALL_MODE=true
+            shift
+            ;;
+        --all-clear-day)
+            ALL_CLEAR_DAY_MODE=true
+            shift
+            ;;
+        --all-full)
+            ALL_FULL_MODE=true
             shift
             ;;
         --source-dataset)
@@ -245,6 +299,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --model)
             FILTER_MODEL="$2"
+            shift 2
+            ;;
+        --variant)
+            FILTER_VARIANT="$2"
             shift 2
             ;;
         --dry-run)
@@ -301,20 +359,41 @@ fi
 if [ "$ALL_MODE" = true ]; then
     SELECTED_SOURCES=("${SOURCE_DATASETS[@]}")
     SELECTED_MODELS=("${MODELS[@]}")
-elif [ -n "$FILTER_SOURCE" ] && [ -n "$FILTER_MODEL" ]; then
-    SELECTED_SOURCES=("$FILTER_SOURCE")
-    SELECTED_MODELS=("$FILTER_MODEL")
-elif [ -n "$FILTER_SOURCE" ]; then
-    SELECTED_SOURCES=("$FILTER_SOURCE")
-    SELECTED_MODELS=("${MODELS[@]}")
-elif [ -n "$FILTER_MODEL" ]; then
+    SELECTED_VARIANTS=("${MODEL_VARIANTS[@]}")
+elif [ "$ALL_CLEAR_DAY_MODE" = true ]; then
     SELECTED_SOURCES=("${SOURCE_DATASETS[@]}")
-    SELECTED_MODELS=("$FILTER_MODEL")
+    SELECTED_MODELS=("${MODELS[@]}")
+    SELECTED_VARIANTS=("_clear_day")
+elif [ "$ALL_FULL_MODE" = true ]; then
+    SELECTED_SOURCES=("${SOURCE_DATASETS[@]}")
+    SELECTED_MODELS=("${MODELS[@]}")
+    SELECTED_VARIANTS=("")
+elif [ -n "$FILTER_SOURCE" ] || [ -n "$FILTER_MODEL" ]; then
+    if [ -n "$FILTER_SOURCE" ]; then
+        SELECTED_SOURCES=("$FILTER_SOURCE")
+    else
+        SELECTED_SOURCES=("${SOURCE_DATASETS[@]}")
+    fi
+    
+    if [ -n "$FILTER_MODEL" ]; then
+        SELECTED_MODELS=("$FILTER_MODEL")
+    else
+        SELECTED_MODELS=("${MODELS[@]}")
+    fi
+    
+    if [ -n "$FILTER_VARIANT" ]; then
+        SELECTED_VARIANTS=("$FILTER_VARIANT")
+    else
+        SELECTED_VARIANTS=("")  # Default to full dataset only for single jobs
+    fi
 else
     print_usage
-    echo "ERROR: Specify --all or --source-dataset and/or --model"
+    echo "ERROR: Specify --all, --all-clear-day, --all-full, or --source-dataset/--model"
     exit 1
 fi
+
+# Count total jobs
+total_jobs=$((${#SELECTED_SOURCES[@]} * ${#SELECTED_MODELS[@]} * ${#SELECTED_VARIANTS[@]}))
 
 echo "========================================================================"
 echo "PROVE Domain Adaptation Ablation - Job Submission"
@@ -322,7 +401,9 @@ echo "========================================================================"
 echo ""
 echo "Source Datasets: ${SELECTED_SOURCES[*]}"
 echo "Models: ${SELECTED_MODELS[*]}"
-echo "Target: ACDC (adverse weather)"
+echo "Variants: ${SELECTED_VARIANTS[*]:-(full dataset)}"
+echo "Total Jobs: $total_jobs"
+echo "Target: Cityscapes (clear_day) + ACDC (foggy, night, rainy, snowy)"
 echo "Queue: $QUEUE"
 echo "GPU Memory: $GPU_MEM"
 echo "Dry Run: $DRY_RUN"
@@ -334,21 +415,24 @@ skipped_count=0
 
 for source_dataset in "${SELECTED_SOURCES[@]}"; do
     for model in "${SELECTED_MODELS[@]}"; do
-        echo "Processing: ${source_dataset} / ${model}"
-        
-        # Check if results already exist
-        if [ "$SKIP_EXISTING" = true ] && check_results_exist "$source_dataset" "$model"; then
-            echo "  SKIP: Results already exist"
-            ((skipped_count++))
-            continue
-        fi
-        
-        # Submit job
-        if submit_job "$source_dataset" "$model" "$QUEUE" "$GPU_MEM" "$GPU_MODE" "$NUM_CPUS" "$DRY_RUN"; then
-            ((submitted_count++))
-        else
-            ((skipped_count++))
-        fi
+        for variant in "${SELECTED_VARIANTS[@]}"; do
+            local_full_model="${model}${variant}"
+            echo "Processing: ${source_dataset} / ${local_full_model}"
+            
+            # Check if results already exist
+            if [ "$SKIP_EXISTING" = true ] && check_results_exist "$source_dataset" "$local_full_model"; then
+                echo "  SKIP: Results already exist"
+                ((skipped_count++))
+                continue
+            fi
+            
+            # Submit job
+            if submit_job "$source_dataset" "$model" "$variant" "$QUEUE" "$GPU_MEM" "$GPU_MODE" "$NUM_CPUS" "$DRY_RUN"; then
+                ((submitted_count++))
+            else
+                ((skipped_count++))
+            fi
+        done
     done
 done
 

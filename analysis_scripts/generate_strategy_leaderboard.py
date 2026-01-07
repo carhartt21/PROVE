@@ -7,13 +7,23 @@ Generates a leaderboard table comparing all augmentation strategies with:
 - Normal weather mIoU  
 - Adverse weather mIoU
 - Domain Gap (Δ)
-- Gap Reduction vs baseline
+- Gap Reduction vs baseline_clear_day (models trained only on clear_day data)
 
 Primary metric: mIoU (recommended for domain gap analysis)
+
+**Baseline Terminology:**
+- baseline_clear_day: Models trained only on clear_day subset (THE REFERENCE BASELINE)
+- baseline_full: Models trained on all weather conditions (formerly just 'baseline')
+
+Gap reduction is calculated relative to baseline_clear_day to measure improvement
+over models that never saw adverse weather during training.
+
+Uses test_result_analyzer.py to extract fresh results from /scratch/aaa_exchange/AWARE/WEIGHTS
 
 Usage:
     python generate_strategy_leaderboard.py
     python generate_strategy_leaderboard.py --output leaderboard.md
+    python generate_strategy_leaderboard.py --refresh  # Re-extract from WEIGHTS
 """
 
 import os
@@ -30,8 +40,16 @@ import numpy as np
 import pandas as pd
 
 # Add project root to path
-PROJECT_ROOT = Path(__file__).parent
+PROJECT_ROOT = Path(__file__).parent.parent  # Go up from analysis_scripts to PROVE
 sys.path.insert(0, str(PROJECT_ROOT))
+
+# Import TestResultAnalyzer from test_result_analyzer.py
+try:
+    from test_result_analyzer import TestResultAnalyzer
+    TEST_ANALYZER_AVAILABLE = True
+except ImportError:
+    TEST_ANALYZER_AVAILABLE = False
+    print("Warning: test_result_analyzer.py not found, using CSV-based loading only")
 
 # ============================================================================
 # Configuration
@@ -52,9 +70,12 @@ RESULTS_CSV = PROJECT_ROOT / 'downstream_results.csv'
 OUTPUT_DIR = PROJECT_ROOT / 'result_figures' / 'leaderboard'
 
 # Strategy type mapping
+# baseline_clear_day: trained only on clear_day data (REFERENCE BASELINE)
+# baseline_full: trained on all weather domains (formerly 'baseline')
 STRATEGY_TYPES = {
-    'baseline': 'Baseline',
-    'baseline_clear_day': 'Baseline',
+    'baseline': 'Baseline Full',  # Legacy name for full baseline
+    'baseline_full': 'Baseline Full',  # Explicit full baseline name
+    'baseline_clear_day': 'Baseline Clear Day',  # Reference baseline
     'photometric_distort': 'Augmentation',
     'std_cutmix': 'Standard Aug',
     'std_mixup': 'Standard Aug',
@@ -63,10 +84,48 @@ STRATEGY_TYPES = {
     'std_cutout': 'Standard Aug',
 }
 
+# Baseline configurations
+BASELINE_CLEAR_DAY = 'baseline_clear_day'  # Reference baseline (trained on clear_day only)
+BASELINE_FULL = 'baseline'  # Full baseline (trained on all conditions) - maps to 'baseline' in data
+
 
 # ============================================================================
 # Data Loading
 # ============================================================================
+
+def extract_results_from_weights(weights_root: Path = WEIGHTS_ROOT, verbose: bool = False) -> pd.DataFrame:
+    """
+    Extract test results directly from WEIGHTS directory using TestResultAnalyzer.
+    
+    This is the preferred method as it reads fresh results from disk.
+    
+    Args:
+        weights_root: Path to the WEIGHTS directory
+        verbose: Print verbose output during scanning
+        
+    Returns:
+        DataFrame with all test results
+    """
+    if not TEST_ANALYZER_AVAILABLE:
+        raise RuntimeError("TestResultAnalyzer not available. Please ensure test_result_analyzer.py exists.")
+    
+    print(f"Extracting results from: {weights_root}")
+    
+    # Create analyzer and scan directory
+    analyzer = TestResultAnalyzer(str(weights_root))
+    analyzer.scan_directory(verbose=verbose)
+    analyzer.deduplicate_results()
+    
+    if not analyzer.test_results:
+        print("Warning: No test results found!")
+        return pd.DataFrame()
+    
+    # Convert to DataFrame
+    df = pd.DataFrame(analyzer.test_results)
+    print(f"Extracted {len(df)} test results from WEIGHTS directory")
+    
+    return df
+
 
 def load_results_csv(csv_path: Path) -> pd.DataFrame:
     """Load results from CSV file."""
@@ -201,12 +260,19 @@ def get_per_domain_metrics(df: pd.DataFrame, strategy: str) -> Dict:
 # ============================================================================
 
 def generate_leaderboard(df: pd.DataFrame, per_domain_results: Dict = None) -> pd.DataFrame:
-    """Generate strategy leaderboard with all metrics."""
+    """Generate strategy leaderboard with all metrics.
+    
+    Gap reduction is calculated relative to baseline_clear_day (models trained only on clear_day).
+    This shows how much each strategy improves over a model that never saw adverse weather.
+    """
     
     strategies = df['strategy'].unique()
     
-    # Calculate baseline metrics first
-    baseline_metrics = aggregate_strategy_metrics(df, 'baseline')
+    # Calculate baseline_clear_day metrics first (the reference)
+    baseline_clearday_metrics = aggregate_strategy_metrics(df, BASELINE_CLEAR_DAY)
+    
+    # Also get baseline_full for comparison
+    baseline_full_metrics = aggregate_strategy_metrics(df, BASELINE_FULL)
     
     leaderboard_data = []
     
@@ -266,95 +332,110 @@ def load_unified_domain_results() -> pd.DataFrame:
 
 
 def generate_comprehensive_leaderboard() -> pd.DataFrame:
-    """Generate comprehensive leaderboard using all available data sources."""
+    """Generate comprehensive leaderboard using all available data sources.
+    
+    Uses main test results for overall mIoU across all strategies,
+    and supplements with unified domain gap results for per-domain metrics when available.
+    """
     
     print("=" * 70)
     print("Generating Strategy Leaderboard")
     print("=" * 70)
     
-    # Load main results
+    # Load main results (this is the primary source with all strategies)
     main_df = load_results_csv(RESULTS_CSV)
     
-    # Try to load unified domain gap results
+    # Try to load unified domain gap results for per-domain metrics
     unified_df = load_unified_domain_results()
+    unified_data = {}
     
     if unified_df is not None and 'strategy' in unified_df.columns:
-        print(f"Using unified domain gap results ({len(unified_df)} entries)")
+        print(f"Loaded per-domain data for {len(unified_df)} strategies")
         
-        # Check what columns are available
-        print(f"Available columns: {unified_df.columns.tolist()}")
-        
-        # Use the unified results for the leaderboard
-        leaderboard_data = []
-        
-        for strategy in unified_df['strategy'].unique():
-            strategy_data = unified_df[unified_df['strategy'] == strategy]
-            
-            # Calculate metrics
-            overall_miou = strategy_data['mIoU'].mean() if 'mIoU' in strategy_data.columns else None
-            
-            # Check for domain-specific columns or aggregate by domain type
-            normal_miou = None
-            adverse_miou = None
-            
-            if 'domain' in strategy_data.columns:
-                normal_data = strategy_data[strategy_data['domain'].isin(NORMAL_DOMAINS)]
-                adverse_data = strategy_data[strategy_data['domain'].isin(ADVERSE_DOMAINS)]
-                
-                if not normal_data.empty:
-                    normal_miou = normal_data['mIoU'].mean()
-                if not adverse_data.empty:
-                    adverse_miou = adverse_data['mIoU'].mean()
-            
-            # Determine strategy type
-            if strategy.startswith('gen_'):
-                strategy_type = 'Generative'
-            elif strategy.startswith('std_'):
-                strategy_type = 'Standard Aug'
-            elif strategy == 'baseline':
-                strategy_type = 'Baseline'
-            elif strategy == 'baseline_clear_day':
-                strategy_type = 'Clear-Day'
-            elif strategy == 'photometric_distort':
-                strategy_type = 'Augmentation'
-            else:
-                strategy_type = 'Other'
-            
-            domain_gap = None
-            if normal_miou is not None and adverse_miou is not None:
-                domain_gap = normal_miou - adverse_miou
-            
-            row = {
-                'Strategy': strategy,
-                'Type': strategy_type,
-                'Overall mIoU': round(overall_miou, 2) if overall_miou else None,
-                'Normal mIoU': round(normal_miou, 2) if normal_miou else None,
-                'Adverse mIoU': round(adverse_miou, 2) if adverse_miou else None,
-                'Domain Gap (Δ)': round(domain_gap, 2) if domain_gap else None,
-                'Gap Reduction': None,  # Calculated after baseline is known
+        # Index unified data by strategy for quick lookup
+        for _, row in unified_df.iterrows():
+            strategy = row['strategy']
+            unified_data[strategy] = {
+                'normal_mIoU': row.get('normal_mIoU'),
+                'adverse_mIoU': row.get('adverse_mIoU'),
+                'domain_gap': row.get('domain_gap'),
+                'gap_reduction': row.get('gap_reduction'),
             }
-            
-            leaderboard_data.append(row)
-        
-        leaderboard_df = pd.DataFrame(leaderboard_data)
-        
-        # Calculate gap reduction vs baseline
-        baseline_row = leaderboard_df[leaderboard_df['Strategy'] == 'baseline']
-        if not baseline_row.empty:
-            baseline_gap = baseline_row['Domain Gap (Δ)'].values[0]
-            if baseline_gap is not None:
-                leaderboard_df['Gap Reduction'] = leaderboard_df['Domain Gap (Δ)'].apply(
-                    lambda x: round(baseline_gap - x, 2) if x is not None else None
-                )
-        
-        # Sort by Overall mIoU
-        leaderboard_df = leaderboard_df.sort_values('Overall mIoU', ascending=False)
-        
-        return leaderboard_df
     
-    else:
-        print("Unified domain gap results not available, using main CSV only")
-        return generate_leaderboard(main_df)
+    # Generate leaderboard from main results
+    print(f"Generating leaderboard from {len(main_df)} test results")
+    
+    strategies = main_df['strategy'].unique()
+    leaderboard_data = []
+    
+    for strategy in sorted(strategies):
+        metrics = aggregate_strategy_metrics(main_df, strategy)
+        
+        if metrics is None:
+            continue
+        
+        # Determine strategy type
+        if strategy.startswith('gen_'):
+            strategy_type = 'Generative'
+        elif strategy.startswith('std_'):
+            strategy_type = 'Standard Aug'
+        elif strategy in STRATEGY_TYPES:
+            strategy_type = STRATEGY_TYPES[strategy]
+        else:
+            strategy_type = 'Other'
+        
+        # Get per-domain metrics from unified data if available
+        normal_miou = None
+        adverse_miou = None
+        domain_gap = None
+        gap_reduction = None
+        
+        if strategy in unified_data:
+            ud = unified_data[strategy]
+            normal_miou = ud.get('normal_mIoU')
+            adverse_miou = ud.get('adverse_mIoU')
+            domain_gap = ud.get('domain_gap')
+            gap_reduction = ud.get('gap_reduction')
+        
+        row = {
+            'Strategy': strategy,
+            'Type': strategy_type,
+            'Overall mIoU': round(metrics['overall_miou'], 2) if metrics['overall_miou'] else None,
+            'Normal mIoU': round(normal_miou, 2) if normal_miou is not None else None,
+            'Adverse mIoU': round(adverse_miou, 2) if adverse_miou is not None else None,
+            'Domain Gap (Δ)': round(domain_gap, 2) if domain_gap is not None else None,
+            'Gap Reduction': round(gap_reduction, 2) if gap_reduction is not None else None,
+            'Num Results': metrics['num_results'],
+        }
+        
+        leaderboard_data.append(row)
+    
+    leaderboard_df = pd.DataFrame(leaderboard_data)
+    
+    # Sort by Overall mIoU (descending)
+    leaderboard_df = leaderboard_df.sort_values('Overall mIoU', ascending=False)
+    
+    print(f"Generated leaderboard with {len(leaderboard_df)} strategies")
+    
+    return leaderboard_df
+
+
+def load_unified_domain_results() -> pd.DataFrame:
+    """Load results from unified_domain_gap analysis if available."""
+    
+    results_dir = PROJECT_ROOT / 'result_figures' / 'unified_domain_gap'
+    
+    # Try loading strategy summary
+    summary_file = results_dir / 'strategy_summary.csv'
+    if summary_file.exists():
+        return pd.read_csv(summary_file)
+    
+    # Try loading all domain results
+    all_results_file = results_dir / 'all_domain_results.csv'
+    if all_results_file.exists():
+        return pd.read_csv(all_results_file)
+    
+    return None
 
 
 def format_leaderboard_markdown(df: pd.DataFrame, title: str = "Strategy Leaderboard") -> str:
@@ -479,14 +560,45 @@ def main():
     parser = argparse.ArgumentParser(description="Generate strategy leaderboard")
     parser.add_argument('--output', type=str, default=None, help='Output markdown file')
     parser.add_argument('--csv', type=str, default=None, help='Output CSV file')
+    parser.add_argument('--refresh', action='store_true', 
+                       help='Re-extract results from WEIGHTS directory instead of using cached CSV')
+    parser.add_argument('--weights-root', type=str, default=None,
+                       help='Override WEIGHTS directory path')
+    parser.add_argument('--verbose', action='store_true',
+                       help='Verbose output during extraction')
     
     args = parser.parse_args()
     
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     
-    # Load main results
-    print("\n1. Loading baseline analysis...")
-    df = load_results_csv(RESULTS_CSV)
+    # Determine data source
+    weights_path = Path(args.weights_root) if args.weights_root else WEIGHTS_ROOT
+    
+    # Load results - either fresh from WEIGHTS or from cached CSV
+    print("\n1. Loading test results...")
+    if args.refresh or not RESULTS_CSV.exists():
+        if TEST_ANALYZER_AVAILABLE:
+            print(f"   Extracting fresh results from: {weights_path}")
+            df = extract_results_from_weights(weights_path, verbose=args.verbose)
+            
+            # Optionally save to CSV for caching
+            if not df.empty:
+                df.to_csv(RESULTS_CSV, index=False)
+                print(f"   Cached results to: {RESULTS_CSV}")
+        else:
+            print("   ERROR: Cannot refresh - test_result_analyzer.py not available")
+            if RESULTS_CSV.exists():
+                df = load_results_csv(RESULTS_CSV)
+            else:
+                print("   ERROR: No results available!")
+                return
+    else:
+        print(f"   Loading cached results from: {RESULTS_CSV}")
+        df = load_results_csv(RESULTS_CSV)
+    
+    if df.empty:
+        print("   ERROR: No results found!")
+        return
     
     # Analyze baseline
     print("\n2. Analyzing baseline performance...")

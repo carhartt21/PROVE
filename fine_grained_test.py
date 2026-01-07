@@ -55,13 +55,14 @@ warnings.filterwarnings('ignore', category=UserWarning, module='mmseg')
 
 
 # Dataset domain configurations
+# Updated to match actual folder structure in FINAL_SPLITS/test/images/
 DATASET_DOMAINS = {
-    'ACDC': ['clear_day', 'cloudy', 'dawn_dusk', 'foggy', 'night', 'rainy', 'snowy'],
-    'BDD10k': ['clear', 'overcast', 'partly_cloudy', 'rainy', 'snowy', 'foggy'],
-    'BDD100k': ['clear', 'overcast', 'partly_cloudy', 'rainy', 'snowy', 'foggy', 'undefined'],
-    'IDD-AW': ['clear', 'foggy', 'rainy'],
-    'MapillaryVistas': None,  # No domain split
-    'OUTSIDE15k': None,  # No domain split
+    'ACDC': ['foggy', 'night', 'rainy', 'snowy'],  # ACDC test split only has 4 domains
+    'BDD10k': ['clear_day', 'cloudy', 'dawn_dusk', 'foggy', 'night', 'rainy', 'snowy'],
+    'BDD100k': ['clear_day', 'cloudy', 'dawn_dusk', 'foggy', 'night', 'rainy', 'snowy'],
+    'IDD-AW': ['clear_day', 'cloudy', 'dawn_dusk', 'foggy', 'night', 'rainy', 'snowy'],
+    'MapillaryVistas': ['clear_day', 'cloudy', 'dawn_dusk', 'foggy', 'night', 'rainy', 'snowy'],
+    'OUTSIDE15k': ['clear_day', 'cloudy', 'dawn_dusk', 'foggy', 'night', 'rainy', 'snowy'],
 }
 
 # Cityscapes class names (19 classes)

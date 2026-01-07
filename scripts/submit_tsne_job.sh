@@ -23,16 +23,19 @@ WEIGHTS_DIR="/scratch/aaa_exchange/AWARE/WEIGHTS"
 DATA_ROOT="/scratch/aaa_exchange/AWARE/FINAL_SPLITS"
 OUTPUT_DIR="/home/mima2416/repositories/PROVE/result_figures/tsne"
 MODEL_TYPE="deeplabv3plus"
+DATASET="bdd10k"
+DATASET_NAME="BDD10k"
 
 # Create output directory
 mkdir -p "$OUTPUT_DIR"
 
 # Baseline checkpoint
-BASELINE_CKPT="${WEIGHTS_DIR}/baseline/acdc/deeplabv3plus_r50/iter_80000.pth"
+BASELINE_CKPT="${WEIGHTS_DIR}/baseline/${DATASET}/deeplabv3plus_r50/iter_80000.pth"
 
 echo "========================================"
 echo "t-SNE Domain Gap Visualization"
 echo "========================================"
+echo "Dataset: $DATASET_NAME"
 echo "Baseline: $BASELINE_CKPT"
 echo "Data: $DATA_ROOT"
 echo "Output: $OUTPUT_DIR"
@@ -52,7 +55,7 @@ for strategy in "${STRATEGIES[@]}"; do
     echo "Processing: $strategy"
     echo "========================================"
     
-    CKPT="${WEIGHTS_DIR}/${strategy}/acdc/deeplabv3plus_r50/iter_80000.pth"
+    CKPT="${WEIGHTS_DIR}/${strategy}/${DATASET}/deeplabv3plus_r50/iter_80000.pth"
     
     if [[ ! -f "$CKPT" ]]; then
         echo "WARNING: Checkpoint not found: $CKPT"
@@ -73,7 +76,8 @@ for strategy in "${STRATEGIES[@]}"; do
         --output "$OUTPUT_SUBDIR" \
         --num-samples 75000 \
         --max-images-per-domain 50 \
-        --split test
+        --split test \
+        --dataset "$DATASET_NAME"
     
     echo ""
 done

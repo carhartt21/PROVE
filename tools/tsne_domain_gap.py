@@ -60,9 +60,10 @@ WEATHER_COLORS = {
 }
 
 # t-SNE parameters (literature standard)
+# Note: 'max_iter' is used for sklearn >= 1.4, replaces deprecated 'n_iter'
 TSNE_PARAMS = {
     'perplexity': 30,         # Optimal for image features [van der Maaten 2008]
-    'n_iter': 1000,           # Convergence guarantee
+    'max_iter': 1000,         # Convergence guarantee (was 'n_iter' in sklearn < 1.4)
     'learning_rate': 200,     # Stable optimization
     'random_state': 42,       # Reproducibility
     'n_components': 2,        # 2D embedding
@@ -407,7 +408,7 @@ def compute_tsne(features: np.ndarray, **kwargs) -> np.ndarray:
     params.update(kwargs)
     
     print(f"[t-SNE] Computing embedding for {features.shape[0]} samples...")
-    print(f"[t-SNE] Parameters: perplexity={params['perplexity']}, n_iter={params['n_iter']}")
+    print(f"[t-SNE] Parameters: perplexity={params['perplexity']}, max_iter={params['max_iter']}")
     
     tsne = TSNE(**params)
     embedding = tsne.fit_transform(features)
@@ -768,6 +769,7 @@ def run_domain_gap_analysis(
     output_dir: str = './tsne_output',
     split: str = 'val',
     max_images_per_domain: int = 50,
+    dataset_name: str = 'ACDC',
 ):
     """
     Run complete domain gap analysis.
@@ -781,6 +783,7 @@ def run_domain_gap_analysis(
         output_dir: Output directory for plots
         split: Dataset split to use (train/val)
         max_images_per_domain: Max images per weather domain
+        dataset_name: Name of the dataset (e.g., ACDC, BDD10k)
     """
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"[Device] Using: {device}")
@@ -790,6 +793,7 @@ def run_domain_gap_analysis(
         data_root=data_root,
         split=split,
         max_images_per_domain=max_images_per_domain,
+        dataset_name=dataset_name,
     )
     
     if len(dataset) == 0:
@@ -929,6 +933,8 @@ Examples:
                        help='Maximum images per weather domain')
     parser.add_argument('--gpu', type=int, default=0,
                        help='GPU ID to use')
+    parser.add_argument('--dataset', type=str, default='ACDC',
+                       help='Dataset name (e.g., ACDC, BDD10k, IDD-AW)')
     
     return parser.parse_args()
 
@@ -950,6 +956,7 @@ def main():
         output_dir=args.output,
         split=args.split,
         max_images_per_domain=args.max_images_per_domain,
+        dataset_name=args.dataset,
     )
 
 

@@ -1,14 +1,17 @@
-# Domain Adaptation Ablation Study: Cross-Dataset Generalization to ACDC
+# Domain Adaptation Ablation Study: Cross-Dataset Domain Generalization
 
 ## Overview
 
-This experiment evaluates the **cross-dataset domain adaptation** capability of models trained on traffic-focused datasets (BDD10k, IDD-AW, MapillaryVistas) when tested on the ACDC adverse weather benchmark.
+This experiment evaluates the **cross-dataset domain adaptation** capability of models trained on traffic-focused datasets (BDD10k, IDD-AW, MapillaryVistas) when tested on:
+- **Cityscapes** (representing clear_day condition)
+- **ACDC** (representing adverse weather conditions: foggy, night, rainy, snowy)
 
 ### Motivation
 
-The ACDC dataset contains reference images (`_ref_` suffix) with **mismatched labels** - labels from corresponding adverse weather images are incorrectly applied to clear-day reference images showing different content (different vehicles, pedestrians, camera angles). This makes ACDC unreliable for training/validation.
-
-**Solution**: Use ACDC (train+test, excluding `_ref_` images) purely as a **domain adaptation evaluation target** for models trained on other traffic datasets.
+Understanding how models trained on one domain generalize to other weather/lighting conditions is critical for robust autonomous driving systems. This ablation study measures:
+1. How well models maintain performance on clear conditions (Cityscapes)
+2. How much performance degrades in adverse conditions (ACDC domains)
+3. Which training datasets provide the best domain generalization
 
 ## Experimental Setup
 
@@ -22,25 +25,48 @@ Models trained on these datasets will be evaluated:
 | IDD-AW | ~1,800 | ~450 | TrainID (0-19+255) | India Driving Dataset - Adverse Weather |
 | MapillaryVistas | ~18,000 | ~2,000 | RGB Color→TrainID | Global street-level imagery, diverse conditions |
 
-### Evaluation Dataset (Target Domain)
+### Evaluation Datasets (Target Domains)
 
-**ACDC (Adverse Conditions Dataset with Correspondences)**
+#### Clear Day Condition: Cityscapes
 
-The complete ACDC dataset (train + test) is used for evaluation, excluding reference images:
+**Cityscapes** represents the clear_day baseline condition for comparison:
 
-| Domain | Train (non-ref) | Test (non-ref) | **Total** |
-|--------|-----------------|----------------|-----------|
-| foggy | 214 | 144 | **358** |
-| rainy | 241 | 160 | **401** |
-| snowy | 284 | 190 | **474** |
-| night | 350 | 145 | **495** |
-| cloudy | 246 | 110 | **356** |
-| **Total** | **1,335** | **749** | **2,084** |
+| City | Test Images | Structure |
+|------|-------------|-----------|
+| berlin | 544 | `test/images/Cityscapes/berlin/*_leftImg8bit.png` |
+| bielefeld | 181 | `test/images/Cityscapes/bielefeld/*_leftImg8bit.png` |
+| bonn | 46 | `test/images/Cityscapes/bonn/*_leftImg8bit.png` |
+| leverkusen | 58 | `test/images/Cityscapes/leverkusen/*_leftImg8bit.png` |
+| mainz | 298 | `test/images/Cityscapes/mainz/*_leftImg8bit.png` |
+| munich | 398 | `test/images/Cityscapes/munich/*_leftImg8bit.png` |
+| **Total** | **1,525** | |
 
-**Excluded from evaluation**:
-- `clear_day` (0 non-ref images - ALL are problematic reference images)
-- `dawn_dusk` (0 non-ref images - ALL are problematic reference images)
-- `_ref_` suffix images in other domains (label mismatch issue)
+Labels: `*_gtFine_labelIds.png` (Cityscapes labelID format, converted to trainID)
+
+#### Adverse Conditions: ACDC
+
+**ACDC (Adverse Conditions Dataset with Correspondences)** provides adverse weather domains:
+
+| Domain | Test Images | Structure |
+|--------|-------------|-----------|
+| foggy | 500 | `test/images/ACDC/foggy/*_rgb_anon.png` |
+| night | 506 | `test/images/ACDC/night/*_rgb_anon.png` |
+| rainy | 500 | `test/images/ACDC/rainy/*_rgb_anon.png` |
+| snowy | 500 | `test/images/ACDC/snowy/*_rgb_anon.png` |
+| **Total** | **2,006** | |
+
+Labels: `*_gt_labelIds.png` (Cityscapes labelID format, converted to trainID)
+
+### Combined Domain Summary
+
+| Domain | Source | Images | Condition |
+|--------|--------|--------|-----------|
+| clear_day | Cityscapes | 1,525 | ☀️ Sunny/overcast daytime |
+| foggy | ACDC | 500 | 🌫️ Dense fog |
+| night | ACDC | 506 | 🌙 Nighttime |
+| rainy | ACDC | 500 | 🌧️ Rain |
+| snowy | ACDC | 500 | ❄️ Snow |
+| **Total** | | **3,531** | |
 
 ### Models
 
@@ -51,91 +77,32 @@ All three segmentation architectures:
 
 ### Training Configurations
 
-Using existing **baseline** checkpoints from 80k iterations:
+Two training configurations are compared:
+
+1. **Full Dataset Models** - Trained on all available data from each source dataset
+2. **Clear Day Baseline Models** - Trained only on clear_day subset of each source dataset
+
+Using **baseline** checkpoints from 80k iterations:
 
 ```
+# Full dataset models
 /scratch/aaa_exchange/AWARE/WEIGHTS/baseline/{dataset}/{model}/iter_80000.pth
+
+# Clear day baseline models (trained only on clear_day subset)
+/scratch/aaa_exchange/AWARE/WEIGHTS/baseline/{dataset}/{model}_clear_day/iter_80000.pth
 ```
+
+### Research Comparison
+
+This setup enables comparing:
+- **Full vs. Clear Day Training**: Does training on all weather conditions help adverse weather performance?
+- **Domain Gap**: How much does each model degrade from clear_day to adverse conditions?
 
 ## Label Unification
 
 ### Critical Handling
 
-All datasets use Cityscapes 19-class format, but with different internal representations:
-
-1. **BDD10k, IDD-AW**: Already in trainID format (0-18), no transformation needed
-2. **MapillaryVistas**: RGB color-encoded → needs `MapillarytoCityscapes` mapping
-3. **ACDC**: Cityscapes labelID format (0-33) → needs `CityscapesID_to_TrainID` mapping
-
-The evaluation pipeline must:
-1. Transform ACDC labels from Cityscapes labelID → trainID
-2. Filter out `_ref_` images from evaluation
-3. Report per-domain (weather condition) metrics
-
-## Research Questions
-
-### Primary Questions
-
-1. **Q1: Cross-Dataset Generalization**
-   - How well do models trained on BDD10k/IDD-AW/MapillaryVistas generalize to ACDC adverse weather?
-   - Which source dataset produces the best domain adaptation?
-
-2. **Q2: Weather-Specific Performance**
-   - Are certain weather conditions (fog, rain, snow, night) easier to adapt to?
-   - Does the source dataset's weather diversity affect target performance?
-
-3. **Q3: Architecture Sensitivity**
-   - Do transformer-based models (SegFormer) generalize better than CNN-based (DeepLabV3+, PSPNet)?
-   - Is there an architecture-dataset interaction effect?
-
-### Secondary Questions
-
-4. **Q4: Geographic Domain Gap**
-   - MapillaryVistas (global) vs BDD10k (US) vs IDD-AW (India) → ACDC (Europe)
-   - Does geographic diversity in training help cross-dataset transfer?
-
-5. **Q5: Dataset Scale Effect**
-   - MapillaryVistas (~18k) vs BDD10k (~7k) vs IDD-AW (~1.8k)
-   - Does larger training set size correlate with better adaptation?
-
-## Expected Outcomes
-
-### Hypothesis
-
-1. **MapillaryVistas** should provide best cross-dataset generalization due to:
-   - Largest training set
-   - Most diverse weather conditions and geographic regions
-   - Already includes some adverse weather samples
-
-2. **IDD-AW** may perform surprisingly well on specific conditions due to:
-   - Native adverse weather training data
-   - Despite smaller size, focused on weather variation
-
-3. **Night domain** likely hardest for all source datasets:
-   - Limited nighttime samples in training data
-   - Significant appearance shift
-
-## Metrics
-
-- **mIoU** (mean Intersection over Union) - primary metric
-- **Per-class IoU** - to identify which semantic classes suffer most in adaptation
-- **Per-domain mIoU** - breakdown by weather condition
-
-## Implementation
-
-### File Filtering
-
-```python
-def filter_acdc_files(file_list):
-    """Exclude reference images from ACDC evaluation"""
-    return [f for f in file_list if '_ref' not in f.name]
-
-def filter_acdc_domains(domain_list):
-    """Exclude domains with no valid images"""
-    return [d for d in domain_list if d not in ['clear_day', 'dawn_dusk']]
-```
-
-### Label Transformation for ACDC
+Both Cityscapes and ACDC use Cityscapes labelID format (0-33), which must be converted to trainID (0-18) for evaluation:
 
 ```python
 # Cityscapes labelID → trainID mapping (from label_unification.py)
@@ -163,21 +130,133 @@ CITYSCAPES_ID_TO_TRAINID = {
 # All other IDs → 255 (ignore)
 ```
 
+### File Naming Conventions
+
+| Dataset | Image Pattern | Label Pattern |
+|---------|---------------|---------------|
+| Cityscapes | `{city}_{seq}_{frame}_leftImg8bit.png` | `{city}_{seq}_{frame}_gtFine_labelIds.png` |
+| ACDC | `{seq}_frame_{id}_rgb_anon.png` | `{seq}_frame_{id}_gt_labelIds.png` |
+
+## Research Questions
+
+### Primary Questions
+
+1. **Q1: Cross-Dataset Generalization**
+   - How well do models trained on BDD10k/IDD-AW/MapillaryVistas generalize to Cityscapes and ACDC?
+   - Which source dataset produces the best domain adaptation across all conditions?
+
+2. **Q2: Weather-Specific Performance**
+   - How does performance vary across clear_day, foggy, night, rainy, snowy conditions?
+   - Is the domain gap from clear_day (Cityscapes) to adverse (ACDC) larger than between source and clear_day?
+
+3. **Q3: Architecture Sensitivity**
+   - Do transformer-based models (SegFormer) generalize better than CNN-based (DeepLabV3+, PSPNet)?
+   - Is there an architecture-dataset interaction effect?
+
+### Secondary Questions
+
+4. **Q4: Geographic Domain Gap**
+   - MapillaryVistas (global) vs BDD10k (US) vs IDD-AW (India) → Cityscapes/ACDC (Europe)
+   - Does geographic diversity in training help cross-dataset transfer?
+
+5. **Q5: Dataset Scale Effect**
+   - MapillaryVistas (~18k) vs BDD10k (~7k) vs IDD-AW (~1.8k)
+   - Does larger training set size correlate with better adaptation?
+
+## Expected Outcomes
+
+### Hypothesis
+
+1. **MapillaryVistas** should provide best cross-dataset generalization due to:
+   - Largest training set
+   - Most diverse weather conditions and geographic regions
+   - Already includes some adverse weather samples
+
+2. **IDD-AW** may perform surprisingly well on adverse conditions due to:
+   - Native adverse weather training data
+   - Despite smaller size, focused on weather variation
+
+3. **Night domain** likely hardest for all source datasets:
+   - Limited nighttime samples in training data
+   - Significant appearance shift
+
+4. **Clear_day (Cityscapes)** should show best performance:
+   - Most similar to source training distributions
+   - Well-lit, structured European urban scenes
+
+## Metrics
+
+- **mIoU** (mean Intersection over Union) - primary metric
+- **Per-class IoU** - to identify which semantic classes suffer most in adaptation
+- **Per-domain mIoU** - breakdown by weather condition (clear_day, foggy, night, rainy, snowy)
+
+## Implementation
+
+### Data Structure
+
+```
+/scratch/aaa_exchange/AWARE/FINAL_SPLITS/test/
+├── images/
+│   ├── Cityscapes/          # clear_day condition
+│   │   ├── berlin/*.png
+│   │   ├── bielefeld/*.png
+│   │   ├── bonn/*.png
+│   │   ├── leverkusen/*.png
+│   │   ├── mainz/*.png
+│   │   └── munich/*.png
+│   └── ACDC/                # adverse conditions
+│       ├── foggy/*.png      # flat structure: *_rgb_anon.png
+│       ├── night/*.png
+│       ├── rainy/*.png
+│       └── snowy/*.png
+└── labels/
+    ├── Cityscapes/          # *_gtFine_labelIds.png
+    │   └── {same city structure}
+    └── ACDC/                # *_gt_labelIds.png
+        └── {same domain structure}
+```
+
+### Label Transformation
+
+```python
+def transform_cityscapes_label(label: np.ndarray) -> np.ndarray:
+    """Transform label from Cityscapes labelID to trainID format."""
+    if label.ndim == 3:
+        label = label[:, :, 0]
+    return CITYSCAPES_LUT[label]  # Lookup table for fast conversion
+```
+
 ## Job Submission Matrix
 
-| Source Dataset | Model | Checkpoint | Target Domain |
-|---------------|-------|------------|---------------|
-| BDD10k | deeplabv3plus_r50 | iter_80000.pth | ACDC (5 domains) |
-| BDD10k | pspnet_r50 | iter_80000.pth | ACDC (5 domains) |
-| BDD10k | segformer_mit-b5 | iter_80000.pth | ACDC (5 domains) |
-| IDD-AW | deeplabv3plus_r50 | iter_80000.pth | ACDC (5 domains) |
-| IDD-AW | pspnet_r50 | iter_80000.pth | ACDC (5 domains) |
-| IDD-AW | segformer_mit-b5 | iter_80000.pth | ACDC (5 domains) |
-| MapillaryVistas | deeplabv3plus_r50 | iter_80000.pth | ACDC (5 domains) |
-| MapillaryVistas | pspnet_r50 | iter_80000.pth | ACDC (5 domains) |
-| MapillaryVistas | segformer_mit-b5 | iter_80000.pth | ACDC (5 domains) |
+### Full Dataset Models (9 jobs)
 
-**Total: 9 evaluation jobs** (each evaluates all 5 ACDC domains)
+| Source Dataset | Model | Checkpoint | Target Domains |
+|---------------|-------|------------|----------------|
+| BDD10k | deeplabv3plus_r50 | iter_80000.pth | clear_day + 4 ACDC domains |
+| BDD10k | pspnet_r50 | iter_80000.pth | clear_day + 4 ACDC domains |
+| BDD10k | segformer_mit-b5 | iter_80000.pth | clear_day + 4 ACDC domains |
+| IDD-AW | deeplabv3plus_r50 | iter_80000.pth | clear_day + 4 ACDC domains |
+| IDD-AW | pspnet_r50 | iter_80000.pth | clear_day + 4 ACDC domains |
+| IDD-AW | segformer_mit-b5 | iter_80000.pth | clear_day + 4 ACDC domains |
+| MapillaryVistas | deeplabv3plus_r50 | iter_80000.pth | clear_day + 4 ACDC domains |
+| MapillaryVistas | pspnet_r50 | iter_80000.pth | clear_day + 4 ACDC domains |
+| MapillaryVistas | segformer_mit-b5 | iter_80000.pth | clear_day + 4 ACDC domains |
+
+### Clear Day Baseline Models (9 jobs)
+
+| Source Dataset | Model | Checkpoint | Target Domains |
+|---------------|-------|------------|----------------|
+| BDD10k | deeplabv3plus_r50_clear_day | iter_80000.pth | clear_day + 4 ACDC domains |
+| BDD10k | pspnet_r50_clear_day | iter_80000.pth | clear_day + 4 ACDC domains |
+| BDD10k | segformer_mit-b5_clear_day | iter_80000.pth | clear_day + 4 ACDC domains |
+| IDD-AW | deeplabv3plus_r50_clear_day | iter_80000.pth | clear_day + 4 ACDC domains |
+| IDD-AW | pspnet_r50_clear_day | iter_80000.pth | clear_day + 4 ACDC domains |
+| IDD-AW | segformer_mit-b5_clear_day | iter_80000.pth | clear_day + 4 ACDC domains |
+| MapillaryVistas | deeplabv3plus_r50_clear_day | iter_80000.pth | clear_day + 4 ACDC domains |
+| MapillaryVistas | pspnet_r50_clear_day | iter_80000.pth | clear_day + 4 ACDC domains |
+| MapillaryVistas | segformer_mit-b5_clear_day | iter_80000.pth | clear_day + 4 ACDC domains |
+
+**Total: 18 evaluation jobs** (each evaluates 5 domains: clear_day, foggy, night, rainy, snowy)
 
 ## Result Storage
 
@@ -185,35 +264,78 @@ Results will be saved to:
 ```
 /scratch/aaa_exchange/AWARE/WEIGHTS/domain_adaptation_ablation/
 └── {source_dataset}/
-    └── {model}/
-        ├── acdc_evaluation.json
-        └── per_domain_metrics.csv
+    ├── {model}/                        # Full dataset models
+    │   └── domain_adaptation_evaluation.json
+    └── {model}_clear_day/              # Clear day baseline models
+        └── domain_adaptation_evaluation.json
 ```
 
 ## Script Usage
 
 ```bash
-# Submit all domain adaptation evaluation jobs
+# Submit all 18 evaluation jobs (9 full + 9 clear_day baseline)
 ./scripts/submit_domain_adaptation_ablation.sh --all
 
-# Submit single job
+# Submit only the 9 full dataset model jobs
+./scripts/submit_domain_adaptation_ablation.sh --all-full
+
+# Submit only the 9 clear_day baseline model jobs
+./scripts/submit_domain_adaptation_ablation.sh --all-clear-day
+
+# Submit single job (full dataset)
 ./scripts/submit_domain_adaptation_ablation.sh \
     --source-dataset BDD10k \
     --model deeplabv3plus_r50
 
+# Submit single job (clear_day baseline)
+./scripts/submit_domain_adaptation_ablation.sh \
+    --source-dataset BDD10k \
+    --model deeplabv3plus_r50 \
+    --variant _clear_day
+
 # Dry run
 ./scripts/submit_domain_adaptation_ablation.sh --all --dry-run
+
+# List all available checkpoints
+./scripts/submit_domain_adaptation_ablation.sh --list
 ```
 
 ## Analysis
 
 After jobs complete, analyze with:
 ```bash
-python analyze_domain_adaptation_ablation.py
+python analysis_scripts/analyze_domain_adaptation_ablation.py
 ```
 
 This will generate:
-- Cross-dataset performance heatmap
+- Cross-dataset performance heatmap (source vs domain)
 - Per-domain breakdown bar charts
 - Architecture comparison plots
+- clear_day vs adverse conditions gap analysis
 - Statistical significance tests
+
+### Expected Output
+
+```
+Domain Adaptation Results - Full Dataset Models:
+                         clear_day  foggy   night   rainy   snowy   Average
+Source/Model
+BDD10k/dlv3+              XX.X%    XX.X%   XX.X%   XX.X%   XX.X%    XX.X%
+BDD10k/pspnet             XX.X%    XX.X%   XX.X%   XX.X%   XX.X%    XX.X%
+BDD10k/segformer          XX.X%    XX.X%   XX.X%   XX.X%   XX.X%    XX.X%
+IDD-AW/dlv3+              XX.X%    XX.X%   XX.X%   XX.X%   XX.X%    XX.X%
+...
+
+Domain Adaptation Results - Clear Day Baseline Models:
+                              clear_day  foggy   night   rainy   snowy   Average
+Source/Model
+BDD10k/dlv3+_clear_day         XX.X%    XX.X%   XX.X%   XX.X%   XX.X%    XX.X%
+BDD10k/pspnet_clear_day        XX.X%    XX.X%   XX.X%   XX.X%   XX.X%    XX.X%
+BDD10k/segformer_clear_day     XX.X%    XX.X%   XX.X%   XX.X%   XX.X%    XX.X%
+...
+
+Full vs Clear Day Comparison (Δ mIoU):
+Source/Model                   clear_day   foggy   night   rainy   snowy
+BDD10k/dlv3+                    +X.X%     +X.X%   +X.X%   +X.X%   +X.X%
+...
+```

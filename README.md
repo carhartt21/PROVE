@@ -1486,6 +1486,37 @@ For questions and support:
 - Built on top of OpenMMLab's MMDetection framework
 - Inspired by reproducible ML practices
 - Dataset format support based on community contributions
+
+## Domain Adaptation Ablation
+
+Evaluate cross-dataset domain adaptation by testing models trained on BDD10k/IDD-AW/MapillaryVistas on:
+- **Cityscapes** (clear_day condition)
+- **ACDC** (adverse weather: foggy, night, rainy, snowy)
+
+### Model Variants
+
+Two training configurations are compared:
+1. **Full Dataset Models** - Trained on all available data
+2. **Clear Day Baseline Models** (`_clear_day` suffix) - Trained only on clear_day subset
+
+### Job Submission
+
+```bash
+# Submit all 18 evaluation jobs (9 full + 9 clear_day baseline)
+./scripts/submit_domain_adaptation_ablation.sh --all
+
+# Submit only full dataset models (9 jobs)
+./scripts/submit_domain_adaptation_ablation.sh --all-full
+
+# Submit only clear_day baseline models (9 jobs)
+./scripts/submit_domain_adaptation_ablation.sh --all-clear-day
+
+# List available checkpoints
+./scripts/submit_domain_adaptation_ablation.sh --list
+```
+
+See [DOMAIN_ADAPTATION_ABLATION.md](docs/DOMAIN_ADAPTATION_ABLATION.md) for comprehensive documentation.
+
 ## Extended Training and Trajectory Testing
 
 ### Extended Training Ablation
