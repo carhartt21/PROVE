@@ -72,10 +72,10 @@ echo ""
 
 # Analyze configurations
 echo "Analyzing configurations..."
-mamba run -n PROVE python weights_analyzer.py --format json >/dev/null 2>&1
+mamba run -n prove python weights_analyzer.py --format json >/dev/null 2>&1
 
 # Get strategies with missing detailed tests
-STRATEGIES=$(mamba run -n PROVE python3 << PYTHON_SCRIPT
+STRATEGIES=$(mamba run -n prove python3 << PYTHON_SCRIPT
 import json
 from collections import defaultdict
 

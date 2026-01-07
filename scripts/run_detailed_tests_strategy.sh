@@ -55,12 +55,10 @@ echo "Data root: $DATA_ROOT"
 echo "Weights root: $WEIGHTS_ROOT"
 echo ""
 
-# Activate conda environment if not already active
-if [ -z "$CONDA_DEFAULT_ENV" ] || [ "$CONDA_DEFAULT_ENV" != "PROVE" ]; then
-    echo "Activating PROVE conda environment..."
-    source "$(conda info --base)/etc/profile.d/conda.sh"
-    conda activate PROVE
-fi
+# Activate conda environment
+echo "Activating prove conda environment..."
+source ~/.bashrc
+conda activate prove
 
 # Update weights summary
 echo "Analyzing configurations..."

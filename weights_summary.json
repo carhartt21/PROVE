@@ -19295,6 +19295,186 @@
     "num_classes": 19
   },
   {
+    "strategy": "gen_augmenters",
+    "dataset": "bdd10k",
+    "model": "deeplabv3plus_r50",
+    "path": "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/bdd10k/deeplabv3plus_r50",
+    "num_checkpoints": 8,
+    "checkpoint_files": [
+      {
+        "name": "iter_10000.pth",
+        "size": 350771574,
+        "modified": "2026-01-06 18:13:26.092847"
+      },
+      {
+        "name": "iter_20000.pth",
+        "size": 352357174,
+        "modified": "2026-01-06 18:13:26.093867"
+      },
+      {
+        "name": "iter_30000.pth",
+        "size": 353868854,
+        "modified": "2026-01-06 18:13:26.095072"
+      },
+      {
+        "name": "iter_40000.pth",
+        "size": 355445878,
+        "modified": "2026-01-06 18:13:26.096080"
+      },
+      {
+        "name": "iter_50000.pth",
+        "size": 356959478,
+        "modified": "2026-01-06 18:13:26.097288"
+      },
+      {
+        "name": "iter_60000.pth",
+        "size": 358538614,
+        "modified": "2026-01-06 18:13:26.098930"
+      },
+      {
+        "name": "iter_70000.pth",
+        "size": 360054134,
+        "modified": "2026-01-06 18:13:26.100441"
+      },
+      {
+        "name": "iter_80000.pth",
+        "size": 361636278,
+        "modified": "2026-01-06 18:13:26.101506"
+      }
+    ],
+    "total_size_bytes": 2849631984,
+    "total_size_mb": 2717.620834350586,
+    "total_size_gb": 2.653926596045494,
+    "latest_checkpoint": "2026-01-06T18:13:26.101506",
+    "has_config": true,
+    "has_test_results": true,
+    "has_detailed_test_results": false,
+    "num_test_result_dirs": 1,
+    "max_iters": 80000,
+    "batch_size": 1,
+    "num_classes": 19
+  },
+  {
+    "strategy": "gen_augmenters",
+    "dataset": "bdd10k",
+    "model": "deeplabv3plus_r50_clear_day",
+    "path": "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/bdd10k/deeplabv3plus_r50_clear_day",
+    "num_checkpoints": 8,
+    "checkpoint_files": [
+      {
+        "name": "iter_10000.pth",
+        "size": 350771318,
+        "modified": "2026-01-06 18:13:26.116567"
+      },
+      {
+        "name": "iter_20000.pth",
+        "size": 352355190,
+        "modified": "2026-01-06 18:13:26.117620"
+      },
+      {
+        "name": "iter_30000.pth",
+        "size": 353867574,
+        "modified": "2026-01-06 18:13:26.118685"
+      },
+      {
+        "name": "iter_40000.pth",
+        "size": 355446198,
+        "modified": "2026-01-06 18:13:26.120281"
+      },
+      {
+        "name": "iter_50000.pth",
+        "size": 356962038,
+        "modified": "2026-01-06 18:13:26.121440"
+      },
+      {
+        "name": "iter_60000.pth",
+        "size": 358542646,
+        "modified": "2026-01-06 18:13:26.122424"
+      },
+      {
+        "name": "iter_70000.pth",
+        "size": 360059510,
+        "modified": "2026-01-06 18:13:26.123445"
+      },
+      {
+        "name": "iter_80000.pth",
+        "size": 361636790,
+        "modified": "2026-01-06 18:13:26.124532"
+      }
+    ],
+    "total_size_bytes": 2849641264,
+    "total_size_mb": 2717.629684448242,
+    "total_size_gb": 2.6539352387189865,
+    "latest_checkpoint": "2026-01-06T18:13:26.124532",
+    "has_config": true,
+    "has_test_results": true,
+    "has_detailed_test_results": false,
+    "num_test_result_dirs": 1,
+    "max_iters": 80000,
+    "batch_size": 1,
+    "num_classes": 19
+  },
+  {
+    "strategy": "gen_augmenters",
+    "dataset": "bdd10k",
+    "model": "pspnet_r50",
+    "path": "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/bdd10k/pspnet_r50",
+    "num_checkpoints": 8,
+    "checkpoint_files": [
+      {
+        "name": "iter_10000.pth",
+        "size": 393755800,
+        "modified": "2026-01-06 18:13:26.141217"
+      },
+      {
+        "name": "iter_20000.pth",
+        "size": 395339480,
+        "modified": "2026-01-06 18:13:26.142183"
+      },
+      {
+        "name": "iter_30000.pth",
+        "size": 396851480,
+        "modified": "2026-01-06 18:13:26.143331"
+      },
+      {
+        "name": "iter_40000.pth",
+        "size": 398429016,
+        "modified": "2026-01-06 18:13:26.144790"
+      },
+      {
+        "name": "iter_50000.pth",
+        "size": 399943320,
+        "modified": "2026-01-06 18:13:26.145788"
+      },
+      {
+        "name": "iter_60000.pth",
+        "size": 401523224,
+        "modified": "2026-01-06 18:13:26.146922"
+      },
+      {
+        "name": "iter_70000.pth",
+        "size": 403038424,
+        "modified": "2026-01-06 18:13:26.148288"
+      },
+      {
+        "name": "iter_80000.pth",
+        "size": 404617624,
+        "modified": "2026-01-06 18:13:26.149621"
+      }
+    ],
+    "total_size_bytes": 3193498368,
+    "total_size_mb": 3045.557373046875,
+    "total_size_gb": 2.974177122116089,
+    "latest_checkpoint": "2026-01-06T18:13:26.149621",
+    "has_config": true,
+    "has_test_results": true,
+    "has_detailed_test_results": false,
+    "num_test_result_dirs": 1,
+    "max_iters": 80000,
+    "batch_size": 1,
+    "num_classes": 19
+  },
+  {
     "strategy": "gen_automold",
     "dataset": "bdd10k",
     "model": "deeplabv3plus_r50",
@@ -23606,186 +23786,6 @@
     "total_size_mb": 7555.7827072143555,
     "total_size_gb": 7.378694050014019,
     "latest_checkpoint": "2026-01-06T18:13:25.920961",
-    "has_config": true,
-    "has_test_results": true,
-    "has_detailed_test_results": false,
-    "num_test_result_dirs": 1,
-    "max_iters": 80000,
-    "batch_size": 1,
-    "num_classes": 19
-  },
-  {
-    "strategy": "gen_imgaug_weather",
-    "dataset": "bdd10k",
-    "model": "deeplabv3plus_r50",
-    "path": "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_imgaug_weather/bdd10k/deeplabv3plus_r50",
-    "num_checkpoints": 8,
-    "checkpoint_files": [
-      {
-        "name": "iter_10000.pth",
-        "size": 350771574,
-        "modified": "2026-01-06 18:13:26.092847"
-      },
-      {
-        "name": "iter_20000.pth",
-        "size": 352357174,
-        "modified": "2026-01-06 18:13:26.093867"
-      },
-      {
-        "name": "iter_30000.pth",
-        "size": 353868854,
-        "modified": "2026-01-06 18:13:26.095072"
-      },
-      {
-        "name": "iter_40000.pth",
-        "size": 355445878,
-        "modified": "2026-01-06 18:13:26.096080"
-      },
-      {
-        "name": "iter_50000.pth",
-        "size": 356959478,
-        "modified": "2026-01-06 18:13:26.097288"
-      },
-      {
-        "name": "iter_60000.pth",
-        "size": 358538614,
-        "modified": "2026-01-06 18:13:26.098930"
-      },
-      {
-        "name": "iter_70000.pth",
-        "size": 360054134,
-        "modified": "2026-01-06 18:13:26.100441"
-      },
-      {
-        "name": "iter_80000.pth",
-        "size": 361636278,
-        "modified": "2026-01-06 18:13:26.101506"
-      }
-    ],
-    "total_size_bytes": 2849631984,
-    "total_size_mb": 2717.620834350586,
-    "total_size_gb": 2.653926596045494,
-    "latest_checkpoint": "2026-01-06T18:13:26.101506",
-    "has_config": true,
-    "has_test_results": true,
-    "has_detailed_test_results": false,
-    "num_test_result_dirs": 1,
-    "max_iters": 80000,
-    "batch_size": 1,
-    "num_classes": 19
-  },
-  {
-    "strategy": "gen_imgaug_weather",
-    "dataset": "bdd10k",
-    "model": "deeplabv3plus_r50_clear_day",
-    "path": "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_imgaug_weather/bdd10k/deeplabv3plus_r50_clear_day",
-    "num_checkpoints": 8,
-    "checkpoint_files": [
-      {
-        "name": "iter_10000.pth",
-        "size": 350771318,
-        "modified": "2026-01-06 18:13:26.116567"
-      },
-      {
-        "name": "iter_20000.pth",
-        "size": 352355190,
-        "modified": "2026-01-06 18:13:26.117620"
-      },
-      {
-        "name": "iter_30000.pth",
-        "size": 353867574,
-        "modified": "2026-01-06 18:13:26.118685"
-      },
-      {
-        "name": "iter_40000.pth",
-        "size": 355446198,
-        "modified": "2026-01-06 18:13:26.120281"
-      },
-      {
-        "name": "iter_50000.pth",
-        "size": 356962038,
-        "modified": "2026-01-06 18:13:26.121440"
-      },
-      {
-        "name": "iter_60000.pth",
-        "size": 358542646,
-        "modified": "2026-01-06 18:13:26.122424"
-      },
-      {
-        "name": "iter_70000.pth",
-        "size": 360059510,
-        "modified": "2026-01-06 18:13:26.123445"
-      },
-      {
-        "name": "iter_80000.pth",
-        "size": 361636790,
-        "modified": "2026-01-06 18:13:26.124532"
-      }
-    ],
-    "total_size_bytes": 2849641264,
-    "total_size_mb": 2717.629684448242,
-    "total_size_gb": 2.6539352387189865,
-    "latest_checkpoint": "2026-01-06T18:13:26.124532",
-    "has_config": true,
-    "has_test_results": true,
-    "has_detailed_test_results": false,
-    "num_test_result_dirs": 1,
-    "max_iters": 80000,
-    "batch_size": 1,
-    "num_classes": 19
-  },
-  {
-    "strategy": "gen_imgaug_weather",
-    "dataset": "bdd10k",
-    "model": "pspnet_r50",
-    "path": "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_imgaug_weather/bdd10k/pspnet_r50",
-    "num_checkpoints": 8,
-    "checkpoint_files": [
-      {
-        "name": "iter_10000.pth",
-        "size": 393755800,
-        "modified": "2026-01-06 18:13:26.141217"
-      },
-      {
-        "name": "iter_20000.pth",
-        "size": 395339480,
-        "modified": "2026-01-06 18:13:26.142183"
-      },
-      {
-        "name": "iter_30000.pth",
-        "size": 396851480,
-        "modified": "2026-01-06 18:13:26.143331"
-      },
-      {
-        "name": "iter_40000.pth",
-        "size": 398429016,
-        "modified": "2026-01-06 18:13:26.144790"
-      },
-      {
-        "name": "iter_50000.pth",
-        "size": 399943320,
-        "modified": "2026-01-06 18:13:26.145788"
-      },
-      {
-        "name": "iter_60000.pth",
-        "size": 401523224,
-        "modified": "2026-01-06 18:13:26.146922"
-      },
-      {
-        "name": "iter_70000.pth",
-        "size": 403038424,
-        "modified": "2026-01-06 18:13:26.148288"
-      },
-      {
-        "name": "iter_80000.pth",
-        "size": 404617624,
-        "modified": "2026-01-06 18:13:26.149621"
-      }
-    ],
-    "total_size_bytes": 3193498368,
-    "total_size_mb": 3045.557373046875,
-    "total_size_gb": 2.974177122116089,
-    "latest_checkpoint": "2026-01-06T18:13:26.149621",
     "has_config": true,
     "has_test_results": true,
     "has_detailed_test_results": false,

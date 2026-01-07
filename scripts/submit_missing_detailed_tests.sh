@@ -68,12 +68,12 @@ echo ""
 # Generate list of configurations to test
 echo "Analyzing configurations..."
 
-mamba run -n PROVE python weights_analyzer.py --format json >/dev/null 2>&1
+mamba run -n prove python weights_analyzer.py --format json >/dev/null 2>&1
 
 # Create temp file with configs to test
 CONFIGS_FILE=$(mktemp)
 
-mamba run -n PROVE python3 << PYTHON_SCRIPT > "$CONFIGS_FILE"
+mamba run -n prove python3 << PYTHON_SCRIPT > "$CONFIGS_FILE"
 import json
 
 with open('weights_summary.json') as f:

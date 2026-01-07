@@ -204,7 +204,7 @@ submit_job() {
         -eo \"${log_dir}/${jobname}_%J.err\" \
         -L /bin/bash \
         -J \"${jobname}\" \
-        \"source ${PYTHON_ENV} 2>/dev/null || conda activate ${CONDA_ENV}; ${eval_cmd}\""
+        \"source ~/.bashrc && conda activate ${CONDA_ENV}; ${eval_cmd}\""
     
     if [ "$dry_run" = true ]; then
         echo "  [DRY-RUN] Would submit: $jobname"

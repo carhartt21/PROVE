@@ -168,7 +168,7 @@ echo ""
 
 # Run weights analyzer to get JSON
 echo "Analyzing trained configurations..."
-mamba run -n PROVE python weights_analyzer.py --format json 2>/dev/null
+mamba run -n prove python weights_analyzer.py --format json 2>/dev/null
 
 # Check if JSON was created
 if [ ! -f "weights_summary.json" ]; then
@@ -183,7 +183,7 @@ echo ""
 
 SUBMISSION_SCRIPT=$(mktemp)
 
-mamba run -n PROVE python3 << PYTHON_SCRIPT
+mamba run -n prove python3 << PYTHON_SCRIPT
 import json
 import sys
 

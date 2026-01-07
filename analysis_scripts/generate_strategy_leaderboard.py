@@ -336,14 +336,30 @@ def generate_comprehensive_leaderboard() -> pd.DataFrame:
     
     Uses main test results for overall mIoU across all strategies,
     and supplements with unified domain gap results for per-domain metrics when available.
+    
+    **IMPORTANT**: Gap reduction is calculated relative to baseline_clear_day
+    (models trained only on clear_day data), NOT baseline_full.
     """
     
     print("=" * 70)
     print("Generating Strategy Leaderboard")
     print("=" * 70)
+    print("Reference Baseline: baseline_clear_day (trained on clear_day only)")
+    print("=" * 70)
     
     # Load main results (this is the primary source with all strategies)
     main_df = load_results_csv(RESULTS_CSV)
+    
+    # Get baseline_clear_day metrics for reference
+    baseline_clearday_metrics = aggregate_strategy_metrics(main_df, BASELINE_CLEAR_DAY)
+    baseline_clearday_miou = baseline_clearday_metrics['overall_miou'] if baseline_clearday_metrics else None
+    
+    # Also get baseline_full metrics for comparison
+    baseline_full_metrics = aggregate_strategy_metrics(main_df, BASELINE_FULL)
+    baseline_full_miou = baseline_full_metrics['overall_miou'] if baseline_full_metrics else None
+    
+    print(f"  Baseline Clear Day mIoU: {baseline_clearday_miou:.2f}%" if baseline_clearday_miou else "  Baseline Clear Day: NOT FOUND")
+    print(f"  Baseline Full mIoU: {baseline_full_miou:.2f}%" if baseline_full_miou else "  Baseline Full: NOT FOUND")
     
     # Try to load unified domain gap results for per-domain metrics
     unified_df = load_unified_domain_results()
@@ -359,8 +375,13 @@ def generate_comprehensive_leaderboard() -> pd.DataFrame:
                 'normal_mIoU': row.get('normal_mIoU'),
                 'adverse_mIoU': row.get('adverse_mIoU'),
                 'domain_gap': row.get('domain_gap'),
-                'gap_reduction': row.get('gap_reduction'),
+                'gap_reduction': row.get('gap_reduction'),  # This might be computed vs old baseline
             }
+    
+    # Get baseline_clear_day domain gap for recalculating gap_reduction
+    baseline_clearday_gap = None
+    if BASELINE_CLEAR_DAY in unified_data:
+        baseline_clearday_gap = unified_data[BASELINE_CLEAR_DAY].get('domain_gap')
     
     # Generate leaderboard from main results
     print(f"Generating leaderboard from {len(main_df)} test results")
@@ -395,16 +416,25 @@ def generate_comprehensive_leaderboard() -> pd.DataFrame:
             normal_miou = ud.get('normal_mIoU')
             adverse_miou = ud.get('adverse_mIoU')
             domain_gap = ud.get('domain_gap')
-            gap_reduction = ud.get('gap_reduction')
+            
+            # Recalculate gap reduction relative to baseline_clear_day
+            if domain_gap is not None and baseline_clearday_gap is not None:
+                gap_reduction = baseline_clearday_gap - domain_gap
+        
+        # Calculate gain vs baseline_clear_day
+        gain_vs_clearday = None
+        if baseline_clearday_miou is not None and metrics['overall_miou'] is not None:
+            gain_vs_clearday = metrics['overall_miou'] - baseline_clearday_miou
         
         row = {
             'Strategy': strategy,
             'Type': strategy_type,
             'Overall mIoU': round(metrics['overall_miou'], 2) if metrics['overall_miou'] else None,
+            'Gain vs Clear Day': round(gain_vs_clearday, 2) if gain_vs_clearday is not None else None,
             'Normal mIoU': round(normal_miou, 2) if normal_miou is not None else None,
             'Adverse mIoU': round(adverse_miou, 2) if adverse_miou is not None else None,
             'Domain Gap (Δ)': round(domain_gap, 2) if domain_gap is not None else None,
-            'Gap Reduction': round(gap_reduction, 2) if gap_reduction is not None else None,
+            'Gap Reduction vs Clear Day': round(gap_reduction, 2) if gap_reduction is not None else None,
             'Num Results': metrics['num_results'],
         }
         
@@ -446,19 +476,30 @@ def format_leaderboard_markdown(df: pd.DataFrame, title: str = "Strategy Leaderb
         "",
         f"Generated from PROVE domain gap analysis pipeline.",
         "",
+        "**Reference Baseline: `baseline_clear_day`** (models trained only on clear_day data)",
+        "",
+        "This is the proper baseline for measuring augmentation effectiveness, as it represents",
+        "models that never saw adverse weather conditions during training.",
+        "",
         "**Metrics:**",
         "- **Overall mIoU**: Mean Intersection over Union across all domains",
+        "- **Gain vs Clear Day**: Overall mIoU improvement vs baseline_clear_day (positive = better)",
         "- **Normal mIoU**: Performance on clear_day + cloudy conditions",
         "- **Adverse mIoU**: Performance on foggy, rainy, snowy, night conditions",
         "- **Domain Gap (Δ)**: Normal - Adverse (positive = worse on adverse)",
-        "- **Gap Reduction**: Improvement in domain gap vs baseline",
+        "- **Gap Reduction vs Clear Day**: Domain gap improvement vs baseline_clear_day (positive = smaller gap)",
+        "",
+        "**Baseline Types:**",
+        "- `baseline_clear_day`: Trained only on clear_day data (THE REFERENCE)",
+        "- `baseline` / `baseline_full`: Trained on all weather conditions",
         "",
         "---",
         "",
     ]
     
-    # Add table
-    cols = ['Strategy', 'Type', 'Overall mIoU', 'Normal mIoU', 'Adverse mIoU', 'Domain Gap (Δ)', 'Gap Reduction']
+    # Add table - prioritize gain vs clear_day column
+    cols = ['Strategy', 'Type', 'Overall mIoU', 'Gain vs Clear Day', 'Normal mIoU', 'Adverse mIoU', 
+            'Domain Gap (Δ)', 'Gap Reduction vs Clear Day']
     available_cols = [c for c in cols if c in df.columns]
     
     # Header
@@ -600,24 +641,29 @@ def main():
         print("   ERROR: No results found!")
         return
     
-    # Analyze baseline
-    print("\n2. Analyzing baseline performance...")
+    # Analyze baseline_full (trained on all conditions)
+    print("\n2. Analyzing baseline_full performance (trained on all conditions)...")
     baseline_analysis = analyze_baseline(df)
-    print(f"   Baseline Overall mIoU: {baseline_analysis['overall_miou']:.2f}%")
-    print(f"   By Dataset:")
-    for ds, data in baseline_analysis['by_dataset'].items():
-        print(f"     {ds}: {data['miou']:.2f}% ± {data['std']:.2f}")
+    if baseline_analysis:
+        print(f"   Baseline Full Overall mIoU: {baseline_analysis['overall_miou']:.2f}%")
+        print(f"   By Dataset:")
+        for ds, data in baseline_analysis['by_dataset'].items():
+            print(f"     {ds}: {data['miou']:.2f}% ± {data['std']:.2f}")
+    else:
+        print("   No baseline_full results found")
     
-    # Analyze baseline_clear_day
-    print("\n3. Analyzing baseline_clear_day performance...")
+    # Analyze baseline_clear_day (REFERENCE BASELINE - trained only on clear_day)
+    print("\n3. Analyzing baseline_clear_day performance (THE REFERENCE BASELINE)...")
     clearday_analysis = analyze_baseline_clear_day(df)
     if clearday_analysis:
-        print(f"   Clear-Day Baseline mIoU: {clearday_analysis['overall_miou']:.2f}%")
+        print(f"   *** Clear-Day Baseline mIoU: {clearday_analysis['overall_miou']:.2f}% ***")
+        print(f"   (This is the reference for computing gains/losses)")
         print(f"   By Dataset:")
         for ds, data in clearday_analysis['by_dataset'].items():
             print(f"     {ds}: {data['miou']:.2f}% ± {data['std']:.2f}")
     else:
-        print("   No clear_day baseline results found")
+        print("   WARNING: No clear_day baseline results found!")
+        print("   Gap reduction calculations will be unavailable.")
     
     # Generate leaderboard
     print("\n4. Generating comprehensive leaderboard...")
@@ -626,6 +672,7 @@ def main():
     # Print leaderboard
     print("\n" + "=" * 70)
     print("STRATEGY LEADERBOARD")
+    print("Reference Baseline: baseline_clear_day")
     print("=" * 70)
     print(leaderboard_df.to_string(index=False))
     
@@ -646,8 +693,9 @@ def main():
     
     # Also save analysis summary
     summary = {
-        'baseline': baseline_analysis,
-        'baseline_clear_day': clearday_analysis,
+        'baseline_full': baseline_analysis,
+        'baseline_clear_day': clearday_analysis,  # This is the reference
+        'reference_baseline': 'baseline_clear_day',
         'leaderboard_rows': len(leaderboard_df),
     }
     

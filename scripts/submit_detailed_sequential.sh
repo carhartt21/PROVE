@@ -53,13 +53,13 @@ DATASETS=("BDD10k" "IDD-AW" "MapillaryVistas" "OUTSIDE15k")
 
 # Analyze configurations
 echo "Analyzing configurations..."
-mamba run -n PROVE python weights_analyzer.py --format json >/dev/null 2>&1
+mamba run -n prove python weights_analyzer.py --format json >/dev/null 2>&1
 
 # Show summary per dataset
 echo ""
 echo "Jobs per dataset:"
 for DATASET in "${DATASETS[@]}"; do
-    COUNT=$(mamba run -n PROVE python3 -c "
+    COUNT=$(mamba run -n prove python3 -c "
 import json
 with open('weights_summary.json') as f:
     data = json.load(f)

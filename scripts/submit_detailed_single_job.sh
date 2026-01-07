@@ -95,11 +95,11 @@ echo ""
 
 # Count configurations
 echo "Counting configurations to test..."
-mamba run -n PROVE python weights_analyzer.py --format json >/dev/null 2>&1
+mamba run -n prove python weights_analyzer.py --format json >/dev/null 2>&1
 
 if [ -n "$FILTER_DATASET" ]; then
     FILTER_LOWER=$(echo "$FILTER_DATASET" | tr '[:upper:]' '[:lower:]')
-    COUNT=$(mamba run -n PROVE python3 -c "
+    COUNT=$(mamba run -n prove python3 -c "
 import json
 with open('weights_summary.json') as f:
     data = json.load(f)
@@ -107,7 +107,7 @@ missing = [c for c in data if c.get('has_test_results') and not c.get('has_detai
 print(len(missing))
 " 2>/dev/null)
 else
-    COUNT=$(mamba run -n PROVE python3 -c "
+    COUNT=$(mamba run -n prove python3 -c "
 import json
 with open('weights_summary.json') as f:
     data = json.load(f)
