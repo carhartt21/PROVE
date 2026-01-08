@@ -544,6 +544,180 @@ fi
 echo "Finished: mapillaryvistas/segformer_mit-b5_clear_day at $(date)"
 
 
+echo "----------------------------------------"
+echo "Training: outside15k/deeplabv3plus_r50"
+echo "Strategy: gen_stargan_v2"
+echo "Started: $(date)"
+echo "----------------------------------------"
+
+# Train model
+python unified_training.py \
+    --dataset OUTSIDE15k \
+    --model deeplabv3plus_r50 \
+    --strategy gen_stargan_v2 \
+     \
+    --max-iters 80000
+
+# Test model
+if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_stargan_v2/outside15k/deeplabv3plus_r50/iter_80000.pth" ]; then
+    echo "Training complete. Running test..."
+    python fine_grained_test.py \
+        --weights_path /scratch/aaa_exchange/AWARE/WEIGHTS/gen_stargan_v2/outside15k/deeplabv3plus_r50/iter_80000.pth \
+        --config_path /scratch/aaa_exchange/AWARE/WEIGHTS/gen_stargan_v2/outside15k/deeplabv3plus_r50/training_config.py \
+        --dataset OUTSIDE15k \
+        --output_dir /scratch/aaa_exchange/AWARE/WEIGHTS/gen_stargan_v2/outside15k/deeplabv3plus_r50/test_results_detailed
+else
+    echo "ERROR: Training failed - checkpoint not found"
+fi
+
+echo "Finished: outside15k/deeplabv3plus_r50 at $(date)"
+
+
+echo "----------------------------------------"
+echo "Training: outside15k/deeplabv3plus_r50_clear_day"
+echo "Strategy: gen_stargan_v2"
+echo "Started: $(date)"
+echo "----------------------------------------"
+
+# Train model
+python unified_training.py \
+    --dataset OUTSIDE15k \
+    --model deeplabv3plus_r50 \
+    --strategy gen_stargan_v2 \
+    --domain-filter clear_day \
+    --max-iters 80000
+
+# Test model
+if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_stargan_v2/outside15k/deeplabv3plus_r50_clear_day/iter_80000.pth" ]; then
+    echo "Training complete. Running test..."
+    python fine_grained_test.py \
+        --weights_path /scratch/aaa_exchange/AWARE/WEIGHTS/gen_stargan_v2/outside15k/deeplabv3plus_r50_clear_day/iter_80000.pth \
+        --config_path /scratch/aaa_exchange/AWARE/WEIGHTS/gen_stargan_v2/outside15k/deeplabv3plus_r50_clear_day/training_config.py \
+        --dataset OUTSIDE15k \
+        --output_dir /scratch/aaa_exchange/AWARE/WEIGHTS/gen_stargan_v2/outside15k/deeplabv3plus_r50_clear_day/test_results_detailed
+else
+    echo "ERROR: Training failed - checkpoint not found"
+fi
+
+echo "Finished: outside15k/deeplabv3plus_r50_clear_day at $(date)"
+
+
+echo "----------------------------------------"
+echo "Training: outside15k/pspnet_r50"
+echo "Strategy: gen_stargan_v2"
+echo "Started: $(date)"
+echo "----------------------------------------"
+
+# Train model
+python unified_training.py \
+    --dataset OUTSIDE15k \
+    --model pspnet_r50 \
+    --strategy gen_stargan_v2 \
+     \
+    --max-iters 80000
+
+# Test model
+if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_stargan_v2/outside15k/pspnet_r50/iter_80000.pth" ]; then
+    echo "Training complete. Running test..."
+    python fine_grained_test.py \
+        --weights_path /scratch/aaa_exchange/AWARE/WEIGHTS/gen_stargan_v2/outside15k/pspnet_r50/iter_80000.pth \
+        --config_path /scratch/aaa_exchange/AWARE/WEIGHTS/gen_stargan_v2/outside15k/pspnet_r50/training_config.py \
+        --dataset OUTSIDE15k \
+        --output_dir /scratch/aaa_exchange/AWARE/WEIGHTS/gen_stargan_v2/outside15k/pspnet_r50/test_results_detailed
+else
+    echo "ERROR: Training failed - checkpoint not found"
+fi
+
+echo "Finished: outside15k/pspnet_r50 at $(date)"
+
+
+echo "----------------------------------------"
+echo "Training: outside15k/pspnet_r50_clear_day"
+echo "Strategy: gen_stargan_v2"
+echo "Started: $(date)"
+echo "----------------------------------------"
+
+# Train model
+python unified_training.py \
+    --dataset OUTSIDE15k \
+    --model pspnet_r50 \
+    --strategy gen_stargan_v2 \
+    --domain-filter clear_day \
+    --max-iters 80000
+
+# Test model
+if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_stargan_v2/outside15k/pspnet_r50_clear_day/iter_80000.pth" ]; then
+    echo "Training complete. Running test..."
+    python fine_grained_test.py \
+        --weights_path /scratch/aaa_exchange/AWARE/WEIGHTS/gen_stargan_v2/outside15k/pspnet_r50_clear_day/iter_80000.pth \
+        --config_path /scratch/aaa_exchange/AWARE/WEIGHTS/gen_stargan_v2/outside15k/pspnet_r50_clear_day/training_config.py \
+        --dataset OUTSIDE15k \
+        --output_dir /scratch/aaa_exchange/AWARE/WEIGHTS/gen_stargan_v2/outside15k/pspnet_r50_clear_day/test_results_detailed
+else
+    echo "ERROR: Training failed - checkpoint not found"
+fi
+
+echo "Finished: outside15k/pspnet_r50_clear_day at $(date)"
+
+
+echo "----------------------------------------"
+echo "Training: outside15k/segformer_mit-b5"
+echo "Strategy: gen_stargan_v2"
+echo "Started: $(date)"
+echo "----------------------------------------"
+
+# Train model
+python unified_training.py \
+    --dataset OUTSIDE15k \
+    --model segformer_mit-b5 \
+    --strategy gen_stargan_v2 \
+     \
+    --max-iters 80000
+
+# Test model
+if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_stargan_v2/outside15k/segformer_mit-b5/iter_80000.pth" ]; then
+    echo "Training complete. Running test..."
+    python fine_grained_test.py \
+        --weights_path /scratch/aaa_exchange/AWARE/WEIGHTS/gen_stargan_v2/outside15k/segformer_mit-b5/iter_80000.pth \
+        --config_path /scratch/aaa_exchange/AWARE/WEIGHTS/gen_stargan_v2/outside15k/segformer_mit-b5/training_config.py \
+        --dataset OUTSIDE15k \
+        --output_dir /scratch/aaa_exchange/AWARE/WEIGHTS/gen_stargan_v2/outside15k/segformer_mit-b5/test_results_detailed
+else
+    echo "ERROR: Training failed - checkpoint not found"
+fi
+
+echo "Finished: outside15k/segformer_mit-b5 at $(date)"
+
+
+echo "----------------------------------------"
+echo "Training: outside15k/segformer_mit-b5_clear_day"
+echo "Strategy: gen_stargan_v2"
+echo "Started: $(date)"
+echo "----------------------------------------"
+
+# Train model
+python unified_training.py \
+    --dataset OUTSIDE15k \
+    --model segformer_mit-b5 \
+    --strategy gen_stargan_v2 \
+    --domain-filter clear_day \
+    --max-iters 80000
+
+# Test model
+if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_stargan_v2/outside15k/segformer_mit-b5_clear_day/iter_80000.pth" ]; then
+    echo "Training complete. Running test..."
+    python fine_grained_test.py \
+        --weights_path /scratch/aaa_exchange/AWARE/WEIGHTS/gen_stargan_v2/outside15k/segformer_mit-b5_clear_day/iter_80000.pth \
+        --config_path /scratch/aaa_exchange/AWARE/WEIGHTS/gen_stargan_v2/outside15k/segformer_mit-b5_clear_day/training_config.py \
+        --dataset OUTSIDE15k \
+        --output_dir /scratch/aaa_exchange/AWARE/WEIGHTS/gen_stargan_v2/outside15k/segformer_mit-b5_clear_day/test_results_detailed
+else
+    echo "ERROR: Training failed - checkpoint not found"
+fi
+
+echo "Finished: outside15k/segformer_mit-b5_clear_day at $(date)"
+
+
 echo "========================================"
 echo "Job completed: $(date)"
 echo "========================================"

@@ -196,6 +196,33 @@ CITYSCAPES_CLASSES = (
     'motorcycle', 'bicycle',
 )
 
+# OUTSIDE15k native classes (24 classes, 0-23)
+# From tools/outside15k.json
+OUTSIDE15K_CLASSES = (
+    'unlabeled', 'animal', 'barrier', 'bicycle', 'boat', 'bridge',
+    'building', 'grass', 'ground', 'mountain', 'object', 'person',
+    'pole', 'road', 'sand', 'sidewalk', 'sign', 'sky', 'street light',
+    'traffic light', 'tunnel', 'vegetation', 'vehicle', 'water',
+)
+
+# MapillaryVistas native classes (66 classes, 0-65)
+# From label_unification.py MapillaryClass definitions
+MAPILLARY_CLASSES = (
+    'Bird', 'Ground Animal', 'Curb', 'Fence', 'Guard Rail', 'Barrier',
+    'Wall', 'Bike Lane', 'Crosswalk - Plain', 'Curb Cut', 'Parking',
+    'Pedestrian Area', 'Rail Track', 'Road', 'Service Lane', 'Sidewalk',
+    'Bridge', 'Building', 'Tunnel', 'Person', 'Bicyclist', 'Motorcyclist',
+    'Other Rider', 'Lane Marking - Crosswalk', 'Lane Marking - General',
+    'Mountain', 'Sand', 'Sky', 'Snow', 'Terrain', 'Vegetation', 'Water',
+    'Banner', 'Bench', 'Bike Rack', 'Billboard', 'Catch Basin', 'CCTV Camera',
+    'Fire Hydrant', 'Junction Box', 'Mailbox', 'Manhole', 'Phone Booth',
+    'Pothole', 'Street Light', 'Pole', 'Traffic Sign Frame', 'Utility Pole',
+    'Traffic Light', 'Traffic Sign (Back)', 'Traffic Sign (Front)', 'Trash Can',
+    'Bicycle', 'Boat', 'Bus', 'Car', 'Caravan', 'Motorcycle', 'On Rails',
+    'Other Vehicle', 'Trailer', 'Truck', 'Wheeled Slow', 'Car Mount',
+    'Ego Vehicle', 'Unlabeled',
+)
+
 # Detection classes for BDD100k
 BDD100K_DET_CLASSES = (
     'pedestrian', 'rider', 'car', 'truck', 'bus', 'train',
@@ -272,8 +299,8 @@ DATASET_CONFIGS = {
         val_ann_dir='test/labels/MapillaryVistas',
         test_img_dir='test/images/MapillaryVistas',
         test_ann_dir='test/labels/MapillaryVistas',
-        num_classes=19,
-        classes=CITYSCAPES_CLASSES,  # Using unified labels
+        num_classes=66,  # Native 66 Mapillary classes
+        classes=MAPILLARY_CLASSES,  # Native Mapillary class names
         img_suffix='.jpg',  # MapillaryVistas images are JPEG
     ),
     'OUTSIDE15k': DatasetConfig(
@@ -286,8 +313,8 @@ DATASET_CONFIGS = {
         val_ann_dir='test/labels/OUTSIDE15k',
         test_img_dir='test/images/OUTSIDE15k',
         test_ann_dir='test/labels/OUTSIDE15k',
-        num_classes=19,
-        classes=CITYSCAPES_CLASSES,
+        num_classes=24,  # Native 24 OUTSIDE15k classes
+        classes=OUTSIDE15K_CLASSES,  # Native OUTSIDE15k class names
         img_suffix='.jpg',  # OUTSIDE15k images are JPEG
     ),
 }
@@ -1032,7 +1059,8 @@ class UnifiedTrainingConfig:
             config['_prove_config']['combined_strategy'] = f"{strategy}+{std_strategy}"
         
         config = self._add_dataset_config(config, dataset_cfg, domain_filter)
-        config = self._add_training_pipeline(config, dataset_cfg.task, aug_strategy, std_strategy, dataset)
+        # Single-dataset training: use native class labels (use_unified_labels=False)
+        config = self._add_training_pipeline(config, dataset_cfg.task, aug_strategy, std_strategy, dataset, use_unified_labels=False)
         config = self._add_augmentation_config(config, aug_strategy, conditions, real_gen_ratio, std_strategy)
         config = self._add_mixed_dataloader_config(config, dataset_cfg, aug_strategy, real_gen_ratio, domain_filter)
         config = self._set_work_dir(config, dataset, model, strategy, real_gen_ratio, domain_filter, std_strategy)
@@ -1159,7 +1187,8 @@ class UnifiedTrainingConfig:
             config['_prove_config']['std_strategy'] = std_strategy
             config['_prove_config']['combined_strategy'] = f"{strategy}+{std_strategy}"
         
-        config = self._add_training_pipeline(config, first_cfg.task, aug_strategy, std_strategy, datasets[0])
+        # Multi-dataset training: use unified labels mapped to Cityscapes 19-class (use_unified_labels=True)
+        config = self._add_training_pipeline(config, first_cfg.task, aug_strategy, std_strategy, datasets[0], use_unified_labels=True)
         config = self._add_augmentation_config(config, aug_strategy, conditions, real_gen_ratio, std_strategy)
         
         # Build multi-dataset train dataloader with ConcatDataset
@@ -1210,11 +1239,14 @@ class UnifiedTrainingConfig:
         batch_size = 2
         num_workers = 4
         
-        # Datasets that need specific label transformations:
+        # Datasets that need specific label transformations in UNIFIED mode:
+        # Multi-dataset training ALWAYS uses unified labels (Cityscapes 19-class)
         # - MapillaryVistas: 66-class labels → 19-class Cityscapes trainIDs
+        # - OUTSIDE15k: 24-class labels → 19-class Cityscapes trainIDs
         # - ACDC: Cityscapes label IDs (0-33) → Cityscapes trainIDs (0-18)
         # - BDD10k, IDD-AW: Already use Cityscapes trainIDs (no ID transform needed)
         MAPILLARY_DATASETS = {'MapillaryVistas', 'Mapillary'}
+        OUTSIDE15K_DATASETS = {'OUTSIDE15k'}
         CITYSCAPES_LABEL_ID_DATASETS = {'ACDC'}  # Use Cityscapes label ID format (7=road, 8=sidewalk, etc.)
         
         # Build individual dataset configs for ConcatDataset with per-dataset pipelines
@@ -1231,6 +1263,10 @@ class UnifiedTrainingConfig:
             if name in MAPILLARY_DATASETS:
                 # MapillaryVistas: needs MapillaryLabelTransform (66 → 19 classes)
                 config[pipeline_name] = self._build_mapillary_training_pipeline(cfg, is_baseline)
+                pipeline_ref = '{{' + pipeline_name + '}}'
+            elif name in OUTSIDE15K_DATASETS:
+                # OUTSIDE15k: needs Outside15kLabelTransform (24 → 19 classes)
+                config[pipeline_name] = self._build_outside15k_training_pipeline(cfg, is_baseline)
                 pipeline_ref = '{{' + pipeline_name + '}}'
             elif name in CITYSCAPES_LABEL_ID_DATASETS:
                 # ACDC: uses Cityscapes label IDs, needs CityscapesLabelIdToTrainId
@@ -1412,6 +1448,51 @@ class UnifiedTrainingConfig:
             # Handle labels stored as 3-channel PNGs
             dict(type='ReduceToSingleChannel'),
             # NO CityscapesLabelIdToTrainId - labels already in trainID format
+            dict(type='Resize', scale=(1024, 512), keep_ratio=True),
+        ]
+        
+        # Only add augmentations if not baseline
+        if not is_baseline:
+            pipeline.extend([
+                dict(type='RandomCrop', crop_size=crop_size, cat_max_ratio=0.75),
+                dict(type='RandomFlip', prob=0.5),
+                dict(type='PhotoMetricDistortion'),
+            ])
+        
+        pipeline.append(dict(type='PackSegInputs'))
+        
+        return pipeline
+    
+    def _build_outside15k_training_pipeline(self, dataset_cfg: DatasetConfig, is_baseline: bool = False) -> List[Dict]:
+        """
+        Build a training pipeline for OUTSIDE15k dataset with automatic label transformation.
+        
+        Includes Outside15kLabelTransform to convert 24 OUTSIDE15k classes to 19 Cityscapes trainIDs.
+        This allows joint training with other datasets using a unified label space.
+        
+        OUTSIDE15k native classes (24 classes, 0-23):
+            unlabeled, animal, barrier, bicycle, boat, bridge, building, grass,
+            ground, mountain, object, person, pole, road, sand, sidewalk, sign,
+            sky, street light, traffic light, tunnel, vegetation, vehicle, water
+        
+        Args:
+            dataset_cfg: Dataset configuration object
+            is_baseline: If True, skip data augmentation transforms
+            
+        Returns:
+            List of pipeline transforms
+        """
+        crop_size = (512, 512)
+        
+        # Pipeline with Outside15kLabelTransform added after LoadAnnotations
+        pipeline = [
+            dict(type='LoadImageFromFile'),
+            dict(type='LoadAnnotations'),
+            # Handle labels stored as 3-channel PNGs
+            dict(type='ReduceToSingleChannel'),
+            # Convert OUTSIDE15k labels (0-23) to Cityscapes trainIds (0-18, 255)
+            # Outside15kLabelTransform is registered in custom_transforms.py
+            dict(type='Outside15kLabelTransform'),
             dict(type='Resize', scale=(1024, 512), keep_ratio=True),
         ]
         
@@ -1838,6 +1919,7 @@ class UnifiedTrainingConfig:
         aug_strategy: AugmentationStrategy,
         std_strategy: Optional[str] = None,
         dataset: Optional[str] = None,
+        use_unified_labels: bool = False,
     ) -> Dict[str, Any]:
         """Add training data pipeline
         
@@ -1847,6 +1929,9 @@ class UnifiedTrainingConfig:
             aug_strategy: Main augmentation strategy
             std_strategy: Optional standard augmentation to combine
             dataset: Dataset name to determine correct label transformation
+            use_unified_labels: If True, map all labels to Cityscapes 19-class format
+                               (for multi-dataset training or domain adaptation).
+                               If False, use native class labels per dataset.
         """
         
         crop_size = (512, 512)
@@ -1860,17 +1945,24 @@ class UnifiedTrainingConfig:
         elif std_strategy is not None:
             std_aug_method = AUGMENTATION_STRATEGIES[std_strategy].standard_method
         
-        # Datasets that need label ID transformation:
-        # - ACDC: Cityscapes label IDs (0-33) → Cityscapes trainIDs (0-18)
-        # - Cityscapes: Same as ACDC (label IDs need transformation)
-        # - OUTSIDE15k: Also uses Cityscapes label IDs
-        # - MapillaryVistas: 66-class labels → 19-class Cityscapes trainIDs (separate transform)
-        # - BDD10k, IDD-AW: Already use Cityscapes trainIDs (no ID transform needed)
-        CITYSCAPES_LABEL_ID_DATASETS = {'ACDC', 'Cityscapes', 'OUTSIDE15k'}
+        # Label transformation logic:
+        # Single-dataset training: Use native class labels (no transforms except for ACDC/Cityscapes)
+        # Multi-dataset training: Map all labels to Cityscapes 19-class format (unified labels)
+        #
+        # Dataset native formats:
+        # - ACDC/Cityscapes: labelIds (0-33) - ALWAYS needs CityscapesLabelIdToTrainId transform
+        # - BDD10k, IDD-AW: Already Cityscapes trainIDs (0-18) - no transform needed
+        # - OUTSIDE15k: 24 native classes (0-23) - only transform in unified mode
+        # - MapillaryVistas: 66 native classes (0-65) - only transform in unified mode
+        CITYSCAPES_LABEL_ID_DATASETS = {'ACDC', 'Cityscapes'}
+        OUTSIDE15K_DATASETS = {'OUTSIDE15k'}
         MAPILLARY_DATASETS = {'MapillaryVistas', 'Mapillary'}
         
+        # ACDC/Cityscapes always need labelId->trainId conversion (format conversion)
         needs_label_id_transform = dataset in CITYSCAPES_LABEL_ID_DATASETS if dataset else True
-        needs_mapillary_transform = dataset in MAPILLARY_DATASETS if dataset else False
+        # OUTSIDE15k/Mapillary only need transforms in unified mode (multi-dataset training)
+        needs_outside15k_transform = use_unified_labels and (dataset in OUTSIDE15K_DATASETS) if dataset else False
+        needs_mapillary_transform = use_unified_labels and (dataset in MAPILLARY_DATASETS) if dataset else False
         
         pipeline = [
             dict(type='LoadImageFromFile'),
@@ -1882,10 +1974,15 @@ class UnifiedTrainingConfig:
         # Apply dataset-specific label transformation
         if needs_label_id_transform:
             # Convert Cityscapes full label IDs (0-33) to trainIds (0-18)
+            # This is always needed for ACDC/Cityscapes regardless of unified mode
             pipeline.append(dict(type='CityscapesLabelIdToTrainId'))
+        elif needs_outside15k_transform:
+            # Only in unified mode: Convert OUTSIDE15k 24 classes (0-23) to Cityscapes 19 trainIDs (0-18)
+            pipeline.append(dict(type='Outside15kLabelTransform'))
         elif needs_mapillary_transform:
-            # Convert Mapillary 66 classes to Cityscapes 19 trainIDs
+            # Only in unified mode: Convert Mapillary 66 classes to Cityscapes 19 trainIDs
             pipeline.append(dict(type='MapillaryLabelTransform', target_space='cityscapes'))
+        # Note: For single-dataset OUTSIDE15k/Mapillary, no transform needed - use native labels
         
         pipeline.append(dict(type='Resize', scale=(1024, 512), keep_ratio=True))
         
@@ -1924,13 +2021,17 @@ class UnifiedTrainingConfig:
             dict(type='ReduceToSingleChannel'),
         ]
         
-        # Apply dataset-specific label transformation
+        # Apply dataset-specific label transformation (same logic as train pipeline)
         if needs_label_id_transform:
             # Convert Cityscapes full label IDs (0-33) to trainIds (0-18)
             test_pipeline.append(dict(type='CityscapesLabelIdToTrainId'))
+        elif needs_outside15k_transform:
+            # Only in unified mode: Convert OUTSIDE15k 24 classes (0-23) to Cityscapes 19 trainIDs
+            test_pipeline.append(dict(type='Outside15kLabelTransform'))
         elif needs_mapillary_transform:
-            # Convert Mapillary 66 classes to Cityscapes 19 trainIDs
+            # Only in unified mode: Convert Mapillary 66 classes to Cityscapes 19 trainIDs
             test_pipeline.append(dict(type='MapillaryLabelTransform', target_space='cityscapes'))
+        # Note: For single-dataset OUTSIDE15k/Mapillary, no transform needed - use native labels
         
         test_pipeline.append(dict(type='Resize', scale=(1024, 512), keep_ratio=True))
         

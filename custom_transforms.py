@@ -190,3 +190,66 @@ class FWIoUMetric(IoUMetric):
         return metrics
 
 
+# OUTSIDE15k label ID to Cityscapes trainId mapping
+# OUTSIDE15k has 24 classes (0-23) that need to be mapped to Cityscapes trainId (0-18)
+OUTSIDE15K_TO_TRAINID = {
+    0: 255,   # unlabeled -> ignore
+    1: 255,   # animal -> ignore (no Cityscapes equivalent)
+    2: 4,     # barrier -> fence
+    3: 18,    # bicycle -> bicycle
+    4: 255,   # boat -> ignore
+    5: 255,   # bridge -> ignore
+    6: 2,     # building -> building
+    7: 8,     # grass -> vegetation
+    8: 9,     # ground -> terrain
+    9: 9,     # mountain -> terrain
+    10: 255,  # object -> ignore
+    11: 11,   # person -> person
+    12: 5,    # pole -> pole
+    13: 0,    # road -> road
+    14: 9,    # sand -> terrain
+    15: 1,    # sidewalk -> sidewalk
+    16: 7,    # sign -> traffic sign
+    17: 10,   # sky -> sky
+    18: 5,    # street light -> pole
+    19: 6,    # traffic light -> traffic light
+    20: 2,    # tunnel -> building
+    21: 8,    # vegetation -> vegetation
+    22: 13,   # vehicle -> car
+    23: 255,  # water -> ignore
+}
+
+
+@TRANSFORMS.register_module()
+class Outside15kLabelTransform(BaseTransform):
+    """Convert OUTSIDE15k label IDs (0-23) to Cityscapes trainIds (0-18, 255=ignore).
+    
+    OUTSIDE15k uses its own 24-class label format that needs to be mapped to
+    the standard Cityscapes trainId format for unified training/evaluation.
+    
+    Required Keys:
+        - gt_seg_map (np.ndarray): Segmentation ground truth with OUTSIDE15k label IDs
+        
+    Modified Keys:
+        - gt_seg_map (np.ndarray): Segmentation ground truth with trainIds (0-18, 255=ignore)
+    """
+    
+    def __init__(self):
+        # Create lookup table for fast mapping (values 0-255 to handle any input)
+        self.lut = np.full(256, 255, dtype=np.uint8)
+        for label_id, train_id in OUTSIDE15K_TO_TRAINID.items():
+            if 0 <= label_id < 256:
+                self.lut[label_id] = train_id
+    
+    def transform(self, results: dict) -> dict:
+        """Convert OUTSIDE15k label IDs to Cityscapes trainIds using lookup table."""
+        if 'gt_seg_map' in results:
+            seg_map = results['gt_seg_map']
+            # Use lookup table for fast vectorized conversion
+            results['gt_seg_map'] = self.lut[seg_map]
+        return results
+    
+    def __repr__(self) -> str:
+        return f'{self.__class__.__name__}()'
+
+

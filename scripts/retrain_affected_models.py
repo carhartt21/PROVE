@@ -5,9 +5,11 @@ Retrain models affected by the label transformation bug.
 This script generates LSF job scripts for retraining and retesting affected models.
 Each strategy gets its own job script that processes models sequentially.
 
-Affected datasets: BDD10k, IDD-AW, MapillaryVistas
-These datasets use trainID format labels but were incorrectly processed with
-CityscapesLabelIdToTrainId during training/testing.
+Affected datasets: BDD10k, IDD-AW, MapillaryVistas, OUTSIDE15k
+
+BDD10k, IDD-AW: Fixed bug - were incorrectly processed with CityscapesLabelIdToTrainId
+MapillaryVistas: Now uses native 66 classes (was unified to 19 classes)
+OUTSIDE15k: Now uses native 24 classes (was incorrectly mapped)
 
 Usage:
     python scripts/retrain_affected_models.py --generate-scripts
@@ -27,13 +29,14 @@ WEIGHTS_ROOT = Path("/scratch/aaa_exchange/AWARE/WEIGHTS")
 SCRIPTS_DIR = Path("/home/mima2416/repositories/PROVE/scripts/retrain_jobs")
 LOGS_DIR = Path("/home/mima2416/repositories/PROVE/logs/retrain")
 
-AFFECTED_DATASETS = ['bdd10k', 'idd-aw', 'mapillaryvistas']
+AFFECTED_DATASETS = ['bdd10k', 'idd-aw', 'mapillaryvistas', 'outside15k']
 
 # Dataset to config name mapping
 DATASET_CONFIG_MAP = {
     'bdd10k': 'BDD10k',
     'idd-aw': 'IDD-AW', 
     'mapillaryvistas': 'MapillaryVistas',
+    'outside15k': 'OUTSIDE15k',
 }
 
 # Model directory to model config name mapping
