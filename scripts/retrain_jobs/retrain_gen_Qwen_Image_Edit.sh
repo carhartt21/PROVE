@@ -28,17 +28,13 @@ echo "Strategy: gen_Qwen_Image_Edit"
 echo "Started: $(date)"
 echo "----------------------------------------"
 
-# Remove old checkpoints to force retraining
-rm -f /scratch/aaa_exchange/AWARE/WEIGHTS/gen_Qwen_Image_Edit/idd-aw/deeplabv3plus_r50/iter_*.pth 2>/dev/null
-rm -f /scratch/aaa_exchange/AWARE/WEIGHTS/gen_Qwen_Image_Edit/idd-aw/deeplabv3plus_r50/last_checkpoint 2>/dev/null
-
 # Train model
 python unified_training.py \
     --dataset IDD-AW \
     --model deeplabv3plus_r50 \
     --strategy gen_Qwen_Image_Edit \
-    \
-    --max_iters 80000
+     \
+    --max-iters 80000
 
 # Test model
 if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_Qwen_Image_Edit/idd-aw/deeplabv3plus_r50/iter_80000.pth" ]; then
@@ -61,17 +57,13 @@ echo "Strategy: gen_Qwen_Image_Edit"
 echo "Started: $(date)"
 echo "----------------------------------------"
 
-# Remove old checkpoints to force retraining
-rm -f /scratch/aaa_exchange/AWARE/WEIGHTS/gen_Qwen_Image_Edit/idd-aw/deeplabv3plus_r50_clear_day/iter_*.pth 2>/dev/null
-rm -f /scratch/aaa_exchange/AWARE/WEIGHTS/gen_Qwen_Image_Edit/idd-aw/deeplabv3plus_r50_clear_day/last_checkpoint 2>/dev/null
-
 # Train model
 python unified_training.py \
     --dataset IDD-AW \
     --model deeplabv3plus_r50 \
     --strategy gen_Qwen_Image_Edit \
-    --domain_filter clear_day\
-    --max_iters 80000
+    --domain-filter clear_day \
+    --max-iters 80000
 
 # Test model
 if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_Qwen_Image_Edit/idd-aw/deeplabv3plus_r50_clear_day/iter_80000.pth" ]; then
@@ -94,17 +86,13 @@ echo "Strategy: gen_Qwen_Image_Edit"
 echo "Started: $(date)"
 echo "----------------------------------------"
 
-# Remove old checkpoints to force retraining
-rm -f /scratch/aaa_exchange/AWARE/WEIGHTS/gen_Qwen_Image_Edit/idd-aw/pspnet_r50/iter_*.pth 2>/dev/null
-rm -f /scratch/aaa_exchange/AWARE/WEIGHTS/gen_Qwen_Image_Edit/idd-aw/pspnet_r50/last_checkpoint 2>/dev/null
-
 # Train model
 python unified_training.py \
     --dataset IDD-AW \
     --model pspnet_r50 \
     --strategy gen_Qwen_Image_Edit \
-    \
-    --max_iters 80000
+     \
+    --max-iters 80000
 
 # Test model
 if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_Qwen_Image_Edit/idd-aw/pspnet_r50/iter_80000.pth" ]; then
@@ -127,17 +115,13 @@ echo "Strategy: gen_Qwen_Image_Edit"
 echo "Started: $(date)"
 echo "----------------------------------------"
 
-# Remove old checkpoints to force retraining
-rm -f /scratch/aaa_exchange/AWARE/WEIGHTS/gen_Qwen_Image_Edit/idd-aw/pspnet_r50_clear_day/iter_*.pth 2>/dev/null
-rm -f /scratch/aaa_exchange/AWARE/WEIGHTS/gen_Qwen_Image_Edit/idd-aw/pspnet_r50_clear_day/last_checkpoint 2>/dev/null
-
 # Train model
 python unified_training.py \
     --dataset IDD-AW \
     --model pspnet_r50 \
     --strategy gen_Qwen_Image_Edit \
-    --domain_filter clear_day\
-    --max_iters 80000
+    --domain-filter clear_day \
+    --max-iters 80000
 
 # Test model
 if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_Qwen_Image_Edit/idd-aw/pspnet_r50_clear_day/iter_80000.pth" ]; then
@@ -160,17 +144,13 @@ echo "Strategy: gen_Qwen_Image_Edit"
 echo "Started: $(date)"
 echo "----------------------------------------"
 
-# Remove old checkpoints to force retraining
-rm -f /scratch/aaa_exchange/AWARE/WEIGHTS/gen_Qwen_Image_Edit/idd-aw/segformer_mit-b5/iter_*.pth 2>/dev/null
-rm -f /scratch/aaa_exchange/AWARE/WEIGHTS/gen_Qwen_Image_Edit/idd-aw/segformer_mit-b5/last_checkpoint 2>/dev/null
-
 # Train model
 python unified_training.py \
     --dataset IDD-AW \
     --model segformer_mit-b5 \
     --strategy gen_Qwen_Image_Edit \
-    \
-    --max_iters 80000
+     \
+    --max-iters 80000
 
 # Test model
 if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_Qwen_Image_Edit/idd-aw/segformer_mit-b5/iter_80000.pth" ]; then
@@ -193,17 +173,13 @@ echo "Strategy: gen_Qwen_Image_Edit"
 echo "Started: $(date)"
 echo "----------------------------------------"
 
-# Remove old checkpoints to force retraining
-rm -f /scratch/aaa_exchange/AWARE/WEIGHTS/gen_Qwen_Image_Edit/idd-aw/segformer_mit-b5_clear_day/iter_*.pth 2>/dev/null
-rm -f /scratch/aaa_exchange/AWARE/WEIGHTS/gen_Qwen_Image_Edit/idd-aw/segformer_mit-b5_clear_day/last_checkpoint 2>/dev/null
-
 # Train model
 python unified_training.py \
     --dataset IDD-AW \
     --model segformer_mit-b5 \
     --strategy gen_Qwen_Image_Edit \
-    --domain_filter clear_day\
-    --max_iters 80000
+    --domain-filter clear_day \
+    --max-iters 80000
 
 # Test model
 if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_Qwen_Image_Edit/idd-aw/segformer_mit-b5_clear_day/iter_80000.pth" ]; then
@@ -226,17 +202,13 @@ echo "Strategy: gen_Qwen_Image_Edit"
 echo "Started: $(date)"
 echo "----------------------------------------"
 
-# Remove old checkpoints to force retraining
-rm -f /scratch/aaa_exchange/AWARE/WEIGHTS/gen_Qwen_Image_Edit/mapillaryvistas/deeplabv3plus_r50/iter_*.pth 2>/dev/null
-rm -f /scratch/aaa_exchange/AWARE/WEIGHTS/gen_Qwen_Image_Edit/mapillaryvistas/deeplabv3plus_r50/last_checkpoint 2>/dev/null
-
 # Train model
 python unified_training.py \
     --dataset MapillaryVistas \
     --model deeplabv3plus_r50 \
     --strategy gen_Qwen_Image_Edit \
-    \
-    --max_iters 80000
+     \
+    --max-iters 80000
 
 # Test model
 if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_Qwen_Image_Edit/mapillaryvistas/deeplabv3plus_r50/iter_80000.pth" ]; then
@@ -259,17 +231,13 @@ echo "Strategy: gen_Qwen_Image_Edit"
 echo "Started: $(date)"
 echo "----------------------------------------"
 
-# Remove old checkpoints to force retraining
-rm -f /scratch/aaa_exchange/AWARE/WEIGHTS/gen_Qwen_Image_Edit/mapillaryvistas/deeplabv3plus_r50_clear_day/iter_*.pth 2>/dev/null
-rm -f /scratch/aaa_exchange/AWARE/WEIGHTS/gen_Qwen_Image_Edit/mapillaryvistas/deeplabv3plus_r50_clear_day/last_checkpoint 2>/dev/null
-
 # Train model
 python unified_training.py \
     --dataset MapillaryVistas \
     --model deeplabv3plus_r50 \
     --strategy gen_Qwen_Image_Edit \
-    --domain_filter clear_day\
-    --max_iters 80000
+    --domain-filter clear_day \
+    --max-iters 80000
 
 # Test model
 if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_Qwen_Image_Edit/mapillaryvistas/deeplabv3plus_r50_clear_day/iter_80000.pth" ]; then
@@ -292,17 +260,13 @@ echo "Strategy: gen_Qwen_Image_Edit"
 echo "Started: $(date)"
 echo "----------------------------------------"
 
-# Remove old checkpoints to force retraining
-rm -f /scratch/aaa_exchange/AWARE/WEIGHTS/gen_Qwen_Image_Edit/mapillaryvistas/pspnet_r50/iter_*.pth 2>/dev/null
-rm -f /scratch/aaa_exchange/AWARE/WEIGHTS/gen_Qwen_Image_Edit/mapillaryvistas/pspnet_r50/last_checkpoint 2>/dev/null
-
 # Train model
 python unified_training.py \
     --dataset MapillaryVistas \
     --model pspnet_r50 \
     --strategy gen_Qwen_Image_Edit \
-    \
-    --max_iters 80000
+     \
+    --max-iters 80000
 
 # Test model
 if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_Qwen_Image_Edit/mapillaryvistas/pspnet_r50/iter_80000.pth" ]; then
@@ -325,17 +289,13 @@ echo "Strategy: gen_Qwen_Image_Edit"
 echo "Started: $(date)"
 echo "----------------------------------------"
 
-# Remove old checkpoints to force retraining
-rm -f /scratch/aaa_exchange/AWARE/WEIGHTS/gen_Qwen_Image_Edit/mapillaryvistas/pspnet_r50_clear_day/iter_*.pth 2>/dev/null
-rm -f /scratch/aaa_exchange/AWARE/WEIGHTS/gen_Qwen_Image_Edit/mapillaryvistas/pspnet_r50_clear_day/last_checkpoint 2>/dev/null
-
 # Train model
 python unified_training.py \
     --dataset MapillaryVistas \
     --model pspnet_r50 \
     --strategy gen_Qwen_Image_Edit \
-    --domain_filter clear_day\
-    --max_iters 80000
+    --domain-filter clear_day \
+    --max-iters 80000
 
 # Test model
 if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_Qwen_Image_Edit/mapillaryvistas/pspnet_r50_clear_day/iter_80000.pth" ]; then
@@ -358,17 +318,13 @@ echo "Strategy: gen_Qwen_Image_Edit"
 echo "Started: $(date)"
 echo "----------------------------------------"
 
-# Remove old checkpoints to force retraining
-rm -f /scratch/aaa_exchange/AWARE/WEIGHTS/gen_Qwen_Image_Edit/mapillaryvistas/segformer_mit-b5/iter_*.pth 2>/dev/null
-rm -f /scratch/aaa_exchange/AWARE/WEIGHTS/gen_Qwen_Image_Edit/mapillaryvistas/segformer_mit-b5/last_checkpoint 2>/dev/null
-
 # Train model
 python unified_training.py \
     --dataset MapillaryVistas \
     --model segformer_mit-b5 \
     --strategy gen_Qwen_Image_Edit \
-    \
-    --max_iters 80000
+     \
+    --max-iters 80000
 
 # Test model
 if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_Qwen_Image_Edit/mapillaryvistas/segformer_mit-b5/iter_80000.pth" ]; then
@@ -391,17 +347,13 @@ echo "Strategy: gen_Qwen_Image_Edit"
 echo "Started: $(date)"
 echo "----------------------------------------"
 
-# Remove old checkpoints to force retraining
-rm -f /scratch/aaa_exchange/AWARE/WEIGHTS/gen_Qwen_Image_Edit/mapillaryvistas/segformer_mit-b5_clear_day/iter_*.pth 2>/dev/null
-rm -f /scratch/aaa_exchange/AWARE/WEIGHTS/gen_Qwen_Image_Edit/mapillaryvistas/segformer_mit-b5_clear_day/last_checkpoint 2>/dev/null
-
 # Train model
 python unified_training.py \
     --dataset MapillaryVistas \
     --model segformer_mit-b5 \
     --strategy gen_Qwen_Image_Edit \
-    --domain_filter clear_day\
-    --max_iters 80000
+    --domain-filter clear_day \
+    --max-iters 80000
 
 # Test model
 if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_Qwen_Image_Edit/mapillaryvistas/segformer_mit-b5_clear_day/iter_80000.pth" ]; then

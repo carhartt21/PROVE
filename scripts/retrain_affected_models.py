@@ -85,17 +85,13 @@ echo "Strategy: {strategy}"
 echo "Started: $(date)"
 echo "----------------------------------------"
 
-# Remove old checkpoints to force retraining
-rm -f {weights_path}/iter_*.pth 2>/dev/null
-rm -f {weights_path}/last_checkpoint 2>/dev/null
-
 # Train model
 python unified_training.py \\
     --dataset {dataset_config} \\
     --model {model_config} \\
     --strategy {strategy} \\
-    {domain_filter}\\
-    --max_iters 80000
+    {domain_filter} \\
+    --max-iters 80000
 
 # Test model
 if [ -f "{weights_path}/iter_80000.pth" ]; then
@@ -149,11 +145,11 @@ def get_affected_configurations():
     # Define model variants
     MODEL_VARIANTS = [
         ('deeplabv3plus_r50', ''),
-        ('deeplabv3plus_r50_clear_day', '--domain_filter clear_day'),
+        ('deeplabv3plus_r50_clear_day', '--domain-filter clear_day'),
         ('pspnet_r50', ''),
-        ('pspnet_r50_clear_day', '--domain_filter clear_day'),
+        ('pspnet_r50_clear_day', '--domain-filter clear_day'),
         ('segformer_mit-b5', ''),
-        ('segformer_mit-b5_clear_day', '--domain_filter clear_day'),
+        ('segformer_mit-b5_clear_day', '--domain-filter clear_day'),
     ]
     
     for strategy in STRATEGIES:
