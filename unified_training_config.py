@@ -1032,7 +1032,7 @@ class UnifiedTrainingConfig:
             config['_prove_config']['combined_strategy'] = f"{strategy}+{std_strategy}"
         
         config = self._add_dataset_config(config, dataset_cfg, domain_filter)
-        config = self._add_training_pipeline(config, dataset_cfg.task, aug_strategy, std_strategy)
+        config = self._add_training_pipeline(config, dataset_cfg.task, aug_strategy, std_strategy, dataset)
         config = self._add_augmentation_config(config, aug_strategy, conditions, real_gen_ratio, std_strategy)
         config = self._add_mixed_dataloader_config(config, dataset_cfg, aug_strategy, real_gen_ratio, domain_filter)
         config = self._set_work_dir(config, dataset, model, strategy, real_gen_ratio, domain_filter, std_strategy)
@@ -1159,7 +1159,7 @@ class UnifiedTrainingConfig:
             config['_prove_config']['std_strategy'] = std_strategy
             config['_prove_config']['combined_strategy'] = f"{strategy}+{std_strategy}"
         
-        config = self._add_training_pipeline(config, first_cfg.task, aug_strategy, std_strategy)
+        config = self._add_training_pipeline(config, first_cfg.task, aug_strategy, std_strategy, datasets[0])
         config = self._add_augmentation_config(config, aug_strategy, conditions, real_gen_ratio, std_strategy)
         
         # Build multi-dataset train dataloader with ConcatDataset
@@ -1837,6 +1837,7 @@ class UnifiedTrainingConfig:
         task: str,
         aug_strategy: AugmentationStrategy,
         std_strategy: Optional[str] = None,
+        dataset: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Add training data pipeline
         
@@ -1845,6 +1846,7 @@ class UnifiedTrainingConfig:
             task: Task type ('segmentation' or 'detection')
             aug_strategy: Main augmentation strategy
             std_strategy: Optional standard augmentation to combine
+            dataset: Dataset name to determine correct label transformation
         """
         
         crop_size = (512, 512)
@@ -1858,15 +1860,34 @@ class UnifiedTrainingConfig:
         elif std_strategy is not None:
             std_aug_method = AUGMENTATION_STRATEGIES[std_strategy].standard_method
         
+        # Datasets that need label ID transformation:
+        # - ACDC: Cityscapes label IDs (0-33) → Cityscapes trainIDs (0-18)
+        # - Cityscapes: Same as ACDC (label IDs need transformation)
+        # - OUTSIDE15k: Also uses Cityscapes label IDs
+        # - MapillaryVistas: 66-class labels → 19-class Cityscapes trainIDs (separate transform)
+        # - BDD10k, IDD-AW: Already use Cityscapes trainIDs (no ID transform needed)
+        CITYSCAPES_LABEL_ID_DATASETS = {'ACDC', 'Cityscapes', 'OUTSIDE15k'}
+        MAPILLARY_DATASETS = {'MapillaryVistas', 'Mapillary'}
+        
+        needs_label_id_transform = dataset in CITYSCAPES_LABEL_ID_DATASETS if dataset else True
+        needs_mapillary_transform = dataset in MAPILLARY_DATASETS if dataset else False
+        
         pipeline = [
             dict(type='LoadImageFromFile'),
             dict(type='LoadAnnotations'),  # reduce_zero_label set in dataset config
             # Handle labels stored as 3-channel PNGs (all channels identical class IDs)
             dict(type='ReduceToSingleChannel'),
-            # Convert Cityscapes full label IDs (0-33) to trainIds (0-18)
-            dict(type='CityscapesLabelIdToTrainId'),
-            dict(type='Resize', scale=(1024, 512), keep_ratio=True),
         ]
+        
+        # Apply dataset-specific label transformation
+        if needs_label_id_transform:
+            # Convert Cityscapes full label IDs (0-33) to trainIds (0-18)
+            pipeline.append(dict(type='CityscapesLabelIdToTrainId'))
+        elif needs_mapillary_transform:
+            # Convert Mapillary 66 classes to Cityscapes 19 trainIDs
+            pipeline.append(dict(type='MapillaryLabelTransform', target_space='cityscapes'))
+        
+        pipeline.append(dict(type='Resize', scale=(1024, 512), keep_ratio=True))
         
         # Only add augmentations if not baseline
         if not is_baseline:
@@ -1901,10 +1922,18 @@ class UnifiedTrainingConfig:
             dict(type='LoadAnnotations'),  # reduce_zero_label set in dataset config
             # Handle labels stored as 3-channel PNGs (all channels identical class IDs)
             dict(type='ReduceToSingleChannel'),
-            # Convert Cityscapes full label IDs (0-33) to trainIds (0-18)
-            dict(type='CityscapesLabelIdToTrainId'),
-            dict(type='Resize', scale=(1024, 512), keep_ratio=True),
         ]
+        
+        # Apply dataset-specific label transformation
+        if needs_label_id_transform:
+            # Convert Cityscapes full label IDs (0-33) to trainIds (0-18)
+            test_pipeline.append(dict(type='CityscapesLabelIdToTrainId'))
+        elif needs_mapillary_transform:
+            # Convert Mapillary 66 classes to Cityscapes 19 trainIDs
+            test_pipeline.append(dict(type='MapillaryLabelTransform', target_space='cityscapes'))
+        
+        test_pipeline.append(dict(type='Resize', scale=(1024, 512), keep_ratio=True))
+        
         if task == 'segmentation':
             test_pipeline.append(dict(type='PackSegInputs'))
         else:

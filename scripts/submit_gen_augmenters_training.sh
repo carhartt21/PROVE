@@ -88,7 +88,7 @@ for job in "${MISSING_MODELS[@]}"; do
     fi
     
     # Build LSF submission command
-    SUBMIT_CMD="bsub -J ${JOB_NAME} -q ${QUEUE} -n 4 -gpu \"num=1:mode=exclusive_process:gmodel=NVIDIAA100_PCIE_40GB:gmem=${GPU_MEM}\" -W ${MAX_TIME} -o logs/${JOB_NAME}_%J.log -e logs/${JOB_NAME}_%J.err \"${TRAIN_CMD}\""
+    SUBMIT_CMD="bsub -J ${JOB_NAME} -q ${QUEUE} -n 4 -gpu \"num=1:mode=exclusive_process:gmem=${GPU_MEM}\" -W ${MAX_TIME} -o logs/${JOB_NAME}_%J.log -e logs/${JOB_NAME}_%J.err \"${TRAIN_CMD}\""
     
     if [[ "$DRY_RUN" == "true" ]]; then
         echo "[DRY RUN] Would submit:"

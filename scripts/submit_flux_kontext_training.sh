@@ -6,7 +6,7 @@ cd /home/mima2416/repositories/PROVE
 
 # Common settings
 QUEUE="BatchGPU"
-GPU_TYPE="A100"
+# GPU_TYPE removed - any GPU is acceptable
 WALLTIME="24:00"
 MEM="16G"
 
@@ -22,7 +22,7 @@ STRATEGY="gen_flux_kontext"
 DATASET="MapillaryVistas"
 for MODEL in "${MODELS[@]}"; do
     JOB_NAME="prove_${DATASET}_${MODEL}_${STRATEGY}"
-    bsub -q $QUEUE -gpu "num=1:j_exclusive=yes:gmem=${MEM}:gmodel=${GPU_TYPE}" \
+    bsub -q $QUEUE -gpu "num=1:j_exclusive=yes:gmem=${MEM}" \
          -W $WALLTIME \
          -J "$JOB_NAME" \
          -o "logs/${JOB_NAME}_%J.log" \

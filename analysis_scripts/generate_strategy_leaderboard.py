@@ -57,6 +57,31 @@ except ImportError:
 
 # Weather domain classifications
 WEATHER_DOMAINS = ['clear_day', 'cloudy', 'dawn_dusk', 'foggy', 'night', 'rainy', 'snowy']
+def _normalize_domain_name(name: str) -> Optional[str]:
+    """Normalize various domain labels to canonical WEATHER_DOMAINS."""
+    if not name:
+        return None
+    s = name.strip().lower().replace('-', '_').replace(' ', '_')
+    # direct matches
+    if s in WEATHER_DOMAINS:
+        return s
+    # synonyms and substrings
+    if 'clear' in s or ('day' in s and 'night' not in s):
+        return 'clear_day'
+    if 'cloud' in s:
+        return 'cloudy'
+    if 'dawn' in s or 'dusk' in s or 'twilight' in s or 'sunrise' in s or 'sunset' in s:
+        return 'dawn_dusk'
+    if 'fog' in s or 'mist' in s:
+        return 'foggy'
+    if 'night' in s or 'dark' in s:
+        return 'night'
+    if 'rain' in s or 'wet' in s:
+        return 'rainy'
+    if 'snow' in s or 'ice' in s:
+        return 'snowy'
+    return None
+
 NORMAL_DOMAINS = ['clear_day', 'cloudy']  # Good weather conditions
 ADVERSE_DOMAINS = ['foggy', 'night', 'rainy', 'snowy']  # Challenging conditions
 TRANSITION_DOMAINS = ['dawn_dusk']  # Low light but not adverse
@@ -85,8 +110,9 @@ STRATEGY_TYPES = {
 }
 
 # Baseline configurations
-BASELINE_CLEAR_DAY = 'baseline_clear_day'  # Reference baseline (trained on clear_day only)
-BASELINE_FULL = 'baseline'  # Full baseline (trained on all conditions) - maps to 'baseline' in data
+# Note: baseline_clear_day is NOT a separate strategy label; it is baseline with model suffix "_clear_day".
+BASELINE_CLEAR_DAY_LABEL = 'baseline_clear_day'  # For display/reference only
+BASELINE_FULL = 'baseline'  # Full baseline (trained on all conditions)
 
 
 # ============================================================================
@@ -137,67 +163,190 @@ def load_results_csv(csv_path: Path) -> pd.DataFrame:
     return df
 
 
-def load_per_domain_results(weights_root: Path, strategy: str = 'baseline') -> Dict:
-    """Load per-domain results from test_report.txt files."""
-    
+def _find_latest_detailed_run_dir(detailed_root: Path) -> Optional[Path]:
+    """Find the latest timestamped subdirectory under test_results_detailed."""
+    if not detailed_root.exists():
+        return None
+    subdirs = [p for p in detailed_root.iterdir() if p.is_dir()]
+    if not subdirs:
+        return None
+    # Timestamps are lexically sortable (YYYYMMDD_HHMMSS)
+    return sorted(subdirs)[-1]
+
+def _read_per_domain_metrics_from_run(run_dir: Path) -> Optional[Dict[str, float]]:
+    """Read per-domain metrics from JSON/CSV/test_report.txt inside a detailed run directory."""
+    # Try JSON first
+    json_file = run_dir / 'metrics_per_domain.json'
+    if json_file.exists():
+        try:
+            with open(json_file, 'r') as f:
+                data = json.load(f)
+            # Newer format stores metrics under 'per_domain'
+            if isinstance(data, dict) and 'per_domain' in data:
+                per_domain = data['per_domain']
+            else:
+                per_domain = data
+            parsed = {}
+            if isinstance(per_domain, dict):
+                for k, v in per_domain.items():
+                    dom = _normalize_domain_name(k)
+                    if not dom:
+                        continue
+                    if isinstance(v, dict):
+                        if 'mIoU' in v:
+                            parsed[dom] = float(v['mIoU'])
+                        elif 'miou' in v:
+                            parsed[dom] = float(v['miou'])
+                        elif 'mIoU (%)' in v:
+                            parsed[dom] = float(v['mIoU (%)'])
+                        else:
+                            # Try any float value present
+                            for subk, subv in v.items():
+                                if isinstance(subv, (int, float)):
+                                    parsed[dom] = float(subv)
+                                    break
+                    elif isinstance(v, (int, float)):
+                        parsed[dom] = float(v)
+            return parsed if parsed else None
+        except Exception as e:
+            print(f"Error reading {json_file}: {e}")
+
+    # Try unified results.json produced by fine_grained_test.py
+    results_json = run_dir / 'results.json'
+    if results_json.exists():
+        try:
+            with open(results_json, 'r') as f:
+                data = json.load(f)
+            parsed = {}
+            # Expect structure: { 'per_domain': { domain: { 'summary': { 'mIoU': ... }, ... } } }
+            per_domain = data.get('per_domain', {}) if isinstance(data, dict) else {}
+            if isinstance(per_domain, dict):
+                for k, v in per_domain.items():
+                    dom = _normalize_domain_name(k)
+                    if not dom:
+                        continue
+                    miou_val = None
+                    if isinstance(v, dict):
+                        summary = v.get('summary') if 'summary' in v else v
+                        if isinstance(summary, dict):
+                            if 'mIoU' in summary:
+                                miou_val = summary['mIoU']
+                            elif 'miou' in summary:
+                                miou_val = summary['miou']
+                            elif 'mIoU (%)' in summary:
+                                miou_val = summary['mIoU (%)']
+                    if isinstance(miou_val, (int, float)):
+                        parsed[dom] = float(miou_val)
+            return parsed if parsed else None
+        except Exception as e:
+            print(f"Error reading {results_json}: {e}")
+
+    # Try CSV fallback
+    csv_file = run_dir / 'per_domain_metrics.csv'
+    if csv_file.exists():
+        try:
+            df = pd.read_csv(csv_file)
+            # Expect columns like 'domain' and 'mIoU'
+            domain_col = 'domain' if 'domain' in df.columns else 'Domain'
+            miou_col = 'mIoU' if 'mIoU' in df.columns else 'miou'
+            if domain_col in df.columns and miou_col in df.columns:
+                out = {}
+                for _, row in df.iterrows():
+                    dom = _normalize_domain_name(str(row[domain_col]))
+                    if dom:
+                        try:
+                            out[dom] = float(row[miou_col])
+                        except Exception:
+                            pass
+                return out if out else None
+        except Exception as e:
+            print(f"Error reading {csv_file}: {e}")
+
+    # Try parsing test_report.txt
+    report_file = run_dir / 'test_report.txt'
+    if report_file.exists():
+        try:
+            with open(report_file, 'r') as f:
+                content = f.read()
+            metrics = {}
+            for line in content.split('\n'):
+                lower = line.lower()
+                if 'miou' in lower:
+                    for domain in WEATHER_DOMAINS:
+                        if domain in lower:
+                            # Extract the first float in the line
+                            tokens = line.replace('%', '').replace(',', ' ').split()
+                            floats = []
+                            for t in tokens:
+                                try:
+                                    floats.append(float(t))
+                                except:
+                                    pass
+                            # Heuristic: last number is mIoU or the only number present
+                            if floats:
+                                dom = _normalize_domain_name(domain)
+                                if dom:
+                                    metrics[dom] = floats[-1]
+                            break
+            return metrics if metrics else None
+        except Exception as e:
+            print(f"Error parsing {report_file}: {e}")
+
+    return None
+
+def load_per_domain_results(weights_root: Path, strategy: str) -> Dict:
+    """Load per-domain results by locating latest detailed run and reading metrics.
+
+    Returns a dict keyed by (dataset, model) -> per-domain metrics dict.
+    """
     results = {}
     strategy_dir = weights_root / strategy
-    
+
     if not strategy_dir.exists():
-        print(f"Strategy directory not found: {strategy_dir}")
         return results
-    
+
     for dataset_dir in strategy_dir.iterdir():
         if not dataset_dir.is_dir():
             continue
         dataset = dataset_dir.name
-        
+
         for model_dir in dataset_dir.iterdir():
             if not model_dir.is_dir():
                 continue
             model = model_dir.name
-            
-            # Look for test_report.txt (per-domain results)
-            report_file = model_dir / 'test_report.txt'
-            if not report_file.exists():
+
+            detailed_root = model_dir / 'test_results_detailed'
+            run_dir = _find_latest_detailed_run_dir(detailed_root)
+            if run_dir is None:
                 continue
-            
-            # Parse per-domain results
-            try:
-                domain_results = parse_test_report(report_file)
-                if domain_results:
-                    key = f"{dataset}_{model}"
-                    results[key] = domain_results
-            except Exception as e:
-                print(f"Error parsing {report_file}: {e}")
-    
+            domain_metrics = _read_per_domain_metrics_from_run(run_dir)
+            if domain_metrics:
+                results[(dataset, model)] = domain_metrics
+
     return results
 
 
-def parse_test_report(report_file: Path) -> Dict:
-    """Parse per-domain results from test_report.txt."""
-    results = {}
-    
-    with open(report_file, 'r') as f:
-        content = f.read()
-    
-    # Look for domain-specific mIoU values
-    lines = content.split('\n')
-    for line in lines:
-        for domain in WEATHER_DOMAINS:
-            if domain in line.lower() and 'miou' in line.lower():
-                try:
-                    # Extract mIoU value - format varies
-                    parts = line.split()
-                    for i, part in enumerate(parts):
-                        if 'miou' in part.lower() and i + 1 < len(parts):
-                            value = float(parts[i + 1].strip('%,'))
-                            results[domain] = value
-                            break
-                except:
-                    pass
-    
-    return results
+def aggregate_normal_adverse(domain_metrics: Dict) -> Tuple[Optional[float], Optional[float]]:
+    """Aggregate normal and adverse mIoU from a per-domain metrics dict.
+
+    The metrics in JSON are expected to be percentages (e.g., 45.8). If some domains
+    are missing for a dataset, averages are computed over available domains in that group.
+    """
+    normal_vals = []
+    adverse_vals = []
+
+    for d in NORMAL_DOMAINS:
+        if d in domain_metrics and isinstance(domain_metrics[d], (int, float)):
+            normal_vals.append(domain_metrics[d])
+
+    for d in ADVERSE_DOMAINS:
+        if d in domain_metrics and isinstance(domain_metrics[d], (int, float)):
+            adverse_vals.append(domain_metrics[d])
+
+    normal_miou = float(np.mean(normal_vals)) if normal_vals else None
+    adverse_miou = float(np.mean(adverse_vals)) if adverse_vals else None
+
+    return normal_miou, adverse_miou
 
 
 # ============================================================================
@@ -241,230 +390,695 @@ def aggregate_strategy_metrics(df: pd.DataFrame, strategy: str) -> Dict:
     
     return metrics
 
-
-def get_per_domain_metrics(df: pd.DataFrame, strategy: str) -> Dict:
-    """Get per-domain metrics for a strategy if available."""
-    
-    # Check if per-domain data is available
-    strategy_df = df[(df['strategy'] == strategy) & (df['has_per_domain'] == True)]
-    
+def aggregate_strategy_metrics_for_models(df: pd.DataFrame, strategy: str, model_names: List[str]) -> Optional[Dict]:
+    """Aggregate metrics for a strategy restricted to specific model names."""
+    strategy_df = df[(df['strategy'] == strategy) & (df['model'].isin(model_names))]
     if strategy_df.empty:
         return None
+    return {
+        'strategy': strategy,
+        'overall_miou': strategy_df['mIoU'].mean(),
+        'overall_fwiou': strategy_df['fwIoU'].mean() if 'fwIoU' in strategy_df.columns else None,
+        'num_results': len(strategy_df),
+        'datasets': list(strategy_df['dataset'].unique()),
+        'models': list(strategy_df['model'].unique()),
+    }
+
+
+def compute_strategy_domain_aggregates(weights_root: Path, strategy: str) -> Tuple[Optional[float], Optional[float], Optional[float]]:
+    """Compute aggregated Normal mIoU, Adverse mIoU, and Domain Gap for a strategy.
+
+    Scans WEIGHTS/{strategy}/{dataset}/{model}/test_results_detailed/metrics_per_domain.json
+    Only includes standard models defined in MODELS.
+    """
+    per_config_normals = []
+    per_config_adverses = []
+
+    per_domain_all = load_per_domain_results(weights_root, strategy)
+    for (dataset, model), domain_metrics in per_domain_all.items():
+        if model not in MODELS:
+            # Skip clear_day variants and non-standard models
+            continue
+        normal_miou, adverse_miou = aggregate_normal_adverse(domain_metrics)
+        if normal_miou is not None and adverse_miou is not None:
+            per_config_normals.append(normal_miou)
+            per_config_adverses.append(adverse_miou)
+
+    if not per_config_normals or not per_config_adverses:
+        return None, None, None
+
+    normal_avg = float(np.mean(per_config_normals))
+    adverse_avg = float(np.mean(per_config_adverses))
+    gap = calculate_domain_gap(normal_avg, adverse_avg)
+    return normal_avg, adverse_avg, gap
+
+def compute_baseline_clearday_domain_gap(weights_root: Path) -> Optional[float]:
+    """Compute domain gap for baseline clear_day models.
+
+    Scans WEIGHTS/baseline/{dataset}/{model}_clear_day/test_results_detailed/metrics_per_domain.json
+    """
+    strategy = BASELINE_FULL
+    per_config_normals = []
+    per_config_adverses = []
+
+    strategy_dir = weights_root / strategy
+    if not strategy_dir.exists():
+        return None
+
+    for dataset_dir in strategy_dir.iterdir():
+        if not dataset_dir.is_dir():
+            continue
+        dataset = dataset_dir.name
+
+        for model in MODELS:
+            model_dir = dataset_dir / f"{model}_clear_day"
+            detailed_root = model_dir / 'test_results_detailed'
+            run_dir = _find_latest_detailed_run_dir(detailed_root)
+            if run_dir is None:
+                continue
+            domain_metrics = _read_per_domain_metrics_from_run(run_dir)
+            if not domain_metrics:
+                continue
+            # Normalize keys to lower-case
+            domain_metrics = {k.lower(): v for k, v in domain_metrics.items()}
+            normal_miou, adverse_miou = aggregate_normal_adverse(domain_metrics)
+            if normal_miou is not None and adverse_miou is not None:
+                per_config_normals.append(normal_miou)
+                per_config_adverses.append(adverse_miou)
+
+    if not per_config_normals or not per_config_adverses:
+        return None
+
+    normal_avg = float(np.mean(per_config_normals))
+    adverse_avg = float(np.mean(per_config_adverses))
+    return calculate_domain_gap(normal_avg, adverse_avg)
+
+def compute_baseline_clearday_domain_aggregates(weights_root: Path) -> Tuple[Optional[float], Optional[float], Optional[float]]:
+    """Compute Normal mIoU, Adverse mIoU, and Gap for baseline clear_day models.
+
+    Scans WEIGHTS/baseline/{dataset}/{model}_clear_day/test_results_detailed/metrics_per_domain.json
+    and aggregates across standard models.
+    """
+    strategy = BASELINE_FULL
+    per_config_normals = []
+    per_config_adverses = []
+
+    strategy_dir = weights_root / strategy
+    if not strategy_dir.exists():
+        return None, None, None
+
+    for dataset_dir in strategy_dir.iterdir():
+        if not dataset_dir.is_dir():
+            continue
+        for model in MODELS:
+            model_dir = dataset_dir / f"{model}_clear_day"
+            detailed_root = model_dir / 'test_results_detailed'
+            run_dir = _find_latest_detailed_run_dir(detailed_root)
+            if run_dir is None:
+                continue
+            domain_metrics = _read_per_domain_metrics_from_run(run_dir)
+            if not domain_metrics:
+                continue
+            domain_metrics = {k.lower(): v for k, v in domain_metrics.items()}
+            normal_miou, adverse_miou = aggregate_normal_adverse(domain_metrics)
+            if normal_miou is not None and adverse_miou is not None:
+                per_config_normals.append(normal_miou)
+                per_config_adverses.append(adverse_miou)
+
+    if not per_config_normals or not per_config_adverses:
+        return None, None, None
+
+    normal_avg = float(np.mean(per_config_normals))
+    adverse_avg = float(np.mean(per_config_adverses))
+    gap = calculate_domain_gap(normal_avg, adverse_avg)
+    return normal_avg, adverse_avg, gap
+
+def compute_strategy_clearday_domain_aggregates(weights_root: Path, strategy: str) -> Tuple[Optional[float], Optional[float], Optional[float]]:
+    """Compute Normal/Adverse/Gap for a strategy's clear_day-trained models.
+
+    Scans WEIGHTS/{strategy}/{dataset}/{model}_clear_day/...
+    """
+    per_config_normals = []
+    per_config_adverses = []
+
+    strategy_dir = weights_root / strategy
+    if not strategy_dir.exists():
+        return None, None, None
+
+    for dataset_dir in strategy_dir.iterdir():
+        if not dataset_dir.is_dir():
+            continue
+        for model in MODELS:
+            model_dir = dataset_dir / f"{model}_clear_day"
+            detailed_root = model_dir / 'test_results_detailed'
+            run_dir = _find_latest_detailed_run_dir(detailed_root)
+            if run_dir is None:
+                continue
+            domain_metrics = _read_per_domain_metrics_from_run(run_dir)
+            if not domain_metrics:
+                continue
+            domain_metrics = {k.lower(): v for k, v in domain_metrics.items()}
+            normal_miou, adverse_miou = aggregate_normal_adverse(domain_metrics)
+            if normal_miou is not None and adverse_miou is not None:
+                per_config_normals.append(normal_miou)
+                per_config_adverses.append(adverse_miou)
+
+    if not per_config_normals or not per_config_adverses:
+        return None, None, None
+
+    normal_avg = float(np.mean(per_config_normals))
+    adverse_avg = float(np.mean(per_config_adverses))
+    gap = calculate_domain_gap(normal_avg, adverse_avg)
+    return normal_avg, adverse_avg, gap
+
+def audit_per_domain_coverage(weights_root: Path) -> pd.DataFrame:
+    """Audit which domains are present in detailed results per strategy/dataset/model.
+
+    Produces columns: strategy, dataset, model, has_clear_day, has_cloudy, has_dawn_dusk,
+    has_foggy, has_night, has_rainy, has_snowy, normal_domains_present, adverse_domains_present,
+    total_domains_present.
+    """
+    records = []
+    weights_path = Path(weights_root)
+    for strategy_dir in weights_path.iterdir():
+        if not strategy_dir.is_dir():
+            continue
+        strategy = strategy_dir.name
+        for dataset_dir in strategy_dir.iterdir():
+            if not dataset_dir.is_dir():
+                continue
+            dataset = dataset_dir.name
+            for model_dir in dataset_dir.iterdir():
+                if not model_dir.is_dir():
+                    continue
+                model = model_dir.name
+                detailed_root = model_dir / 'test_results_detailed'
+                run_dir = _find_latest_detailed_run_dir(detailed_root)
+                if run_dir is None:
+                    continue
+                metrics = _read_per_domain_metrics_from_run(run_dir)
+                domains_present = set(metrics.keys()) if metrics else set()
+                rec = {
+                    'strategy': strategy,
+                    'dataset': dataset,
+                    'model': model,
+                    'has_clear_day': 'clear_day' in domains_present,
+                    'has_cloudy': 'cloudy' in domains_present,
+                    'has_dawn_dusk': 'dawn_dusk' in domains_present,
+                    'has_foggy': 'foggy' in domains_present,
+                    'has_night': 'night' in domains_present,
+                    'has_rainy': 'rainy' in domains_present,
+                    'has_snowy': 'snowy' in domains_present,
+                }
+                rec['normal_domains_present'] = int(rec['has_clear_day']) + int(rec['has_cloudy'])
+                rec['adverse_domains_present'] = int(rec['has_foggy']) + int(rec['has_night']) + int(rec['has_rainy']) + int(rec['has_snowy']) + int(rec['has_dawn_dusk'])
+                rec['total_domains_present'] = rec['normal_domains_present'] + rec['adverse_domains_present']
+                records.append(rec)
+    return pd.DataFrame(records)
+
+
+# ============================================================================
+# Per-Dataset and Per-Domain Detailed Analysis
+# ============================================================================
+
+def compute_per_dataset_miou(weights_root: Path, scope: str = 'full') -> pd.DataFrame:
+    """Compute mIoU per strategy and dataset from downstream_results.csv.
     
-    # This would require additional per-domain data loading
-    return None
+    Args:
+        weights_root: Path to WEIGHTS directory (not used, kept for API compatibility)
+        scope: 'full' for standard models, 'clear_day' for _clear_day suffix models
+    
+    Returns:
+        DataFrame with columns: Strategy, Dataset, mIoU, Num_Configs
+    """
+    # Load from downstream_results.csv
+    if not RESULTS_CSV.exists():
+        return pd.DataFrame()
+    
+    df = pd.read_csv(RESULTS_CSV)
+    
+    # Filter for the appropriate model scope
+    if scope == 'clear_day':
+        target_models = [f"{m}_clear_day" for m in MODELS]
+    else:
+        target_models = MODELS
+    
+    df = df[df['model'].isin(target_models)]
+    
+    if df.empty:
+        return pd.DataFrame()
+    
+    # Group by strategy and dataset, compute mean mIoU
+    records = []
+    for (strategy, dataset), group in df.groupby(['strategy', 'dataset']):
+        records.append({
+            'Strategy': strategy,
+            'Dataset': dataset,
+            'mIoU': group['mIoU'].mean(),
+            'Num_Configs': len(group)
+        })
+    
+    return pd.DataFrame(records)
+
+
+def compute_per_domain_miou(weights_root: Path, scope: str = 'full') -> pd.DataFrame:
+    """Compute mIoU per strategy and weather domain.
+    
+    Args:
+        weights_root: Path to WEIGHTS directory
+        scope: 'full' for standard models, 'clear_day' for _clear_day suffix models
+    
+    Returns:
+        DataFrame with columns: Strategy, Domain, mIoU, Num_Configs
+    """
+    model_suffix = '_clear_day' if scope == 'clear_day' else ''
+    target_models = [f"{m}{model_suffix}" for m in MODELS]
+    
+    # Collect per-domain metrics across all configs
+    domain_data = defaultdict(lambda: defaultdict(list))  # strategy -> domain -> [mIoU values]
+    
+    weights_path = Path(weights_root)
+    
+    for strategy_dir in weights_path.iterdir():
+        if not strategy_dir.is_dir():
+            continue
+        strategy = strategy_dir.name
+        
+        for dataset_dir in strategy_dir.iterdir():
+            if not dataset_dir.is_dir():
+                continue
+            
+            for model_dir in dataset_dir.iterdir():
+                if not model_dir.is_dir():
+                    continue
+                model = model_dir.name
+                if model not in target_models:
+                    continue
+                
+                # Read per-domain metrics
+                detailed_root = model_dir / 'test_results_detailed'
+                run_dir = _find_latest_detailed_run_dir(detailed_root)
+                if run_dir is None:
+                    continue
+                
+                domain_metrics = _read_per_domain_metrics_from_run(run_dir)
+                if not domain_metrics:
+                    continue
+                
+                # Normalize domain names and collect
+                for domain_name, miou in domain_metrics.items():
+                    normalized = _normalize_domain_name(domain_name)
+                    if normalized and isinstance(miou, (int, float)):
+                        domain_data[strategy][normalized].append(miou)
+    
+    # Build records
+    records = []
+    for strategy, domains in domain_data.items():
+        for domain, mious in domains.items():
+            if mious:
+                records.append({
+                    'Strategy': strategy,
+                    'Domain': domain,
+                    'mIoU': np.mean(mious),
+                    'Num_Configs': len(mious)
+                })
+    
+    return pd.DataFrame(records)
+
+
+def generate_per_dataset_gains_table(weights_root: Path, scope: str = 'full') -> pd.DataFrame:
+    """Generate table showing mIoU gain per strategy per dataset vs baseline_clear_day.
+    
+    Returns:
+        DataFrame with columns: Strategy, Type, dataset columns, Avg Gain, Normal Gain, Adverse Gain
+    """
+    per_dataset_df = compute_per_dataset_miou(weights_root, scope)
+    
+    if per_dataset_df.empty:
+        return pd.DataFrame()
+    
+    # Get baseline_clear_day per-dataset mIoU (always use clear_day scope for baseline)
+    baseline_df = compute_per_dataset_miou(weights_root, 'clear_day')
+    baseline_df = baseline_df[baseline_df['Strategy'] == BASELINE_FULL]
+    
+    baseline_miou_by_dataset = {}
+    for _, row in baseline_df.iterrows():
+        baseline_miou_by_dataset[row['Dataset']] = row['mIoU']
+    
+    # Get per-domain gains for Normal/Adverse summaries
+    per_domain_gains = generate_per_domain_gains_table(weights_root, scope)
+    domain_gains_by_strategy = {}
+    if not per_domain_gains.empty:
+        for _, row in per_domain_gains.iterrows():
+            domain_gains_by_strategy[row['Strategy']] = {
+                'Normal Gain': row.get('Normal Gain'),
+                'Adverse Gain': row.get('Adverse Gain')
+            }
+    
+    # Pivot to have datasets as columns
+    datasets = sorted(per_dataset_df['Dataset'].unique())
+    
+    # Group by strategy and compute gains
+    records = []
+    for strategy in sorted(per_dataset_df['Strategy'].unique()):
+        strategy_data = per_dataset_df[per_dataset_df['Strategy'] == strategy]
+        
+        # Determine type
+        if strategy.startswith('gen_'):
+            strategy_type = 'Generative'
+        elif strategy.startswith('std_'):
+            strategy_type = 'Standard Aug'
+        elif strategy in STRATEGY_TYPES:
+            strategy_type = STRATEGY_TYPES[strategy]
+        else:
+            strategy_type = 'Other'
+        
+        row = {'Strategy': strategy, 'Type': strategy_type}
+        
+        overall_gains = []
+        for dataset in datasets:
+            ds_data = strategy_data[strategy_data['Dataset'] == dataset]
+            if not ds_data.empty and dataset in baseline_miou_by_dataset:
+                miou = ds_data.iloc[0]['mIoU']
+                baseline = baseline_miou_by_dataset[dataset]
+                gain = miou - baseline
+                row[dataset] = round(gain, 2)
+                overall_gains.append(gain)
+            else:
+                row[dataset] = None
+        
+        # Add average gain
+        row['Avg Gain'] = round(np.mean(overall_gains), 2) if overall_gains else None
+        
+        # Add Normal Gain and Adverse Gain from per-domain analysis
+        if strategy in domain_gains_by_strategy:
+            row['Normal Gain'] = domain_gains_by_strategy[strategy].get('Normal Gain')
+            row['Adverse Gain'] = domain_gains_by_strategy[strategy].get('Adverse Gain')
+        else:
+            row['Normal Gain'] = None
+            row['Adverse Gain'] = None
+        
+        records.append(row)
+    
+    result_df = pd.DataFrame(records)
+    
+    # Sort: baselines first, then by Avg Gain descending
+    def sort_key(row):
+        if row['Strategy'] == 'baseline_clear_day' or (row['Strategy'] == BASELINE_FULL and scope == 'clear_day'):
+            return (0, 0)
+        if row['Strategy'] == BASELINE_FULL:
+            return (1, -row['Avg Gain'] if row['Avg Gain'] is not None else 999)
+        return (2, -row['Avg Gain'] if row['Avg Gain'] is not None else 999)
+    
+    result_df['_sort'] = result_df.apply(sort_key, axis=1)
+    result_df = result_df.sort_values('_sort').drop(columns=['_sort'])
+    
+    # Reorder columns: Strategy, Type, datasets, Avg Gain, Normal Gain, Adverse Gain
+    col_order = ['Strategy', 'Type'] + datasets + ['Avg Gain', 'Normal Gain', 'Adverse Gain']
+    result_df = result_df[[c for c in col_order if c in result_df.columns]]
+    
+    return result_df
+
+
+def generate_per_domain_gains_table(weights_root: Path, scope: str = 'full') -> pd.DataFrame:
+    """Generate table showing mIoU gain per strategy per domain vs baseline_clear_day.
+    
+    Returns:
+        DataFrame with columns: Strategy, Type, and one column per domain showing gain
+    """
+    per_domain_df = compute_per_domain_miou(weights_root, scope)
+    
+    if per_domain_df.empty:
+        return pd.DataFrame()
+    
+    # Get baseline_clear_day per-domain mIoU (always use clear_day scope for baseline)
+    baseline_df = compute_per_domain_miou(weights_root, 'clear_day')
+    baseline_df = baseline_df[baseline_df['Strategy'] == BASELINE_FULL]
+    
+    baseline_miou_by_domain = {}
+    for _, row in baseline_df.iterrows():
+        baseline_miou_by_domain[row['Domain']] = row['mIoU']
+    
+    # Use canonical domain order
+    domain_order = NORMAL_DOMAINS + TRANSITION_DOMAINS + ADVERSE_DOMAINS
+    available_domains = [d for d in domain_order if d in per_domain_df['Domain'].unique()]
+    
+    # Group by strategy and compute gains
+    records = []
+    for strategy in sorted(per_domain_df['Strategy'].unique()):
+        strategy_data = per_domain_df[per_domain_df['Strategy'] == strategy]
+        
+        # Determine type
+        if strategy.startswith('gen_'):
+            strategy_type = 'Generative'
+        elif strategy.startswith('std_'):
+            strategy_type = 'Standard Aug'
+        elif strategy in STRATEGY_TYPES:
+            strategy_type = STRATEGY_TYPES[strategy]
+        else:
+            strategy_type = 'Other'
+        
+        row = {'Strategy': strategy, 'Type': strategy_type}
+        
+        normal_gains = []
+        adverse_gains = []
+        all_gains = []
+        
+        for domain in available_domains:
+            dom_data = strategy_data[strategy_data['Domain'] == domain]
+            if not dom_data.empty and domain in baseline_miou_by_domain:
+                miou = dom_data.iloc[0]['mIoU']
+                baseline = baseline_miou_by_domain[domain]
+                gain = miou - baseline
+                row[domain] = round(gain, 2)
+                all_gains.append(gain)
+                if domain in NORMAL_DOMAINS:
+                    normal_gains.append(gain)
+                elif domain in ADVERSE_DOMAINS:
+                    adverse_gains.append(gain)
+            else:
+                row[domain] = None
+        
+        # Add group averages (renamed to Gain for consistency)
+        row['Normal Gain'] = round(np.mean(normal_gains), 2) if normal_gains else None
+        row['Adverse Gain'] = round(np.mean(adverse_gains), 2) if adverse_gains else None
+        row['Overall Avg'] = round(np.mean(all_gains), 2) if all_gains else None
+        records.append(row)
+    
+    result_df = pd.DataFrame(records)
+    
+    # Sort: baselines first, then by Overall Avg descending
+    def sort_key(row):
+        if row['Strategy'] == 'baseline_clear_day' or (row['Strategy'] == BASELINE_FULL and scope == 'clear_day'):
+            return (0, 0)
+        if row['Strategy'] == BASELINE_FULL:
+            return (1, -row['Overall Avg'] if row['Overall Avg'] is not None else 999)
+        return (2, -row['Overall Avg'] if row['Overall Avg'] is not None else 999)
+    
+    result_df['_sort'] = result_df.apply(sort_key, axis=1)
+    result_df = result_df.sort_values('_sort').drop(columns=['_sort'])
+    
+    # Reorder columns: Strategy, Type, domains in order, then aggregates
+    col_order = ['Strategy', 'Type'] + available_domains + ['Normal Gain', 'Adverse Gain', 'Overall Avg']
+    result_df = result_df[[c for c in col_order if c in result_df.columns]]
+    
+    return result_df
+
+
+def format_gains_table_markdown(df: pd.DataFrame, title: str, description: str = "") -> str:
+    """Format a gains table as markdown."""
+    lines = [
+        f"## {title}",
+        "",
+    ]
+    if description:
+        lines.append(description)
+        lines.append("")
+    
+    # Format header
+    header = "| " + " | ".join(df.columns) + " |"
+    separator = "| " + " | ".join(["---" if c in ['Strategy', 'Type'] else "---:" for c in df.columns]) + " |"
+    lines.append(header)
+    lines.append(separator)
+    
+    # Format rows
+    for _, row in df.iterrows():
+        values = []
+        for col in df.columns:
+            val = row[col]
+            if pd.isna(val) or val is None:
+                values.append("-")
+            elif isinstance(val, float):
+                # Format gains with sign
+                if col not in ['Strategy', 'Type']:
+                    values.append(f"{val:+.2f}" if val != 0 else "0.00")
+                else:
+                    values.append(str(val))
+            else:
+                values.append(str(val))
+        lines.append("| " + " | ".join(values) + " |")
+    
+    return "\n".join(lines)
 
 
 # ============================================================================
 # Leaderboard Generation
 # ============================================================================
 
-def generate_leaderboard(df: pd.DataFrame, per_domain_results: Dict = None) -> pd.DataFrame:
-    """Generate strategy leaderboard with all metrics.
+def _build_unified_fallback_map() -> Dict[str, Dict[str, Optional[float]]]:
+    """Load unified domain results and map by strategy name for fallback."""
+    unified_df = load_unified_domain_results()
+    unified_data: Dict[str, Dict[str, Optional[float]]] = {}
+    if unified_df is not None and 'strategy' in unified_df.columns:
+        for _, row in unified_df.iterrows():
+            s = row['strategy']
+            unified_data[s] = {
+                'normal_mIoU': row.get('normal_mIoU') if 'normal_mIoU' in unified_df.columns else row.get('normal_miou'),
+                'adverse_mIoU': row.get('adverse_mIoU') if 'adverse_mIoU' in unified_df.columns else row.get('adverse_miou'),
+                'domain_gap': row.get('domain_gap')
+            }
+    return unified_data
+
+
+def generate_leaderboard_for_scope(main_df: pd.DataFrame, weights_root: Path, scope: str,
+                                   baseline_clearday_miou: Optional[float], baseline_clearday_gap: Optional[float],
+                                   unified_fallback: Optional[Dict[str, Dict[str, Optional[float]]]] = None) -> pd.DataFrame:
+    """Generate leaderboard for a given scope: 'full' or 'clear_day'."""
+    strategies = sorted(main_df['strategy'].unique())
+    rows: List[Dict] = []
     
-    Gap reduction is calculated relative to baseline_clear_day (models trained only on clear_day).
-    This shows how much each strategy improves over a model that never saw adverse weather.
-    """
-    
-    strategies = df['strategy'].unique()
-    
-    # Calculate baseline_clear_day metrics first (the reference)
-    baseline_clearday_metrics = aggregate_strategy_metrics(df, BASELINE_CLEAR_DAY)
-    
-    # Also get baseline_full for comparison
-    baseline_full_metrics = aggregate_strategy_metrics(df, BASELINE_FULL)
-    
-    leaderboard_data = []
-    
-    for strategy in sorted(strategies):
-        metrics = aggregate_strategy_metrics(df, strategy)
-        
-        if metrics is None:
-            continue
-        
-        # Determine strategy type
-        if strategy.startswith('gen_'):
-            strategy_type = 'Generative'
-        elif strategy.startswith('std_'):
-            strategy_type = 'Standard Aug'
-        elif strategy in STRATEGY_TYPES:
-            strategy_type = STRATEGY_TYPES[strategy]
-        else:
-            strategy_type = 'Other'
-        
-        row = {
+    # Get baseline_clear_day Normal and Adverse mIoU for computing gains
+    baseline_cd_normal, baseline_cd_adverse, _ = compute_baseline_clearday_domain_aggregates(weights_root)
+
+    def add_row(strategy: str, strategy_type: str, overall: Optional[float], normal: Optional[float], adverse: Optional[float], domain_gap: Optional[float], num_results: int):
+        gain_vs_clearday = None
+        if baseline_clearday_miou is not None and overall is not None:
+            gain_vs_clearday = overall - baseline_clearday_miou
+        gap_reduction = None
+        if domain_gap is not None and baseline_clearday_gap is not None:
+            gap_reduction = baseline_clearday_gap - domain_gap
+        # Compute Normal and Adverse gains vs baseline_clear_day
+        normal_gain = None
+        if baseline_cd_normal is not None and normal is not None:
+            normal_gain = normal - baseline_cd_normal
+        adverse_gain = None
+        if baseline_cd_adverse is not None and adverse is not None:
+            adverse_gain = adverse - baseline_cd_adverse
+        rows.append({
             'Strategy': strategy,
             'Type': strategy_type,
-            'Overall mIoU': metrics['overall_miou'],
-            'Normal mIoU': None,  # Needs per-domain data
-            'Adverse mIoU': None,  # Needs per-domain data
-            'Domain Gap (Δ)': None,  # Needs per-domain data
-            'Gap Reduction': None,  # Needs per-domain data
-            'Num Results': metrics['num_results'],
-        }
-        
-        leaderboard_data.append(row)
-    
-    leaderboard_df = pd.DataFrame(leaderboard_data)
-    
-    # Sort by Overall mIoU (descending)
-    leaderboard_df = leaderboard_df.sort_values('Overall mIoU', ascending=False)
-    
-    return leaderboard_df
+            'Overall mIoU': round(overall, 2) if overall is not None else None,
+            'Gain vs Clear Day': round(gain_vs_clearday, 2) if gain_vs_clearday is not None else None,
+            'Normal mIoU': round(normal, 2) if normal is not None else None,
+            'Normal Gain': round(normal_gain, 2) if normal_gain is not None else None,
+            'Adverse mIoU': round(adverse, 2) if adverse is not None else None,
+            'Adverse Gain': round(adverse_gain, 2) if adverse_gain is not None else None,
+            'Domain Gap (Δ)': round(domain_gap, 2) if domain_gap is not None else None,
+            'Gap Reduction vs Clear Day': round(gap_reduction, 2) if gap_reduction is not None else None,
+            'Num Results': num_results,
+        })
+
+    # Baselines first
+    if scope == 'clear_day':
+        cd_normal, cd_adverse, cd_gap = compute_baseline_clearday_domain_aggregates(weights_root)
+        clear_models = [f"{m}_clear_day" for m in MODELS]
+        cd_metrics = aggregate_strategy_metrics_for_models(main_df, BASELINE_FULL, clear_models)
+        add_row('baseline_clear_day', STRATEGY_TYPES.get('baseline_clear_day', 'Baseline Clear Day'),
+                cd_metrics['overall_miou'] if cd_metrics else None, cd_normal, cd_adverse, cd_gap, cd_metrics['num_results'] if cd_metrics else 0)
+    else:
+        # Include clear-day baseline as reference
+        cd_normal, cd_adverse, cd_gap = compute_baseline_clearday_domain_aggregates(weights_root)
+        clear_models = [f"{m}_clear_day" for m in MODELS]
+        cd_metrics = aggregate_strategy_metrics_for_models(main_df, BASELINE_FULL, clear_models)
+        add_row('baseline_clear_day', STRATEGY_TYPES.get('baseline_clear_day', 'Baseline Clear Day'),
+                cd_metrics['overall_miou'] if cd_metrics else None, cd_normal, cd_adverse, cd_gap, cd_metrics['num_results'] if cd_metrics else 0)
+        # Baseline full row
+        bf_metrics = aggregate_strategy_metrics(main_df, BASELINE_FULL)
+        bf_normal, bf_adverse, bf_gap = compute_strategy_domain_aggregates(weights_root, BASELINE_FULL)
+        if (bf_normal is None or bf_adverse is None or bf_gap is None) and unified_fallback is not None and BASELINE_FULL in unified_fallback:
+            uf = unified_fallback[BASELINE_FULL]
+            bf_normal = bf_normal if bf_normal is not None else uf.get('normal_mIoU')
+            bf_adverse = bf_adverse if bf_adverse is not None else uf.get('adverse_mIoU')
+            if bf_gap is None and bf_normal is not None and bf_adverse is not None:
+                bf_gap = calculate_domain_gap(bf_normal, bf_adverse)
+        add_row('baseline', STRATEGY_TYPES.get('baseline', 'Baseline Full'),
+                bf_metrics['overall_miou'] if bf_metrics else None, bf_normal, bf_adverse, bf_gap, bf_metrics['num_results'] if bf_metrics else 0)
+
+    # Strategy rows
+    for strategy in strategies:
+        # Avoid duplicating baseline rows we already added
+        if strategy == BASELINE_FULL:
+            continue
+        stype = 'Generative' if strategy.startswith('gen_') else ('Standard Aug' if strategy.startswith('std_') else STRATEGY_TYPES.get(strategy, 'Other'))
+        if scope == 'clear_day':
+            model_names = [f"{m}_clear_day" for m in MODELS]
+            met = aggregate_strategy_metrics_for_models(main_df, strategy, model_names)
+            if met is None:
+                continue
+            nrm, adv, gap = compute_strategy_clearday_domain_aggregates(weights_root, strategy)
+            add_row(strategy, stype, met['overall_miou'], nrm, adv, gap, met['num_results'])
+        else:
+            met = aggregate_strategy_metrics(main_df, strategy)
+            if met is None:
+                continue
+            nrm, adv, gap = compute_strategy_domain_aggregates(weights_root, strategy)
+            if (nrm is None or adv is None or gap is None) and unified_fallback is not None and strategy in unified_fallback:
+                uf = unified_fallback[strategy]
+                if nrm is None:
+                    nrm = uf.get('normal_mIoU')
+                if adv is None:
+                    adv = uf.get('adverse_mIoU')
+                if gap is None and nrm is not None and adv is not None:
+                    gap = calculate_domain_gap(nrm, adv)
+            add_row(strategy, stype, met['overall_miou'], nrm, adv, gap, met['num_results'])
+
+    df = pd.DataFrame(rows)
+    # Baselines at the top
+    order = ['baseline_clear_day'] if scope == 'clear_day' else ['baseline_clear_day', 'baseline']
+    df['__order'] = df['Strategy'].apply(lambda s: order.index(s) if s in order else len(order))
+    df = df.sort_values(['__order', 'Overall mIoU'], ascending=[True, False]).drop(columns='__order')
+    return df
 
 
-def load_unified_domain_results() -> pd.DataFrame:
-    """Load results from unified_domain_gap analysis if available."""
-    
-    results_dir = PROJECT_ROOT / 'result_figures' / 'unified_domain_gap'
-    
-    # Try loading strategy summary
-    summary_file = results_dir / 'strategy_summary.csv'
-    if summary_file.exists():
-        return pd.read_csv(summary_file)
-    
-    # Try loading all domain results
-    all_results_file = results_dir / 'all_domain_results.csv'
-    if all_results_file.exists():
-        return pd.read_csv(all_results_file)
-    
-    return None
-
-
-def generate_comprehensive_leaderboard() -> pd.DataFrame:
-    """Generate comprehensive leaderboard using all available data sources.
-    
-    Uses main test results for overall mIoU across all strategies,
-    and supplements with unified domain gap results for per-domain metrics when available.
-    
-    **IMPORTANT**: Gap reduction is calculated relative to baseline_clear_day
-    (models trained only on clear_day data), NOT baseline_full.
-    """
-    
+def generate_comprehensive_leaderboards(weights_root: Path = WEIGHTS_ROOT) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    """Generate two leaderboards: full-trained and clear_day-trained."""
     print("=" * 70)
-    print("Generating Strategy Leaderboard")
+    print("Generating Strategy Leaderboards (Full and Clear-Day)")
     print("=" * 70)
     print("Reference Baseline: baseline_clear_day (trained on clear_day only)")
     print("=" * 70)
-    
-    # Load main results (this is the primary source with all strategies)
+
     main_df = load_results_csv(RESULTS_CSV)
-    
-    # Get baseline_clear_day metrics for reference
-    baseline_clearday_metrics = aggregate_strategy_metrics(main_df, BASELINE_CLEAR_DAY)
-    baseline_clearday_miou = baseline_clearday_metrics['overall_miou'] if baseline_clearday_metrics else None
-    
-    # Also get baseline_full metrics for comparison
+    clearday_analysis = analyze_baseline_clear_day(main_df)
+    baseline_clearday_miou = clearday_analysis['overall_miou'] if clearday_analysis else None
     baseline_full_metrics = aggregate_strategy_metrics(main_df, BASELINE_FULL)
     baseline_full_miou = baseline_full_metrics['overall_miou'] if baseline_full_metrics else None
-    
     print(f"  Baseline Clear Day mIoU: {baseline_clearday_miou:.2f}%" if baseline_clearday_miou else "  Baseline Clear Day: NOT FOUND")
     print(f"  Baseline Full mIoU: {baseline_full_miou:.2f}%" if baseline_full_miou else "  Baseline Full: NOT FOUND")
-    
-    # Try to load unified domain gap results for per-domain metrics
-    unified_df = load_unified_domain_results()
-    unified_data = {}
-    
-    if unified_df is not None and 'strategy' in unified_df.columns:
-        print(f"Loaded per-domain data for {len(unified_df)} strategies")
-        
-        # Index unified data by strategy for quick lookup
-        for _, row in unified_df.iterrows():
-            strategy = row['strategy']
-            unified_data[strategy] = {
-                'normal_mIoU': row.get('normal_mIoU'),
-                'adverse_mIoU': row.get('adverse_mIoU'),
-                'domain_gap': row.get('domain_gap'),
-                'gap_reduction': row.get('gap_reduction'),  # This might be computed vs old baseline
-            }
-    
-    # Get baseline_clear_day domain gap for recalculating gap_reduction
-    baseline_clearday_gap = None
-    if BASELINE_CLEAR_DAY in unified_data:
-        baseline_clearday_gap = unified_data[BASELINE_CLEAR_DAY].get('domain_gap')
-    
-    # Generate leaderboard from main results
-    print(f"Generating leaderboard from {len(main_df)} test results")
-    
-    strategies = main_df['strategy'].unique()
-    leaderboard_data = []
-    
-    for strategy in sorted(strategies):
-        metrics = aggregate_strategy_metrics(main_df, strategy)
-        
-        if metrics is None:
-            continue
-        
-        # Determine strategy type
-        if strategy.startswith('gen_'):
-            strategy_type = 'Generative'
-        elif strategy.startswith('std_'):
-            strategy_type = 'Standard Aug'
-        elif strategy in STRATEGY_TYPES:
-            strategy_type = STRATEGY_TYPES[strategy]
-        else:
-            strategy_type = 'Other'
-        
-        # Get per-domain metrics from unified data if available
-        normal_miou = None
-        adverse_miou = None
-        domain_gap = None
-        gap_reduction = None
-        
-        if strategy in unified_data:
-            ud = unified_data[strategy]
-            normal_miou = ud.get('normal_mIoU')
-            adverse_miou = ud.get('adverse_mIoU')
-            domain_gap = ud.get('domain_gap')
-            
-            # Recalculate gap reduction relative to baseline_clear_day
-            if domain_gap is not None and baseline_clearday_gap is not None:
-                gap_reduction = baseline_clearday_gap - domain_gap
-        
-        # Calculate gain vs baseline_clear_day
-        gain_vs_clearday = None
-        if baseline_clearday_miou is not None and metrics['overall_miou'] is not None:
-            gain_vs_clearday = metrics['overall_miou'] - baseline_clearday_miou
-        
-        row = {
-            'Strategy': strategy,
-            'Type': strategy_type,
-            'Overall mIoU': round(metrics['overall_miou'], 2) if metrics['overall_miou'] else None,
-            'Gain vs Clear Day': round(gain_vs_clearday, 2) if gain_vs_clearday is not None else None,
-            'Normal mIoU': round(normal_miou, 2) if normal_miou is not None else None,
-            'Adverse mIoU': round(adverse_miou, 2) if adverse_miou is not None else None,
-            'Domain Gap (Δ)': round(domain_gap, 2) if domain_gap is not None else None,
-            'Gap Reduction vs Clear Day': round(gap_reduction, 2) if gap_reduction is not None else None,
-            'Num Results': metrics['num_results'],
-        }
-        
-        leaderboard_data.append(row)
-    
-    leaderboard_df = pd.DataFrame(leaderboard_data)
-    
-    # Sort by Overall mIoU (descending)
-    leaderboard_df = leaderboard_df.sort_values('Overall mIoU', ascending=False)
-    
-    print(f"Generated leaderboard with {len(leaderboard_df)} strategies")
-    
-    return leaderboard_df
+    baseline_clearday_gap = compute_baseline_clearday_domain_gap(weights_root)
+    unified_fallback = _build_unified_fallback_map()
+
+    full_df = generate_leaderboard_for_scope(main_df, weights_root, 'full', baseline_clearday_miou, baseline_clearday_gap, unified_fallback)
+    clear_df = generate_leaderboard_for_scope(main_df, weights_root, 'clear_day', baseline_clearday_miou, baseline_clearday_gap, None)
+    print(f"Generated leaderboards: full={len(full_df)} strategies, clear_day={len(clear_df)} strategies")
+    return full_df, clear_df
 
 
-def load_unified_domain_results() -> pd.DataFrame:
+def load_unified_domain_results() -> Optional[pd.DataFrame]:
     """Load results from unified_domain_gap analysis if available."""
-    
     results_dir = PROJECT_ROOT / 'result_figures' / 'unified_domain_gap'
-    
-    # Try loading strategy summary
     summary_file = results_dir / 'strategy_summary.csv'
     if summary_file.exists():
-        return pd.read_csv(summary_file)
-    
-    # Try loading all domain results
+        try:
+            return pd.read_csv(summary_file)
+        except Exception:
+            return None
     all_results_file = results_dir / 'all_domain_results.csv'
     if all_results_file.exists():
-        return pd.read_csv(all_results_file)
-    
+        try:
+            return pd.read_csv(all_results_file)
+        except Exception:
+            return None
     return None
 
 
@@ -485,7 +1099,9 @@ def format_leaderboard_markdown(df: pd.DataFrame, title: str = "Strategy Leaderb
         "- **Overall mIoU**: Mean Intersection over Union across all domains",
         "- **Gain vs Clear Day**: Overall mIoU improvement vs baseline_clear_day (positive = better)",
         "- **Normal mIoU**: Performance on clear_day + cloudy conditions",
+        "- **Normal Gain**: Normal mIoU improvement vs baseline_clear_day (positive = better)",
         "- **Adverse mIoU**: Performance on foggy, rainy, snowy, night conditions",
+        "- **Adverse Gain**: Adverse mIoU improvement vs baseline_clear_day (positive = better)",
         "- **Domain Gap (Δ)**: Normal - Adverse (positive = worse on adverse)",
         "- **Gap Reduction vs Clear Day**: Domain gap improvement vs baseline_clear_day (positive = smaller gap)",
         "",
@@ -497,9 +1113,9 @@ def format_leaderboard_markdown(df: pd.DataFrame, title: str = "Strategy Leaderb
         "",
     ]
     
-    # Add table - prioritize gain vs clear_day column
-    cols = ['Strategy', 'Type', 'Overall mIoU', 'Gain vs Clear Day', 'Normal mIoU', 'Adverse mIoU', 
-            'Domain Gap (Δ)', 'Gap Reduction vs Clear Day']
+    # Add table - include Normal Gain and Adverse Gain columns
+    cols = ['Strategy', 'Type', 'Overall mIoU', 'Gain vs Clear Day', 'Normal mIoU', 'Normal Gain',
+            'Adverse mIoU', 'Adverse Gain', 'Domain Gap (Δ)', 'Gap Reduction vs Clear Day']
     available_cols = [c for c in cols if c in df.columns]
     
     # Header
@@ -514,7 +1130,7 @@ def format_leaderboard_markdown(df: pd.DataFrame, title: str = "Strategy Leaderb
             if pd.isna(val) or val is None:
                 values.append("-")
             elif isinstance(val, float):
-                if 'Gap' in col:
+                if 'Gain' in col or 'Gap' in col:
                     values.append(f"{val:+.1f}%" if val != 0 else "0.0%")
                 else:
                     values.append(f"{val:.1f}%")
@@ -563,7 +1179,8 @@ def analyze_baseline_clear_day(df: pd.DataFrame) -> Dict:
     """Analyze baseline_clear_day (models trained only on clear day) performance."""
     
     clear_day_models = [f"{m}_clear_day" for m in MODELS]
-    clearday_df = df[df['model'].isin(clear_day_models)]
+    # Restrict to baseline strategy models trained on clear_day only
+    clearday_df = df[(df['strategy'] == BASELINE_FULL) & (df['model'].isin(clear_day_models))]
     
     if clearday_df.empty:
         return None
@@ -665,44 +1282,170 @@ def main():
         print("   WARNING: No clear_day baseline results found!")
         print("   Gap reduction calculations will be unavailable.")
     
-    # Generate leaderboard
-    print("\n4. Generating comprehensive leaderboard...")
-    leaderboard_df = generate_comprehensive_leaderboard()
-    
-    # Print leaderboard
+    # Generate leaderboards (Full + Clear-Day)
+    print("\n4. Generating comprehensive leaderboards (full and clear-day)...")
+    full_df, clear_df = generate_comprehensive_leaderboards(weights_path)
+
+    # Print summaries
     print("\n" + "=" * 70)
-    print("STRATEGY LEADERBOARD")
+    print("FULL-TRAINED STRATEGY LEADERBOARD")
     print("Reference Baseline: baseline_clear_day")
     print("=" * 70)
-    print(leaderboard_df.to_string(index=False))
+    print(full_df.to_string(index=False))
+    print("\n" + "=" * 70)
+    print("CLEAR-DAY TRAINED STRATEGY LEADERBOARD")
+    print("Reference Baseline: baseline_clear_day")
+    print("=" * 70)
+    print(clear_df.to_string(index=False))
     
-    # Save outputs
-    if args.output:
-        output_file = Path(args.output)
-    else:
-        output_file = OUTPUT_DIR / 'STRATEGY_LEADERBOARD.md'
-    
-    md_content = format_leaderboard_markdown(leaderboard_df)
+    # Save outputs (Markdown with two sections)
+    output_file = Path(args.output) if args.output else OUTPUT_DIR / 'STRATEGY_LEADERBOARD.md'
+    md_sections = []
+    md_sections.append(format_leaderboard_markdown(full_df, title="Strategy Leaderboard (Full-Trained)"))
+    md_sections.append("")
+    md_sections.append(format_leaderboard_markdown(clear_df, title="Strategy Leaderboard (Clear-Day Trained)"))
     with open(output_file, 'w') as f:
-        f.write(md_content)
-    print(f"\nLeaderboard saved to: {output_file}")
+        f.write("\n\n".join(md_sections))
+    print(f"\nLeaderboards saved to: {output_file}")
     
-    csv_file = args.csv if args.csv else OUTPUT_DIR / 'strategy_leaderboard.csv'
-    leaderboard_df.to_csv(csv_file, index=False)
-    print(f"CSV saved to: {csv_file}")
+    # Generate per-dataset and per-domain gains tables
+    print("\n5. Generating per-dataset and per-domain gains tables...")
+    
+    # Per-Dataset Gains (Full-Trained)
+    per_dataset_full = generate_per_dataset_gains_table(weights_path, scope='full')
+    if not per_dataset_full.empty:
+        print(f"   Per-Dataset Gains (Full): {len(per_dataset_full)} strategies")
+    
+    # Per-Dataset Gains (Clear-Day Trained)
+    per_dataset_clear = generate_per_dataset_gains_table(weights_path, scope='clear_day')
+    if not per_dataset_clear.empty:
+        print(f"   Per-Dataset Gains (Clear-Day): {len(per_dataset_clear)} strategies")
+    
+    # Per-Domain Gains (Full-Trained)
+    per_domain_full = generate_per_domain_gains_table(weights_path, scope='full')
+    if not per_domain_full.empty:
+        print(f"   Per-Domain Gains (Full): {len(per_domain_full)} strategies")
+    
+    # Per-Domain Gains (Clear-Day Trained)
+    per_domain_clear = generate_per_domain_gains_table(weights_path, scope='clear_day')
+    if not per_domain_clear.empty:
+        print(f"   Per-Domain Gains (Clear-Day): {len(per_domain_clear)} strategies")
+    
+    # Sanity check: warn about large discrepancies between Avg Gain and Normal/Adverse Gain
+    print("\n6. Sanity check - checking for data coverage issues...")
+    for scope_name, ds_df in [('Full', per_dataset_full), ('Clear-Day', per_dataset_clear)]:
+        if ds_df.empty:
+            continue
+        for _, row in ds_df.iterrows():
+            avg_gain = row.get('Avg Gain')
+            normal_gain = row.get('Normal Gain')
+            adverse_gain = row.get('Adverse Gain')
+            strategy = row['Strategy']
+            
+            # Check for sign mismatch: Avg Gain positive but both Normal/Adverse negative (or vice versa)
+            if avg_gain is not None and normal_gain is not None and adverse_gain is not None:
+                if (avg_gain > 0 and normal_gain < -1 and adverse_gain < -1) or \
+                   (avg_gain < -1 and normal_gain > 0 and adverse_gain > 0):
+                    print(f"   ⚠️  {scope_name} {strategy}: Avg Gain ({avg_gain:+.2f}) vs Normal ({normal_gain:+.2f}) / Adverse ({adverse_gain:+.2f}) - different data coverage")
+    
+    # Save detailed gains tables to separate markdown file
+    detailed_output_file = OUTPUT_DIR / 'DETAILED_GAINS.md'
+    detailed_sections = [
+        "# Detailed Per-Dataset and Per-Domain mIoU Gains",
+        "",
+        "All gains are computed relative to **baseline_clear_day** (trained only on clear_day data).",
+        "",
+        "**Important Notes:**",
+        "- **Avg Gain** = Average improvement across available datasets (from overall mIoU)",
+        "- **Normal Gain / Adverse Gain** = Improvement from per-domain detailed test results",
+        "- These metrics may come from different data subsets for strategies with incomplete coverage",
+        "- Strategies with '-' entries have missing data for those columns",
+        "",
+        "---",
+        ""
+    ]
+    
+    if not per_dataset_full.empty:
+        detailed_sections.append(format_gains_table_markdown(
+            per_dataset_full,
+            title="Per-Dataset mIoU Gains (Full-Trained Models)",
+            description="Shows mIoU improvement over baseline_clear_day for each dataset. Positive = better than baseline.\n\n**Columns:** Dataset gains from overall mIoU; Normal/Adverse Gain from per-domain metrics (may have different coverage)."
+        ))
+        detailed_sections.append("")
+        detailed_sections.append("---")
+        detailed_sections.append("")
+    
+    if not per_dataset_clear.empty:
+        detailed_sections.append(format_gains_table_markdown(
+            per_dataset_clear,
+            title="Per-Dataset mIoU Gains (Clear-Day Trained Models)",
+            description="Shows mIoU improvement over baseline_clear_day for models trained only on clear_day data."
+        ))
+        detailed_sections.append("")
+        detailed_sections.append("---")
+        detailed_sections.append("")
+    
+    if not per_domain_full.empty:
+        detailed_sections.append(format_gains_table_markdown(
+            per_domain_full,
+            title="Per-Domain mIoU Gains (Full-Trained Models)",
+            description="Shows mIoU improvement over baseline_clear_day for each weather domain. Normal = clear_day + cloudy. Adverse = foggy, night, rainy, snowy."
+        ))
+        detailed_sections.append("")
+        detailed_sections.append("---")
+        detailed_sections.append("")
+    
+    if not per_domain_clear.empty:
+        detailed_sections.append(format_gains_table_markdown(
+            per_domain_clear,
+            title="Per-Domain mIoU Gains (Clear-Day Trained Models)",
+            description="Shows mIoU improvement over baseline_clear_day for models trained only on clear_day data."
+        ))
+    
+    with open(detailed_output_file, 'w') as f:
+        f.write("\n".join(detailed_sections))
+    print(f"Detailed gains saved to: {detailed_output_file}")
+    
+    # Save CSVs for detailed tables
+    if not per_dataset_full.empty:
+        per_dataset_full.to_csv(OUTPUT_DIR / 'per_dataset_gains_full.csv', index=False)
+    if not per_dataset_clear.empty:
+        per_dataset_clear.to_csv(OUTPUT_DIR / 'per_dataset_gains_clear_day.csv', index=False)
+    if not per_domain_full.empty:
+        per_domain_full.to_csv(OUTPUT_DIR / 'per_domain_gains_full.csv', index=False)
+    if not per_domain_clear.empty:
+        per_domain_clear.to_csv(OUTPUT_DIR / 'per_domain_gains_clear_day.csv', index=False)
+    print(f"Detailed gains CSVs saved to: {OUTPUT_DIR}")
+    
+    # Save CSVs
+    csv_full = OUTPUT_DIR / 'strategy_leaderboard_full.csv'
+    csv_clear = OUTPUT_DIR / 'strategy_leaderboard_clear_day.csv'
+    full_df.to_csv(csv_full, index=False)
+    clear_df.to_csv(csv_clear, index=False)
+    # Backward-compatibility: keep primary CSV as full
+    csv_file = Path(args.csv) if args.csv else OUTPUT_DIR / 'strategy_leaderboard.csv'
+    full_df.to_csv(csv_file, index=False)
+    print(f"CSV saved to: {csv_file}\nFull CSV: {csv_full}\nClear-Day CSV: {csv_clear}")
     
     # Also save analysis summary
     summary = {
         'baseline_full': baseline_analysis,
         'baseline_clear_day': clearday_analysis,  # This is the reference
         'reference_baseline': 'baseline_clear_day',
-        'leaderboard_rows': len(leaderboard_df),
+        'leaderboard_rows_full': len(full_df),
+        'leaderboard_rows_clear': len(clear_df),
     }
     
     summary_file = OUTPUT_DIR / 'analysis_summary.json'
     with open(summary_file, 'w') as f:
         json.dump(summary, f, indent=2, default=str)
     print(f"Analysis summary saved to: {summary_file}")
+
+    # Produce per-domain coverage audit
+    coverage_df = audit_per_domain_coverage(weights_path)
+    coverage_file = OUTPUT_DIR / 'per_domain_coverage.csv'
+    coverage_df.to_csv(coverage_file, index=False)
+    print(f"Coverage audit saved to: {coverage_file} ({len(coverage_df)} rows)")
 
 
 if __name__ == '__main__':

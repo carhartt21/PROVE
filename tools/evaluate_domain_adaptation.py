@@ -75,7 +75,8 @@ ACDC_DOMAINS = ['foggy', 'night', 'rainy', 'snowy']
 
 # Cityscapes represents "clear_day" condition for domain adaptation study
 # Structure: test/images/Cityscapes/{city}/ and test/labels/Cityscapes/{city}/
-CITYSCAPES_CITIES = ['berlin', 'bielefeld', 'bonn', 'leverkusen', 'mainz', 'munich']
+# Note: Cityscapes TEST split contains only these 3 cities
+CITYSCAPES_CITIES = ['frankfurt', 'lindau', 'munster']
 
 # Combined domains for evaluation: clear_day (Cityscapes) + adverse (ACDC)
 ALL_DOMAINS = ['clear_day'] + ACDC_DOMAINS
@@ -272,28 +273,44 @@ def load_model(model_name: str, checkpoint_path: str, device: str = 'cuda'):
     """Load segmentation model from checkpoint."""
     try:
         from mmseg.apis import init_model
-        from unified_training_config import UnifiedTrainingConfig
+        from mmseg.utils import register_all_modules
+        import mmseg
         
-        # Build config for model
-        config = UnifiedTrainingConfig()
+        # Register all modules
+        register_all_modules()
         
-        # We need a base config - use ACDC as placeholder since we're only loading weights
-        cfg = config.build(
-            dataset='ACDC',
-            model=model_name,
-            strategy='baseline',
-            config_only=True
-        )
+        # Get mmseg config directory
+        mmseg_path = Path(mmseg.__file__).parent
+        mim_configs = mmseg_path / '.mim' / 'configs'
+        
+        # Map model names to config files
+        config_map = {
+            'deeplabv3plus_r50': ('deeplabv3plus', 'deeplabv3plus_r50-d8_4xb2-80k_cityscapes-512x1024.py'),
+            'pspnet_r50': ('pspnet', 'pspnet_r50-d8_4xb2-80k_cityscapes-512x1024.py'), 
+            'segformer_mit-b5': ('segformer', 'segformer_mit-b5_8xb1-160k_cityscapes-1024x1024.py'),
+        }
+        
+        if model_name not in config_map:
+            raise ValueError(f"Unknown model: {model_name}")
+        
+        subdir, config_name = config_map[model_name]
+        config_path = mim_configs / subdir / config_name
+        
+        if not config_path.exists():
+            raise FileNotFoundError(f"Config file not found: {config_path}")
         
         # Initialize model with checkpoint
-        model = init_model(cfg, checkpoint_path, device=device)
+        model = init_model(str(config_path), checkpoint_path, device=device)
         model.eval()
         
         return model
         
-    except ImportError:
-        print("Error: mmseg not available. Please install mmengine and mmseg.")
-        sys.exit(1)
+    except ImportError as e:
+        print(f"Error: mmseg not available: {e}")
+        raise
+    except Exception as e:
+        print(f"Error loading model with mmseg: {e}")
+        raise
 
 
 def load_model_torchvision(model_name: str, checkpoint_path: str, num_classes: int = 19, device: str = 'cuda'):
@@ -426,7 +443,8 @@ def evaluate_model_on_acdc(
             image = np.array(Image.open(img_path).convert('RGB'))
             label = np.array(Image.open(label_path))
             
-            # Transform ACDC label from Cityscapes labelID to trainID
+            # All labels (ACDC and Cityscapes) are in Cityscapes labelID format
+            # Convert to trainID format (0-18)
             label = transform_acdc_label(label)
             
             # Resize image if needed (model may expect specific size)

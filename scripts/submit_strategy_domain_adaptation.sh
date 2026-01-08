@@ -198,90 +198,15 @@ submit_strategy_job() {
     local log_dir="${PROJECT_ROOT}/logs/domain_adaptation_strategies"
     mkdir -p "$log_dir"
     
-    # Determine which variants to evaluate
-    local variants=("\"\"")  # Always include full model
+    # Build evaluation command using the standalone Python script
+    local clearday_flag=""
     if [[ "$include_clearday" == "true" ]]; then
-        variants+=("\"_clear_day\"")
+        clearday_flag="--include-clearday"
     fi
-    local variants_str=$(IFS=,; echo "${variants[*]}")
     
-    # Build Python evaluation script
-    # This runs sequentially through all models for the strategy
-    local python_script="
-import sys
-sys.path.insert(0, '${PROJECT_ROOT}')
-from tools.evaluate_domain_adaptation import run_evaluation, get_checkpoint_path
+    local eval_cmd="python ${PROJECT_ROOT}/tools/run_strategy_domain_adaptation.py --strategy ${strategy} --weights-root ${WEIGHTS_ROOT} ${clearday_flag}"
 
-STRATEGY = '${strategy}'
-WEIGHTS_ROOT = '${WEIGHTS_ROOT}'
-SOURCE_DATASETS = ['BDD10k', 'IDD-AW', 'MapillaryVistas']
-BASE_MODELS = ['deeplabv3plus_r50', 'pspnet_r50', 'segformer_mit-b5']
-VARIANTS = [${variants_str}]
-
-print(f'\\n{\"=\"*70}')
-print(f'Strategy Domain Adaptation Evaluation: {STRATEGY}')
-print(f'{\"=\"*70}')
-print(f'Evaluating on Cityscapes (clear_day) + ACDC (foggy, night, rainy, snowy)')
-print(f'{\"=\"*70}\\n')
-
-results_count = 0
-errors = []
-
-for source in SOURCE_DATASETS:
-    for model in BASE_MODELS:
-        for variant in VARIANTS:
-            full_model = model + variant
-            
-            # Build checkpoint path manually for strategy
-            from pathlib import Path
-            ckpt_dir = Path(WEIGHTS_ROOT) / STRATEGY / source.lower() / full_model
-            ckpt_path = ckpt_dir / 'iter_80000.pth'
-            
-            if not ckpt_path.exists():
-                print(f'SKIP: No checkpoint for {STRATEGY}/{source}/{full_model}')
-                continue
-            
-            print(f'\\n{\"=\"*70}')
-            print(f'Evaluating: {STRATEGY} / {source} / {full_model}')
-            print(f'{\"=\"*70}')
-            
-            try:
-                result = run_evaluation(
-                    source_dataset=source,
-                    model=model,
-                    checkpoint_path=str(ckpt_path),
-                    variant=variant
-                )
-                
-                if result:
-                    results_count += 1
-                    # Save result to strategy-specific location
-                    output_dir = Path('${WEIGHTS_ROOT}') / 'domain_adaptation_ablation' / STRATEGY / source.lower() / full_model
-                    output_dir.mkdir(parents=True, exist_ok=True)
-                    
-                    import json
-                    result_file = output_dir / 'domain_adaptation_evaluation.json'
-                    with open(result_file, 'w') as f:
-                        json.dump(result, f, indent=2)
-                    print(f'Saved to: {result_file}')
-                    
-            except Exception as e:
-                print(f'ERROR: {e}')
-                errors.append(f'{source}/{full_model}: {e}')
-
-print(f'\\n{\"=\"*70}')
-print(f'EVALUATION COMPLETE')
-print(f'{\"=\"*70}')
-print(f'Strategy: {STRATEGY}')
-print(f'Successful evaluations: {results_count}')
-print(f'Errors: {len(errors)}')
-if errors:
-    print('Error details:')
-    for err in errors:
-        print(f'  - {err}')
-"
-
-    # LSF submission command
+    # LSF submission command (source ~/.bashrc for conda)
     local submit_cmd="bsub -gpu \"num=1:mode=${gpu_mode}:gmem=${gpu_mem}\" \
         -q ${queue} \
         -W ${max_time} \
@@ -291,13 +216,14 @@ if errors:
         -eo \"${log_dir}/${jobname}_%J.err\" \
         -L /bin/bash \
         -J \"${jobname}\" \
-        \"conda activate ${CONDA_ENV}; python -c '${python_script}'\""
+        \"source ~/.bashrc && conda activate ${CONDA_ENV} && ${eval_cmd}\""
     
     if [[ "$dry_run" == "true" ]]; then
         echo "  [DRY-RUN] Would submit: $jobname"
         echo "    Strategy: $strategy"
         echo "    Models: $model_count"
         echo "    Include clear_day: $include_clearday"
+        echo "    Command: $eval_cmd"
         echo ""
     else
         echo "  Submitting: $jobname"

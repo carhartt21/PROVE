@@ -65,6 +65,25 @@ DATASET_DOMAINS = {
     'OUTSIDE15k': ['clear_day', 'cloudy', 'dawn_dusk', 'foggy', 'night', 'rainy', 'snowy'],
 }
 
+# Map lowercase dataset names to folder names (for case-insensitive lookup)
+DATASET_FOLDER_MAP = {
+    'acdc': 'ACDC',
+    'bdd10k': 'BDD10k',
+    'bdd100k': 'BDD100k',
+    'cityscapes': 'Cityscapes',
+    'idd-aw': 'IDD-AW',
+    'mapillaryvistas': 'MapillaryVistas',
+    'outside15k': 'OUTSIDE15k',
+    # Also add proper case versions
+    'ACDC': 'ACDC',
+    'BDD10k': 'BDD10k',
+    'BDD100k': 'BDD100k',
+    'Cityscapes': 'Cityscapes',
+    'IDD-AW': 'IDD-AW',
+    'MapillaryVistas': 'MapillaryVistas',
+    'OUTSIDE15k': 'OUTSIDE15k',
+}
+
 # Cityscapes class names (19 classes)
 CITYSCAPES_CLASSES = [
     'road', 'sidewalk', 'building', 'wall', 'fence', 'pole',
@@ -193,6 +212,10 @@ def run_fine_grained_test(
     creating multiple Runners.
     """
     
+    # Normalize dataset name to match folder structure in FINAL_SPLITS
+    folder_name = DATASET_FOLDER_MAP.get(dataset_name, dataset_name)
+    print(f"Dataset mapping: {dataset_name} -> {folder_name}")
+    
     # Create timestamped output directory
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     output_path = Path(output_dir) / timestamp
@@ -262,13 +285,13 @@ def run_fine_grained_test(
         print(f"Testing domain: {domain if domain != 'all' else 'all data'}")
         print('='*60)
         
-        # Get image and label paths for this domain
+        # Get image and label paths for this domain (use folder_name for correct case)
         if domain == 'all':
-            img_dir = Path(data_root) / test_split / 'images' / dataset_name
-            label_dir = Path(data_root) / test_split / 'labels' / dataset_name
+            img_dir = Path(data_root) / test_split / 'images' / folder_name
+            label_dir = Path(data_root) / test_split / 'labels' / folder_name
         else:
-            img_dir = Path(data_root) / test_split / 'images' / dataset_name / domain
-            label_dir = Path(data_root) / test_split / 'labels' / dataset_name / domain
+            img_dir = Path(data_root) / test_split / 'images' / folder_name / domain
+            label_dir = Path(data_root) / test_split / 'labels' / folder_name / domain
         
         if not img_dir.exists():
             print(f"  Skipping: folder not found at {img_dir}")

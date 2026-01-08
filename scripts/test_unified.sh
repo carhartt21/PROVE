@@ -637,7 +637,7 @@ cmd_detailed() {
     echo ""
     
     # Run fine-grained test
-    mamba run -n prove python "$SCRIPT_DIR/fine_grained_test.py" \
+    mamba run -n prove python "$PROJECT_ROOT/fine_grained_test.py" \
         --config "$config_path" \
         --checkpoint "$checkpoint" \
         --output-dir "$output_dir" \
