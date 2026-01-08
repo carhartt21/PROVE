@@ -54,7 +54,7 @@ JOB_TEMPLATE = '''#!/bin/bash
 #BSUB -J {job_name}
 #BSUB -o {log_dir}/{job_name}_%J.out
 #BSUB -e {log_dir}/{job_name}_%J.err
-#BSUB -n 4
+#BSUB -n 8
 #BSUB -R "rusage[mem=16000]"
 #BSUB -gpu "num=1:mode=exclusive_process:gmem=20G"
 #BSUB -W 72:00
@@ -85,6 +85,7 @@ TRAIN_COMMAND = '''
 echo "----------------------------------------"
 echo "Training: {dataset}/{model}"
 echo "Strategy: {strategy}"
+echo "Real/Gen Ratio: {real_gen_ratio}"
 echo "Started: $(date)"
 echo "----------------------------------------"
 
@@ -93,6 +94,7 @@ python unified_training.py \\
     --dataset {dataset_config} \\
     --model {model_config} \\
     --strategy {strategy} \\
+    --real-gen-ratio {real_gen_ratio} \\
     {domain_filter} \\
     --max-iters 80000
 
@@ -172,6 +174,12 @@ def get_affected_configurations():
                     
                 weights_path = strategy_dir / dataset / model_full
                 
+                # Determine real_gen_ratio: 0.5 for gen_* strategies, 1.0 for others
+                if strategy.startswith('gen_'):
+                    real_gen_ratio = 0.5
+                else:
+                    real_gen_ratio = 1.0
+                
                 configs.append({
                     'strategy': strategy,
                     'dataset': dataset,
@@ -180,6 +188,7 @@ def get_affected_configurations():
                     'dataset_config': DATASET_CONFIG_MAP.get(dataset, dataset),
                     'model_config': model_base,
                     'domain_filter': domain_filter,
+                    'real_gen_ratio': real_gen_ratio,
                 })
     
     return configs

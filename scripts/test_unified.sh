@@ -568,7 +568,7 @@ cmd_detailed() {
     local dataset=""
     local model=""
     local strategy="baseline"
-    local ratio="1.0"
+    local ratio="0.5"
     local checkpoint=""
     local checkpoint_type="best"
     local work_dir="$DEFAULT_WEIGHTS_ROOT"
