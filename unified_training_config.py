@@ -2213,9 +2213,18 @@ class UnifiedTrainingConfig:
         else:
             ratio_str = ''
         
-        # Include domain filter in directory name if specified
+        # Include domain filter in dataset directory name if specified
+        # Format: dataset_cd for clear_day, dataset for no filter
+        domain_abbrev = {
+            'clear_day': 'cd',
+            'clear_night': 'cn',
+            'rainy_day': 'rd',
+            'rainy_night': 'rn',
+            'fog': 'fg',
+            'snow': 'sn',
+        }
         if domain_filter:
-            domain_str = f'_{domain_filter}'
+            domain_str = f'_{domain_abbrev.get(domain_filter, domain_filter[:2])}'
         else:
             domain_str = ''
         
@@ -2228,8 +2237,8 @@ class UnifiedTrainingConfig:
         config['work_dir'] = os.path.join(
             self.weights_root,
             f'{strategy}{std_str}',
-            dataset.lower(),
-            f'{model}{ratio_str}{domain_str}',
+            f'{dataset.lower()}{domain_str}',  # Domain filter applied to dataset
+            f'{model}{ratio_str}',  # Model no longer has domain suffix
         )
         
         return config
