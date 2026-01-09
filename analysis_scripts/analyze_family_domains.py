@@ -58,12 +58,12 @@ STRATEGY_FAMILIES = {
         "gen_NST",
         "gen_LANIT",
         "gen_TSIT",
-        "gen_StyleID"
+        # "gen_StyleID"  # EXCLUDED: 0/4 training dataset coverage
     ],
     "Diffusion": [
         "gen_Img2Img",
         "gen_IP2P",
-        "gen_EDICT",
+        # "gen_EDICT",  # EXCLUDED: 0/4 training dataset coverage
         "gen_UniControl"
     ],
     "Multimodal Diffusion": [

@@ -10,11 +10,13 @@ Analyzes segmentation performance grouped by strategy families using:
 Strategy Families:
 1. 2D Rendering (imgaug_weather, automold, Weather_Effect_Generator)
 2. CNN/GAN (Attribute_Hallucination, cycleGAN, CUT, stargan_v2, SUSTechGAN)
-3. Style Transfer (NST, LANIT, TSIT, StyleID)
-4. Diffusion (Img2Img, IP2P, EDICT, UniControl)
+3. Style Transfer (NST, LANIT, TSIT)
+4. Diffusion (Img2Img, IP2P, UniControl)
 5. Multimodal Diffusion (flux1_kontext, step1x_new, Qwen_Image_Edit)
 6. Standard Augmentation (autoaugment, randaugment, photometric_distort)
 7. Standard Mixing (cutmix, mixup)
+
+Excluded methods (0/4 training dataset coverage): StyleID, EDICT, AOD-Net
 
 Note: Combined strategies (with + in name) are analyzed separately in 
 analyze_combination_ablation.py and stored in WEIGHTS_COMBINATIONS.
@@ -62,12 +64,12 @@ STRATEGY_FAMILIES = {
         "gen_NST",
         "gen_LANIT",
         "gen_TSIT",
-        "gen_StyleID"
+        # "gen_StyleID"  # EXCLUDED: 0/4 training dataset coverage
     ],
     "Diffusion": [
         "gen_Img2Img",
         "gen_IP2P",
-        "gen_EDICT",
+        # "gen_EDICT",  # EXCLUDED: 0/4 training dataset coverage
         "gen_UniControl"
     ],
     "Multimodal Diffusion": [

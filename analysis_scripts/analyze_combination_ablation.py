@@ -43,7 +43,7 @@ WEIGHTS_SINGLE = "/scratch/aaa_exchange/AWARE/WEIGHTS"
 
 # Strategy family definitions for components
 COMPONENT_FAMILIES = {
-    "Generative": ["gen_CUT", "gen_cycleGAN", "gen_StyleID"],
+    "Generative": ["gen_CUT", "gen_cycleGAN"],  # gen_StyleID EXCLUDED: 0/4 training dataset coverage
     "Standard Augmentation": ["std_autoaugment", "std_randaugment"],
     "Standard Mixing": ["std_cutmix", "std_mixup"],
     "Baseline": ["baseline"]
