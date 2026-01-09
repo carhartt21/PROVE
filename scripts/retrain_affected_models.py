@@ -26,10 +26,20 @@ from pathlib import Path
 from collections import defaultdict
 from datetime import datetime
 
-# Configuration
-WEIGHTS_ROOT = Path("/scratch/aaa_exchange/AWARE/WEIGHTS")
-SCRIPTS_DIR = Path("/home/mima2416/repositories/PROVE/scripts/retrain_jobs")
-LOGS_DIR = Path("/home/mima2416/repositories/PROVE/logs/retrain")
+# Detect project root from script location
+SCRIPT_DIR = Path(__file__).resolve().parent
+DEFAULT_PROJECT_ROOT = SCRIPT_DIR.parent
+
+# Configuration - can be overridden via command line args
+DEFAULT_WEIGHTS_ROOT = Path(os.environ.get('PROVE_WEIGHTS_ROOT', '/scratch/aaa_exchange/AWARE/WEIGHTS'))
+DEFAULT_SCRIPTS_DIR = DEFAULT_PROJECT_ROOT / 'scripts' / 'retrain_jobs'
+DEFAULT_LOGS_DIR = DEFAULT_PROJECT_ROOT / 'logs' / 'retrain'
+
+# Global variables that will be set in main() based on args
+WEIGHTS_ROOT = DEFAULT_WEIGHTS_ROOT
+SCRIPTS_DIR = DEFAULT_SCRIPTS_DIR
+LOGS_DIR = DEFAULT_LOGS_DIR
+PROJECT_ROOT = DEFAULT_PROJECT_ROOT
 
 AFFECTED_DATASETS = ['bdd10k', 'idd-aw', 'mapillaryvistas', 'outside15k']
 
@@ -66,7 +76,7 @@ JOB_TEMPLATE = '''#!/bin/bash
 source ~/.bashrc
 conda activate prove
 
-cd /home/mima2416/repositories/PROVE
+cd {project_root}
 
 echo "========================================"
 echo "Retraining job: {job_name}"
@@ -268,6 +278,7 @@ def generate_job_script(strategy, dataset, configs):
     script = JOB_TEMPLATE.format(
         job_name=job_name,
         log_dir=str(LOGS_DIR),
+        project_root=str(PROJECT_ROOT),
         strategy=strategy,
         dataset=dataset,
         model_commands='\n'.join(model_commands),
@@ -322,6 +333,8 @@ def check_weights_exist(strategy, dataset, domain_filter='clear_day', model='dee
 
 
 def main():
+    global WEIGHTS_ROOT, SCRIPTS_DIR, LOGS_DIR, PROJECT_ROOT
+    
     parser = argparse.ArgumentParser(description='Retrain affected models')
     parser.add_argument('--generate-scripts', action='store_true',
                        help='Generate LSF job scripts')
@@ -342,8 +355,23 @@ def main():
                        help='Show summary of affected configurations')
     parser.add_argument('--domain-filter', type=str, default='clear_day',
                        help='Domain filter for training (default: clear_day)')
+    # Path configuration arguments
+    parser.add_argument('--project-root', type=str,
+                       help=f'Project root directory (default: auto-detected as {DEFAULT_PROJECT_ROOT})')
+    parser.add_argument('--weights-root', type=str,
+                       help=f'Weights root directory (default: {DEFAULT_WEIGHTS_ROOT})')
+    parser.add_argument('--scripts-dir', type=str,
+                       help=f'Scripts output directory (default: <project-root>/scripts/retrain_jobs)')
+    parser.add_argument('--logs-dir', type=str,
+                       help=f'Logs directory (default: <project-root>/logs/retrain)')
     
     args = parser.parse_args()
+    
+    # Set up paths based on arguments or defaults
+    PROJECT_ROOT = Path(args.project_root) if args.project_root else DEFAULT_PROJECT_ROOT
+    WEIGHTS_ROOT = Path(args.weights_root) if args.weights_root else DEFAULT_WEIGHTS_ROOT
+    SCRIPTS_DIR = Path(args.scripts_dir) if args.scripts_dir else PROJECT_ROOT / 'scripts' / 'retrain_jobs'
+    LOGS_DIR = Path(args.logs_dir) if args.logs_dir else PROJECT_ROOT / 'logs' / 'retrain'
     
     # Get affected configurations (with optional model filter)
     configs = get_affected_configurations(model_filter=args.model)

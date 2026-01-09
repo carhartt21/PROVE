@@ -1,9 +1,13 @@
 #!/bin/bash
 # Run t-SNE domain gap visualizations for top and bottom strategies
 
+# Auto-detect script directory and project root
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+
 WEIGHTS_DIR="/scratch/aaa_exchange/AWARE/WEIGHTS"
 DATA_ROOT="/scratch/aaa_exchange/AWARE/FINAL_SPLITS/ACDC"
-OUTPUT_DIR="/home/mima2416/repositories/PROVE/result_figures/tsne"
+OUTPUT_DIR="$PROJECT_ROOT/result_figures/tsne"
 MODEL_TYPE="deeplabv3plus"
 
 # Create output directory

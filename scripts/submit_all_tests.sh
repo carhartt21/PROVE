@@ -4,6 +4,10 @@
 # Submits test jobs for all available checkpoints of a given strategy.
 # Tests are grouped by model and run sequentially in a single job.
 
+# Auto-detect script directory and project root
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+
 STRATEGY=$1
 DATASET=$2
 MODEL=$3
@@ -14,7 +18,6 @@ if [ -z "$STRATEGY" ]; then
     exit 1
 fi
 
-PROJECT_ROOT="/home/mima2416/repositories/PROVE"
 BASE_DIR="/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED"
 STRATEGY_DIR="$BASE_DIR/$STRATEGY"
 

@@ -143,3 +143,6 @@ figures/extended_training/learning_curves_by_model.pdf
 figures/extended_training/learning_curves_by_model.png
 figures/extended_training/learning_curves_by_strategy.pdf
 figures/extended_training/learning_curves_by_strategy.png
+
+# Auto-generated retraining job scripts (user-specific paths)
+scripts/retrain_jobs/*.sh

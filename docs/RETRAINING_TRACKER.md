@@ -1,6 +1,6 @@
 # Retraining Progress Tracker
 
-**Last Updated:** 2026-01-09 11:52
+**Last Updated:** 2026-01-09 15:11
 
 This document tracks the progress of retraining models with the corrected native class labels.
 
@@ -28,11 +28,9 @@ This document tracks the progress of retraining models with the corrected native
 
 | Study | Focus | Description | Status |
 |-------|-------|-------------|--------|
-| **Ratio Ablation** | Real/Gen ratio | Compare 0.25, 0.5, 0.75, 1.0 ratios | ⏳ Pending |
-| **Domain Adaptation** | Multi-domain transfer | Train on one domain, test on others | ⏳ Pending |
-| **Combination** | Strategy combinations | Test gen + std augmentation combos | ⏳ Pending |
-| **Model Architecture** | Model comparison | DeepLabV3+, PSPNet, SegFormer | ⏳ Pending |
-
+| **Ratio Ablation** | Real/Gen ratio | Compare 0.125, 0.25, 0.375. 0.5, 0.625, 0.75, 0,875, 1.0 ratios | ⏳ Pending |
+| **Domain Adaptation** | Multi-domain transfer | Test on ACDC (train+val) and Cityscapes (val)  | ⏳ Pending |
+| **Combination** | Strategy combinations | Test gen + std and std+std augmentation combos | ⏳ Pending |
 ---
 
 ### Stage Progression Criteria
@@ -91,16 +89,16 @@ This document tracks the progress of retraining models with the corrected native
 
 | Strategy | BDD10k | IDD-AW | MapillaryVistas | OUTSIDE15k | Notes |
 |----------|--------|--------|-----------------|------------|-------|
-| gen_Attribute_Hallucination | ✅ | 🔄 | 🔄 | 🔄 |  |
+| gen_Attribute_Hallucination | ✅ | ⏳ | ⏳ | 🔄 |  |
 | gen_augmenters | 🔄 | 🔄 | 🔄 | 🔄 |  |
 | gen_automold | 🔄 | 🔄 | 🔄 | 🔄 |  |
-| gen_CNetSeg | 🔄 | 🔄 | 🔄 | 🔄 |  |
-| gen_CUT | ✅ | 🔄 | 🔄 | 🔄 |  |
+| gen_CNetSeg | 🔄 | ⏳ | ⏳ | 🔄 |  |
+| gen_CUT | ✅ | ⏳ | ⏳ | 🔄 |  |
 | gen_cyclediffusion | 🔄 | 🔄 | 🔄 | 🔄 |  |
 | gen_cycleGAN | 🔄 | 🔄 | 🔄 | 🔄 |  |
 | gen_flux1_kontext | ➖ | ➖ | 🔄 | 🔄 |  |
 | gen_Img2Img | ✅ | 🔄 | 🔄 | 🔄 |  |
-| gen_IP2P | ✅ | 🔄 | 🔄 | 🔄 |  |
+| gen_IP2P | ✅ | ⏳ | ⏳ | 🔄 |  |
 | gen_LANIT | ✅ | 🔄 | 🔄 | 🔄 |  |
 | gen_NST | 🔄 | 🔄 | 🔄 | 🔄 |  |
 | gen_Qwen_Image_Edit | ➖ | 🔄 | 🔄 | 🔄 | No BDD10k data |
@@ -118,7 +116,7 @@ This document tracks the progress of retraining models with the corrected native
 
 | Strategy | BDD10k | IDD-AW | MapillaryVistas | OUTSIDE15k | Notes |
 |----------|--------|--------|-----------------|------------|-------|
-| baseline | ✅ | 🔄 | 🔄 | 🔄 |  |
+| baseline | ✅ | ⏳ | ⏳ | ✅ |  |
 | photometric_distort | 🔄 | 🔄 | 🔄 | 🔄 |  |
 | std_autoaugment | 🔄 | 🔄 | 🔄 | 🔄 |  |
 | std_cutmix | 🔄 | 🔄 | 🔄 | 🔄 |  |
@@ -176,9 +174,9 @@ python scripts/retrain_affected_models.py --generate-scripts
 
 | Category | Total | Complete | Running | Pending | Failed |
 |----------|-------|----------|---------|---------|--------|
-| **Generative (gen_*)** | 87 | 5 | 79 | 0 | 0 |
-| **Standard (std_*)** | 24 | 1 | 23 | 0 | 0 |
-| **TOTAL** | 111 | 6 | 102 | 0 | 0 |
+| **Generative (gen_*)** | 87 | 5 | 71 | 8 | 0 |
+| **Standard (std_*)** | 24 | 2 | 20 | 2 | 0 |
+| **TOTAL** | 111 | 7 | 91 | 10 | 0 |
 
 *Note: Stage 1 trains 3 models per strategy×dataset = 324 total configurations.*
 *Total = 28 strategies × 4 datasets × 3 models - 12 skipped configs = 324 configs*

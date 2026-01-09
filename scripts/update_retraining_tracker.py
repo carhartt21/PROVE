@@ -17,10 +17,15 @@ from datetime import datetime
 from collections import defaultdict
 import json
 import re
+import os
+
+# Detect project root from script location
+SCRIPT_DIR = Path(__file__).resolve().parent
+PROJECT_ROOT = SCRIPT_DIR.parent
 
 # Configuration
-WEIGHTS_ROOT = Path("/scratch/aaa_exchange/AWARE/WEIGHTS")
-TRACKER_PATH = Path("/home/mima2416/repositories/PROVE/docs/RETRAINING_TRACKER.md")
+WEIGHTS_ROOT = Path(os.environ.get('PROVE_WEIGHTS_ROOT', '/scratch/aaa_exchange/AWARE/WEIGHTS'))
+TRACKER_PATH = PROJECT_ROOT / 'docs' / 'RETRAINING_TRACKER.md'
 DATASETS = ['bdd10k', 'idd-aw', 'mapillaryvistas', 'outside15k']
 
 # Models - now using new structure: dataset_cd/model_ratio

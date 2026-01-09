@@ -5,12 +5,17 @@
 #BSUB -R "span[hosts=1]"
 #BSUB -R "rusage[mem=32000]"
 #BSUB -gpu "num=1:mode=exclusive_process"
-#BSUB -o /home/mima2416/repositories/PROVE/logs/tsne_domain_gap_%J.out
-#BSUB -e /home/mima2416/repositories/PROVE/logs/tsne_domain_gap_%J.err
+#BSUB -o logs/tsne_domain_gap_%J.out
+#BSUB -e logs/tsne_domain_gap_%J.err
 #BSUB -W 04:00
 
 # t-SNE Domain Gap Visualization Job
-cd /home/mima2416/repositories/PROVE
+# Auto-detect project root - script should be submitted from project root
+# or PROJECT_ROOT should be set in environment
+if [ -z "$PROJECT_ROOT" ]; then
+    PROJECT_ROOT="$(pwd)"
+fi
+cd "$PROJECT_ROOT"
 
 # Ensure scikit-learn is installed
 echo "Checking scikit-learn installation..."
@@ -21,7 +26,7 @@ mamba run -n prove python3 -c "import sklearn" 2>/dev/null || {
 
 WEIGHTS_DIR="/scratch/aaa_exchange/AWARE/WEIGHTS"
 DATA_ROOT="/scratch/aaa_exchange/AWARE/FINAL_SPLITS"
-OUTPUT_DIR="/home/mima2416/repositories/PROVE/result_figures/tsne"
+OUTPUT_DIR="$PROJECT_ROOT/result_figures/tsne"
 MODEL_TYPE="deeplabv3plus"
 DATASET="bdd10k"
 DATASET_NAME="BDD10k"
