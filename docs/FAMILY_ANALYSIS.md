@@ -10,12 +10,14 @@ The PROVE project evaluates multiple data augmentation strategies for semantic s
 |--------|-------------|-------------------|
 | **2D Rendering** | Rule-based weather effects | gen_automold, gen_imgaug_weather, gen_Weather_Effect_Generator |
 | **CNN/GAN** | GAN-based image translation | gen_CUT, gen_cycleGAN, gen_stargan_v2, gen_SUSTechGAN |
-| **Style Transfer** | Neural style transfer methods | gen_NST, gen_LANIT, gen_TSIT, gen_StyleID |
-| **Diffusion** | Standard diffusion models | gen_Img2Img, gen_IP2P, gen_EDICT, gen_UniControl |
+| **Style Transfer** | Neural style transfer methods | gen_NST, gen_LANIT, gen_TSIT |
+| **Diffusion** | Standard diffusion models | gen_Img2Img, gen_IP2P, gen_UniControl |
 | **Multimodal Diffusion** | Large multimodal diffusion | gen_flux1_kontext, gen_step1x_new, gen_Qwen_Image_Edit |
 | **Standard Augmentation** | Traditional augmentation | std_autoaugment, std_randaugment, photometric_distort |
 | **Standard Mixing** | Sample mixing methods | std_cutmix, std_mixup |
 | **Baseline** | No augmentation | baseline |
+
+> **Note**: StyleID and EDICT have been excluded due to 0/4 training dataset coverage (only have ACDC/BDD100k images).
 
 ## Scripts
 

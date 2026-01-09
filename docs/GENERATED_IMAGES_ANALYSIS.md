@@ -1,81 +1,78 @@
 # Generated Images Analysis
 
-**Generated:** January 8, 2026  
+**Generated:** January 9, 2025  
+**Last Updated:** January 9, 2025 (Manifests refreshed, scripts added)  
 **Base Directory:** `/scratch/aaa_exchange/AWARE/GENERATED_IMAGES/`
 
 ## Overview
 
-This document provides a comprehensive analysis of the generated images available for training, comparing them with the strategies currently used in the `retrain_affected_models.py` script.
+This document provides a comprehensive analysis of the generated images available for training, comparing them with the strategies currently used in the retraining scripts.
 
 ## Summary Statistics
 
 | Category | Count |
 |----------|-------|
-| Total methods available | 25 |
-| Methods with manifests | 23 |
-| Methods used in retrain script | 18 |
-| Methods NOT used | 7 |
-| Manifests requiring update | 5 |
+| Total image generation methods | 25 |
+| Methods with valid manifests | 23 |
+| Methods in retrain scripts | 28 (22 gen + 4 std + baseline + photometric) |
+| **Methods EXCLUDED** | 4 (EDICT, StyleID, flux2, AOD-Net) |
+| **Manifests Status** | ✅ All updated (Jan 8, 2025) |
+
+### Excluded Methods
+
+The following methods are **excluded** from training due to insufficient training dataset coverage (0/4 training datasets):
+
+| Method | Reason |
+|--------|--------|
+| EDICT | Only ACDC/BDD100k coverage |
+| StyleID | Only ACDC/BDD100k coverage |
+| flux2 | Only ACDC/BDD100k coverage |
+| AOD-Net | No manifest available |
 
 ---
 
-## Methods Used in Retrain Script
+## All Retraining Strategies (28 total)
 
-| Script Strategy | Image Directory | Total Images | Per-Dataset Coverage |
-|----------------|-----------------|--------------|---------------------|
-| gen_Attribute_Hallucination | Attribute_Hallucination | 191,400 | All 6 datasets |
-| gen_augmenters | augmenters | 159,500 | All 6 datasets |
-| gen_automold | automold | 95,700 | All 6 datasets |
-| gen_CUT | CUT | 191,400 | All 6 datasets |
-| gen_cycleGAN | cycleGAN | 187,398 | All 6 datasets |
-| gen_EDICT | EDICT | 64,187 | ACDC, BDD100k only |
-| gen_flux1_kontext | flux_kontext | 69,900 | MapillaryVistas, OUTSIDE15k only |
-| gen_Img2Img | Img2Img | 187,398 | All 6 datasets |
-| gen_IP2P | IP2P | 187,398 | All 6 datasets |
-| gen_LANIT | LANIT | 223,300 | All 6 datasets |
-| gen_NST | **NOT FOUND** | N/A | Uses different source |
-| gen_Qwen_Image_Edit | Qwen-Image-Edit | 55,645* | Missing BDD10k |
-| gen_stargan_v2 | stargan_v2 | 187,398 | All 6 datasets |
-| gen_step1x_new | step1x_new | 103,627* | Missing BDD10k |
-| gen_StyleID | StyleID | 15,533 | ACDC, BDD100k only |
-| gen_SUSTechGAN | SUSTechGAN | 127,700 | All 6 datasets |
-| gen_TSIT | TSIT | 191,400 | All 6 datasets |
-| gen_UniControl | UniControl | 187,398 | All 6 datasets |
-| gen_Weather_Effect_Generator | Weather_Effect_Generator | 82,179 | All 6 datasets |
+### Generative Methods with Full Coverage (20)
 
-*Manifest count outdated - actual count shown
+| Strategy | Directory | Total Images | Status |
+|----------|-----------|--------------|--------|
+| gen_Attribute_Hallucination | Attribute_Hallucination | 191,400 | ✅ Running |
+| gen_augmenters | augmenters | 159,500 | ✅ Running |
+| gen_automold | automold | 95,700 | ✅ Running |
+| gen_CUT | CUT | 191,400 | ✅ Running |
+| gen_cycleGAN | cycleGAN | 187,398 | ✅ Running |
+| gen_cyclediffusion | cyclediffusion | 180,783 | ✅ Running |
+| gen_flux1_kontext | flux_kontext | 69,900 | ⚠️ 2/4 datasets |
+| gen_Img2Img | Img2Img | 187,398 | ✅ Running |
+| gen_IP2P | IP2P | 187,398 | ✅ Running |
+| gen_LANIT | LANIT | 223,300 | ✅ Running |
+| gen_NST | N/A | N/A | Uses different source |
+| gen_Qwen_Image_Edit | Qwen-Image-Edit | 52,682 | ✅ Running |
+| gen_stargan_v2 | stargan_v2 | 187,398 | ✅ Running |
+| gen_step1x_new | step1x_new | 91,186 | ✅ Running |
+| gen_step1x_v1p2 | step1x_v1p2 | 112,307 | ✅ Running |
+| gen_SUSTechGAN | SUSTechGAN | 127,700 | ✅ Running |
+| gen_TSIT | TSIT | 191,400 | ✅ Running |
+| gen_UniControl | UniControl | 187,398 | ✅ Running |
+| gen_VisualCloze | VisualCloze | 104,427 | ✅ Running |
+| gen_Weather_Effect_Generator | Weather_Effect_Generator | 82,179 | ✅ Running |
+| gen_albumentations_weather | albumentations_weather | 95,700 | ✅ Running |
+| gen_CNetSeg | CNetSeg | 187,398 | ✅ Running |
 
----
+### Standard Augmentation Methods (4)
+| Strategy | Description | Status |
+|----------|-------------|--------|
+| std_autoaugment | AutoAugment | ✅ Running |
+| std_cutmix | CutMix | ✅ Running |
+| std_mixup | MixUp | ✅ Running |
+| std_randaugment | RandAugment | ✅ Running |
 
-## Methods NOT Used in Retrain Script
-
-These methods have generated images available but are not included in the current retraining:
-
-| Method | Total Images | Manifest Status | Notes |
-|--------|-------------|-----------------|-------|
-| AOD-Net | Unknown | NO_MANIFEST | Dehazing/restoration method |
-| CNetSeg | 187,398 | ✓ Valid | ControlNet-based segmentation |
-| VisualCloze | 104,414* | ⚠ Outdated | Visual completion/inpainting |
-| albumentations_weather | 95,700 | ✓ Valid | Albumentations weather augmentation |
-| cyclediffusion | 180,783* | ⚠ Outdated | CycleDiffusion image editing |
-| flux2 | Unknown | NO_MANIFEST | FLUX model version 2 |
-| step1x_v1p2 | 112,305* | ⚠ Outdated | Step1X model version 1.2 |
-
-*Manifest count outdated - actual count shown
-
----
-
-## Manifests Requiring Update
-
-The following manifest files have outdated image counts (more images exist than recorded):
-
-| Method | Manifest Count | Actual Count | Difference | % Increase |
-|--------|----------------|--------------|------------|------------|
-| Qwen-Image-Edit | 41,718 | 55,645 | +13,927 | +33.4% |
-| VisualCloze | 65,006 | 104,414 | +39,408 | +60.6% |
-| cyclediffusion | 110,883 | 180,783 | +69,900 | +63.0% |
-| step1x_new | 77,343 | 103,627 | +26,284 | +34.0% |
-| step1x_v1p2 | 94,002 | 112,305 | +18,303 | +19.5% |
+### Other (2)
+| Strategy | Description | Status |
+|----------|-------------|--------|
+| baseline | No augmentation | ✅ Running |
+| photometric_distort | Photometric distortion | ✅ Running |
 
 ---
 
@@ -194,10 +191,21 @@ The following manifest files have outdated image counts (more images exist than 
 
 ## Recommendations
 
-1. **Update Manifests**: Run manifest regeneration for the 5 outdated manifests
-2. **Add Missing Strategies**: Consider adding unused methods (CNetSeg, albumentations_weather, etc.)
-3. **Create Manifests**: Generate manifests for AOD-Net and flux2
-4. **Review gen_NST**: Clarify the source/method for NST augmentation
+### Immediate Actions
+1. ✅ **Manifests Updated**: All 5 outdated manifests have been regenerated (Jan 8, 2026)
+2. ✅ **New Strategies Added**: 6 new methods added to retraining (CNetSeg, VisualCloze, albumentations_weather, cyclediffusion, step1x_v1p2, AOD_Net)
+3. ✅ **Jobs Submitted**: 25 retraining jobs submitted and running
+
+### Remaining Tasks
+1. **Create Manifests**: Generate manifests for AOD-Net and flux2 directories
+2. **Monitor Training**: Check job progress for newly added methods
+3. **Validate Results**: Review test metrics after retraining completes
+
+### Note on Dataset Label Changes
+With the native class label implementation:
+- **OUTSIDE15k**: Now uses 24 native classes (was incorrectly mapped to 19)
+- **MapillaryVistas**: Now uses 66 native classes (was unified to 19)
+- All models for these datasets need retraining with correct class counts
 
 ---
 
@@ -205,4 +213,5 @@ The following manifest files have outdated image counts (more images exist than 
 
 - **Generated Images**: `/scratch/aaa_exchange/AWARE/GENERATED_IMAGES/`
 - **Manifest Files**: `/scratch/aaa_exchange/AWARE/GENERATED_IMAGES/*/manifest.json`
-- **Retrain Script**: `/home/mima2416/repositories/PROVE/scripts/retrain_affected_models.py`
+- **Retrain Scripts**: `/home/mima2416/repositories/PROVE/scripts/retrain_jobs/`
+- **Label Handling Docs**: `/home/mima2416/repositories/PROVE/docs/LABEL_HANDLING.md`
