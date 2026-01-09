@@ -1,0 +1,256 @@
+{
+  "method": "step1x_v1p2",
+  "generated_dir": "/scratch/aaa_exchange/AWARE/GENERATED_IMAGES/step1x_v1p2",
+  "original_dir": "/scratch/aaa_exchange/AWARE/FINAL_SPLITS/train/images",
+  "target_dir": "/scratch/aaa_exchange/AWARE/AWACS/train",
+  "manifest_path": "/scratch/aaa_exchange/AWARE/GENERATED_IMAGES/step1x_v1p2/manifest.csv",
+  "structure_type": "mixed",
+  "task_type": "generation",
+  "total_generated": 112183,
+  "total_matched": 112183,
+  "total_unmatched": 0,
+  "overall_match_rate": 100.0,
+  "generated_at": "2026-01-08T21:36:22.403798",
+  "domains": {
+    "cloudy": {
+      "total": 18695,
+      "matched": 18695,
+      "unmatched": 0,
+      "match_rate": 100.0,
+      "is_restoration": false,
+      "restoration_source_weather": null,
+      "datasets": {
+        "ACDC": {
+          "matched": 1400,
+          "unmatched": 0,
+          "total": 1400
+        },
+        "BDD100k": {
+          "matched": 2531,
+          "unmatched": 0,
+          "total": 2531
+        },
+        "BDD10k": {
+          "matched": 2370,
+          "unmatched": 0,
+          "total": 2370
+        },
+        "IDD-AW": {
+          "matched": 3847,
+          "unmatched": 0,
+          "total": 3847
+        },
+        "MapillaryVistas": {
+          "matched": 4454,
+          "unmatched": 0,
+          "total": 4454
+        },
+        "OUTSIDE15k": {
+          "matched": 4093,
+          "unmatched": 0,
+          "total": 4093
+        }
+      }
+    },
+    "dawn_dusk": {
+      "total": 18697,
+      "matched": 18697,
+      "unmatched": 0,
+      "match_rate": 100.0,
+      "is_restoration": false,
+      "restoration_source_weather": null,
+      "datasets": {
+        "ACDC": {
+          "matched": 1400,
+          "unmatched": 0,
+          "total": 1400
+        },
+        "BDD100k": {
+          "matched": 2532,
+          "unmatched": 0,
+          "total": 2532
+        },
+        "BDD10k": {
+          "matched": 2370,
+          "unmatched": 0,
+          "total": 2370
+        },
+        "IDD-AW": {
+          "matched": 3847,
+          "unmatched": 0,
+          "total": 3847
+        },
+        "MapillaryVistas": {
+          "matched": 4454,
+          "unmatched": 0,
+          "total": 4454
+        },
+        "OUTSIDE15k": {
+          "matched": 4094,
+          "unmatched": 0,
+          "total": 4094
+        }
+      }
+    },
+    "foggy": {
+      "total": 18699,
+      "matched": 18699,
+      "unmatched": 0,
+      "match_rate": 100.0,
+      "is_restoration": false,
+      "restoration_source_weather": null,
+      "datasets": {
+        "ACDC": {
+          "matched": 1400,
+          "unmatched": 0,
+          "total": 1400
+        },
+        "BDD100k": {
+          "matched": 2533,
+          "unmatched": 0,
+          "total": 2533
+        },
+        "BDD10k": {
+          "matched": 2370,
+          "unmatched": 0,
+          "total": 2370
+        },
+        "IDD-AW": {
+          "matched": 3847,
+          "unmatched": 0,
+          "total": 3847
+        },
+        "MapillaryVistas": {
+          "matched": 4455,
+          "unmatched": 0,
+          "total": 4455
+        },
+        "OUTSIDE15k": {
+          "matched": 4094,
+          "unmatched": 0,
+          "total": 4094
+        }
+      }
+    },
+    "night": {
+      "total": 18695,
+      "matched": 18695,
+      "unmatched": 0,
+      "match_rate": 100.0,
+      "is_restoration": false,
+      "restoration_source_weather": null,
+      "datasets": {
+        "ACDC": {
+          "matched": 1400,
+          "unmatched": 0,
+          "total": 1400
+        },
+        "BDD100k": {
+          "matched": 2531,
+          "unmatched": 0,
+          "total": 2531
+        },
+        "BDD10k": {
+          "matched": 2370,
+          "unmatched": 0,
+          "total": 2370
+        },
+        "IDD-AW": {
+          "matched": 3847,
+          "unmatched": 0,
+          "total": 3847
+        },
+        "MapillaryVistas": {
+          "matched": 4454,
+          "unmatched": 0,
+          "total": 4454
+        },
+        "OUTSIDE15k": {
+          "matched": 4093,
+          "unmatched": 0,
+          "total": 4093
+        }
+      }
+    },
+    "rainy": {
+      "total": 18698,
+      "matched": 18698,
+      "unmatched": 0,
+      "match_rate": 100.0,
+      "is_restoration": false,
+      "restoration_source_weather": null,
+      "datasets": {
+        "ACDC": {
+          "matched": 1400,
+          "unmatched": 0,
+          "total": 1400
+        },
+        "BDD100k": {
+          "matched": 2532,
+          "unmatched": 0,
+          "total": 2532
+        },
+        "BDD10k": {
+          "matched": 2370,
+          "unmatched": 0,
+          "total": 2370
+        },
+        "IDD-AW": {
+          "matched": 3847,
+          "unmatched": 0,
+          "total": 3847
+        },
+        "MapillaryVistas": {
+          "matched": 4455,
+          "unmatched": 0,
+          "total": 4455
+        },
+        "OUTSIDE15k": {
+          "matched": 4094,
+          "unmatched": 0,
+          "total": 4094
+        }
+      }
+    },
+    "snowy": {
+      "total": 18699,
+      "matched": 18699,
+      "unmatched": 0,
+      "match_rate": 100.0,
+      "is_restoration": false,
+      "restoration_source_weather": null,
+      "datasets": {
+        "ACDC": {
+          "matched": 1400,
+          "unmatched": 0,
+          "total": 1400
+        },
+        "BDD100k": {
+          "matched": 2533,
+          "unmatched": 0,
+          "total": 2533
+        },
+        "BDD10k": {
+          "matched": 2370,
+          "unmatched": 0,
+          "total": 2370
+        },
+        "IDD-AW": {
+          "matched": 3847,
+          "unmatched": 0,
+          "total": 3847
+        },
+        "MapillaryVistas": {
+          "matched": 4455,
+          "unmatched": 0,
+          "total": 4455
+        },
+        "OUTSIDE15k": {
+          "matched": 4094,
+          "unmatched": 0,
+          "total": 4094
+        }
+      }
+    }
+  }
+}

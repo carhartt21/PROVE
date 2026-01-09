@@ -102,10 +102,10 @@ python unified_training.py \\
 if [ -f "{weights_path}/iter_80000.pth" ]; then
     echo "Training complete. Running test..."
     python fine_grained_test.py \\
-        --weights_path {weights_path}/iter_80000.pth \\
-        --config_path {weights_path}/training_config.py \\
+        --checkpoint {weights_path}/iter_80000.pth \\
+        --config {weights_path}/training_config.py \\
         --dataset {dataset_config} \\
-        --output_dir {weights_path}/test_results_detailed
+        --output-dir {weights_path}/test_results_detailed
 else
     echo "ERROR: Training failed - checkpoint not found"
 fi
@@ -119,15 +119,17 @@ def get_affected_configurations():
     configs = []
     
     # Define known strategies (based on existing weights directories)
+    # Includes both currently used strategies and newly added ones from GENERATED_IMAGES
     STRATEGIES = [
         'baseline',
+        # Existing gen_* strategies
         'gen_Attribute_Hallucination',
         'gen_augmenters',
         'gen_automold',
         'gen_CUT',
         'gen_cycleGAN',
         'gen_EDICT',
-        'gen_flux1_kontext',  # May need to check actual name
+        'gen_flux1_kontext',  # Maps to flux_kontext in GENERATED_IMAGES
         'gen_Img2Img',
         'gen_IP2P',
         'gen_LANIT',
@@ -140,6 +142,14 @@ def get_affected_configurations():
         'gen_TSIT',
         'gen_UniControl',
         'gen_Weather_Effect_Generator',
+        # Newly added strategies from GENERATED_IMAGES
+        'gen_AOD_Net',              # Dehazing/restoration
+        'gen_CNetSeg',              # ControlNet segmentation (187,398 images)
+        'gen_VisualCloze',          # Visual completion (104,427 images)
+        'gen_albumentations_weather', # Weather augmentation (95,700 images)
+        'gen_cyclediffusion',       # CycleDiffusion (180,783 images)
+        'gen_step1x_v1p2',          # Step1X v1.2 (112,307 images)
+        # Standard augmentation strategies
         'photometric_distort',
         'std_autoaugment',
         'std_cutmix',
@@ -147,49 +157,61 @@ def get_affected_configurations():
         'std_randaugment',
     ]
     
-    # Define model variants
-    MODEL_VARIANTS = [
-        ('deeplabv3plus_r50', ''),
-        ('deeplabv3plus_r50_clear_day', '--domain-filter clear_day'),
-        ('pspnet_r50', ''),
-        ('pspnet_r50_clear_day', '--domain-filter clear_day'),
-        ('segformer_mit-b5', ''),
-        ('segformer_mit-b5_clear_day', '--domain-filter clear_day'),
+    # Define model variants (base models without domain filter suffix)
+    MODELS = [
+        'deeplabv3plus_r50',
+        'pspnet_r50',
+        'segformer_mit-b5',
+    ]
+    
+    # Domain filters to test
+    DOMAIN_FILTERS = [
+        '',              # No filter
+        'clear_day',     # Filter to clear_day domain
     ]
     
     for strategy in STRATEGIES:
         strategy_dir = WEIGHTS_ROOT / strategy
-        if not strategy_dir.exists():
-            continue
+        # Allow both existing strategies (retraining) and new strategies (fresh training)
+        # Skip only if the strategy directory exists but is completely empty
+        # if not strategy_dir.exists():
+        #     continue
             
         for dataset in AFFECTED_DATASETS:
-            for model_full, domain_filter in MODEL_VARIANTS:
-                # Determine if model config exists based on dataset
-                # Skip segformer for some smaller datasets if appropriate
-                model_base = model_full.replace('_clear_day', '')
-                
-                # Skip Qwen for bdd10k (no data)
-                if strategy == 'gen_Qwen_Image_Edit' and dataset == 'bdd10k':
-                    continue
+            for model in MODELS:
+                for domain_filter in DOMAIN_FILTERS:
+                    # Skip Qwen for bdd10k (no data)
+                    if strategy == 'gen_Qwen_Image_Edit' and dataset == 'bdd10k':
+                        continue
                     
-                weights_path = strategy_dir / dataset / model_full
-                
-                # Determine real_gen_ratio: 0.5 for gen_* strategies, 1.0 for others
-                if strategy.startswith('gen_'):
-                    real_gen_ratio = 0.5
-                else:
-                    real_gen_ratio = 1.0
-                
-                configs.append({
-                    'strategy': strategy,
-                    'dataset': dataset,
-                    'model': model_full,
-                    'weights_path': str(weights_path),
-                    'dataset_config': DATASET_CONFIG_MAP.get(dataset, dataset),
-                    'model_config': model_base,
-                    'domain_filter': domain_filter,
-                    'real_gen_ratio': real_gen_ratio,
-                })
+                    # Determine real_gen_ratio: 0.5 for gen_* strategies, 1.0 for others
+                    if strategy.startswith('gen_'):
+                        real_gen_ratio = 0.5
+                        ratio_str = '_ratio0p50'
+                    else:
+                        real_gen_ratio = 1.0
+                        ratio_str = ''
+                    
+                    # Build directory name matching unified_training_config.py's _set_work_dir
+                    # Format: model + ratio_str + domain_str
+                    domain_str = f'_{domain_filter}' if domain_filter else ''
+                    model_dir = f'{model}{ratio_str}{domain_str}'
+                    
+                    weights_path = strategy_dir / dataset / model_dir
+                    
+                    # Build domain filter argument
+                    domain_arg = f'--domain-filter {domain_filter}' if domain_filter else ''
+                    
+                    configs.append({
+                        'strategy': strategy,
+                        'dataset': dataset,
+                        'model': model_dir,  # Full model directory name
+                        'weights_path': str(weights_path),
+                        'dataset_config': DATASET_CONFIG_MAP.get(dataset, dataset),
+                        'model_config': model,  # Base model name for training command
+                        'domain_filter': domain_arg,
+                        'real_gen_ratio': real_gen_ratio,
+                    })
     
     return configs
 

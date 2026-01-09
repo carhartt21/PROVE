@@ -1,0 +1,226 @@
+{
+  "method": "step1x_new",
+  "generated_dir": "/scratch/aaa_exchange/AWARE/GENERATED_IMAGES/step1x_new",
+  "original_dir": "/scratch/aaa_exchange/AWARE/FINAL_SPLITS/train/images",
+  "target_dir": "/scratch/aaa_exchange/AWARE/AWACS/train",
+  "manifest_path": "/scratch/aaa_exchange/AWARE/GENERATED_IMAGES/step1x_new/manifest.csv",
+  "structure_type": "mixed",
+  "task_type": "generation",
+  "total_generated": 103447,
+  "total_matched": 103447,
+  "total_unmatched": 0,
+  "overall_match_rate": 100.0,
+  "generated_at": "2026-01-08T21:36:21.841095",
+  "domains": {
+    "cloudy": {
+      "total": 17239,
+      "matched": 17239,
+      "unmatched": 0,
+      "match_rate": 100.0,
+      "is_restoration": false,
+      "restoration_source_weather": null,
+      "datasets": {
+        "ACDC": {
+          "matched": 1402,
+          "unmatched": 0,
+          "total": 1402
+        },
+        "BDD100k": {
+          "matched": 5369,
+          "unmatched": 0,
+          "total": 5369
+        },
+        "IDD-AW": {
+          "matched": 3492,
+          "unmatched": 0,
+          "total": 3492
+        },
+        "MapillaryVistas": {
+          "matched": 3493,
+          "unmatched": 0,
+          "total": 3493
+        },
+        "OUTSIDE15k": {
+          "matched": 3483,
+          "unmatched": 0,
+          "total": 3483
+        }
+      }
+    },
+    "dawn_dusk": {
+      "total": 17241,
+      "matched": 17241,
+      "unmatched": 0,
+      "match_rate": 100.0,
+      "is_restoration": false,
+      "restoration_source_weather": null,
+      "datasets": {
+        "ACDC": {
+          "matched": 1402,
+          "unmatched": 0,
+          "total": 1402
+        },
+        "BDD100k": {
+          "matched": 5371,
+          "unmatched": 0,
+          "total": 5371
+        },
+        "IDD-AW": {
+          "matched": 3492,
+          "unmatched": 0,
+          "total": 3492
+        },
+        "MapillaryVistas": {
+          "matched": 3493,
+          "unmatched": 0,
+          "total": 3493
+        },
+        "OUTSIDE15k": {
+          "matched": 3483,
+          "unmatched": 0,
+          "total": 3483
+        }
+      }
+    },
+    "foggy": {
+      "total": 17242,
+      "matched": 17242,
+      "unmatched": 0,
+      "match_rate": 100.0,
+      "is_restoration": false,
+      "restoration_source_weather": null,
+      "datasets": {
+        "ACDC": {
+          "matched": 1401,
+          "unmatched": 0,
+          "total": 1401
+        },
+        "BDD100k": {
+          "matched": 5371,
+          "unmatched": 0,
+          "total": 5371
+        },
+        "IDD-AW": {
+          "matched": 3492,
+          "unmatched": 0,
+          "total": 3492
+        },
+        "MapillaryVistas": {
+          "matched": 3494,
+          "unmatched": 0,
+          "total": 3494
+        },
+        "OUTSIDE15k": {
+          "matched": 3484,
+          "unmatched": 0,
+          "total": 3484
+        }
+      }
+    },
+    "night": {
+      "total": 17241,
+      "matched": 17241,
+      "unmatched": 0,
+      "match_rate": 100.0,
+      "is_restoration": false,
+      "restoration_source_weather": null,
+      "datasets": {
+        "ACDC": {
+          "matched": 1402,
+          "unmatched": 0,
+          "total": 1402
+        },
+        "BDD100k": {
+          "matched": 5371,
+          "unmatched": 0,
+          "total": 5371
+        },
+        "IDD-AW": {
+          "matched": 3492,
+          "unmatched": 0,
+          "total": 3492
+        },
+        "MapillaryVistas": {
+          "matched": 3493,
+          "unmatched": 0,
+          "total": 3493
+        },
+        "OUTSIDE15k": {
+          "matched": 3483,
+          "unmatched": 0,
+          "total": 3483
+        }
+      }
+    },
+    "rainy": {
+      "total": 17242,
+      "matched": 17242,
+      "unmatched": 0,
+      "match_rate": 100.0,
+      "is_restoration": false,
+      "restoration_source_weather": null,
+      "datasets": {
+        "ACDC": {
+          "matched": 1402,
+          "unmatched": 0,
+          "total": 1402
+        },
+        "BDD100k": {
+          "matched": 5371,
+          "unmatched": 0,
+          "total": 5371
+        },
+        "IDD-AW": {
+          "matched": 3492,
+          "unmatched": 0,
+          "total": 3492
+        },
+        "MapillaryVistas": {
+          "matched": 3493,
+          "unmatched": 0,
+          "total": 3493
+        },
+        "OUTSIDE15k": {
+          "matched": 3484,
+          "unmatched": 0,
+          "total": 3484
+        }
+      }
+    },
+    "snowy": {
+      "total": 17242,
+      "matched": 17242,
+      "unmatched": 0,
+      "match_rate": 100.0,
+      "is_restoration": false,
+      "restoration_source_weather": null,
+      "datasets": {
+        "ACDC": {
+          "matched": 1402,
+          "unmatched": 0,
+          "total": 1402
+        },
+        "BDD100k": {
+          "matched": 5371,
+          "unmatched": 0,
+          "total": 5371
+        },
+        "IDD-AW": {
+          "matched": 3492,
+          "unmatched": 0,
+          "total": 3492
+        },
+        "MapillaryVistas": {
+          "matched": 3493,
+          "unmatched": 0,
+          "total": 3493
+        },
+        "OUTSIDE15k": {
+          "matched": 3484,
+          "unmatched": 0,
+          "total": 3484
+        }
+      }
+    }
+  }
+}

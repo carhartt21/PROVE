@@ -1,0 +1,257 @@
+{
+  "method": "cyclediffusion",
+  "generated_dir": "/scratch/aaa_exchange/AWARE/GENERATED_IMAGES/cyclediffusion",
+  "original_dir": "/scratch/aaa_exchange/AWARE/FINAL_SPLITS/train/images",
+  "target_dir": "/scratch/aaa_exchange/AWARE/AWACS/train",
+  "manifest_path": "/scratch/aaa_exchange/AWARE/GENERATED_IMAGES/cyclediffusion/manifest.csv",
+  "structure_type": "mixed",
+  "task_type": "generation",
+  "total_generated": 158202,
+  "total_matched": 158202,
+  "total_unmatched": 0,
+  "overall_match_rate": 100.0,
+  "generated_at": "2026-01-08T21:44:50.651944",
+  "note": "Images in MapillaryVistas/ and OUTSIDE15k/ root folders need to be reorganized to domain/dataset structure",
+  "domains": {
+    "cloudy": {
+      "total": 22603,
+      "matched": 22603,
+      "unmatched": 0,
+      "match_rate": 100.0,
+      "is_restoration": false,
+      "restoration_source_weather": null,
+      "datasets": {
+        "ACDC": {
+          "matched": 701,
+          "unmatched": 0,
+          "total": 701
+        },
+        "BDD100k": {
+          "matched": 13332,
+          "unmatched": 0,
+          "total": 13332
+        },
+        "BDD10k": {
+          "matched": 2370,
+          "unmatched": 0,
+          "total": 2370
+        },
+        "IDD-AW": {
+          "matched": 2077,
+          "unmatched": 0,
+          "total": 2077
+        },
+        "MapillaryVistas": {
+          "matched": 0,
+          "unmatched": 0,
+          "total": 0
+        },
+        "OUTSIDE15k": {
+          "matched": 4123,
+          "unmatched": 0,
+          "total": 4123
+        }
+      }
+    },
+    "dawn_dusk": {
+      "total": 22603,
+      "matched": 22603,
+      "unmatched": 0,
+      "match_rate": 100.0,
+      "is_restoration": false,
+      "restoration_source_weather": null,
+      "datasets": {
+        "ACDC": {
+          "matched": 701,
+          "unmatched": 0,
+          "total": 701
+        },
+        "BDD100k": {
+          "matched": 13332,
+          "unmatched": 0,
+          "total": 13332
+        },
+        "BDD10k": {
+          "matched": 2370,
+          "unmatched": 0,
+          "total": 2370
+        },
+        "IDD-AW": {
+          "matched": 2077,
+          "unmatched": 0,
+          "total": 2077
+        },
+        "MapillaryVistas": {
+          "matched": 0,
+          "unmatched": 0,
+          "total": 0
+        },
+        "OUTSIDE15k": {
+          "matched": 4123,
+          "unmatched": 0,
+          "total": 4123
+        }
+      }
+    },
+    "foggy": {
+      "total": 30131,
+      "matched": 30131,
+      "unmatched": 0,
+      "match_rate": 100.0,
+      "is_restoration": false,
+      "restoration_source_weather": null,
+      "datasets": {
+        "ACDC": {
+          "matched": 701,
+          "unmatched": 0,
+          "total": 701
+        },
+        "BDD100k": {
+          "matched": 13332,
+          "unmatched": 0,
+          "total": 13332
+        },
+        "BDD10k": {
+          "matched": 2370,
+          "unmatched": 0,
+          "total": 2370
+        },
+        "IDD-AW": {
+          "matched": 2078,
+          "unmatched": 0,
+          "total": 2078
+        },
+        "MapillaryVistas": {
+          "matched": 7527,
+          "unmatched": 0,
+          "total": 7527
+        },
+        "OUTSIDE15k": {
+          "matched": 4123,
+          "unmatched": 0,
+          "total": 4123
+        }
+      }
+    },
+    "night": {
+      "total": 30130,
+      "matched": 30130,
+      "unmatched": 0,
+      "match_rate": 100.0,
+      "is_restoration": false,
+      "restoration_source_weather": null,
+      "datasets": {
+        "ACDC": {
+          "matched": 701,
+          "unmatched": 0,
+          "total": 701
+        },
+        "BDD100k": {
+          "matched": 13332,
+          "unmatched": 0,
+          "total": 13332
+        },
+        "BDD10k": {
+          "matched": 2370,
+          "unmatched": 0,
+          "total": 2370
+        },
+        "IDD-AW": {
+          "matched": 2077,
+          "unmatched": 0,
+          "total": 2077
+        },
+        "MapillaryVistas": {
+          "matched": 7527,
+          "unmatched": 0,
+          "total": 7527
+        },
+        "OUTSIDE15k": {
+          "matched": 4123,
+          "unmatched": 0,
+          "total": 4123
+        }
+      }
+    },
+    "rainy": {
+      "total": 22604,
+      "matched": 22604,
+      "unmatched": 0,
+      "match_rate": 100.0,
+      "is_restoration": false,
+      "restoration_source_weather": null,
+      "datasets": {
+        "ACDC": {
+          "matched": 701,
+          "unmatched": 0,
+          "total": 701
+        },
+        "BDD100k": {
+          "matched": 13332,
+          "unmatched": 0,
+          "total": 13332
+        },
+        "BDD10k": {
+          "matched": 2370,
+          "unmatched": 0,
+          "total": 2370
+        },
+        "IDD-AW": {
+          "matched": 2078,
+          "unmatched": 0,
+          "total": 2078
+        },
+        "MapillaryVistas": {
+          "matched": 0,
+          "unmatched": 0,
+          "total": 0
+        },
+        "OUTSIDE15k": {
+          "matched": 4123,
+          "unmatched": 0,
+          "total": 4123
+        }
+      }
+    },
+    "snowy": {
+      "total": 30131,
+      "matched": 30131,
+      "unmatched": 0,
+      "match_rate": 100.0,
+      "is_restoration": false,
+      "restoration_source_weather": null,
+      "datasets": {
+        "ACDC": {
+          "matched": 701,
+          "unmatched": 0,
+          "total": 701
+        },
+        "BDD100k": {
+          "matched": 13332,
+          "unmatched": 0,
+          "total": 13332
+        },
+        "BDD10k": {
+          "matched": 2370,
+          "unmatched": 0,
+          "total": 2370
+        },
+        "IDD-AW": {
+          "matched": 2078,
+          "unmatched": 0,
+          "total": 2078
+        },
+        "MapillaryVistas": {
+          "matched": 7527,
+          "unmatched": 0,
+          "total": 7527
+        },
+        "OUTSIDE15k": {
+          "matched": 4123,
+          "unmatched": 0,
+          "total": 4123
+        }
+      }
+    }
+  }
+}

@@ -23,7 +23,7 @@ echo "========================================"
 # Process each model configuration sequentially
 
 echo "----------------------------------------"
-echo "Training: bdd10k/deeplabv3plus_r50"
+echo "Training: bdd10k/deeplabv3plus_r50_ratio0p50"
 echo "Strategy: gen_augmenters"
 echo "Real/Gen Ratio: 0.5"
 echo "Started: $(date)"
@@ -39,22 +39,22 @@ python unified_training.py \
     --max-iters 80000
 
 # Test model
-if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/bdd10k/deeplabv3plus_r50/iter_80000.pth" ]; then
+if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/bdd10k/deeplabv3plus_r50_ratio0p50/iter_80000.pth" ]; then
     echo "Training complete. Running test..."
     python fine_grained_test.py \
-        --weights_path /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/bdd10k/deeplabv3plus_r50/iter_80000.pth \
-        --config_path /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/bdd10k/deeplabv3plus_r50/training_config.py \
+        --checkpoint /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/bdd10k/deeplabv3plus_r50_ratio0p50/iter_80000.pth \
+        --config /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/bdd10k/deeplabv3plus_r50_ratio0p50/training_config.py \
         --dataset BDD10k \
-        --output_dir /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/bdd10k/deeplabv3plus_r50/test_results_detailed
+        --output-dir /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/bdd10k/deeplabv3plus_r50_ratio0p50/test_results_detailed
 else
     echo "ERROR: Training failed - checkpoint not found"
 fi
 
-echo "Finished: bdd10k/deeplabv3plus_r50 at $(date)"
+echo "Finished: bdd10k/deeplabv3plus_r50_ratio0p50 at $(date)"
 
 
 echo "----------------------------------------"
-echo "Training: bdd10k/deeplabv3plus_r50_clear_day"
+echo "Training: bdd10k/deeplabv3plus_r50_ratio0p50_clear_day"
 echo "Strategy: gen_augmenters"
 echo "Real/Gen Ratio: 0.5"
 echo "Started: $(date)"
@@ -70,22 +70,22 @@ python unified_training.py \
     --max-iters 80000
 
 # Test model
-if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/bdd10k/deeplabv3plus_r50_clear_day/iter_80000.pth" ]; then
+if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/bdd10k/deeplabv3plus_r50_ratio0p50_clear_day/iter_80000.pth" ]; then
     echo "Training complete. Running test..."
     python fine_grained_test.py \
-        --weights_path /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/bdd10k/deeplabv3plus_r50_clear_day/iter_80000.pth \
-        --config_path /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/bdd10k/deeplabv3plus_r50_clear_day/training_config.py \
+        --checkpoint /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/bdd10k/deeplabv3plus_r50_ratio0p50_clear_day/iter_80000.pth \
+        --config /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/bdd10k/deeplabv3plus_r50_ratio0p50_clear_day/training_config.py \
         --dataset BDD10k \
-        --output_dir /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/bdd10k/deeplabv3plus_r50_clear_day/test_results_detailed
+        --output-dir /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/bdd10k/deeplabv3plus_r50_ratio0p50_clear_day/test_results_detailed
 else
     echo "ERROR: Training failed - checkpoint not found"
 fi
 
-echo "Finished: bdd10k/deeplabv3plus_r50_clear_day at $(date)"
+echo "Finished: bdd10k/deeplabv3plus_r50_ratio0p50_clear_day at $(date)"
 
 
 echo "----------------------------------------"
-echo "Training: bdd10k/pspnet_r50"
+echo "Training: bdd10k/pspnet_r50_ratio0p50"
 echo "Strategy: gen_augmenters"
 echo "Real/Gen Ratio: 0.5"
 echo "Started: $(date)"
@@ -101,22 +101,22 @@ python unified_training.py \
     --max-iters 80000
 
 # Test model
-if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/bdd10k/pspnet_r50/iter_80000.pth" ]; then
+if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/bdd10k/pspnet_r50_ratio0p50/iter_80000.pth" ]; then
     echo "Training complete. Running test..."
     python fine_grained_test.py \
-        --weights_path /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/bdd10k/pspnet_r50/iter_80000.pth \
-        --config_path /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/bdd10k/pspnet_r50/training_config.py \
+        --checkpoint /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/bdd10k/pspnet_r50_ratio0p50/iter_80000.pth \
+        --config /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/bdd10k/pspnet_r50_ratio0p50/training_config.py \
         --dataset BDD10k \
-        --output_dir /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/bdd10k/pspnet_r50/test_results_detailed
+        --output-dir /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/bdd10k/pspnet_r50_ratio0p50/test_results_detailed
 else
     echo "ERROR: Training failed - checkpoint not found"
 fi
 
-echo "Finished: bdd10k/pspnet_r50 at $(date)"
+echo "Finished: bdd10k/pspnet_r50_ratio0p50 at $(date)"
 
 
 echo "----------------------------------------"
-echo "Training: bdd10k/pspnet_r50_clear_day"
+echo "Training: bdd10k/pspnet_r50_ratio0p50_clear_day"
 echo "Strategy: gen_augmenters"
 echo "Real/Gen Ratio: 0.5"
 echo "Started: $(date)"
@@ -132,22 +132,22 @@ python unified_training.py \
     --max-iters 80000
 
 # Test model
-if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/bdd10k/pspnet_r50_clear_day/iter_80000.pth" ]; then
+if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/bdd10k/pspnet_r50_ratio0p50_clear_day/iter_80000.pth" ]; then
     echo "Training complete. Running test..."
     python fine_grained_test.py \
-        --weights_path /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/bdd10k/pspnet_r50_clear_day/iter_80000.pth \
-        --config_path /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/bdd10k/pspnet_r50_clear_day/training_config.py \
+        --checkpoint /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/bdd10k/pspnet_r50_ratio0p50_clear_day/iter_80000.pth \
+        --config /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/bdd10k/pspnet_r50_ratio0p50_clear_day/training_config.py \
         --dataset BDD10k \
-        --output_dir /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/bdd10k/pspnet_r50_clear_day/test_results_detailed
+        --output-dir /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/bdd10k/pspnet_r50_ratio0p50_clear_day/test_results_detailed
 else
     echo "ERROR: Training failed - checkpoint not found"
 fi
 
-echo "Finished: bdd10k/pspnet_r50_clear_day at $(date)"
+echo "Finished: bdd10k/pspnet_r50_ratio0p50_clear_day at $(date)"
 
 
 echo "----------------------------------------"
-echo "Training: bdd10k/segformer_mit-b5"
+echo "Training: bdd10k/segformer_mit-b5_ratio0p50"
 echo "Strategy: gen_augmenters"
 echo "Real/Gen Ratio: 0.5"
 echo "Started: $(date)"
@@ -163,22 +163,22 @@ python unified_training.py \
     --max-iters 80000
 
 # Test model
-if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/bdd10k/segformer_mit-b5/iter_80000.pth" ]; then
+if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/bdd10k/segformer_mit-b5_ratio0p50/iter_80000.pth" ]; then
     echo "Training complete. Running test..."
     python fine_grained_test.py \
-        --weights_path /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/bdd10k/segformer_mit-b5/iter_80000.pth \
-        --config_path /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/bdd10k/segformer_mit-b5/training_config.py \
+        --checkpoint /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/bdd10k/segformer_mit-b5_ratio0p50/iter_80000.pth \
+        --config /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/bdd10k/segformer_mit-b5_ratio0p50/training_config.py \
         --dataset BDD10k \
-        --output_dir /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/bdd10k/segformer_mit-b5/test_results_detailed
+        --output-dir /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/bdd10k/segformer_mit-b5_ratio0p50/test_results_detailed
 else
     echo "ERROR: Training failed - checkpoint not found"
 fi
 
-echo "Finished: bdd10k/segformer_mit-b5 at $(date)"
+echo "Finished: bdd10k/segformer_mit-b5_ratio0p50 at $(date)"
 
 
 echo "----------------------------------------"
-echo "Training: bdd10k/segformer_mit-b5_clear_day"
+echo "Training: bdd10k/segformer_mit-b5_ratio0p50_clear_day"
 echo "Strategy: gen_augmenters"
 echo "Real/Gen Ratio: 0.5"
 echo "Started: $(date)"
@@ -194,22 +194,22 @@ python unified_training.py \
     --max-iters 80000
 
 # Test model
-if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/bdd10k/segformer_mit-b5_clear_day/iter_80000.pth" ]; then
+if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/bdd10k/segformer_mit-b5_ratio0p50_clear_day/iter_80000.pth" ]; then
     echo "Training complete. Running test..."
     python fine_grained_test.py \
-        --weights_path /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/bdd10k/segformer_mit-b5_clear_day/iter_80000.pth \
-        --config_path /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/bdd10k/segformer_mit-b5_clear_day/training_config.py \
+        --checkpoint /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/bdd10k/segformer_mit-b5_ratio0p50_clear_day/iter_80000.pth \
+        --config /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/bdd10k/segformer_mit-b5_ratio0p50_clear_day/training_config.py \
         --dataset BDD10k \
-        --output_dir /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/bdd10k/segformer_mit-b5_clear_day/test_results_detailed
+        --output-dir /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/bdd10k/segformer_mit-b5_ratio0p50_clear_day/test_results_detailed
 else
     echo "ERROR: Training failed - checkpoint not found"
 fi
 
-echo "Finished: bdd10k/segformer_mit-b5_clear_day at $(date)"
+echo "Finished: bdd10k/segformer_mit-b5_ratio0p50_clear_day at $(date)"
 
 
 echo "----------------------------------------"
-echo "Training: idd-aw/deeplabv3plus_r50"
+echo "Training: idd-aw/deeplabv3plus_r50_ratio0p50"
 echo "Strategy: gen_augmenters"
 echo "Real/Gen Ratio: 0.5"
 echo "Started: $(date)"
@@ -225,22 +225,22 @@ python unified_training.py \
     --max-iters 80000
 
 # Test model
-if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/idd-aw/deeplabv3plus_r50/iter_80000.pth" ]; then
+if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/idd-aw/deeplabv3plus_r50_ratio0p50/iter_80000.pth" ]; then
     echo "Training complete. Running test..."
     python fine_grained_test.py \
-        --weights_path /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/idd-aw/deeplabv3plus_r50/iter_80000.pth \
-        --config_path /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/idd-aw/deeplabv3plus_r50/training_config.py \
+        --checkpoint /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/idd-aw/deeplabv3plus_r50_ratio0p50/iter_80000.pth \
+        --config /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/idd-aw/deeplabv3plus_r50_ratio0p50/training_config.py \
         --dataset IDD-AW \
-        --output_dir /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/idd-aw/deeplabv3plus_r50/test_results_detailed
+        --output-dir /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/idd-aw/deeplabv3plus_r50_ratio0p50/test_results_detailed
 else
     echo "ERROR: Training failed - checkpoint not found"
 fi
 
-echo "Finished: idd-aw/deeplabv3plus_r50 at $(date)"
+echo "Finished: idd-aw/deeplabv3plus_r50_ratio0p50 at $(date)"
 
 
 echo "----------------------------------------"
-echo "Training: idd-aw/deeplabv3plus_r50_clear_day"
+echo "Training: idd-aw/deeplabv3plus_r50_ratio0p50_clear_day"
 echo "Strategy: gen_augmenters"
 echo "Real/Gen Ratio: 0.5"
 echo "Started: $(date)"
@@ -256,22 +256,22 @@ python unified_training.py \
     --max-iters 80000
 
 # Test model
-if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/idd-aw/deeplabv3plus_r50_clear_day/iter_80000.pth" ]; then
+if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/idd-aw/deeplabv3plus_r50_ratio0p50_clear_day/iter_80000.pth" ]; then
     echo "Training complete. Running test..."
     python fine_grained_test.py \
-        --weights_path /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/idd-aw/deeplabv3plus_r50_clear_day/iter_80000.pth \
-        --config_path /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/idd-aw/deeplabv3plus_r50_clear_day/training_config.py \
+        --checkpoint /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/idd-aw/deeplabv3plus_r50_ratio0p50_clear_day/iter_80000.pth \
+        --config /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/idd-aw/deeplabv3plus_r50_ratio0p50_clear_day/training_config.py \
         --dataset IDD-AW \
-        --output_dir /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/idd-aw/deeplabv3plus_r50_clear_day/test_results_detailed
+        --output-dir /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/idd-aw/deeplabv3plus_r50_ratio0p50_clear_day/test_results_detailed
 else
     echo "ERROR: Training failed - checkpoint not found"
 fi
 
-echo "Finished: idd-aw/deeplabv3plus_r50_clear_day at $(date)"
+echo "Finished: idd-aw/deeplabv3plus_r50_ratio0p50_clear_day at $(date)"
 
 
 echo "----------------------------------------"
-echo "Training: idd-aw/pspnet_r50"
+echo "Training: idd-aw/pspnet_r50_ratio0p50"
 echo "Strategy: gen_augmenters"
 echo "Real/Gen Ratio: 0.5"
 echo "Started: $(date)"
@@ -287,22 +287,22 @@ python unified_training.py \
     --max-iters 80000
 
 # Test model
-if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/idd-aw/pspnet_r50/iter_80000.pth" ]; then
+if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/idd-aw/pspnet_r50_ratio0p50/iter_80000.pth" ]; then
     echo "Training complete. Running test..."
     python fine_grained_test.py \
-        --weights_path /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/idd-aw/pspnet_r50/iter_80000.pth \
-        --config_path /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/idd-aw/pspnet_r50/training_config.py \
+        --checkpoint /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/idd-aw/pspnet_r50_ratio0p50/iter_80000.pth \
+        --config /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/idd-aw/pspnet_r50_ratio0p50/training_config.py \
         --dataset IDD-AW \
-        --output_dir /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/idd-aw/pspnet_r50/test_results_detailed
+        --output-dir /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/idd-aw/pspnet_r50_ratio0p50/test_results_detailed
 else
     echo "ERROR: Training failed - checkpoint not found"
 fi
 
-echo "Finished: idd-aw/pspnet_r50 at $(date)"
+echo "Finished: idd-aw/pspnet_r50_ratio0p50 at $(date)"
 
 
 echo "----------------------------------------"
-echo "Training: idd-aw/pspnet_r50_clear_day"
+echo "Training: idd-aw/pspnet_r50_ratio0p50_clear_day"
 echo "Strategy: gen_augmenters"
 echo "Real/Gen Ratio: 0.5"
 echo "Started: $(date)"
@@ -318,22 +318,22 @@ python unified_training.py \
     --max-iters 80000
 
 # Test model
-if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/idd-aw/pspnet_r50_clear_day/iter_80000.pth" ]; then
+if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/idd-aw/pspnet_r50_ratio0p50_clear_day/iter_80000.pth" ]; then
     echo "Training complete. Running test..."
     python fine_grained_test.py \
-        --weights_path /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/idd-aw/pspnet_r50_clear_day/iter_80000.pth \
-        --config_path /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/idd-aw/pspnet_r50_clear_day/training_config.py \
+        --checkpoint /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/idd-aw/pspnet_r50_ratio0p50_clear_day/iter_80000.pth \
+        --config /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/idd-aw/pspnet_r50_ratio0p50_clear_day/training_config.py \
         --dataset IDD-AW \
-        --output_dir /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/idd-aw/pspnet_r50_clear_day/test_results_detailed
+        --output-dir /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/idd-aw/pspnet_r50_ratio0p50_clear_day/test_results_detailed
 else
     echo "ERROR: Training failed - checkpoint not found"
 fi
 
-echo "Finished: idd-aw/pspnet_r50_clear_day at $(date)"
+echo "Finished: idd-aw/pspnet_r50_ratio0p50_clear_day at $(date)"
 
 
 echo "----------------------------------------"
-echo "Training: idd-aw/segformer_mit-b5"
+echo "Training: idd-aw/segformer_mit-b5_ratio0p50"
 echo "Strategy: gen_augmenters"
 echo "Real/Gen Ratio: 0.5"
 echo "Started: $(date)"
@@ -349,22 +349,22 @@ python unified_training.py \
     --max-iters 80000
 
 # Test model
-if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/idd-aw/segformer_mit-b5/iter_80000.pth" ]; then
+if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/idd-aw/segformer_mit-b5_ratio0p50/iter_80000.pth" ]; then
     echo "Training complete. Running test..."
     python fine_grained_test.py \
-        --weights_path /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/idd-aw/segformer_mit-b5/iter_80000.pth \
-        --config_path /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/idd-aw/segformer_mit-b5/training_config.py \
+        --checkpoint /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/idd-aw/segformer_mit-b5_ratio0p50/iter_80000.pth \
+        --config /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/idd-aw/segformer_mit-b5_ratio0p50/training_config.py \
         --dataset IDD-AW \
-        --output_dir /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/idd-aw/segformer_mit-b5/test_results_detailed
+        --output-dir /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/idd-aw/segformer_mit-b5_ratio0p50/test_results_detailed
 else
     echo "ERROR: Training failed - checkpoint not found"
 fi
 
-echo "Finished: idd-aw/segformer_mit-b5 at $(date)"
+echo "Finished: idd-aw/segformer_mit-b5_ratio0p50 at $(date)"
 
 
 echo "----------------------------------------"
-echo "Training: idd-aw/segformer_mit-b5_clear_day"
+echo "Training: idd-aw/segformer_mit-b5_ratio0p50_clear_day"
 echo "Strategy: gen_augmenters"
 echo "Real/Gen Ratio: 0.5"
 echo "Started: $(date)"
@@ -380,22 +380,22 @@ python unified_training.py \
     --max-iters 80000
 
 # Test model
-if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/idd-aw/segformer_mit-b5_clear_day/iter_80000.pth" ]; then
+if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/idd-aw/segformer_mit-b5_ratio0p50_clear_day/iter_80000.pth" ]; then
     echo "Training complete. Running test..."
     python fine_grained_test.py \
-        --weights_path /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/idd-aw/segformer_mit-b5_clear_day/iter_80000.pth \
-        --config_path /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/idd-aw/segformer_mit-b5_clear_day/training_config.py \
+        --checkpoint /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/idd-aw/segformer_mit-b5_ratio0p50_clear_day/iter_80000.pth \
+        --config /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/idd-aw/segformer_mit-b5_ratio0p50_clear_day/training_config.py \
         --dataset IDD-AW \
-        --output_dir /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/idd-aw/segformer_mit-b5_clear_day/test_results_detailed
+        --output-dir /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/idd-aw/segformer_mit-b5_ratio0p50_clear_day/test_results_detailed
 else
     echo "ERROR: Training failed - checkpoint not found"
 fi
 
-echo "Finished: idd-aw/segformer_mit-b5_clear_day at $(date)"
+echo "Finished: idd-aw/segformer_mit-b5_ratio0p50_clear_day at $(date)"
 
 
 echo "----------------------------------------"
-echo "Training: mapillaryvistas/deeplabv3plus_r50"
+echo "Training: mapillaryvistas/deeplabv3plus_r50_ratio0p50"
 echo "Strategy: gen_augmenters"
 echo "Real/Gen Ratio: 0.5"
 echo "Started: $(date)"
@@ -411,22 +411,22 @@ python unified_training.py \
     --max-iters 80000
 
 # Test model
-if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/mapillaryvistas/deeplabv3plus_r50/iter_80000.pth" ]; then
+if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/mapillaryvistas/deeplabv3plus_r50_ratio0p50/iter_80000.pth" ]; then
     echo "Training complete. Running test..."
     python fine_grained_test.py \
-        --weights_path /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/mapillaryvistas/deeplabv3plus_r50/iter_80000.pth \
-        --config_path /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/mapillaryvistas/deeplabv3plus_r50/training_config.py \
+        --checkpoint /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/mapillaryvistas/deeplabv3plus_r50_ratio0p50/iter_80000.pth \
+        --config /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/mapillaryvistas/deeplabv3plus_r50_ratio0p50/training_config.py \
         --dataset MapillaryVistas \
-        --output_dir /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/mapillaryvistas/deeplabv3plus_r50/test_results_detailed
+        --output-dir /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/mapillaryvistas/deeplabv3plus_r50_ratio0p50/test_results_detailed
 else
     echo "ERROR: Training failed - checkpoint not found"
 fi
 
-echo "Finished: mapillaryvistas/deeplabv3plus_r50 at $(date)"
+echo "Finished: mapillaryvistas/deeplabv3plus_r50_ratio0p50 at $(date)"
 
 
 echo "----------------------------------------"
-echo "Training: mapillaryvistas/deeplabv3plus_r50_clear_day"
+echo "Training: mapillaryvistas/deeplabv3plus_r50_ratio0p50_clear_day"
 echo "Strategy: gen_augmenters"
 echo "Real/Gen Ratio: 0.5"
 echo "Started: $(date)"
@@ -442,22 +442,22 @@ python unified_training.py \
     --max-iters 80000
 
 # Test model
-if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/mapillaryvistas/deeplabv3plus_r50_clear_day/iter_80000.pth" ]; then
+if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/mapillaryvistas/deeplabv3plus_r50_ratio0p50_clear_day/iter_80000.pth" ]; then
     echo "Training complete. Running test..."
     python fine_grained_test.py \
-        --weights_path /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/mapillaryvistas/deeplabv3plus_r50_clear_day/iter_80000.pth \
-        --config_path /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/mapillaryvistas/deeplabv3plus_r50_clear_day/training_config.py \
+        --checkpoint /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/mapillaryvistas/deeplabv3plus_r50_ratio0p50_clear_day/iter_80000.pth \
+        --config /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/mapillaryvistas/deeplabv3plus_r50_ratio0p50_clear_day/training_config.py \
         --dataset MapillaryVistas \
-        --output_dir /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/mapillaryvistas/deeplabv3plus_r50_clear_day/test_results_detailed
+        --output-dir /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/mapillaryvistas/deeplabv3plus_r50_ratio0p50_clear_day/test_results_detailed
 else
     echo "ERROR: Training failed - checkpoint not found"
 fi
 
-echo "Finished: mapillaryvistas/deeplabv3plus_r50_clear_day at $(date)"
+echo "Finished: mapillaryvistas/deeplabv3plus_r50_ratio0p50_clear_day at $(date)"
 
 
 echo "----------------------------------------"
-echo "Training: mapillaryvistas/pspnet_r50"
+echo "Training: mapillaryvistas/pspnet_r50_ratio0p50"
 echo "Strategy: gen_augmenters"
 echo "Real/Gen Ratio: 0.5"
 echo "Started: $(date)"
@@ -473,22 +473,22 @@ python unified_training.py \
     --max-iters 80000
 
 # Test model
-if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/mapillaryvistas/pspnet_r50/iter_80000.pth" ]; then
+if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/mapillaryvistas/pspnet_r50_ratio0p50/iter_80000.pth" ]; then
     echo "Training complete. Running test..."
     python fine_grained_test.py \
-        --weights_path /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/mapillaryvistas/pspnet_r50/iter_80000.pth \
-        --config_path /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/mapillaryvistas/pspnet_r50/training_config.py \
+        --checkpoint /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/mapillaryvistas/pspnet_r50_ratio0p50/iter_80000.pth \
+        --config /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/mapillaryvistas/pspnet_r50_ratio0p50/training_config.py \
         --dataset MapillaryVistas \
-        --output_dir /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/mapillaryvistas/pspnet_r50/test_results_detailed
+        --output-dir /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/mapillaryvistas/pspnet_r50_ratio0p50/test_results_detailed
 else
     echo "ERROR: Training failed - checkpoint not found"
 fi
 
-echo "Finished: mapillaryvistas/pspnet_r50 at $(date)"
+echo "Finished: mapillaryvistas/pspnet_r50_ratio0p50 at $(date)"
 
 
 echo "----------------------------------------"
-echo "Training: mapillaryvistas/pspnet_r50_clear_day"
+echo "Training: mapillaryvistas/pspnet_r50_ratio0p50_clear_day"
 echo "Strategy: gen_augmenters"
 echo "Real/Gen Ratio: 0.5"
 echo "Started: $(date)"
@@ -504,22 +504,22 @@ python unified_training.py \
     --max-iters 80000
 
 # Test model
-if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/mapillaryvistas/pspnet_r50_clear_day/iter_80000.pth" ]; then
+if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/mapillaryvistas/pspnet_r50_ratio0p50_clear_day/iter_80000.pth" ]; then
     echo "Training complete. Running test..."
     python fine_grained_test.py \
-        --weights_path /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/mapillaryvistas/pspnet_r50_clear_day/iter_80000.pth \
-        --config_path /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/mapillaryvistas/pspnet_r50_clear_day/training_config.py \
+        --checkpoint /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/mapillaryvistas/pspnet_r50_ratio0p50_clear_day/iter_80000.pth \
+        --config /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/mapillaryvistas/pspnet_r50_ratio0p50_clear_day/training_config.py \
         --dataset MapillaryVistas \
-        --output_dir /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/mapillaryvistas/pspnet_r50_clear_day/test_results_detailed
+        --output-dir /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/mapillaryvistas/pspnet_r50_ratio0p50_clear_day/test_results_detailed
 else
     echo "ERROR: Training failed - checkpoint not found"
 fi
 
-echo "Finished: mapillaryvistas/pspnet_r50_clear_day at $(date)"
+echo "Finished: mapillaryvistas/pspnet_r50_ratio0p50_clear_day at $(date)"
 
 
 echo "----------------------------------------"
-echo "Training: mapillaryvistas/segformer_mit-b5"
+echo "Training: mapillaryvistas/segformer_mit-b5_ratio0p50"
 echo "Strategy: gen_augmenters"
 echo "Real/Gen Ratio: 0.5"
 echo "Started: $(date)"
@@ -535,22 +535,22 @@ python unified_training.py \
     --max-iters 80000
 
 # Test model
-if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/mapillaryvistas/segformer_mit-b5/iter_80000.pth" ]; then
+if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/mapillaryvistas/segformer_mit-b5_ratio0p50/iter_80000.pth" ]; then
     echo "Training complete. Running test..."
     python fine_grained_test.py \
-        --weights_path /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/mapillaryvistas/segformer_mit-b5/iter_80000.pth \
-        --config_path /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/mapillaryvistas/segformer_mit-b5/training_config.py \
+        --checkpoint /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/mapillaryvistas/segformer_mit-b5_ratio0p50/iter_80000.pth \
+        --config /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/mapillaryvistas/segformer_mit-b5_ratio0p50/training_config.py \
         --dataset MapillaryVistas \
-        --output_dir /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/mapillaryvistas/segformer_mit-b5/test_results_detailed
+        --output-dir /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/mapillaryvistas/segformer_mit-b5_ratio0p50/test_results_detailed
 else
     echo "ERROR: Training failed - checkpoint not found"
 fi
 
-echo "Finished: mapillaryvistas/segformer_mit-b5 at $(date)"
+echo "Finished: mapillaryvistas/segformer_mit-b5_ratio0p50 at $(date)"
 
 
 echo "----------------------------------------"
-echo "Training: mapillaryvistas/segformer_mit-b5_clear_day"
+echo "Training: mapillaryvistas/segformer_mit-b5_ratio0p50_clear_day"
 echo "Strategy: gen_augmenters"
 echo "Real/Gen Ratio: 0.5"
 echo "Started: $(date)"
@@ -566,22 +566,22 @@ python unified_training.py \
     --max-iters 80000
 
 # Test model
-if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/mapillaryvistas/segformer_mit-b5_clear_day/iter_80000.pth" ]; then
+if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/mapillaryvistas/segformer_mit-b5_ratio0p50_clear_day/iter_80000.pth" ]; then
     echo "Training complete. Running test..."
     python fine_grained_test.py \
-        --weights_path /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/mapillaryvistas/segformer_mit-b5_clear_day/iter_80000.pth \
-        --config_path /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/mapillaryvistas/segformer_mit-b5_clear_day/training_config.py \
+        --checkpoint /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/mapillaryvistas/segformer_mit-b5_ratio0p50_clear_day/iter_80000.pth \
+        --config /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/mapillaryvistas/segformer_mit-b5_ratio0p50_clear_day/training_config.py \
         --dataset MapillaryVistas \
-        --output_dir /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/mapillaryvistas/segformer_mit-b5_clear_day/test_results_detailed
+        --output-dir /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/mapillaryvistas/segformer_mit-b5_ratio0p50_clear_day/test_results_detailed
 else
     echo "ERROR: Training failed - checkpoint not found"
 fi
 
-echo "Finished: mapillaryvistas/segformer_mit-b5_clear_day at $(date)"
+echo "Finished: mapillaryvistas/segformer_mit-b5_ratio0p50_clear_day at $(date)"
 
 
 echo "----------------------------------------"
-echo "Training: outside15k/deeplabv3plus_r50"
+echo "Training: outside15k/deeplabv3plus_r50_ratio0p50"
 echo "Strategy: gen_augmenters"
 echo "Real/Gen Ratio: 0.5"
 echo "Started: $(date)"
@@ -597,22 +597,22 @@ python unified_training.py \
     --max-iters 80000
 
 # Test model
-if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/outside15k/deeplabv3plus_r50/iter_80000.pth" ]; then
+if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/outside15k/deeplabv3plus_r50_ratio0p50/iter_80000.pth" ]; then
     echo "Training complete. Running test..."
     python fine_grained_test.py \
-        --weights_path /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/outside15k/deeplabv3plus_r50/iter_80000.pth \
-        --config_path /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/outside15k/deeplabv3plus_r50/training_config.py \
+        --checkpoint /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/outside15k/deeplabv3plus_r50_ratio0p50/iter_80000.pth \
+        --config /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/outside15k/deeplabv3plus_r50_ratio0p50/training_config.py \
         --dataset OUTSIDE15k \
-        --output_dir /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/outside15k/deeplabv3plus_r50/test_results_detailed
+        --output-dir /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/outside15k/deeplabv3plus_r50_ratio0p50/test_results_detailed
 else
     echo "ERROR: Training failed - checkpoint not found"
 fi
 
-echo "Finished: outside15k/deeplabv3plus_r50 at $(date)"
+echo "Finished: outside15k/deeplabv3plus_r50_ratio0p50 at $(date)"
 
 
 echo "----------------------------------------"
-echo "Training: outside15k/deeplabv3plus_r50_clear_day"
+echo "Training: outside15k/deeplabv3plus_r50_ratio0p50_clear_day"
 echo "Strategy: gen_augmenters"
 echo "Real/Gen Ratio: 0.5"
 echo "Started: $(date)"
@@ -628,22 +628,22 @@ python unified_training.py \
     --max-iters 80000
 
 # Test model
-if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/outside15k/deeplabv3plus_r50_clear_day/iter_80000.pth" ]; then
+if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/outside15k/deeplabv3plus_r50_ratio0p50_clear_day/iter_80000.pth" ]; then
     echo "Training complete. Running test..."
     python fine_grained_test.py \
-        --weights_path /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/outside15k/deeplabv3plus_r50_clear_day/iter_80000.pth \
-        --config_path /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/outside15k/deeplabv3plus_r50_clear_day/training_config.py \
+        --checkpoint /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/outside15k/deeplabv3plus_r50_ratio0p50_clear_day/iter_80000.pth \
+        --config /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/outside15k/deeplabv3plus_r50_ratio0p50_clear_day/training_config.py \
         --dataset OUTSIDE15k \
-        --output_dir /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/outside15k/deeplabv3plus_r50_clear_day/test_results_detailed
+        --output-dir /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/outside15k/deeplabv3plus_r50_ratio0p50_clear_day/test_results_detailed
 else
     echo "ERROR: Training failed - checkpoint not found"
 fi
 
-echo "Finished: outside15k/deeplabv3plus_r50_clear_day at $(date)"
+echo "Finished: outside15k/deeplabv3plus_r50_ratio0p50_clear_day at $(date)"
 
 
 echo "----------------------------------------"
-echo "Training: outside15k/pspnet_r50"
+echo "Training: outside15k/pspnet_r50_ratio0p50"
 echo "Strategy: gen_augmenters"
 echo "Real/Gen Ratio: 0.5"
 echo "Started: $(date)"
@@ -659,22 +659,22 @@ python unified_training.py \
     --max-iters 80000
 
 # Test model
-if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/outside15k/pspnet_r50/iter_80000.pth" ]; then
+if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/outside15k/pspnet_r50_ratio0p50/iter_80000.pth" ]; then
     echo "Training complete. Running test..."
     python fine_grained_test.py \
-        --weights_path /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/outside15k/pspnet_r50/iter_80000.pth \
-        --config_path /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/outside15k/pspnet_r50/training_config.py \
+        --checkpoint /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/outside15k/pspnet_r50_ratio0p50/iter_80000.pth \
+        --config /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/outside15k/pspnet_r50_ratio0p50/training_config.py \
         --dataset OUTSIDE15k \
-        --output_dir /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/outside15k/pspnet_r50/test_results_detailed
+        --output-dir /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/outside15k/pspnet_r50_ratio0p50/test_results_detailed
 else
     echo "ERROR: Training failed - checkpoint not found"
 fi
 
-echo "Finished: outside15k/pspnet_r50 at $(date)"
+echo "Finished: outside15k/pspnet_r50_ratio0p50 at $(date)"
 
 
 echo "----------------------------------------"
-echo "Training: outside15k/pspnet_r50_clear_day"
+echo "Training: outside15k/pspnet_r50_ratio0p50_clear_day"
 echo "Strategy: gen_augmenters"
 echo "Real/Gen Ratio: 0.5"
 echo "Started: $(date)"
@@ -690,22 +690,22 @@ python unified_training.py \
     --max-iters 80000
 
 # Test model
-if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/outside15k/pspnet_r50_clear_day/iter_80000.pth" ]; then
+if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/outside15k/pspnet_r50_ratio0p50_clear_day/iter_80000.pth" ]; then
     echo "Training complete. Running test..."
     python fine_grained_test.py \
-        --weights_path /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/outside15k/pspnet_r50_clear_day/iter_80000.pth \
-        --config_path /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/outside15k/pspnet_r50_clear_day/training_config.py \
+        --checkpoint /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/outside15k/pspnet_r50_ratio0p50_clear_day/iter_80000.pth \
+        --config /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/outside15k/pspnet_r50_ratio0p50_clear_day/training_config.py \
         --dataset OUTSIDE15k \
-        --output_dir /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/outside15k/pspnet_r50_clear_day/test_results_detailed
+        --output-dir /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/outside15k/pspnet_r50_ratio0p50_clear_day/test_results_detailed
 else
     echo "ERROR: Training failed - checkpoint not found"
 fi
 
-echo "Finished: outside15k/pspnet_r50_clear_day at $(date)"
+echo "Finished: outside15k/pspnet_r50_ratio0p50_clear_day at $(date)"
 
 
 echo "----------------------------------------"
-echo "Training: outside15k/segformer_mit-b5"
+echo "Training: outside15k/segformer_mit-b5_ratio0p50"
 echo "Strategy: gen_augmenters"
 echo "Real/Gen Ratio: 0.5"
 echo "Started: $(date)"
@@ -721,22 +721,22 @@ python unified_training.py \
     --max-iters 80000
 
 # Test model
-if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/outside15k/segformer_mit-b5/iter_80000.pth" ]; then
+if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/outside15k/segformer_mit-b5_ratio0p50/iter_80000.pth" ]; then
     echo "Training complete. Running test..."
     python fine_grained_test.py \
-        --weights_path /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/outside15k/segformer_mit-b5/iter_80000.pth \
-        --config_path /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/outside15k/segformer_mit-b5/training_config.py \
+        --checkpoint /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/outside15k/segformer_mit-b5_ratio0p50/iter_80000.pth \
+        --config /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/outside15k/segformer_mit-b5_ratio0p50/training_config.py \
         --dataset OUTSIDE15k \
-        --output_dir /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/outside15k/segformer_mit-b5/test_results_detailed
+        --output-dir /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/outside15k/segformer_mit-b5_ratio0p50/test_results_detailed
 else
     echo "ERROR: Training failed - checkpoint not found"
 fi
 
-echo "Finished: outside15k/segformer_mit-b5 at $(date)"
+echo "Finished: outside15k/segformer_mit-b5_ratio0p50 at $(date)"
 
 
 echo "----------------------------------------"
-echo "Training: outside15k/segformer_mit-b5_clear_day"
+echo "Training: outside15k/segformer_mit-b5_ratio0p50_clear_day"
 echo "Strategy: gen_augmenters"
 echo "Real/Gen Ratio: 0.5"
 echo "Started: $(date)"
@@ -752,18 +752,18 @@ python unified_training.py \
     --max-iters 80000
 
 # Test model
-if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/outside15k/segformer_mit-b5_clear_day/iter_80000.pth" ]; then
+if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/outside15k/segformer_mit-b5_ratio0p50_clear_day/iter_80000.pth" ]; then
     echo "Training complete. Running test..."
     python fine_grained_test.py \
-        --weights_path /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/outside15k/segformer_mit-b5_clear_day/iter_80000.pth \
-        --config_path /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/outside15k/segformer_mit-b5_clear_day/training_config.py \
+        --checkpoint /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/outside15k/segformer_mit-b5_ratio0p50_clear_day/iter_80000.pth \
+        --config /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/outside15k/segformer_mit-b5_ratio0p50_clear_day/training_config.py \
         --dataset OUTSIDE15k \
-        --output_dir /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/outside15k/segformer_mit-b5_clear_day/test_results_detailed
+        --output-dir /scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/outside15k/segformer_mit-b5_ratio0p50_clear_day/test_results_detailed
 else
     echo "ERROR: Training failed - checkpoint not found"
 fi
 
-echo "Finished: outside15k/segformer_mit-b5_clear_day at $(date)"
+echo "Finished: outside15k/segformer_mit-b5_ratio0p50_clear_day at $(date)"
 
 
 echo "========================================"

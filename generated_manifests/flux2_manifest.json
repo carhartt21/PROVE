@@ -1,0 +1,136 @@
+{
+  "method": "flux2",
+  "generated_dir": "/scratch/aaa_exchange/AWARE/GENERATED_IMAGES/flux2",
+  "original_dir": "/scratch/aaa_exchange/AWARE/FINAL_SPLITS/train/images",
+  "target_dir": "/scratch/aaa_exchange/AWARE/AWACS/train",
+  "manifest_path": "/scratch/aaa_exchange/AWARE/GENERATED_IMAGES/flux2/manifest.csv",
+  "structure_type": "domain_dataset",
+  "task_type": "generation",
+  "total_generated": 29540,
+  "total_matched": 29540,
+  "total_unmatched": 0,
+  "overall_match_rate": 100.0,
+  "generated_at": "2026-01-08T21:35:53.327595",
+  "domains": {
+    "cloudy": {
+      "total": 4923,
+      "matched": 4923,
+      "unmatched": 0,
+      "match_rate": 100.0,
+      "is_restoration": false,
+      "restoration_source_weather": null,
+      "datasets": {
+        "ACDC": {
+          "matched": 701,
+          "unmatched": 0,
+          "total": 701
+        },
+        "BDD100k": {
+          "matched": 4222,
+          "unmatched": 0,
+          "total": 4222
+        }
+      }
+    },
+    "dawn_dusk": {
+      "total": 4923,
+      "matched": 4923,
+      "unmatched": 0,
+      "match_rate": 100.0,
+      "is_restoration": false,
+      "restoration_source_weather": null,
+      "datasets": {
+        "ACDC": {
+          "matched": 701,
+          "unmatched": 0,
+          "total": 701
+        },
+        "BDD100k": {
+          "matched": 4222,
+          "unmatched": 0,
+          "total": 4222
+        }
+      }
+    },
+    "foggy": {
+      "total": 4924,
+      "matched": 4924,
+      "unmatched": 0,
+      "match_rate": 100.0,
+      "is_restoration": false,
+      "restoration_source_weather": null,
+      "datasets": {
+        "ACDC": {
+          "matched": 701,
+          "unmatched": 0,
+          "total": 701
+        },
+        "BDD100k": {
+          "matched": 4223,
+          "unmatched": 0,
+          "total": 4223
+        }
+      }
+    },
+    "night": {
+      "total": 4923,
+      "matched": 4923,
+      "unmatched": 0,
+      "match_rate": 100.0,
+      "is_restoration": false,
+      "restoration_source_weather": null,
+      "datasets": {
+        "ACDC": {
+          "matched": 701,
+          "unmatched": 0,
+          "total": 701
+        },
+        "BDD100k": {
+          "matched": 4222,
+          "unmatched": 0,
+          "total": 4222
+        }
+      }
+    },
+    "rainy": {
+      "total": 4923,
+      "matched": 4923,
+      "unmatched": 0,
+      "match_rate": 100.0,
+      "is_restoration": false,
+      "restoration_source_weather": null,
+      "datasets": {
+        "ACDC": {
+          "matched": 701,
+          "unmatched": 0,
+          "total": 701
+        },
+        "BDD100k": {
+          "matched": 4222,
+          "unmatched": 0,
+          "total": 4222
+        }
+      }
+    },
+    "snowy": {
+      "total": 4924,
+      "matched": 4924,
+      "unmatched": 0,
+      "match_rate": 100.0,
+      "is_restoration": false,
+      "restoration_source_weather": null,
+      "datasets": {
+        "ACDC": {
+          "matched": 701,
+          "unmatched": 0,
+          "total": 701
+        },
+        "BDD100k": {
+          "matched": 4223,
+          "unmatched": 0,
+          "total": 4223
+        }
+      }
+    }
+  }
+}

@@ -42,10 +42,10 @@ python unified_training.py \
 if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/bdd10k/deeplabv3plus_r50/iter_80000.pth" ]; then
     echo "Training complete. Running test..."
     python fine_grained_test.py \
-        --weights_path /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/bdd10k/deeplabv3plus_r50/iter_80000.pth \
-        --config_path /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/bdd10k/deeplabv3plus_r50/training_config.py \
+        --checkpoint /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/bdd10k/deeplabv3plus_r50/iter_80000.pth \
+        --config /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/bdd10k/deeplabv3plus_r50/training_config.py \
         --dataset BDD10k \
-        --output_dir /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/bdd10k/deeplabv3plus_r50/test_results_detailed
+        --output-dir /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/bdd10k/deeplabv3plus_r50/test_results_detailed
 else
     echo "ERROR: Training failed - checkpoint not found"
 fi
@@ -73,10 +73,10 @@ python unified_training.py \
 if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/bdd10k/deeplabv3plus_r50_clear_day/iter_80000.pth" ]; then
     echo "Training complete. Running test..."
     python fine_grained_test.py \
-        --weights_path /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/bdd10k/deeplabv3plus_r50_clear_day/iter_80000.pth \
-        --config_path /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/bdd10k/deeplabv3plus_r50_clear_day/training_config.py \
+        --checkpoint /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/bdd10k/deeplabv3plus_r50_clear_day/iter_80000.pth \
+        --config /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/bdd10k/deeplabv3plus_r50_clear_day/training_config.py \
         --dataset BDD10k \
-        --output_dir /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/bdd10k/deeplabv3plus_r50_clear_day/test_results_detailed
+        --output-dir /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/bdd10k/deeplabv3plus_r50_clear_day/test_results_detailed
 else
     echo "ERROR: Training failed - checkpoint not found"
 fi
@@ -104,10 +104,10 @@ python unified_training.py \
 if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/bdd10k/pspnet_r50/iter_80000.pth" ]; then
     echo "Training complete. Running test..."
     python fine_grained_test.py \
-        --weights_path /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/bdd10k/pspnet_r50/iter_80000.pth \
-        --config_path /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/bdd10k/pspnet_r50/training_config.py \
+        --checkpoint /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/bdd10k/pspnet_r50/iter_80000.pth \
+        --config /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/bdd10k/pspnet_r50/training_config.py \
         --dataset BDD10k \
-        --output_dir /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/bdd10k/pspnet_r50/test_results_detailed
+        --output-dir /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/bdd10k/pspnet_r50/test_results_detailed
 else
     echo "ERROR: Training failed - checkpoint not found"
 fi
@@ -135,10 +135,10 @@ python unified_training.py \
 if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/bdd10k/pspnet_r50_clear_day/iter_80000.pth" ]; then
     echo "Training complete. Running test..."
     python fine_grained_test.py \
-        --weights_path /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/bdd10k/pspnet_r50_clear_day/iter_80000.pth \
-        --config_path /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/bdd10k/pspnet_r50_clear_day/training_config.py \
+        --checkpoint /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/bdd10k/pspnet_r50_clear_day/iter_80000.pth \
+        --config /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/bdd10k/pspnet_r50_clear_day/training_config.py \
         --dataset BDD10k \
-        --output_dir /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/bdd10k/pspnet_r50_clear_day/test_results_detailed
+        --output-dir /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/bdd10k/pspnet_r50_clear_day/test_results_detailed
 else
     echo "ERROR: Training failed - checkpoint not found"
 fi
@@ -166,10 +166,10 @@ python unified_training.py \
 if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/bdd10k/segformer_mit-b5/iter_80000.pth" ]; then
     echo "Training complete. Running test..."
     python fine_grained_test.py \
-        --weights_path /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/bdd10k/segformer_mit-b5/iter_80000.pth \
-        --config_path /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/bdd10k/segformer_mit-b5/training_config.py \
+        --checkpoint /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/bdd10k/segformer_mit-b5/iter_80000.pth \
+        --config /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/bdd10k/segformer_mit-b5/training_config.py \
         --dataset BDD10k \
-        --output_dir /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/bdd10k/segformer_mit-b5/test_results_detailed
+        --output-dir /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/bdd10k/segformer_mit-b5/test_results_detailed
 else
     echo "ERROR: Training failed - checkpoint not found"
 fi
@@ -197,10 +197,10 @@ python unified_training.py \
 if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/bdd10k/segformer_mit-b5_clear_day/iter_80000.pth" ]; then
     echo "Training complete. Running test..."
     python fine_grained_test.py \
-        --weights_path /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/bdd10k/segformer_mit-b5_clear_day/iter_80000.pth \
-        --config_path /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/bdd10k/segformer_mit-b5_clear_day/training_config.py \
+        --checkpoint /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/bdd10k/segformer_mit-b5_clear_day/iter_80000.pth \
+        --config /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/bdd10k/segformer_mit-b5_clear_day/training_config.py \
         --dataset BDD10k \
-        --output_dir /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/bdd10k/segformer_mit-b5_clear_day/test_results_detailed
+        --output-dir /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/bdd10k/segformer_mit-b5_clear_day/test_results_detailed
 else
     echo "ERROR: Training failed - checkpoint not found"
 fi
@@ -228,10 +228,10 @@ python unified_training.py \
 if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/idd-aw/deeplabv3plus_r50/iter_80000.pth" ]; then
     echo "Training complete. Running test..."
     python fine_grained_test.py \
-        --weights_path /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/idd-aw/deeplabv3plus_r50/iter_80000.pth \
-        --config_path /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/idd-aw/deeplabv3plus_r50/training_config.py \
+        --checkpoint /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/idd-aw/deeplabv3plus_r50/iter_80000.pth \
+        --config /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/idd-aw/deeplabv3plus_r50/training_config.py \
         --dataset IDD-AW \
-        --output_dir /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/idd-aw/deeplabv3plus_r50/test_results_detailed
+        --output-dir /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/idd-aw/deeplabv3plus_r50/test_results_detailed
 else
     echo "ERROR: Training failed - checkpoint not found"
 fi
@@ -259,10 +259,10 @@ python unified_training.py \
 if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/idd-aw/deeplabv3plus_r50_clear_day/iter_80000.pth" ]; then
     echo "Training complete. Running test..."
     python fine_grained_test.py \
-        --weights_path /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/idd-aw/deeplabv3plus_r50_clear_day/iter_80000.pth \
-        --config_path /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/idd-aw/deeplabv3plus_r50_clear_day/training_config.py \
+        --checkpoint /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/idd-aw/deeplabv3plus_r50_clear_day/iter_80000.pth \
+        --config /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/idd-aw/deeplabv3plus_r50_clear_day/training_config.py \
         --dataset IDD-AW \
-        --output_dir /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/idd-aw/deeplabv3plus_r50_clear_day/test_results_detailed
+        --output-dir /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/idd-aw/deeplabv3plus_r50_clear_day/test_results_detailed
 else
     echo "ERROR: Training failed - checkpoint not found"
 fi
@@ -290,10 +290,10 @@ python unified_training.py \
 if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/idd-aw/pspnet_r50/iter_80000.pth" ]; then
     echo "Training complete. Running test..."
     python fine_grained_test.py \
-        --weights_path /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/idd-aw/pspnet_r50/iter_80000.pth \
-        --config_path /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/idd-aw/pspnet_r50/training_config.py \
+        --checkpoint /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/idd-aw/pspnet_r50/iter_80000.pth \
+        --config /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/idd-aw/pspnet_r50/training_config.py \
         --dataset IDD-AW \
-        --output_dir /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/idd-aw/pspnet_r50/test_results_detailed
+        --output-dir /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/idd-aw/pspnet_r50/test_results_detailed
 else
     echo "ERROR: Training failed - checkpoint not found"
 fi
@@ -321,10 +321,10 @@ python unified_training.py \
 if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/idd-aw/pspnet_r50_clear_day/iter_80000.pth" ]; then
     echo "Training complete. Running test..."
     python fine_grained_test.py \
-        --weights_path /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/idd-aw/pspnet_r50_clear_day/iter_80000.pth \
-        --config_path /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/idd-aw/pspnet_r50_clear_day/training_config.py \
+        --checkpoint /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/idd-aw/pspnet_r50_clear_day/iter_80000.pth \
+        --config /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/idd-aw/pspnet_r50_clear_day/training_config.py \
         --dataset IDD-AW \
-        --output_dir /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/idd-aw/pspnet_r50_clear_day/test_results_detailed
+        --output-dir /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/idd-aw/pspnet_r50_clear_day/test_results_detailed
 else
     echo "ERROR: Training failed - checkpoint not found"
 fi
@@ -352,10 +352,10 @@ python unified_training.py \
 if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/idd-aw/segformer_mit-b5/iter_80000.pth" ]; then
     echo "Training complete. Running test..."
     python fine_grained_test.py \
-        --weights_path /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/idd-aw/segformer_mit-b5/iter_80000.pth \
-        --config_path /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/idd-aw/segformer_mit-b5/training_config.py \
+        --checkpoint /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/idd-aw/segformer_mit-b5/iter_80000.pth \
+        --config /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/idd-aw/segformer_mit-b5/training_config.py \
         --dataset IDD-AW \
-        --output_dir /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/idd-aw/segformer_mit-b5/test_results_detailed
+        --output-dir /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/idd-aw/segformer_mit-b5/test_results_detailed
 else
     echo "ERROR: Training failed - checkpoint not found"
 fi
@@ -383,10 +383,10 @@ python unified_training.py \
 if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/idd-aw/segformer_mit-b5_clear_day/iter_80000.pth" ]; then
     echo "Training complete. Running test..."
     python fine_grained_test.py \
-        --weights_path /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/idd-aw/segformer_mit-b5_clear_day/iter_80000.pth \
-        --config_path /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/idd-aw/segformer_mit-b5_clear_day/training_config.py \
+        --checkpoint /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/idd-aw/segformer_mit-b5_clear_day/iter_80000.pth \
+        --config /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/idd-aw/segformer_mit-b5_clear_day/training_config.py \
         --dataset IDD-AW \
-        --output_dir /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/idd-aw/segformer_mit-b5_clear_day/test_results_detailed
+        --output-dir /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/idd-aw/segformer_mit-b5_clear_day/test_results_detailed
 else
     echo "ERROR: Training failed - checkpoint not found"
 fi
@@ -414,10 +414,10 @@ python unified_training.py \
 if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/mapillaryvistas/deeplabv3plus_r50/iter_80000.pth" ]; then
     echo "Training complete. Running test..."
     python fine_grained_test.py \
-        --weights_path /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/mapillaryvistas/deeplabv3plus_r50/iter_80000.pth \
-        --config_path /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/mapillaryvistas/deeplabv3plus_r50/training_config.py \
+        --checkpoint /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/mapillaryvistas/deeplabv3plus_r50/iter_80000.pth \
+        --config /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/mapillaryvistas/deeplabv3plus_r50/training_config.py \
         --dataset MapillaryVistas \
-        --output_dir /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/mapillaryvistas/deeplabv3plus_r50/test_results_detailed
+        --output-dir /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/mapillaryvistas/deeplabv3plus_r50/test_results_detailed
 else
     echo "ERROR: Training failed - checkpoint not found"
 fi
@@ -445,10 +445,10 @@ python unified_training.py \
 if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/mapillaryvistas/deeplabv3plus_r50_clear_day/iter_80000.pth" ]; then
     echo "Training complete. Running test..."
     python fine_grained_test.py \
-        --weights_path /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/mapillaryvistas/deeplabv3plus_r50_clear_day/iter_80000.pth \
-        --config_path /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/mapillaryvistas/deeplabv3plus_r50_clear_day/training_config.py \
+        --checkpoint /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/mapillaryvistas/deeplabv3plus_r50_clear_day/iter_80000.pth \
+        --config /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/mapillaryvistas/deeplabv3plus_r50_clear_day/training_config.py \
         --dataset MapillaryVistas \
-        --output_dir /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/mapillaryvistas/deeplabv3plus_r50_clear_day/test_results_detailed
+        --output-dir /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/mapillaryvistas/deeplabv3plus_r50_clear_day/test_results_detailed
 else
     echo "ERROR: Training failed - checkpoint not found"
 fi
@@ -476,10 +476,10 @@ python unified_training.py \
 if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/mapillaryvistas/pspnet_r50/iter_80000.pth" ]; then
     echo "Training complete. Running test..."
     python fine_grained_test.py \
-        --weights_path /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/mapillaryvistas/pspnet_r50/iter_80000.pth \
-        --config_path /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/mapillaryvistas/pspnet_r50/training_config.py \
+        --checkpoint /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/mapillaryvistas/pspnet_r50/iter_80000.pth \
+        --config /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/mapillaryvistas/pspnet_r50/training_config.py \
         --dataset MapillaryVistas \
-        --output_dir /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/mapillaryvistas/pspnet_r50/test_results_detailed
+        --output-dir /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/mapillaryvistas/pspnet_r50/test_results_detailed
 else
     echo "ERROR: Training failed - checkpoint not found"
 fi
@@ -507,10 +507,10 @@ python unified_training.py \
 if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/mapillaryvistas/pspnet_r50_clear_day/iter_80000.pth" ]; then
     echo "Training complete. Running test..."
     python fine_grained_test.py \
-        --weights_path /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/mapillaryvistas/pspnet_r50_clear_day/iter_80000.pth \
-        --config_path /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/mapillaryvistas/pspnet_r50_clear_day/training_config.py \
+        --checkpoint /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/mapillaryvistas/pspnet_r50_clear_day/iter_80000.pth \
+        --config /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/mapillaryvistas/pspnet_r50_clear_day/training_config.py \
         --dataset MapillaryVistas \
-        --output_dir /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/mapillaryvistas/pspnet_r50_clear_day/test_results_detailed
+        --output-dir /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/mapillaryvistas/pspnet_r50_clear_day/test_results_detailed
 else
     echo "ERROR: Training failed - checkpoint not found"
 fi
@@ -538,10 +538,10 @@ python unified_training.py \
 if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/mapillaryvistas/segformer_mit-b5/iter_80000.pth" ]; then
     echo "Training complete. Running test..."
     python fine_grained_test.py \
-        --weights_path /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/mapillaryvistas/segformer_mit-b5/iter_80000.pth \
-        --config_path /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/mapillaryvistas/segformer_mit-b5/training_config.py \
+        --checkpoint /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/mapillaryvistas/segformer_mit-b5/iter_80000.pth \
+        --config /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/mapillaryvistas/segformer_mit-b5/training_config.py \
         --dataset MapillaryVistas \
-        --output_dir /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/mapillaryvistas/segformer_mit-b5/test_results_detailed
+        --output-dir /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/mapillaryvistas/segformer_mit-b5/test_results_detailed
 else
     echo "ERROR: Training failed - checkpoint not found"
 fi
@@ -569,10 +569,10 @@ python unified_training.py \
 if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/mapillaryvistas/segformer_mit-b5_clear_day/iter_80000.pth" ]; then
     echo "Training complete. Running test..."
     python fine_grained_test.py \
-        --weights_path /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/mapillaryvistas/segformer_mit-b5_clear_day/iter_80000.pth \
-        --config_path /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/mapillaryvistas/segformer_mit-b5_clear_day/training_config.py \
+        --checkpoint /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/mapillaryvistas/segformer_mit-b5_clear_day/iter_80000.pth \
+        --config /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/mapillaryvistas/segformer_mit-b5_clear_day/training_config.py \
         --dataset MapillaryVistas \
-        --output_dir /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/mapillaryvistas/segformer_mit-b5_clear_day/test_results_detailed
+        --output-dir /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/mapillaryvistas/segformer_mit-b5_clear_day/test_results_detailed
 else
     echo "ERROR: Training failed - checkpoint not found"
 fi
@@ -600,10 +600,10 @@ python unified_training.py \
 if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/outside15k/deeplabv3plus_r50/iter_80000.pth" ]; then
     echo "Training complete. Running test..."
     python fine_grained_test.py \
-        --weights_path /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/outside15k/deeplabv3plus_r50/iter_80000.pth \
-        --config_path /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/outside15k/deeplabv3plus_r50/training_config.py \
+        --checkpoint /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/outside15k/deeplabv3plus_r50/iter_80000.pth \
+        --config /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/outside15k/deeplabv3plus_r50/training_config.py \
         --dataset OUTSIDE15k \
-        --output_dir /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/outside15k/deeplabv3plus_r50/test_results_detailed
+        --output-dir /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/outside15k/deeplabv3plus_r50/test_results_detailed
 else
     echo "ERROR: Training failed - checkpoint not found"
 fi
@@ -631,10 +631,10 @@ python unified_training.py \
 if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/outside15k/deeplabv3plus_r50_clear_day/iter_80000.pth" ]; then
     echo "Training complete. Running test..."
     python fine_grained_test.py \
-        --weights_path /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/outside15k/deeplabv3plus_r50_clear_day/iter_80000.pth \
-        --config_path /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/outside15k/deeplabv3plus_r50_clear_day/training_config.py \
+        --checkpoint /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/outside15k/deeplabv3plus_r50_clear_day/iter_80000.pth \
+        --config /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/outside15k/deeplabv3plus_r50_clear_day/training_config.py \
         --dataset OUTSIDE15k \
-        --output_dir /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/outside15k/deeplabv3plus_r50_clear_day/test_results_detailed
+        --output-dir /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/outside15k/deeplabv3plus_r50_clear_day/test_results_detailed
 else
     echo "ERROR: Training failed - checkpoint not found"
 fi
@@ -662,10 +662,10 @@ python unified_training.py \
 if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/outside15k/pspnet_r50/iter_80000.pth" ]; then
     echo "Training complete. Running test..."
     python fine_grained_test.py \
-        --weights_path /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/outside15k/pspnet_r50/iter_80000.pth \
-        --config_path /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/outside15k/pspnet_r50/training_config.py \
+        --checkpoint /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/outside15k/pspnet_r50/iter_80000.pth \
+        --config /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/outside15k/pspnet_r50/training_config.py \
         --dataset OUTSIDE15k \
-        --output_dir /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/outside15k/pspnet_r50/test_results_detailed
+        --output-dir /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/outside15k/pspnet_r50/test_results_detailed
 else
     echo "ERROR: Training failed - checkpoint not found"
 fi
@@ -693,10 +693,10 @@ python unified_training.py \
 if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/outside15k/pspnet_r50_clear_day/iter_80000.pth" ]; then
     echo "Training complete. Running test..."
     python fine_grained_test.py \
-        --weights_path /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/outside15k/pspnet_r50_clear_day/iter_80000.pth \
-        --config_path /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/outside15k/pspnet_r50_clear_day/training_config.py \
+        --checkpoint /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/outside15k/pspnet_r50_clear_day/iter_80000.pth \
+        --config /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/outside15k/pspnet_r50_clear_day/training_config.py \
         --dataset OUTSIDE15k \
-        --output_dir /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/outside15k/pspnet_r50_clear_day/test_results_detailed
+        --output-dir /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/outside15k/pspnet_r50_clear_day/test_results_detailed
 else
     echo "ERROR: Training failed - checkpoint not found"
 fi
@@ -724,10 +724,10 @@ python unified_training.py \
 if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/outside15k/segformer_mit-b5/iter_80000.pth" ]; then
     echo "Training complete. Running test..."
     python fine_grained_test.py \
-        --weights_path /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/outside15k/segformer_mit-b5/iter_80000.pth \
-        --config_path /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/outside15k/segformer_mit-b5/training_config.py \
+        --checkpoint /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/outside15k/segformer_mit-b5/iter_80000.pth \
+        --config /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/outside15k/segformer_mit-b5/training_config.py \
         --dataset OUTSIDE15k \
-        --output_dir /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/outside15k/segformer_mit-b5/test_results_detailed
+        --output-dir /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/outside15k/segformer_mit-b5/test_results_detailed
 else
     echo "ERROR: Training failed - checkpoint not found"
 fi
@@ -755,10 +755,10 @@ python unified_training.py \
 if [ -f "/scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/outside15k/segformer_mit-b5_clear_day/iter_80000.pth" ]; then
     echo "Training complete. Running test..."
     python fine_grained_test.py \
-        --weights_path /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/outside15k/segformer_mit-b5_clear_day/iter_80000.pth \
-        --config_path /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/outside15k/segformer_mit-b5_clear_day/training_config.py \
+        --checkpoint /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/outside15k/segformer_mit-b5_clear_day/iter_80000.pth \
+        --config /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/outside15k/segformer_mit-b5_clear_day/training_config.py \
         --dataset OUTSIDE15k \
-        --output_dir /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/outside15k/segformer_mit-b5_clear_day/test_results_detailed
+        --output-dir /scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/outside15k/segformer_mit-b5_clear_day/test_results_detailed
 else
     echo "ERROR: Training failed - checkpoint not found"
 fi
