@@ -5,7 +5,7 @@
 #BSUB -n 8
 #BSUB -R "rusage[mem=16000]"
 #BSUB -gpu "num=1:mode=exclusive_process:gmem=20G"
-#BSUB -W 4:00
+#BSUB -W 12:00
 #BSUB -q BatchGPU
 
 # Activate environment
