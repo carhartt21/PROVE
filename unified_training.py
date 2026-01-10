@@ -1011,7 +1011,7 @@ Examples:
     parser.add_argument('--all-det-datasets', action='store_true',
                        help='Use all detection datasets for batch training')
     parser.add_argument('--unified-seg-dataset', action='store_true',
-                       help='Use unified segmentation dataset (ACDC+BDD10k+MapillaryVistas+IDD-AW)')
+                       help='Use unified segmentation dataset (BDD10k+MapillaryVistas+IDD-AW, without ACDC)')
     parser.add_argument('--all-seg-models', action='store_true',
                        help='Use all segmentation models for batch training')
     parser.add_argument('--all-det-models', action='store_true',
@@ -1072,7 +1072,9 @@ def main():
             datasets.extend(seg_datasets)
         
         if args.unified_seg_dataset:
-            datasets.append('multi_acdc+mapillaryvistas+idd-aw+bdd10k')
+            # Removed ACDC from multi-dataset training
+            # ACDC uses Cityscapes label IDs which adds complexity, and was causing issues
+            datasets.append('multi_mapillaryvistas+idd-aw+bdd10k')
         
         if args.all_seg_models:
             models.extend(list(SEGMENTATION_MODELS.keys()))
