@@ -57,7 +57,7 @@ echo ""
 # Activate conda environment
 echo "Activating prove conda environment..."
 source ~/.bashrc
-conda activate prove
+mamba activate prove
 
 # Update weights summary
 echo "Analyzing configurations..."
