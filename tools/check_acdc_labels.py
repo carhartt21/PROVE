@@ -5,7 +5,8 @@ import numpy as np
 from PIL import Image
 from pathlib import Path
 import sys
-sys.path.insert(0, '/home/mima2416/repositories/PROVE')
+# Add project root to path dynamically
+sys.path.insert(0, str(Path(__file__).parent.parent.absolute()))
 from custom_transforms import CITYSCAPES_ID_TO_TRAINID
 
 label_path = Path('/scratch/aaa_exchange/AWARE/FINAL_SPLITS/test/labels/ACDC')

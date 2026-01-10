@@ -38,84 +38,17 @@ try:
     from mmseg.registry import TRANSFORMS, METRICS
     from mmseg.evaluation.metrics import IoUMetric
     
-    @TRANSFORMS.register_module()
-    class ReduceToSingleChannel(BaseTransform):
-        """Convert 3-channel label images (where all channels are identical class IDs) to single channel.
-        
-        Some datasets store labels as RGB PNGs where all 3 channels contain the same class ID values.
-        This transform extracts only the first channel for proper training.
-        """
-        
-        def transform(self, results: dict) -> dict:
-            """Take first channel of gt_seg_map if it has 3 channels."""
-            if 'gt_seg_map' in results:
-                seg_map = results['gt_seg_map']
-                if seg_map.ndim == 3 and seg_map.shape[-1] == 3:
-                    # Take first channel (all channels should be identical)
-                    results['gt_seg_map'] = seg_map[:, :, 0]
-            return results
-        
-        def __repr__(self) -> str:
-            return f'{self.__class__.__name__}()'
+    # Import custom transforms - they will be registered with force=True
+    # This is the canonical source for all label transforms
+    import custom_transforms
     
-    @METRICS.register_module()
-    class FWIoUMetric(IoUMetric):
-        """IoU Metric with additional Frequency Weighted IoU (fwIoU) computation.
-        
-        Extends IoUMetric to include fwIoU = sum(freq_i * IoU_i) where
-        freq_i = area_label_i / total_area.
-        
-        Args:
-            iou_metrics: List of metrics to compute. Supports 'mIoU', 'mDice', 'mFscore', 'fwIoU'.
-        """
-        
-        ALLOWED_METRICS = ['mIoU', 'mDice', 'mFscore', 'fwIoU']
-        
-        def __init__(self, iou_metrics=['mIoU'], **kwargs):
-            # Validate and separate fwIoU
-            for metric in iou_metrics:
-                if metric not in self.ALLOWED_METRICS:
-                    raise KeyError(f"metric {metric} not in {self.ALLOWED_METRICS}")
-            
-            self.compute_fwiou = 'fwIoU' in iou_metrics
-            parent_metrics = [m for m in iou_metrics if m != 'fwIoU']
-            if not parent_metrics:
-                parent_metrics = ['mIoU']
-            
-            super().__init__(iou_metrics=parent_metrics, **kwargs)
-        
-        def compute_metrics(self, results):
-            """Compute metrics including fwIoU."""
-            metrics = super().compute_metrics(results)
-            
-            if self.compute_fwiou:
-                # Aggregate areas
-                total_area_intersect = np.zeros((self.num_classes,), dtype=np.float64)
-                total_area_union = np.zeros((self.num_classes,), dtype=np.float64)
-                total_area_label = np.zeros((self.num_classes,), dtype=np.float64)
-                
-                for result in results:
-                    total_area_intersect += result['area_intersect']
-                    total_area_union += result['area_union']
-                    total_area_label += result['area_label']
-                
-                # Compute fwIoU: sum(freq_i * IoU_i)
-                iou = total_area_intersect / total_area_union
-                total_area = total_area_label.sum()
-                if total_area > 0:
-                    freq = total_area_label / total_area
-                    valid_mask = ~np.isnan(iou)
-                    iou = np.nan_to_num(iou, nan=0.0)
-                    freq = freq * valid_mask
-                    if freq.sum() > 0:
-                        freq = freq / freq.sum()
-                    fwiou = (freq * iou).sum()
-                else:
-                    fwiou = 0.0
-                
-                metrics['fwIoU'] = fwiou * 100  # Percentage like other metrics
-            
-            return metrics
+    # The following are registered by custom_transforms:
+    # - ReduceToSingleChannel (force=True)
+    # - CityscapesLabelIdToTrainId
+    # - MapillaryRGBToClassId
+    # - MapillaryNativeLabelClamp
+    # - Outside15kNativeLabelClamp
+    # - FWIoUMetric
             
 except ImportError:
     # MMSeg not installed yet, skip registration (will be registered when imported during training)
@@ -1243,11 +1176,11 @@ class UnifiedTrainingConfig:
         # Multi-dataset training ALWAYS uses unified labels (Cityscapes 19-class)
         # - MapillaryVistas: 66-class labels → 19-class Cityscapes trainIDs
         # - OUTSIDE15k: 24-class labels → 19-class Cityscapes trainIDs
-        # - ACDC: Cityscapes label IDs (0-33) → Cityscapes trainIDs (0-18)
-        # - BDD10k, IDD-AW: Already use Cityscapes trainIDs (no ID transform needed)
+        # - ACDC, IDD-AW: Cityscapes label IDs (0-33) → Cityscapes trainIDs (0-18)
+        # - BDD10k: Already uses Cityscapes trainIDs (no ID transform needed)
         MAPILLARY_DATASETS = {'MapillaryVistas', 'Mapillary'}
         OUTSIDE15K_DATASETS = {'OUTSIDE15k'}
-        CITYSCAPES_LABEL_ID_DATASETS = {'ACDC'}  # Use Cityscapes label ID format (7=road, 8=sidewalk, etc.)
+        CITYSCAPES_LABEL_ID_DATASETS = {'ACDC', 'IDD-AW'}  # Use Cityscapes label ID format (7=road, 8=sidewalk, etc.)
         
         # Build individual dataset configs for ConcatDataset with per-dataset pipelines
         train_datasets = []
@@ -1269,11 +1202,11 @@ class UnifiedTrainingConfig:
                 config[pipeline_name] = self._build_outside15k_training_pipeline(cfg, is_baseline)
                 pipeline_ref = '{{' + pipeline_name + '}}'
             elif name in CITYSCAPES_LABEL_ID_DATASETS:
-                # ACDC: uses Cityscapes label IDs, needs CityscapesLabelIdToTrainId
+                # ACDC, IDD-AW: uses Cityscapes label IDs, needs CityscapesLabelIdToTrainId
                 config[pipeline_name] = self._build_cityscapes_training_pipeline(cfg, is_baseline)
                 pipeline_ref = '{{' + pipeline_name + '}}'
             else:
-                # BDD10k, IDD-AW: already have trainIDs, just need ReduceToSingleChannel
+                # BDD10k: already has trainIDs, just needs ReduceToSingleChannel
                 config[pipeline_name] = self._build_trainid_training_pipeline(cfg, is_baseline)
                 pipeline_ref = '{{' + pipeline_name + '}}'
             
@@ -1427,7 +1360,7 @@ class UnifiedTrainingConfig:
         """
         Build a training pipeline for datasets that already use trainID format.
         
-        Datasets like BDD10k and IDD-AW already have labels in Cityscapes trainID format:
+        Datasets like BDD10k already have labels in Cityscapes trainID format:
         - road = 0, sidewalk = 1, building = 2, etc.
         
         These datasets only need ReduceToSingleChannel (for 3-channel PNGs) but NO
@@ -1946,15 +1879,15 @@ class UnifiedTrainingConfig:
             std_aug_method = AUGMENTATION_STRATEGIES[std_strategy].standard_method
         
         # Label transformation logic:
-        # Single-dataset training: Use native class labels (no transforms except for ACDC/Cityscapes)
+        # Single-dataset training: Use native class labels (no transforms except for ACDC/Cityscapes/IDD-AW)
         # Multi-dataset training: Map all labels to Cityscapes 19-class format (unified labels)
         #
         # Dataset native formats:
-        # - ACDC/Cityscapes: labelIds (0-33) - ALWAYS needs CityscapesLabelIdToTrainId transform
-        # - BDD10k, IDD-AW: Already Cityscapes trainIDs (0-18) - no transform needed
+        # - ACDC/Cityscapes/IDD-AW: labelIds (0-33) - ALWAYS needs CityscapesLabelIdToTrainId transform
+        # - BDD10k: Already Cityscapes trainIDs (0-18) - no transform needed
         # - OUTSIDE15k: 24 native classes (0-23) - only transform in unified mode
         # - MapillaryVistas: 66 native classes (0-65) - only transform in unified mode
-        CITYSCAPES_LABEL_ID_DATASETS = {'ACDC', 'Cityscapes'}
+        CITYSCAPES_LABEL_ID_DATASETS = {'ACDC', 'Cityscapes', 'IDD-AW'}
         OUTSIDE15K_DATASETS = {'OUTSIDE15k'}
         MAPILLARY_DATASETS = {'MapillaryVistas', 'Mapillary'}
         
@@ -1963,13 +1896,24 @@ class UnifiedTrainingConfig:
         # OUTSIDE15k/Mapillary only need transforms in unified mode (multi-dataset training)
         needs_outside15k_transform = use_unified_labels and (dataset in OUTSIDE15K_DATASETS) if dataset else False
         needs_mapillary_transform = use_unified_labels and (dataset in MAPILLARY_DATASETS) if dataset else False
+        # For native single-dataset training, we need to clamp invalid labels to prevent CUDA assertion errors
+        needs_mapillary_clamp = (not use_unified_labels) and (dataset in MAPILLARY_DATASETS) if dataset else False
+        needs_outside15k_clamp = (not use_unified_labels) and (dataset in OUTSIDE15K_DATASETS) if dataset else False
+        # MapillaryVistas uses RGB color-encoded labels that need decoding
+        is_mapillary = dataset in MAPILLARY_DATASETS if dataset else False
         
         pipeline = [
             dict(type='LoadImageFromFile'),
             dict(type='LoadAnnotations'),  # reduce_zero_label set in dataset config
-            # Handle labels stored as 3-channel PNGs (all channels identical class IDs)
-            dict(type='ReduceToSingleChannel'),
         ]
+        
+        # Handle label format conversion based on dataset
+        if is_mapillary:
+            # MapillaryVistas labels are RGB color-encoded - decode to class IDs (0-65)
+            pipeline.append(dict(type='MapillaryRGBToClassId'))
+        else:
+            # Other datasets: labels stored as 3-channel PNGs with identical channels
+            pipeline.append(dict(type='ReduceToSingleChannel'))
         
         # Apply dataset-specific label transformation
         if needs_label_id_transform:
@@ -1982,7 +1926,13 @@ class UnifiedTrainingConfig:
         elif needs_mapillary_transform:
             # Only in unified mode: Convert Mapillary 66 classes to Cityscapes 19 trainIDs
             pipeline.append(dict(type='MapillaryLabelTransform', target_space='cityscapes'))
-        # Note: For single-dataset OUTSIDE15k/Mapillary, no transform needed - use native labels
+        elif needs_mapillary_clamp:
+            # Single-dataset Mapillary: clamp invalid labels (>=66 or 255) to prevent CUDA assertion errors
+            # Labels may contain 255 for void which causes NLLLoss2d assertion failure
+            pipeline.append(dict(type='MapillaryNativeLabelClamp', num_classes=66))
+        elif needs_outside15k_clamp:
+            # Single-dataset OUTSIDE15k: clamp invalid labels (>=24 or 255) to prevent CUDA assertion errors
+            pipeline.append(dict(type='Outside15kNativeLabelClamp', num_classes=24))
         
         pipeline.append(dict(type='Resize', scale=(1024, 512), keep_ratio=True))
         
@@ -2017,9 +1967,15 @@ class UnifiedTrainingConfig:
         test_pipeline = [
             dict(type='LoadImageFromFile'),
             dict(type='LoadAnnotations'),  # reduce_zero_label set in dataset config
-            # Handle labels stored as 3-channel PNGs (all channels identical class IDs)
-            dict(type='ReduceToSingleChannel'),
         ]
+        
+        # Handle label format conversion based on dataset (same as train pipeline)
+        if is_mapillary:
+            # MapillaryVistas labels are RGB color-encoded - decode to class IDs (0-65)
+            test_pipeline.append(dict(type='MapillaryRGBToClassId'))
+        else:
+            # Other datasets: labels stored as 3-channel PNGs with identical channels
+            test_pipeline.append(dict(type='ReduceToSingleChannel'))
         
         # Apply dataset-specific label transformation (same logic as train pipeline)
         if needs_label_id_transform:
@@ -2031,7 +1987,12 @@ class UnifiedTrainingConfig:
         elif needs_mapillary_transform:
             # Only in unified mode: Convert Mapillary 66 classes to Cityscapes 19 trainIDs
             test_pipeline.append(dict(type='MapillaryLabelTransform', target_space='cityscapes'))
-        # Note: For single-dataset OUTSIDE15k/Mapillary, no transform needed - use native labels
+        elif needs_mapillary_clamp:
+            # Single-dataset Mapillary: clamp invalid labels (>=66 or 255) to prevent CUDA assertion errors
+            test_pipeline.append(dict(type='MapillaryNativeLabelClamp', num_classes=66))
+        elif needs_outside15k_clamp:
+            # Single-dataset OUTSIDE15k: clamp invalid labels (>=24 or 255) to prevent CUDA assertion errors
+            test_pipeline.append(dict(type='Outside15kNativeLabelClamp', num_classes=24))
         
         test_pipeline.append(dict(type='Resize', scale=(1024, 512), keep_ratio=True))
         
