@@ -74,7 +74,7 @@ JOB_TEMPLATE = '''#!/bin/bash
 
 # Activate environment
 source ~/.bashrc
-conda activate prove
+mamba activate prove
 
 cd {project_root}
 
