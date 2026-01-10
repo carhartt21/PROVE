@@ -108,7 +108,7 @@ DATASET_LABEL_CONFIG = {
         'classes': None,
     },
     'IDD-AW': {
-        'label_type': 'cityscapes_labelid',  # Cityscapes labelIDs (0-33) -> trainIds
+        'label_type': 'cityscapes_trainid',  # Already Cityscapes trainIDs (0-18, 255) - NOT labelIDs!
         'num_classes': 19,
         'classes': None,
     },
