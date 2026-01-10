@@ -632,6 +632,7 @@ def generate_model_config(
                     type='CrossEntropyLoss',
                     use_sigmoid=False,
                     loss_weight=1.0,
+                    ignore_index=255,
                 ),
             ),
             auxiliary_head=dict(
@@ -649,6 +650,7 @@ def generate_model_config(
                     type='CrossEntropyLoss',
                     use_sigmoid=False,
                     loss_weight=0.4,
+                    ignore_index=255,
                 ),
             ),
             train_cfg=dict(),
@@ -685,6 +687,7 @@ def generate_model_config(
                     type='CrossEntropyLoss',
                     use_sigmoid=False,
                     loss_weight=1.0,
+                    ignore_index=255,
                 ),
             ),
             auxiliary_head=dict(
@@ -702,6 +705,7 @@ def generate_model_config(
                     type='CrossEntropyLoss',
                     use_sigmoid=False,
                     loss_weight=0.4,
+                    ignore_index=255,
                 ),
             ),
             train_cfg=dict(),

@@ -1,6 +1,6 @@
 # Retraining Progress Tracker
 
-**Last Updated:** 2026-01-10 19:52
+**Last Updated:** 2026-01-10 20:54
 
 This document tracks the progress of retraining models with the corrected native class labels.
 
@@ -101,12 +101,12 @@ This document tracks the progress of retraining models with the corrected native
 | gen_IP2P | ✅ | ❌ | 🔄 | ✅ |  |
 | gen_LANIT | ✅ | ❌ | 🔄 | ✅ |  |
 | gen_Qwen_Image_Edit | ➖ | ❌ | 🔄 | ✅ | No BDD10k data |
-| gen_stargan_v2 | 🔄 | ⏳ | ⏳ | 🔄 |  |
+| gen_stargan_v2 | 🔄 | ⏳ | ⏳ | ✅ |  |
 | gen_step1x_new | ➖ | ⏳ | ⏳ | 🔄 |  |
-| gen_step1x_v1p2 | 🔄 | ⏳ | ⏳ | 🔄 |  |
-| gen_SUSTechGAN | ✅ | ⏳ | ⏳ | ✅ |  |
-| gen_TSIT | ✅ | ⏳ | ⏳ | ✅ |  |
-| gen_UniControl | ✅ | ⏳ | ⏳ | ✅ |  |
+| gen_step1x_v1p2 | ✅ | ⏳ | ⏳ | 🔄 |  |
+| gen_SUSTechGAN | ✅ | ❌ | 🔄 | ✅ |  |
+| gen_TSIT | ✅ | ❌ | 🔄 | ✅ |  |
+| gen_UniControl | ✅ | ❌ | 🔄 | ✅ |  |
 | gen_VisualCloze | ✅ | ⏳ | ⏳ | ✅ |  |
 | gen_Weather_Effect_Generator | ✅ | ⏳ | ⏳ | ✅ |  |
 | gen_albumentations_weather | ✅ | ⏳ | ⏳ | ✅ |  |
@@ -119,7 +119,7 @@ This document tracks the progress of retraining models with the corrected native
 | photometric_distort | ✅ | ✅ | ✅ | ✅ |  |
 | std_autoaugment | ✅ | ⏳ | ✅ | ✅ |  |
 | std_cutmix | ✅ | ⏳ | ✅ | ✅ |  |
-| std_mixup | 🔄 | ⏳ | 🔄 | ✅ |  |
+| std_mixup | ✅ | ⏳ | 🔄 | 🔄 |  |
 | std_randaugment | ✅ | ✅ | ✅ | ✅ |  |
 
 ### Excluded Methods
@@ -175,9 +175,9 @@ python scripts/retrain_affected_models.py --generate-scripts
 
 | Category | Total | Complete | Running | Pending | Failed |
 |----------|-------|----------|---------|---------|--------|
-| **Generative (gen_*)** | 83 | 32 | 13 | 30 | 5 |
+| **Generative (gen_*)** | 83 | 34 | 14 | 24 | 8 |
 | **Standard (std_*)** | 24 | 17 | 3 | 3 | 1 |
-| **TOTAL** | 107 | 49 | 16 | 33 | 6 |
+| **TOTAL** | 107 | 51 | 17 | 27 | 9 |
 
 *Note: Stage 1 trains 3 models per strategy×dataset = 324 total configurations.*
 *Total = 28 strategies × 4 datasets × 3 models - 12 skipped configs = 324 configs*
