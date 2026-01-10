@@ -141,12 +141,12 @@ def get_affected_configurations(model_filter=None):
         'gen_CUT',
         'gen_cycleGAN',
         # 'gen_EDICT' - EXCLUDED: 0/4 training dataset coverage (only ACDC+BDD100k)
-        'gen_flux1_kontext',  # Maps to flux_kontext in GENERATED_IMAGES
+        'gen_flux_kontext',  # flux_kontext: Only has MapillaryVistas and OUTSIDE15k
         # 'gen_flux2' - EXCLUDED: 0/4 training dataset coverage (only ACDC+BDD100k)
         'gen_Img2Img',
         'gen_IP2P',
         'gen_LANIT',
-        'gen_NST',
+        # 'gen_NST' - EXCLUDED: Generated images missing (manifest exists but folder doesn't)
         'gen_Qwen_Image_Edit',
         'gen_stargan_v2',
         'gen_step1x_new',
@@ -205,7 +205,11 @@ def get_affected_configurations(model_filter=None):
                     
                     # Skip configurations with incomplete generated image coverage
                     # flux_kontext: Only has MapillaryVistas and OUTSIDE15k
-                    if strategy == 'gen_flux1_kontext' and dataset in ['bdd10k', 'idd-aw']:
+                    if strategy == 'gen_flux_kontext' and dataset in ['bdd10k', 'idd-aw']:
+                        continue
+                    
+                    # cyclediffusion: Has no OUTSIDE15k images (only ACDC, BDD100k, BDD10k, IDD-AW)
+                    if strategy == 'gen_cyclediffusion' and dataset == 'outside15k':
                         continue
                     
                     # step1x_new: Only has BDD10k via symlinks from BDD100k (1,212 images)

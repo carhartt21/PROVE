@@ -52,11 +52,11 @@ GENERATIVE_STRATEGIES = [
     'gen_CUT',
     'gen_cyclediffusion',
     'gen_cycleGAN',
-    'gen_flux1_kontext',
+    'gen_flux_kontext',
     'gen_Img2Img',
     'gen_IP2P',
     'gen_LANIT',
-    'gen_NST',
+    # 'gen_NST',  # EXCLUDED: Generated images missing
     'gen_Qwen_Image_Edit',
     'gen_stargan_v2',
     'gen_step1x_new',
@@ -83,9 +83,10 @@ ALL_STRATEGIES = GENERATIVE_STRATEGIES + STANDARD_STRATEGIES
 # Skip combinations
 SKIP_COMBOS = {
     ('gen_Qwen_Image_Edit', 'bdd10k'),  # No BDD10k data for Qwen
-    ('gen_flux1_kontext', 'bdd10k'),    # flux_kontext only has MapillaryVistas and OUTSIDE15k
-    ('gen_flux1_kontext', 'idd-aw'),    # flux_kontext only has MapillaryVistas and OUTSIDE15k
+    ('gen_flux_kontext', 'bdd10k'),    # flux_kontext only has MapillaryVistas and OUTSIDE15k
+    ('gen_flux_kontext', 'idd-aw'),    # flux_kontext only has MapillaryVistas and OUTSIDE15k
     ('gen_step1x_new', 'bdd10k'),       # step1x_new has incomplete BDD10k coverage
+    ('gen_cyclediffusion', 'outside15k'),  # cyclediffusion has no OUTSIDE15k images
 }
 
 
@@ -123,44 +124,77 @@ def check_weight_status(strategy, dataset, domain_filter='clear_day'):
     weights_path = WEIGHTS_ROOT / strategy / dataset_dir / model_dir
     checkpoint = weights_path / "iter_80000.pth"
     
-    if checkpoint.exists():
-        # Check if it's a valid file (not empty)
-        if checkpoint.stat().st_size > 1000:  # At least 1KB
-            return 'complete', weights_path
-        else:
-            return 'failed', weights_path
+    try:
+        if checkpoint.exists():
+            # Check if it's a valid file (not empty)
+            if checkpoint.stat().st_size > 1000:  # At least 1KB
+                return 'complete', weights_path
+            else:
+                return 'failed', weights_path
+    except PermissionError:
+        # If we can't access it, assume it exists but we can't read it? 
+        # Or better: mark as 'pending' but with a note?
+        # For now, let's treat as 'complete' if we can see it exists via other means, 
+        # but if we get PermissionError on .exists() it's tricky.
+        # Let's try to check parent dir.
+        try:
+            if weights_path.exists():
+                 # Check if the file name is visible
+                 files = os.listdir(weights_path)
+                 if "iter_80000.pth" in files:
+                     return 'complete', weights_path
+        except:
+            pass
+        return 'pending', weights_path
     
     return 'pending', weights_path
 
 
 def get_running_jobs():
-    """Get list of currently running retrain jobs."""
-    try:
-        result = subprocess.run(
-            ['bjobs', '-a', '-o', 'JOBID JOB_NAME STAT'],
-            capture_output=True,
-            text=True,
-            timeout=10
-        )
-        
-        running = {}  # {(strategy, dataset): status}
-        for line in result.stdout.strip().split('\n')[1:]:  # Skip header
-            parts = line.split()
-            if len(parts) >= 3:
-                job_name = parts[1]
-                stat = parts[2]
-                if 'retrain' in job_name and stat in ('RUN', 'PEND'):
-                    # Parse job name format: retrain_<strategy>_<dataset>
-                    # Handle strategies with underscores
-                    name_parts = job_name.replace('retrain_', '').split('_')
-                    if len(name_parts) >= 2:
-                        dataset = name_parts[-1]  # Last part is dataset
-                        strategy = '_'.join(name_parts[:-1])  # Rest is strategy
-                        running[(strategy, dataset)] = stat
-        return running
-    except Exception as e:
-        print(f"Warning: Could not get running jobs: {e}")
-        return {}
+    """Get list of currently running retrain jobs from both users."""
+    running = {}  # {(strategy, dataset): status}
+    
+    # Check jobs from multiple users
+    users_to_check = ['', '-u chge7185']  # '' means current user
+    
+    for user_flag in users_to_check:
+        try:
+            cmd = ['bjobs', '-a', '-o', 'JOBID JOB_NAME STAT']
+            if user_flag:
+                cmd = ['bjobs'] + user_flag.split() + ['-a', '-o', 'JOBID JOB_NAME STAT']
+            
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=10
+            )
+            
+            for line in result.stdout.strip().split('\n')[1:]:  # Skip header
+                parts = line.split()
+                if len(parts) >= 3:
+                    job_name = parts[1]
+                    stat = parts[2]
+                    if 'retrain' in job_name:
+                        # Parse job name format: retrain_<strategy>_<dataset>
+                        # Handle strategies with underscores
+                        name_parts = job_name.replace('retrain_', '').split('_')
+                        if len(name_parts) >= 2:
+                            dataset = name_parts[-1]  # Last part is dataset
+                            strategy = '_'.join(name_parts[:-1])  # Rest is strategy
+                            
+                            # Store the most "active" status for this config
+                            current_stat = running.get((strategy, dataset))
+                            if stat == 'RUN':
+                                running[(strategy, dataset)] = 'RUN'
+                            elif stat == 'PEND' and current_stat != 'RUN':
+                                running[(strategy, dataset)] = 'PEND'
+                            elif stat in ('DONE', 'EXIT') and current_stat not in ('RUN', 'PEND'):
+                                running[(strategy, dataset)] = stat
+        except Exception as e:
+            print(f"Warning: Could not get jobs for user flag '{user_flag}': {e}")
+    
+    return running
 
 
 def collect_status(domain_filter='clear_day', verbose=False):
@@ -182,9 +216,24 @@ def collect_status(domain_filter='clear_day', verbose=False):
         for dataset in DATASETS:
             status, path = check_weight_status(strategy, dataset, domain_filter)
             
-            # Check if job is running (use new (strategy, dataset) key)
-            if status == 'pending' and (strategy, dataset) in running_jobs:
+            # Use LSF status to refine the status
+            job_status = running_jobs.get((strategy, dataset))
+            
+            # IMPORTANT: If a job is currently running, mark as running regardless of existing weights
+            # This ensures we track retraining jobs that override existing weights
+            if job_status == 'RUN':
                 status = 'running'
+            elif job_status == 'PEND' and status != 'complete':
+                status = 'pending'
+            elif status == 'pending':
+                if job_status == 'PEND':
+                    status = 'pending'
+                elif job_status in ('DONE', 'EXIT'):
+                    # Job finished but weights are still missing -> failure
+                    status = 'failed'
+                else:
+                    # No job in queue/history and no weights -> pending (not started)
+                    status = 'pending'
             
             status_matrix[strategy][dataset] = {
                 'status': status,
