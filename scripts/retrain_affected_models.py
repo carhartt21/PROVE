@@ -92,7 +92,7 @@ echo "Job completed: $(date)"
 echo "========================================"
 '''
 
-# Training command template
+# Training command template with pre-flight checks
 TRAIN_COMMAND = '''
 echo "----------------------------------------"
 echo "Training: {dataset}/{model}"
@@ -101,28 +101,53 @@ echo "Real/Gen Ratio: {real_gen_ratio}"
 echo "Started: $(date)"
 echo "----------------------------------------"
 
-# Train model
-python unified_training.py \\
-    --dataset {dataset_config} \\
-    --model {model_config} \\
-    --strategy {strategy} \\
-    --real-gen-ratio {real_gen_ratio} \\
-    {domain_filter} \\
-    --max-iters 80000
+# Pre-flight checks
+WEIGHTS_PATH="{weights_path}"
+LOCK_FILE="${{WEIGHTS_PATH}}/.training_lock"
+CHECKPOINT="${{WEIGHTS_PATH}}/iter_80000.pth"
 
-# Test model
-if [ -f "{weights_path}/iter_80000.pth" ]; then
-    echo "Training complete. Running test..."
-    python fine_grained_test.py \\
-        --checkpoint {weights_path}/iter_80000.pth \\
-        --config {weights_path}/training_config.py \\
-        --dataset {dataset_config} \\
-        --output-dir {weights_path}/test_results_detailed
+# Check if final checkpoint already exists
+if [ -f "$CHECKPOINT" ]; then
+    echo "SKIP: Final checkpoint already exists: $CHECKPOINT"
+    echo "Finished: {dataset}/{model} at $(date)"
 else
-    echo "ERROR: Training failed - checkpoint not found"
+    # Try to create lock file (atomic operation)
+    mkdir -p "$WEIGHTS_PATH"
+    if ( set -o noclobber; echo "$$" > "$LOCK_FILE" ) 2>/dev/null; then
+        trap "rm -f '$LOCK_FILE'" EXIT
+        echo "Lock acquired. Starting training..."
+        
+        # Train model
+        python unified_training.py \\
+            --dataset {dataset_config} \\
+            --model {model_config} \\
+            --strategy {strategy} \\
+            --real-gen-ratio {real_gen_ratio} \\
+            {domain_filter} \\
+            --max-iters 80000
+        
+        # Remove lock and test model
+        rm -f "$LOCK_FILE"
+        
+        if [ -f "$CHECKPOINT" ]; then
+            echo "Training complete. Running test..."
+            python fine_grained_test.py \\
+                --checkpoint $CHECKPOINT \\
+                --config ${{WEIGHTS_PATH}}/training_config.py \\
+                --dataset {dataset_config} \\
+                --output-dir ${{WEIGHTS_PATH}}/test_results_detailed
+        else
+            echo "ERROR: Training failed - checkpoint not found"
+        fi
+        
+        echo "Finished: {dataset}/{model} at $(date)"
+    else
+        LOCK_PID=$(cat "$LOCK_FILE" 2>/dev/null)
+        echo "SKIP: Another job (PID: $LOCK_PID) is already training this model"
+        echo "Lock file: $LOCK_FILE"
+        echo "Finished: {dataset}/{model} at $(date)"
+    fi
 fi
-
-echo "Finished: {dataset}/{model} at $(date)"
 '''
 
 

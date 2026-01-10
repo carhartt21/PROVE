@@ -1,6 +1,6 @@
 # Retraining Progress Tracker
 
-**Last Updated:** 2026-01-10 15:08
+**Last Updated:** 2026-01-10 15:35
 
 This document tracks the progress of retraining models with the corrected native class labels.
 
@@ -90,13 +90,13 @@ This document tracks the progress of retraining models with the corrected native
 | Strategy | BDD10k | IDD-AW | MapillaryVistas | OUTSIDE15k | Notes |
 |----------|--------|--------|-----------------|------------|-------|
 | gen_Attribute_Hallucination | ✅ | ⏳ | ⏳ | ✅ |  |
-| gen_augmenters | 🔄 | ⏳ | ⏳ | 🔄 |  |
+| gen_augmenters | ✅ | ⏳ | ⏳ | 🔄 |  |
 | gen_automold | 🔄 | ⏳ | ⏳ | 🔄 |  |
 | gen_CNetSeg | ✅ | ⏳ | ⏳ | ✅ |  |
 | gen_CUT | ✅ | ⏳ | ⏳ | ✅ |  |
 | gen_cyclediffusion | 🔄 | ⏳ | ⏳ | ➖ |  |
 | gen_cycleGAN | 🔄 | ⏳ | ⏳ | 🔄 |  |
-| gen_flux_kontext | ➖ | ➖ | ⏳ | ⏳ |  |
+| gen_flux_kontext | ➖ | ➖ | ⏳ | 🔄 |  |
 | gen_Img2Img | ✅ | ⏳ | ⏳ | ✅ |  |
 | gen_IP2P | ✅ | ⏳ | ⏳ | ✅ |  |
 | gen_LANIT | ✅ | ⏳ | ⏳ | ✅ |  |
@@ -117,8 +117,8 @@ This document tracks the progress of retraining models with the corrected native
 |----------|--------|--------|-----------------|------------|-------|
 | baseline | ✅ | ⏳ | ⏳ | ✅ |  |
 | photometric_distort | ✅ | ✅ | ✅ | ✅ |  |
-| std_autoaugment | ✅ | ⏳ | 🔄 | ✅ |  |
-| std_cutmix | 🔄 | ⏳ | ⏳ | ✅ |  |
+| std_autoaugment | ✅ | ⏳ | ✅ | ✅ |  |
+| std_cutmix | ✅ | ❌ | 🔄 | 🔄 |  |
 | std_mixup | ✅ | ⏳ | ⏳ | ✅ |  |
 | std_randaugment | ✅ | ✅ | ✅ | ✅ |  |
 
@@ -175,9 +175,9 @@ python scripts/retrain_affected_models.py --generate-scripts
 
 | Category | Total | Complete | Running | Pending | Failed |
 |----------|-------|----------|---------|---------|--------|
-| **Generative (gen_*)** | 83 | 25 | 12 | 42 | 0 |
-| **Standard (std_*)** | 24 | 15 | 2 | 7 | 0 |
-| **TOTAL** | 107 | 40 | 14 | 49 | 0 |
+| **Generative (gen_*)** | 83 | 26 | 12 | 41 | 0 |
+| **Standard (std_*)** | 24 | 16 | 2 | 5 | 1 |
+| **TOTAL** | 107 | 42 | 14 | 46 | 1 |
 
 *Note: Stage 1 trains 3 models per strategy×dataset = 324 total configurations.*
 *Total = 28 strategies × 4 datasets × 3 models - 12 skipped configs = 324 configs*
