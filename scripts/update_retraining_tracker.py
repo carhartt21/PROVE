@@ -102,7 +102,7 @@ def get_status_emoji(status):
 
 
 def check_weight_status(strategy, dataset, domain_filter='clear_day'):
-    """Check if weights exist and are valid."""
+    """Check if weights exist and are valid. Also checks for training lock files."""
     # Determine model directory based on strategy type
     if strategy == 'baseline':
         model_dir = MODELS[domain_filter]['baseline']
@@ -123,8 +123,13 @@ def check_weight_status(strategy, dataset, domain_filter='clear_day'):
     
     weights_path = WEIGHTS_ROOT / strategy / dataset_dir / model_dir
     checkpoint = weights_path / "iter_80000.pth"
+    lock_file = weights_path / ".training_lock"
     
     try:
+        # First check if training is in progress via lock file
+        if lock_file.exists():
+            return 'running', weights_path
+        
         if checkpoint.exists():
             # Check if it's a valid file (not empty)
             if checkpoint.stat().st_size > 1000:  # At least 1KB
@@ -141,6 +146,8 @@ def check_weight_status(strategy, dataset, domain_filter='clear_day'):
             if weights_path.exists():
                  # Check if the file name is visible
                  files = os.listdir(weights_path)
+                 if ".training_lock" in files:
+                     return 'running', weights_path
                  if "iter_80000.pth" in files:
                      return 'complete', weights_path
         except:
