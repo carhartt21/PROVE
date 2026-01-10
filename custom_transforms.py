@@ -12,6 +12,78 @@ from mmseg.registry import TRANSFORMS, METRICS
 from mmseg.evaluation.metrics import IoUMetric
 
 
+# Mapillary Vistas native class ID (0-65) to Cityscapes trainId (0-18, 255=ignore) mapping
+# Based on label_unification.py MapillarytoCityscapes mapping
+MAPILLARY_TO_TRAINID = {
+    0: 255,   # Bird -> ignore
+    1: 255,   # Ground Animal -> ignore
+    2: 1,     # Curb -> sidewalk
+    3: 4,     # Fence -> fence
+    4: 4,     # Guard Rail -> fence
+    5: 3,     # Barrier -> wall
+    6: 3,     # Wall -> wall
+    7: 0,     # Bike Lane -> road
+    8: 1,     # Crosswalk Plain -> sidewalk
+    9: 1,     # Curb Cut -> sidewalk
+    10: 255,  # Parking -> ignore
+    11: 1,    # Pedestrian Area -> sidewalk
+    12: 255,  # Rail Track -> ignore
+    13: 0,    # Road -> road
+    14: 0,    # Service Lane -> road
+    15: 1,    # Sidewalk -> sidewalk
+    16: 2,    # Bridge -> building
+    17: 2,    # Building -> building
+    18: 2,    # Tunnel -> building
+    19: 11,   # Person -> person
+    20: 12,   # Bicyclist -> rider
+    21: 12,   # Motorcyclist -> rider
+    22: 12,   # Other Rider -> rider
+    23: 0,    # Lane Marking Crosswalk -> road
+    24: 0,    # Lane Marking General -> road
+    25: 9,    # Mountain -> terrain
+    26: 9,    # Sand -> terrain
+    27: 10,   # Sky -> sky
+    28: 255,  # Snow -> ignore
+    29: 9,    # Terrain -> terrain
+    30: 8,    # Vegetation -> vegetation
+    31: 255,  # Water -> ignore
+    32: 255,  # Banner -> ignore
+    33: 255,  # Bench -> ignore
+    34: 255,  # Bike Rack -> ignore
+    35: 255,  # Billboard -> ignore
+    36: 255,  # Catch Basin -> ignore
+    37: 255,  # CCTV Camera -> ignore
+    38: 255,  # Fire Hydrant -> ignore
+    39: 255,  # Junction Box -> ignore
+    40: 255,  # Mailbox -> ignore
+    41: 255,  # Manhole -> ignore
+    42: 255,  # Phone Booth -> ignore
+    43: 255,  # Pothole -> ignore
+    44: 5,    # Street Light -> pole
+    45: 5,    # Pole -> pole
+    46: 5,    # Traffic Sign Frame -> pole
+    47: 5,    # Utility Pole -> pole
+    48: 6,    # Traffic Light -> traffic light
+    49: 7,    # Traffic Sign Back -> traffic sign
+    50: 7,    # Traffic Sign Front -> traffic sign
+    51: 255,  # Trash Can -> ignore
+    52: 18,   # Bicycle -> bicycle
+    53: 255,  # Boat -> ignore
+    54: 15,   # Bus -> bus
+    55: 13,   # Car -> car
+    56: 255,  # Caravan -> ignore
+    57: 17,   # Motorcycle -> motorcycle
+    58: 16,   # On Rails -> train
+    59: 255,  # Other Vehicle -> ignore
+    60: 255,  # Trailer -> ignore
+    61: 14,   # Truck -> truck
+    62: 255,  # Wheeled Slow -> ignore
+    63: 255,  # Car Mount -> ignore
+    64: 255,  # Ego Vehicle -> ignore
+    65: 255,  # Unlabeled -> ignore
+}
+
+
 # Cityscapes label ID to trainId mapping
 # From: https://github.com/mcordts/cityscapesScripts/blob/master/cityscapesscripts/helpers/labels.py
 CITYSCAPES_ID_TO_TRAINID = {
@@ -110,6 +182,40 @@ class CityscapesLabelIdToTrainId(BaseTransform):
     
     def transform(self, results: dict) -> dict:
         """Convert label IDs to trainIds using lookup table."""
+        if 'gt_seg_map' in results:
+            seg_map = results['gt_seg_map']
+            # Use lookup table for fast vectorized conversion
+            results['gt_seg_map'] = self.lut[seg_map]
+        return results
+    
+    def __repr__(self) -> str:
+        return f'{self.__class__.__name__}()'
+
+
+@TRANSFORMS.register_module()
+class MapillaryToTrainId(BaseTransform):
+    """Convert MapillaryVistas native class IDs (0-65) to Cityscapes trainIds (0-18, 255=ignore).
+    
+    This transform maps Mapillary Vistas labels to the Cityscapes 19-class format
+    used for unified training and evaluation. Must be applied AFTER MapillaryRGBToClassId
+    which first converts RGB color-encoded labels to native class IDs.
+    
+    Required Keys:
+        - gt_seg_map (np.ndarray): Segmentation ground truth with MapillaryVistas class IDs (0-65)
+        
+    Modified Keys:
+        - gt_seg_map (np.ndarray): Segmentation ground truth with trainIds (0-18, 255=ignore)
+    """
+    
+    def __init__(self):
+        # Create lookup table for fast mapping (values 0-255 to handle any input)
+        self.lut = np.full(256, 255, dtype=np.uint8)
+        for mapillary_id, train_id in MAPILLARY_TO_TRAINID.items():
+            if 0 <= mapillary_id < 256:
+                self.lut[mapillary_id] = train_id
+    
+    def transform(self, results: dict) -> dict:
+        """Convert MapillaryVistas class IDs to Cityscapes trainIds using lookup table."""
         if 'gt_seg_map' in results:
             seg_map = results['gt_seg_map']
             # Use lookup table for fast vectorized conversion

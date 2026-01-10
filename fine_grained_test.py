@@ -84,6 +84,65 @@ DATASET_FOLDER_MAP = {
     'OUTSIDE15k': 'OUTSIDE15k',
 }
 
+# Dataset label type configuration for proper label processing during testing
+# Maps dataset folder names to their label type and class configuration
+DATASET_LABEL_CONFIG = {
+    'ACDC': {
+        'label_type': 'cityscapes_labelid',  # Cityscapes labelIDs (0-33) -> trainIds
+        'num_classes': 19,
+        'classes': None,  # Use CITYSCAPES_CLASSES
+    },
+    'BDD10k': {
+        'label_type': 'cityscapes_trainid',  # Already Cityscapes trainIDs (0-18, 255)
+        'num_classes': 19,
+        'classes': None,
+    },
+    'BDD100k': {
+        'label_type': 'cityscapes_trainid',
+        'num_classes': 19,
+        'classes': None,
+    },
+    'Cityscapes': {
+        'label_type': 'cityscapes_trainid',
+        'num_classes': 19,
+        'classes': None,
+    },
+    'IDD-AW': {
+        'label_type': 'cityscapes_labelid',  # Cityscapes labelIDs (0-33) -> trainIds
+        'num_classes': 19,
+        'classes': None,
+    },
+    'MapillaryVistas': {
+        'label_type': 'mapillary_rgb',  # RGB color-encoded -> native Mapillary IDs (0-65)
+        'num_classes': 66,
+        'classes': [  # Native Mapillary class names
+            'Bird', 'Ground Animal', 'Curb', 'Fence', 'Guard Rail', 'Barrier',
+            'Wall', 'Bike Lane', 'Crosswalk - Plain', 'Curb Cut', 'Parking',
+            'Pedestrian Area', 'Rail Track', 'Road', 'Service Lane', 'Sidewalk',
+            'Bridge', 'Building', 'Tunnel', 'Person', 'Bicyclist', 'Motorcyclist',
+            'Other Rider', 'Lane Marking - Crosswalk', 'Lane Marking - General',
+            'Mountain', 'Sand', 'Sky', 'Snow', 'Terrain', 'Vegetation', 'Water',
+            'Banner', 'Bench', 'Bike Rack', 'Billboard', 'Catch Basin', 'CCTV Camera',
+            'Fire Hydrant', 'Junction Box', 'Mailbox', 'Manhole', 'Phone Booth',
+            'Pothole', 'Street Light', 'Pole', 'Traffic Sign Frame', 'Utility Pole',
+            'Traffic Light', 'Traffic Sign (Back)', 'Traffic Sign (Front)', 'Trash Can',
+            'Bicycle', 'Boat', 'Bus', 'Car', 'Caravan', 'Motorcycle', 'On Rails',
+            'Other Vehicle', 'Trailer', 'Truck', 'Wheeled Slow', 'Car Mount',
+            'Ego Vehicle', 'Unlabeled',
+        ],
+    },
+    'OUTSIDE15k': {
+        'label_type': 'outside15k_native',  # Native OUTSIDE15k labels (0-23)
+        'num_classes': 24,
+        'classes': [  # Native OUTSIDE15k class names
+            'unlabeled', 'animal', 'barrier', 'bicycle', 'boat', 'bridge',
+            'building', 'grass', 'ground', 'mountain', 'object', 'person',
+            'pole', 'road', 'sand', 'sidewalk', 'sign', 'sky', 'street light',
+            'traffic light', 'tunnel', 'vegetation', 'vehicle', 'water',
+        ],
+    },
+}
+
 # Cityscapes class names (19 classes)
 CITYSCAPES_CLASSES = [
     'road', 'sidewalk', 'building', 'wall', 'fence', 'pole',
@@ -101,6 +160,92 @@ def to_python_type(val):
     elif isinstance(val, (np.floating, np.integer)):
         return val.item()
     return val
+
+
+def get_dataset_config(dataset_name: str):
+    """Get label configuration for a dataset.
+    
+    Returns:
+        Tuple of (num_classes, class_names)
+    """
+    config = DATASET_LABEL_CONFIG.get(dataset_name, DATASET_LABEL_CONFIG['Cityscapes'])
+    num_classes = config['num_classes']
+    classes = config['classes'] if config['classes'] else CITYSCAPES_CLASSES
+    return num_classes, classes
+
+
+def process_label_for_dataset(gt_seg_map: np.ndarray, dataset_name: str) -> np.ndarray:
+    """Process ground truth labels according to dataset type.
+    
+    Different datasets have different label formats that need conversion:
+    - ACDC, IDD-AW: Cityscapes labelIDs (0-33) -> trainIds (0-18)
+    - BDD10k, BDD100k: Already Cityscapes trainIds, no conversion needed
+    - MapillaryVistas: RGB color-encoded -> native class IDs (0-65) - KEEPS NATIVE CLASSES
+    - OUTSIDE15k: Native labels (0-23) - KEEPS NATIVE CLASSES
+    
+    Args:
+        gt_seg_map: Raw label image (may be RGB or grayscale)
+        dataset_name: Dataset folder name (e.g., 'MapillaryVistas', 'IDD-AW')
+        
+    Returns:
+        Processed label image with appropriate class IDs
+    """
+    config = DATASET_LABEL_CONFIG.get(dataset_name, DATASET_LABEL_CONFIG['Cityscapes'])
+    label_type = config['label_type']
+    
+    if label_type == 'mapillary_rgb':
+        # MapillaryVistas: RGB color-encoded -> native Mapillary class IDs (0-65)
+        # Keeps native classes for single-dataset evaluation
+        if gt_seg_map.ndim == 3 and gt_seg_map.shape[-1] == 3:
+            # Decode RGB to Mapillary native class IDs
+            h, w = gt_seg_map.shape[:2]
+            output = np.full((h, w), 255, dtype=np.uint8)
+            
+            # Pack RGB values for fast lookup
+            r = gt_seg_map[:, :, 0].astype(np.int32)
+            g = gt_seg_map[:, :, 1].astype(np.int32)
+            b = gt_seg_map[:, :, 2].astype(np.int32)
+            packed = r * 65536 + g * 256 + b
+            
+            # Lookup RGB -> class ID
+            rgb_lookup = {}
+            for rgb, class_id in custom_transforms.MAPILLARY_RGB_TO_ID.items():
+                packed_rgb = rgb[0] * 65536 + rgb[1] * 256 + rgb[2]
+                rgb_lookup[packed_rgb] = class_id
+            
+            for packed_rgb, class_id in rgb_lookup.items():
+                mask = packed == packed_rgb
+                output[mask] = class_id
+            
+            gt_seg_map = output
+        elif gt_seg_map.ndim == 3:
+            # If 3-channel but not proper RGB, take first channel
+            gt_seg_map = gt_seg_map[:, :, 0]
+        # Note: Do NOT convert to Cityscapes trainIds - keep native Mapillary classes
+        
+    elif label_type == 'cityscapes_labelid':
+        # ACDC, IDD-AW: Cityscapes labelIDs (0-33) -> trainIds (0-18)
+        if gt_seg_map.ndim == 3:
+            gt_seg_map = gt_seg_map[:, :, 0]
+        
+        lut = np.full(256, 255, dtype=np.uint8)
+        for label_id, train_id in custom_transforms.CITYSCAPES_ID_TO_TRAINID.items():
+            if 0 <= label_id < 256:
+                lut[label_id] = train_id
+        gt_seg_map = lut[gt_seg_map]
+        
+    elif label_type == 'outside15k_native':
+        # OUTSIDE15k: native labels (0-23) - keep native classes
+        if gt_seg_map.ndim == 3:
+            gt_seg_map = gt_seg_map[:, :, 0]
+        # Note: Do NOT convert to Cityscapes trainIds - keep native OUTSIDE15k classes
+        
+    else:  # cityscapes_trainid
+        # BDD10k, BDD100k, Cityscapes: Already Cityscapes trainIds
+        if gt_seg_map.ndim == 3:
+            gt_seg_map = gt_seg_map[:, :, 0]
+    
+    return gt_seg_map
 
 
 def compute_iou_metrics(
@@ -179,14 +324,19 @@ def get_per_class_metrics(
     area_intersect: np.ndarray,
     area_union: np.ndarray,
     area_pred: np.ndarray,
-    area_label: np.ndarray
+    area_label: np.ndarray,
+    class_names: list = None
 ) -> Dict[str, Dict[str, float]]:
     """Get per-class breakdown of metrics."""
+    if class_names is None:
+        class_names = CITYSCAPES_CLASSES
+    
     iou = area_intersect / np.maximum(area_union, 1)
     acc = area_intersect / np.maximum(area_label, 1)
     
     per_class = {}
-    for i, class_name in enumerate(CITYSCAPES_CLASSES):
+    for i in range(len(area_intersect)):
+        class_name = class_names[i] if i < len(class_names) else f'class_{i}'
         per_class[class_name] = {
             'IoU': float(iou[i] * 100),
             'Acc': float(acc[i] * 100),
@@ -250,6 +400,10 @@ def run_fine_grained_test(
     # Get domains for this dataset
     domains = ['clear_day', 'cloudy', 'dawn_dusk', 'foggy', 'night', 'rainy', 'snowy']
     
+    # Get dataset-specific configuration (num_classes, class_names)
+    num_classes, class_names = get_dataset_config(folder_name)
+    print(f"Using {num_classes} classes for {folder_name}")
+    
     # Results storage
     all_results = {
         'config': {
@@ -258,14 +412,13 @@ def run_fine_grained_test(
             'dataset': dataset_name,
             'test_split': test_split,
             'timestamp': timestamp,
-            'classes': CITYSCAPES_CLASSES
+            'classes': class_names,
+            'num_classes': num_classes,
         },
         'overall': {},
         'per_domain': {},
         'per_class': {}
     }
-    
-    num_classes = len(CITYSCAPES_CLASSES)
     
     # Overall aggregated metrics
     total_area_intersect = np.zeros(num_classes, dtype=np.float64)
@@ -342,8 +495,9 @@ def run_fine_grained_test(
                 img = cv2.imread(str(img_path))
                 img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
                 gt_seg_map = cv2.imread(str(label_path), cv2.IMREAD_UNCHANGED)
-                if gt_seg_map.ndim == 3:
-                    gt_seg_map = gt_seg_map[:, :, 0]
+                
+                # Process labels according to dataset type
+                gt_seg_map = process_label_for_dataset(gt_seg_map, folder_name)
                 
                 # Simple preprocessing
                 h, w = img.shape[:2]
@@ -383,15 +537,9 @@ def run_fine_grained_test(
             img = cv2.imread(str(img_path))
             img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
             gt_seg_map = cv2.imread(str(label_path), cv2.IMREAD_UNCHANGED)
-            if gt_seg_map.ndim == 3:
-                gt_seg_map = gt_seg_map[:, :, 0]
             
-            # Apply label transform (CityscapesLabelIdToTrainId)
-            lut = np.full(256, 255, dtype=np.uint8)
-            for label_id, train_id in custom_transforms.CITYSCAPES_ID_TO_TRAINID.items():
-                if 0 <= label_id < 256:
-                    lut[label_id] = train_id
-            gt_seg_map = lut[gt_seg_map]
+            # Process labels according to dataset type (e.g., MapillaryVistas RGB -> trainIds)
+            gt_seg_map = process_label_for_dataset(gt_seg_map, folder_name)
             
             # Preprocess image
             h, w = img.shape[:2]
@@ -446,7 +594,8 @@ def run_fine_grained_test(
         # Per-class for this domain
         domain_per_class = get_per_class_metrics(
             domain_area_intersect, domain_area_union,
-            domain_area_pred, domain_area_label
+            domain_area_pred, domain_area_label,
+            class_names=class_names
         )
         
         # Store results
@@ -481,7 +630,8 @@ def run_fine_grained_test(
         )
         overall_per_class = get_per_class_metrics(
             total_area_intersect, total_area_union,
-            total_area_pred, total_area_label
+            total_area_pred, total_area_label,
+            class_names=class_names
         )
         
         # Count total images
