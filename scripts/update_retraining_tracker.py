@@ -102,7 +102,7 @@ def get_status_emoji(status):
 
 
 def check_weight_status(strategy, dataset, domain_filter='clear_day'):
-    """Check if weights exist and are valid. Also checks for training lock files."""
+    """Check if weights exist and are valid. Also checks for training lock files and detailed results."""
     # Determine model directory based on strategy type
     if strategy == 'baseline':
         model_dir = MODELS[domain_filter]['baseline']
@@ -113,10 +113,9 @@ def check_weight_status(strategy, dataset, domain_filter='clear_day'):
     
     # Check if this is a skip combo
     if (strategy, dataset) in SKIP_COMBOS:
-        return 'skip', None
+        return 'skip', False, None
     
     # Build dataset directory with domain suffix
-    # New structure: strategy/dataset_cd/model_ratio
     domain_abbrev = {'clear_day': 'cd', 'clear_night': 'cn', 'rainy_day': 'rd', 'rainy_night': 'rn', 'fog': 'fg', 'snow': 'sn'}
     domain_suffix = f'_{domain_abbrev.get(domain_filter, domain_filter[:2])}' if domain_filter else ''
     dataset_dir = f'{dataset}{domain_suffix}'
@@ -125,36 +124,40 @@ def check_weight_status(strategy, dataset, domain_filter='clear_day'):
     checkpoint = weights_path / "iter_80000.pth"
     lock_file = weights_path / ".training_lock"
     
+    has_detailed = False
+    detailed_dir = weights_path / "test_results_detailed"
+    if detailed_dir.exists():
+        # Check if there is any results.json in subdirectories
+        for sub in detailed_dir.iterdir():
+            if sub.is_dir() and (sub / "results.json").exists():
+                has_detailed = True
+                break
+
     try:
         # First check if training is in progress via lock file
         if lock_file.exists():
-            return 'running', weights_path
+            return 'running', has_detailed, weights_path
         
         if checkpoint.exists():
             # Check if it's a valid file (not empty)
             if checkpoint.stat().st_size > 1000:  # At least 1KB
-                return 'complete', weights_path
+                return 'complete', has_detailed, weights_path
             else:
-                return 'failed', weights_path
+                return 'failed', has_detailed, weights_path
     except PermissionError:
-        # If we can't access it, assume it exists but we can't read it? 
-        # Or better: mark as 'pending' but with a note?
-        # For now, let's treat as 'complete' if we can see it exists via other means, 
-        # but if we get PermissionError on .exists() it's tricky.
-        # Let's try to check parent dir.
         try:
             if weights_path.exists():
                  # Check if the file name is visible
                  files = os.listdir(weights_path)
                  if ".training_lock" in files:
-                     return 'running', weights_path
+                     return 'running', has_detailed, weights_path
                  if "iter_80000.pth" in files:
-                     return 'complete', weights_path
+                     return 'complete', has_detailed, weights_path
         except:
             pass
-        return 'pending', weights_path
+        return 'pending', has_detailed, weights_path
     
-    return 'pending', weights_path
+    return 'pending', has_detailed, weights_path
 
 
 def get_running_jobs():
@@ -221,7 +224,7 @@ def collect_status(domain_filter='clear_day', verbose=False):
         status_matrix[strategy] = {}
         
         for dataset in DATASETS:
-            status, path = check_weight_status(strategy, dataset, domain_filter)
+            status, has_detailed, path = check_weight_status(strategy, dataset, domain_filter)
             
             # Use LSF status to refine the status
             job_status = running_jobs.get((strategy, dataset))
@@ -244,6 +247,7 @@ def collect_status(domain_filter='clear_day', verbose=False):
             
             status_matrix[strategy][dataset] = {
                 'status': status,
+                'has_detailed': has_detailed,
                 'path': str(path) if path else None,
                 'emoji': get_status_emoji(status),
             }
@@ -251,7 +255,7 @@ def collect_status(domain_filter='clear_day', verbose=False):
             summary[status] += 1
             
             if verbose:
-                print(f"{get_status_emoji(status)} {strategy}/{dataset}")
+                print(f"{get_status_emoji(status)} {strategy}/{dataset} (Detailed: {has_detailed})")
     
     return status_matrix, summary
 
@@ -259,13 +263,16 @@ def collect_status(domain_filter='clear_day', verbose=False):
 def format_status_row(strategy, status_dict, datasets):
     """Format a markdown table row for strategy status."""
     cells = [strategy]
-    notes = []
     
     for dataset in datasets:
-        data = status_dict.get(dataset, {'emoji': '❓'})
-        cells.append(data['emoji'])
+        data = status_dict.get(dataset, {'emoji': '❓', 'has_detailed': False})
+        cell_content = data['emoji']
+        if data.get('has_detailed'):
+            cell_content += ' 🎯'
+        cells.append(cell_content)
     
     # Add notes based on strategy
+    notes = []
     if strategy == 'gen_Qwen_Image_Edit':
         notes.append('No BDD10k data')
     

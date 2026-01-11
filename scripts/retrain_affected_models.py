@@ -453,7 +453,8 @@ def main():
     if args.submit_pending:
         # Only get new-format scripts (with dataset suffix)
         script_paths = []
-        for dataset in AFFECTED_DATASETS:
+        datasets_to_check = [args.dataset.lower()] if args.dataset else AFFECTED_DATASETS
+        for dataset in datasets_to_check:
             script_paths.extend(sorted(SCRIPTS_DIR.glob(f'retrain_*_{dataset}.sh')))
         
         pending_count = 0
