@@ -295,7 +295,7 @@ MODEL_DEFINITIONS = {
             'num_classes': 19,
             'norm_cfg': {'type': 'SyncBN', 'requires_grad': True},
             'align_corners': False,
-            'loss_decode': {'type': 'CrossEntropyLoss', 'use_sigmoid': False, 'loss_weight': 1.0, 'avg_non_ignore': True, 'ignore_index': 255},
+            'loss_decode': {'type': 'CrossEntropyLoss', 'use_sigmoid': False, 'loss_weight': 1.0, 'avg_non_ignore': True},
         },
         'auxiliary_head': {
             'type': 'FCNHead',
@@ -308,7 +308,7 @@ MODEL_DEFINITIONS = {
             'num_classes': 19,
             'norm_cfg': {'type': 'SyncBN', 'requires_grad': True},
             'align_corners': False,
-            'loss_decode': {'type': 'CrossEntropyLoss', 'use_sigmoid': False, 'loss_weight': 0.4, 'avg_non_ignore': True, 'ignore_index': 255},
+            'loss_decode': {'type': 'CrossEntropyLoss', 'use_sigmoid': False, 'loss_weight': 0.4, 'avg_non_ignore': True},
         },
         'train_cfg': {},
         'test_cfg': {'mode': 'whole'},
@@ -347,7 +347,7 @@ MODEL_DEFINITIONS = {
             'num_classes': 19,
             'norm_cfg': {'type': 'SyncBN', 'requires_grad': True},
             'align_corners': False,
-            'loss_decode': {'type': 'CrossEntropyLoss', 'use_sigmoid': False, 'loss_weight': 1.0, 'avg_non_ignore': True, 'ignore_index': 255},
+            'loss_decode': {'type': 'CrossEntropyLoss', 'use_sigmoid': False, 'loss_weight': 1.0, 'avg_non_ignore': True},
         },
         'auxiliary_head': {
             'type': 'FCNHead',
@@ -360,7 +360,7 @@ MODEL_DEFINITIONS = {
             'num_classes': 19,
             'norm_cfg': {'type': 'SyncBN', 'requires_grad': True},
             'align_corners': False,
-            'loss_decode': {'type': 'CrossEntropyLoss', 'use_sigmoid': False, 'loss_weight': 0.4, 'avg_non_ignore': True, 'ignore_index': 255},
+            'loss_decode': {'type': 'CrossEntropyLoss', 'use_sigmoid': False, 'loss_weight': 0.4, 'avg_non_ignore': True},
         },
         'train_cfg': {},
         'test_cfg': {'mode': 'whole'},
@@ -405,7 +405,7 @@ MODEL_DEFINITIONS = {
             'num_classes': 19,
             'norm_cfg': {'type': 'SyncBN', 'requires_grad': True},
             'align_corners': False,
-            'loss_decode': {'type': 'CrossEntropyLoss', 'use_sigmoid': False, 'loss_weight': 1.0, 'avg_non_ignore': True, 'ignore_index': 255},
+            'loss_decode': {'type': 'CrossEntropyLoss', 'use_sigmoid': False, 'loss_weight': 1.0, 'avg_non_ignore': True},
         },
         'train_cfg': {},
         'test_cfg': {'mode': 'whole'},
@@ -1176,12 +1176,13 @@ class UnifiedTrainingConfig:
         # Multi-dataset training ALWAYS uses unified labels (Cityscapes 19-class)
         # - MapillaryVistas: 66-class labels → 19-class Cityscapes trainIDs
         # - OUTSIDE15k: 24-class labels → 19-class Cityscapes trainIDs
-        # - ACDC: Cityscapes label IDs (0-33) → Cityscapes trainIDs (0-18)
-        # - BDD10k, IDD-AW: Already uses Cityscapes trainIDs (no ID transform needed)
+        # - ACDC, IDD-AW: Cityscapes label IDs (0-33) → Cityscapes trainIDs (0-18)
+        # - BDD10k: Already uses Cityscapes trainIDs (no ID transform needed)
+        # NOTE: IDD-AW labels contain mixed trainIDs and label IDs (values 19, 20 found for traffic light/sign)
+        #       These need CityscapesLabelIdToTrainId to map them properly
         MAPILLARY_DATASETS = {'MapillaryVistas', 'Mapillary'}
         OUTSIDE15K_DATASETS = {'OUTSIDE15k'}
-        CITYSCAPES_LABEL_ID_DATASETS = {'ACDC'}  # Use Cityscapes label ID format (7=road, 8=sidewalk, etc.)
-        # NOTE: IDD-AW removed - its labels are already in trainID format (0-18), not labelID format (0-33)
+        CITYSCAPES_LABEL_ID_DATASETS = {'ACDC', 'IDD-AW'}  # Use Cityscapes label ID format - need CityscapesLabelIdToTrainId
         
         # Build individual dataset configs for ConcatDataset with per-dataset pipelines
         train_datasets = []
@@ -1880,15 +1881,16 @@ class UnifiedTrainingConfig:
             std_aug_method = AUGMENTATION_STRATEGIES[std_strategy].standard_method
         
         # Label transformation logic:
-        # Single-dataset training: Use native class labels (no transforms except for ACDC/Cityscapes)
+        # Single-dataset training: Use native class labels (no transforms except for ACDC/Cityscapes/IDD-AW)
         # Multi-dataset training: Map all labels to Cityscapes 19-class format (unified labels)
         #
         # Dataset native formats:
         # - ACDC/Cityscapes: labelIds (0-33) - ALWAYS needs CityscapesLabelIdToTrainId transform
-        # - BDD10k/IDD-AW: Already Cityscapes trainIDs (0-18) - no transform needed
+        # - IDD-AW: Mixed trainIDs (0-18) + label IDs (19, 20) - needs CityscapesLabelIdToTrainId
+        # - BDD10k: Already Cityscapes trainIDs (0-18) - no transform needed
         # - OUTSIDE15k: 24 native classes (0-23) - only transform in unified mode
         # - MapillaryVistas: 66 native classes (0-65) - only transform in unified mode
-        CITYSCAPES_LABEL_ID_DATASETS = {'ACDC', 'Cityscapes'}
+        CITYSCAPES_LABEL_ID_DATASETS = {'ACDC', 'Cityscapes', 'IDD-AW'}
         OUTSIDE15K_DATASETS = {'OUTSIDE15k'}
         MAPILLARY_DATASETS = {'MapillaryVistas', 'Mapillary'}
         
@@ -1917,7 +1919,7 @@ class UnifiedTrainingConfig:
         # Apply dataset-specific label transformation to Cityscapes 19-class trainIds
         if needs_label_id_transform:
             # Convert Cityscapes full label IDs (0-33) to trainIds (0-18)
-            # This is always needed for ACDC/Cityscapes (IDD-AW already has trainIDs)
+            # This is needed for ACDC/Cityscapes/IDD-AW (IDD-AW has mixed trainIDs + some label IDs)
             pipeline.append(dict(type='CityscapesLabelIdToTrainId'))
         elif needs_outside15k_transform:
             # Convert OUTSIDE15k 24 classes (0-23) to Cityscapes 19 trainIDs (0-18)
