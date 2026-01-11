@@ -213,9 +213,7 @@ DATASET_CONFIGS = {
         name='IDD-AW',
         task='segmentation',
         format='cityscapes',
-        # IDD-AW uses fixed masks generated from original JSON polygon annotations
-        # with correct Cityscapes trainId mapping (labels stored separately)
-        ann_root='/scratch/mima2416/AWARE/IDD_AW_fixed_masks',
+        # IDD-AW labels are in FINAL_SPLITS/train/labels/IDD-AW (already in trainId format)
         train_img_dir='train/images/IDD-AW',
         train_ann_dir='train/labels/IDD-AW',
         val_img_dir='test/images/IDD-AW',
