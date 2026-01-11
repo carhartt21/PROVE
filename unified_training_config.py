@@ -897,6 +897,7 @@ class UnifiedTrainingConfig:
         custom_training_config: Optional[Dict] = None,
         custom_conditions: Optional[List[str]] = None,
         domain_filter: Optional[str] = None,
+        use_native_classes: bool = False,
     ) -> Dict[str, Any]:
         """
         Build a complete training configuration.
@@ -916,6 +917,9 @@ class UnifiedTrainingConfig:
             domain_filter: Optional domain to filter training data (e.g., 'clear_day')
                           When specified, only images from this domain subdirectory
                           will be used for training.
+            use_native_classes: If True, train with native class labels for MapillaryVistas
+                               (66 classes) or OUTSIDE15k (24 classes) instead of converting
+                               to Cityscapes 19 classes. Only applicable for these datasets.
             
         Returns:
             Complete configuration dictionary
@@ -993,9 +997,9 @@ class UnifiedTrainingConfig:
             config['_prove_config']['std_strategy'] = std_strategy
             config['_prove_config']['combined_strategy'] = f"{strategy}+{std_strategy}"
         
-        config = self._add_dataset_config(config, dataset_cfg, domain_filter)
-        # Single-dataset training: use native class labels (use_unified_labels=False)
-        config = self._add_training_pipeline(config, dataset_cfg.task, aug_strategy, std_strategy, dataset, use_unified_labels=False)
+        config = self._add_dataset_config(config, dataset_cfg, domain_filter, use_native_classes)
+        # Single-dataset training: use native class labels when specified (use_unified_labels=False)
+        config = self._add_training_pipeline(config, dataset_cfg.task, aug_strategy, std_strategy, dataset, use_unified_labels=False, use_native_classes=use_native_classes)
         config = self._add_augmentation_config(config, aug_strategy, conditions, real_gen_ratio, std_strategy)
         config = self._add_mixed_dataloader_config(config, dataset_cfg, aug_strategy, real_gen_ratio, domain_filter)
         config = self._set_work_dir(config, dataset, model, strategy, real_gen_ratio, domain_filter, std_strategy)
@@ -1738,6 +1742,7 @@ class UnifiedTrainingConfig:
         config: Dict[str, Any],
         dataset_cfg: DatasetConfig,
         domain_filter: Optional[str] = None,
+        use_native_classes: bool = False,
     ) -> Dict[str, Any]:
         """
         Add dataset-specific configuration.
@@ -1746,13 +1751,47 @@ class UnifiedTrainingConfig:
             config: Configuration dictionary to update
             dataset_cfg: Dataset configuration object
             domain_filter: Optional domain to filter training data (e.g., 'clear_day')
+            use_native_classes: If True, use native class count (66 for MapillaryVistas, 24 for OUTSIDE15k)
         """
         
         # Use base data root - dataset paths already include the dataset name
         data_root = self.data_root
         config['data_root'] = data_root
         config['dataset_type'] = 'CityscapesDataset' if dataset_cfg.format == 'cityscapes' else 'CocoDataset'
-        config['classes'] = dataset_cfg.classes
+        
+        # Handle native classes for MapillaryVistas and OUTSIDE15k
+        if use_native_classes:
+            if dataset_cfg.name in ['MapillaryVistas', 'Mapillary']:
+                # Override to use 66 MapillaryVistas native classes
+                native_num_classes = 66
+                native_classes = MAPILLARY_CLASSES
+                config['classes'] = native_classes
+                # Update model num_classes
+                if 'model' in config and 'decode_head' in config['model']:
+                    config['model']['decode_head']['num_classes'] = native_num_classes
+                if 'model' in config and 'auxiliary_head' in config['model']:
+                    config['model']['auxiliary_head']['num_classes'] = native_num_classes
+                config['_prove_config']['use_native_classes'] = True
+                config['_prove_config']['native_num_classes'] = native_num_classes
+                print(f"[INFO] Using native MapillaryVistas classes: {native_num_classes} classes")
+            elif dataset_cfg.name == 'OUTSIDE15k':
+                # Override to use 24 OUTSIDE15k native classes
+                native_num_classes = 24
+                native_classes = OUTSIDE15K_CLASSES
+                config['classes'] = native_classes
+                # Update model num_classes
+                if 'model' in config and 'decode_head' in config['model']:
+                    config['model']['decode_head']['num_classes'] = native_num_classes
+                if 'model' in config and 'auxiliary_head' in config['model']:
+                    config['model']['auxiliary_head']['num_classes'] = native_num_classes
+                config['_prove_config']['use_native_classes'] = True
+                config['_prove_config']['native_num_classes'] = native_num_classes
+                print(f"[INFO] Using native OUTSIDE15k classes: {native_num_classes} classes")
+            else:
+                config['classes'] = dataset_cfg.classes
+                print(f"[WARN] use_native_classes=True but dataset {dataset_cfg.name} doesn't have native classes")
+        else:
+            config['classes'] = dataset_cfg.classes
         
         # Determine annotation root (use ann_root if specified, otherwise data_root)
         ann_root = dataset_cfg.ann_root if dataset_cfg.ann_root else data_root
@@ -1873,6 +1912,7 @@ class UnifiedTrainingConfig:
         std_strategy: Optional[str] = None,
         dataset: Optional[str] = None,
         use_unified_labels: bool = False,
+        use_native_classes: bool = False,
     ) -> Dict[str, Any]:
         """Add training data pipeline
         
@@ -1885,6 +1925,10 @@ class UnifiedTrainingConfig:
             use_unified_labels: If True, map all labels to Cityscapes 19-class format
                                (for multi-dataset training or domain adaptation).
                                If False, use native class labels per dataset.
+            use_native_classes: If True, keep MapillaryVistas (66 classes) or OUTSIDE15k (24 classes)
+                               in their native format instead of converting to Cityscapes 19 classes.
+                               This is for training native models that will be used with cross-domain
+                               prediction mapping.
         """
         
         crop_size = (512, 512)
@@ -1899,7 +1943,8 @@ class UnifiedTrainingConfig:
             std_aug_method = AUGMENTATION_STRATEGIES[std_strategy].standard_method
         
         # Label transformation logic:
-        # Single-dataset training: Use native class labels (no transforms except for ACDC/Cityscapes/IDD-AW)
+        # Single-dataset training with use_native_classes=True: Keep native class labels (no Cityscapes conversion)
+        # Single-dataset training with use_native_classes=False: Convert to Cityscapes 19-class format
         # Multi-dataset training: Map all labels to Cityscapes 19-class format (unified labels)
         #
         # Dataset native formats:
@@ -1907,8 +1952,8 @@ class UnifiedTrainingConfig:
         # - BDD10k: Already Cityscapes trainIDs (0-18) - no transform needed
         # - IDD-AW: Extended Cityscapes trainIDs with values 19, 20 - needs IddawLabelClamp
         #           IDD values 19=traffic light (maps to trainId 6), 20=pole (maps to trainId 5)
-        # - OUTSIDE15k: 24 native classes (0-23) - only transform in unified mode
-        # - MapillaryVistas: 66 native classes (0-65) - only transform in unified mode
+        # - OUTSIDE15k: 24 native classes (0-23) - only transform to Cityscapes if NOT use_native_classes
+        # - MapillaryVistas: 66 native classes (0-65) - only transform to Cityscapes if NOT use_native_classes
         CITYSCAPES_LABEL_ID_DATASETS = {'ACDC', 'Cityscapes'}  # Uses Cityscapes labelId format (0-33)
         OUTSIDE15K_DATASETS = {'OUTSIDE15k'}
         MAPILLARY_DATASETS = {'MapillaryVistas', 'Mapillary'}
@@ -1916,10 +1961,10 @@ class UnifiedTrainingConfig:
         
         # ACDC/Cityscapes always need labelId->trainId conversion (format conversion)
         needs_label_id_transform = dataset in CITYSCAPES_LABEL_ID_DATASETS if dataset else True
-        # OUTSIDE15k always needs native->trainId conversion (now using 19 Cityscapes classes)
-        needs_outside15k_transform = dataset in OUTSIDE15K_DATASETS if dataset else False
-        # MapillaryVistas always needs RGB->native->trainId conversion (now using 19 Cityscapes classes)
-        needs_mapillary_transform = dataset in MAPILLARY_DATASETS if dataset else False
+        # OUTSIDE15k converts to Cityscapes trainIds ONLY IF not using native classes
+        needs_outside15k_transform = (dataset in OUTSIDE15K_DATASETS and not use_native_classes) if dataset else False
+        # MapillaryVistas converts to Cityscapes trainIds ONLY IF not using native classes
+        needs_mapillary_transform = (dataset in MAPILLARY_DATASETS and not use_native_classes) if dataset else False
         # IDD-AW now uses fixed masks with correct trainIds (no transform needed)
         # MapillaryVistas uses RGB color-encoded labels that need decoding
         is_mapillary = dataset in MAPILLARY_DATASETS if dataset else False
@@ -1933,9 +1978,15 @@ class UnifiedTrainingConfig:
         if is_mapillary:
             # MapillaryVistas labels are RGB color-encoded - decode to class IDs (0-65)
             pipeline.append(dict(type='MapillaryRGBToClassId'))
+            # If using native classes, clamp to valid range 0-65
+            if use_native_classes:
+                pipeline.append(dict(type='MapillaryNativeLabelClamp'))
         else:
             # Other datasets: labels stored as 3-channel PNGs with identical channels
             pipeline.append(dict(type='ReduceToSingleChannel'))
+            # If using native classes for OUTSIDE15k, clamp to valid range 0-23
+            if use_native_classes and dataset in OUTSIDE15K_DATASETS:
+                pipeline.append(dict(type='Outside15kNativeLabelClamp'))
         
         # Apply dataset-specific label transformation to Cityscapes 19-class trainIds
         if needs_label_id_transform:

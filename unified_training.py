@@ -114,6 +114,7 @@ class UnifiedTrainer:
         max_iters: Optional[int] = None,
         gpu_ids: List[int] = None,
         distributed: bool = False,
+        use_native_classes: bool = False,
     ):
         self.dataset = dataset
         self.model = model
@@ -133,6 +134,7 @@ class UnifiedTrainer:
         self.max_iters = max_iters
         self.gpu_ids = gpu_ids or [0]
         self.distributed = distributed
+        self.use_native_classes = use_native_classes
         
         # Initialize config builder
         self.config_builder = UnifiedTrainingConfig(cache_dir=cache_dir)
@@ -159,6 +161,7 @@ class UnifiedTrainer:
             custom_conditions=self.custom_conditions,
             domain_filter=self.domain_filter,
             custom_training_config=custom_training_config,
+            use_native_classes=self.use_native_classes,
         )
         
         # Override work_dir if specified
@@ -961,6 +964,9 @@ Examples:
                        help='Filter training data to specific domain (e.g., clear_day)')
     parser.add_argument('--conditions', type=str, nargs='+',
                        help='Weather conditions to use')
+    parser.add_argument('--use-native-classes', action='store_true',
+                       help='Train with native class labels for MapillaryVistas (66 classes) '
+                            'or OUTSIDE15k (24 classes) instead of converting to Cityscapes 19 classes')
     
     # Training options
     parser.add_argument('--work-dir', type=str, help='Output directory')
@@ -1205,6 +1211,7 @@ def main():
         max_iters=args.max_iters,
         gpu_ids=args.gpu_ids,
         distributed=args.distributed,
+        use_native_classes=args.use_native_classes,
     )
     
     # Config only mode

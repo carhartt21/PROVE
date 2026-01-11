@@ -86,6 +86,13 @@ DATASET_FOLDER_MAP = {
 
 # Dataset label type configuration for proper label processing during testing
 # Maps dataset folder names to their label type and class configuration
+#
+# CROSS-DOMAIN TESTING STRATEGY:
+# - Models may be trained with native classes (66 for Mapillary, 24 for OUTSIDE15k)
+# - Test datasets may use Cityscapes trainIDs (0-18)
+# - For cross-domain: map MODEL PREDICTIONS to Cityscapes, keep GT as-is (if already Cityscapes)
+# - For same-dataset: use native classes for both predictions and GT
+#
 DATASET_LABEL_CONFIG = {
     'ACDC': {
         'label_type': 'cityscapes_labelid',  # Cityscapes labelIDs (0-33) -> trainIds
@@ -113,35 +120,25 @@ DATASET_LABEL_CONFIG = {
         'classes': None,
     },
     'MapillaryVistas': {
-        'label_type': 'mapillary_rgb',  # RGB color-encoded -> native Mapillary IDs (0-65)
-        'num_classes': 66,
-        'classes': [  # Native Mapillary class names
-            'Bird', 'Ground Animal', 'Curb', 'Fence', 'Guard Rail', 'Barrier',
-            'Wall', 'Bike Lane', 'Crosswalk - Plain', 'Curb Cut', 'Parking',
-            'Pedestrian Area', 'Rail Track', 'Road', 'Service Lane', 'Sidewalk',
-            'Bridge', 'Building', 'Tunnel', 'Person', 'Bicyclist', 'Motorcyclist',
-            'Other Rider', 'Lane Marking - Crosswalk', 'Lane Marking - General',
-            'Mountain', 'Sand', 'Sky', 'Snow', 'Terrain', 'Vegetation', 'Water',
-            'Banner', 'Bench', 'Bike Rack', 'Billboard', 'Catch Basin', 'CCTV Camera',
-            'Fire Hydrant', 'Junction Box', 'Mailbox', 'Manhole', 'Phone Booth',
-            'Pothole', 'Street Light', 'Pole', 'Traffic Sign Frame', 'Utility Pole',
-            'Traffic Light', 'Traffic Sign (Back)', 'Traffic Sign (Front)', 'Trash Can',
-            'Bicycle', 'Boat', 'Bus', 'Car', 'Caravan', 'Motorcycle', 'On Rails',
-            'Other Vehicle', 'Trailer', 'Truck', 'Wheeled Slow', 'Car Mount',
-            'Ego Vehicle', 'Unlabeled',
-        ],
+        # For native MapillaryVistas models (66 classes), keep in native format
+        # For cross-domain evaluation on Cityscapes test data, convert GT labels
+        'label_type': 'mapillary_rgb_to_native',  # RGB color-encoded -> native IDs (0-65)
+        'num_classes': 66,  # Native MapillaryVistas classes
+        'classes': None,  # Will be set dynamically
     },
     'OUTSIDE15k': {
-        'label_type': 'outside15k_native',  # Native OUTSIDE15k labels (0-23)
-        'num_classes': 24,
-        'classes': [  # Native OUTSIDE15k class names
-            'unlabeled', 'animal', 'barrier', 'bicycle', 'boat', 'bridge',
-            'building', 'grass', 'ground', 'mountain', 'object', 'person',
-            'pole', 'road', 'sand', 'sidewalk', 'sign', 'sky', 'street light',
-            'traffic light', 'tunnel', 'vegetation', 'vehicle', 'water',
-        ],
+        # For native OUTSIDE15k models (24 classes), keep in native format
+        # For cross-domain evaluation on Cityscapes test data, convert predictions
+        'label_type': 'native',  # Already native class IDs (0-23)
+        'num_classes': 24,  # Native OUTSIDE15k classes
+        'classes': None,  # Will be set dynamically
     },
 }
+
+# Mapping from native predictions to Cityscapes trainIDs for cross-domain evaluation
+# Used when model predicts native classes but test data uses Cityscapes labels
+MAPILLARY_PRED_TO_CITYSCAPES = custom_transforms.MAPILLARY_TO_TRAINID
+OUTSIDE15K_PRED_TO_CITYSCAPES = custom_transforms.OUTSIDE15K_TO_TRAINID
 
 # Cityscapes class names (19 classes)
 CITYSCAPES_CLASSES = [
@@ -149,6 +146,52 @@ CITYSCAPES_CLASSES = [
     'traffic light', 'traffic sign', 'vegetation', 'terrain', 'sky',
     'person', 'rider', 'car', 'truck', 'bus', 'train', 'motorcycle', 'bicycle'
 ]
+
+
+def detect_model_num_classes(cfg) -> int:
+    """Detect number of output classes from model config."""
+    # Try decode_head first
+    if hasattr(cfg, 'model') and 'decode_head' in cfg.model:
+        num_classes = cfg.model.decode_head.get('num_classes', 19)
+        return num_classes
+    # Fall back to top-level num_classes
+    if hasattr(cfg, 'num_classes'):
+        return cfg.num_classes
+    return 19  # Default to Cityscapes
+
+
+def map_predictions_to_cityscapes(pred_seg_map: np.ndarray, model_num_classes: int) -> np.ndarray:
+    """Map model predictions from native classes to Cityscapes trainIDs.
+    
+    This is used for cross-domain evaluation where:
+    - Model was trained on MapillaryVistas (66 classes) or OUTSIDE15k (24 classes)
+    - Test data uses Cityscapes trainIDs (0-18)
+    
+    Args:
+        pred_seg_map: Model predictions in native class space
+        model_num_classes: Number of classes the model was trained with
+    
+    Returns:
+        Predictions mapped to Cityscapes trainIDs (0-18, 255=ignore)
+    """
+    if model_num_classes == 66:
+        # MapillaryVistas (66 classes) -> Cityscapes (19 classes)
+        lut = np.full(256, 255, dtype=np.uint8)
+        for native_id, train_id in MAPILLARY_PRED_TO_CITYSCAPES.items():
+            if 0 <= native_id < 256:
+                lut[native_id] = train_id
+        return lut[pred_seg_map.astype(np.uint8)]
+    
+    elif model_num_classes == 24:
+        # OUTSIDE15k (24 classes) -> Cityscapes (19 classes)
+        lut = np.full(256, 255, dtype=np.uint8)
+        for native_id, train_id in OUTSIDE15K_PRED_TO_CITYSCAPES.items():
+            if 0 <= native_id < 256:
+                lut[native_id] = train_id
+        return lut[pred_seg_map.astype(np.uint8)]
+    
+    # No mapping needed (already Cityscapes)
+    return pred_seg_map
 
 
 def to_python_type(val):
@@ -174,32 +217,42 @@ def get_dataset_config(dataset_name: str):
     return num_classes, classes
 
 
-def process_label_for_dataset(gt_seg_map: np.ndarray, dataset_name: str) -> np.ndarray:
+def process_label_for_dataset(gt_seg_map: np.ndarray, dataset_name: str, 
+                               model_num_classes: int = 19) -> np.ndarray:
     """Process ground truth labels according to dataset type.
     
-    Different datasets have different label formats that need conversion:
-    - ACDC, IDD-AW: Cityscapes labelIDs (0-33) -> trainIds (0-18)
-    - BDD10k, BDD100k: Already Cityscapes trainIds, no conversion needed
-    - MapillaryVistas: RGB color-encoded -> native class IDs (0-65) - KEEPS NATIVE CLASSES
-    - OUTSIDE15k: Native labels (0-23) - KEEPS NATIVE CLASSES
+    For CROSS-DOMAIN TESTING (model trained on one dataset, tested on another):
+    - Test data is typically in Cityscapes trainID format (BDD10K, IDD-AW)
+    - Model predictions are mapped to Cityscapes in a separate step
+    - This function handles GT label format conversion only
+    
+    Label format handling:
+    - ACDC: Cityscapes labelIDs (0-33) -> trainIds (0-18)
+    - BDD10k, BDD100k, Cityscapes, IDD-AW: Already Cityscapes trainIds, no conversion
+    - MapillaryVistas: RGB color-encoded -> native IDs (0-65) for native evaluation
+    - OUTSIDE15k: Already native class IDs (0-23) for native evaluation
     
     Args:
         gt_seg_map: Raw label image (may be RGB or grayscale)
         dataset_name: Dataset folder name (e.g., 'MapillaryVistas', 'IDD-AW')
+        model_num_classes: Number of classes the model was trained with (for determining evaluation mode)
         
     Returns:
-        Processed label image with appropriate class IDs
+        Processed label image (format depends on cross-domain vs same-dataset testing)
     """
     config = DATASET_LABEL_CONFIG.get(dataset_name, DATASET_LABEL_CONFIG['Cityscapes'])
     label_type = config['label_type']
     
-    if label_type == 'mapillary_rgb':
-        # MapillaryVistas: RGB color-encoded -> native Mapillary class IDs (0-65)
-        # Keeps native classes for single-dataset evaluation
+    # For cross-domain testing (model has native classes, test data has Cityscapes),
+    # the GT should stay in Cityscapes format
+    is_cross_domain = model_num_classes in [66, 24] and config['num_classes'] == 19
+    
+    if label_type == 'mapillary_rgb_to_native':
+        # MapillaryVistas: RGB color-encoded -> native IDs (0-65)
         if gt_seg_map.ndim == 3 and gt_seg_map.shape[-1] == 3:
             # Decode RGB to Mapillary native class IDs
             h, w = gt_seg_map.shape[:2]
-            output = np.full((h, w), 255, dtype=np.uint8)
+            native_labels = np.full((h, w), 255, dtype=np.uint8)
             
             # Pack RGB values for fast lookup
             r = gt_seg_map[:, :, 0].astype(np.int32)
@@ -207,7 +260,7 @@ def process_label_for_dataset(gt_seg_map: np.ndarray, dataset_name: str) -> np.n
             b = gt_seg_map[:, :, 2].astype(np.int32)
             packed = r * 65536 + g * 256 + b
             
-            # Lookup RGB -> class ID
+            # Lookup RGB -> native class ID
             rgb_lookup = {}
             for rgb, class_id in custom_transforms.MAPILLARY_RGB_TO_ID.items():
                 packed_rgb = rgb[0] * 65536 + rgb[1] * 256 + rgb[2]
@@ -215,16 +268,23 @@ def process_label_for_dataset(gt_seg_map: np.ndarray, dataset_name: str) -> np.n
             
             for packed_rgb, class_id in rgb_lookup.items():
                 mask = packed == packed_rgb
-                output[mask] = class_id
+                native_labels[mask] = class_id
             
-            gt_seg_map = output
+            gt_seg_map = native_labels
         elif gt_seg_map.ndim == 3:
-            # If 3-channel but not proper RGB, take first channel
             gt_seg_map = gt_seg_map[:, :, 0]
-        # Note: Do NOT convert to Cityscapes trainIds - keep native Mapillary classes
+        
+        # If cross-domain testing (evaluating with Cityscapes GT), convert to trainIds
+        # Otherwise keep native for same-dataset evaluation
+        if is_cross_domain:
+            lut = np.full(256, 255, dtype=np.uint8)
+            for mapillary_id, train_id in custom_transforms.MAPILLARY_TO_TRAINID.items():
+                if 0 <= mapillary_id < 256:
+                    lut[mapillary_id] = train_id
+            gt_seg_map = lut[gt_seg_map]
         
     elif label_type == 'cityscapes_labelid':
-        # ACDC, IDD-AW: Cityscapes labelIDs (0-33) -> trainIds (0-18)
+        # ACDC: Cityscapes labelIDs (0-33) -> trainIds (0-18)
         if gt_seg_map.ndim == 3:
             gt_seg_map = gt_seg_map[:, :, 0]
         
@@ -234,14 +294,20 @@ def process_label_for_dataset(gt_seg_map: np.ndarray, dataset_name: str) -> np.n
                 lut[label_id] = train_id
         gt_seg_map = lut[gt_seg_map]
         
-    elif label_type == 'outside15k_native':
-        # OUTSIDE15k: native labels (0-23) - keep native classes
+    elif label_type == 'outside15k_to_trainid':
+        # OUTSIDE15k: native labels (0-23) -> Cityscapes trainIds (0-18)
         if gt_seg_map.ndim == 3:
             gt_seg_map = gt_seg_map[:, :, 0]
-        # Note: Do NOT convert to Cityscapes trainIds - keep native OUTSIDE15k classes
+        
+        # Convert OUTSIDE15k native IDs to Cityscapes trainIds
+        lut = np.full(256, 255, dtype=np.uint8)
+        for outside_id, train_id in custom_transforms.OUTSIDE15K_TO_TRAINID.items():
+            if 0 <= outside_id < 256:
+                lut[outside_id] = train_id
+        gt_seg_map = lut[gt_seg_map]
         
     else:  # cityscapes_trainid
-        # BDD10k, BDD100k, Cityscapes: Already Cityscapes trainIds
+        # BDD10k, BDD100k, Cityscapes, IDD-AW: Already Cityscapes trainIds
         if gt_seg_map.ndim == 3:
             gt_seg_map = gt_seg_map[:, :, 0]
     
@@ -376,6 +442,10 @@ def run_fine_grained_test(
     # Load config
     cfg = Config.fromfile(config_path)
     
+    # Detect model's native number of classes
+    model_num_classes = detect_model_num_classes(cfg)
+    print(f"Model trained with {model_num_classes} classes")
+    
     # Build model
     print("Building model...")
     model = MODELS.build(cfg.model)
@@ -400,9 +470,21 @@ def run_fine_grained_test(
     # Get domains for this dataset
     domains = ['clear_day', 'cloudy', 'dawn_dusk', 'foggy', 'night', 'rainy', 'snowy']
     
-    # Get dataset-specific configuration (num_classes, class_names)
-    num_classes, class_names = get_dataset_config(folder_name)
-    print(f"Using {num_classes} classes for {folder_name}")
+    # Get dataset-specific configuration (num_classes for GT, class_names)
+    gt_num_classes, class_names = get_dataset_config(folder_name)
+    print(f"Test dataset '{folder_name}' has {gt_num_classes} classes")
+    
+    # Determine evaluation mode
+    # For cross-domain testing (native model on Cityscapes test data), use Cityscapes classes
+    is_cross_domain = model_num_classes in [66, 24] and gt_num_classes == 19
+    if is_cross_domain:
+        print(f"CROSS-DOMAIN TEST: Model ({model_num_classes} classes) -> Test data ({gt_num_classes} classes)")
+        print(f"  Predictions will be mapped to Cityscapes classes for evaluation")
+        eval_num_classes = 19  # Evaluate in Cityscapes space
+        eval_class_names = CITYSCAPES_CLASSES
+    else:
+        eval_num_classes = gt_num_classes
+        eval_class_names = class_names
     
     # Results storage
     all_results = {
@@ -412,8 +494,10 @@ def run_fine_grained_test(
             'dataset': dataset_name,
             'test_split': test_split,
             'timestamp': timestamp,
-            'classes': class_names,
-            'num_classes': num_classes,
+            'classes': eval_class_names,
+            'num_classes': eval_num_classes,
+            'model_num_classes': model_num_classes,
+            'is_cross_domain': is_cross_domain,
         },
         'overall': {},
         'per_domain': {},
@@ -421,10 +505,10 @@ def run_fine_grained_test(
     }
     
     # Overall aggregated metrics
-    total_area_intersect = np.zeros(num_classes, dtype=np.float64)
-    total_area_union = np.zeros(num_classes, dtype=np.float64)
-    total_area_pred = np.zeros(num_classes, dtype=np.float64)
-    total_area_label = np.zeros(num_classes, dtype=np.float64)
+    total_area_intersect = np.zeros(eval_num_classes, dtype=np.float64)
+    total_area_union = np.zeros(eval_num_classes, dtype=np.float64)
+    total_area_pred = np.zeros(eval_num_classes, dtype=np.float64)
+    total_area_label = np.zeros(eval_num_classes, dtype=np.float64)
     
     # Test pipeline from config
     test_pipeline = cfg.get('test_pipeline', cfg.test_dataloader.dataset.pipeline)
@@ -459,10 +543,10 @@ def run_fine_grained_test(
         print(f"  Found {len(img_files)} images")
         
         # Domain aggregated metrics
-        domain_area_intersect = np.zeros(num_classes, dtype=np.float64)
-        domain_area_union = np.zeros(num_classes, dtype=np.float64)
-        domain_area_pred = np.zeros(num_classes, dtype=np.float64)
-        domain_area_label = np.zeros(num_classes, dtype=np.float64)
+        domain_area_intersect = np.zeros(eval_num_classes, dtype=np.float64)
+        domain_area_union = np.zeros(eval_num_classes, dtype=np.float64)
+        domain_area_pred = np.zeros(eval_num_classes, dtype=np.float64)
+        domain_area_label = np.zeros(eval_num_classes, dtype=np.float64)
         
         # Process images
         for img_path in tqdm(img_files, desc=f"  Processing {domain}"):
@@ -496,8 +580,8 @@ def run_fine_grained_test(
                 img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
                 gt_seg_map = cv2.imread(str(label_path), cv2.IMREAD_UNCHANGED)
                 
-                # Process labels according to dataset type
-                gt_seg_map = process_label_for_dataset(gt_seg_map, folder_name)
+                # Process labels according to dataset type and cross-domain mode
+                gt_seg_map = process_label_for_dataset(gt_seg_map, folder_name, model_num_classes)
                 
                 # Simple preprocessing
                 h, w = img.shape[:2]
@@ -520,9 +604,13 @@ def run_fine_grained_test(
                                               (gt_seg_map.shape[1], gt_seg_map.shape[0]),
                                               interpolation=cv2.INTER_NEAREST)
                 
+                # Map predictions to Cityscapes if cross-domain testing
+                if is_cross_domain:
+                    pred_seg_map = map_predictions_to_cityscapes(pred_seg_map, model_num_classes)
+                
                 # Compute metrics
                 area_intersect, area_union, area_pred, area_label = compute_iou_metrics(
-                    pred_seg_map, gt_seg_map, num_classes
+                    pred_seg_map, gt_seg_map, eval_num_classes
                 )
                 
                 # Aggregate
@@ -538,8 +626,8 @@ def run_fine_grained_test(
             img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
             gt_seg_map = cv2.imread(str(label_path), cv2.IMREAD_UNCHANGED)
             
-            # Process labels according to dataset type (e.g., MapillaryVistas RGB -> trainIds)
-            gt_seg_map = process_label_for_dataset(gt_seg_map, folder_name)
+            # Process labels according to dataset type and cross-domain mode
+            gt_seg_map = process_label_for_dataset(gt_seg_map, folder_name, model_num_classes)
             
             # Preprocess image
             h, w = img.shape[:2]
@@ -573,9 +661,13 @@ def run_fine_grained_test(
                 if pred_seg_map.ndim == 3:
                     pred_seg_map = pred_seg_map.argmax(axis=0)
             
+            # Map predictions to Cityscapes if cross-domain testing
+            if is_cross_domain:
+                pred_seg_map = map_predictions_to_cityscapes(pred_seg_map, model_num_classes)
+            
             # Compute metrics
             area_intersect, area_union, area_pred, area_label = compute_iou_metrics(
-                pred_seg_map, gt_seg_map, num_classes
+                pred_seg_map, gt_seg_map, eval_num_classes
             )
             
             # Aggregate
@@ -595,7 +687,7 @@ def run_fine_grained_test(
         domain_per_class = get_per_class_metrics(
             domain_area_intersect, domain_area_union,
             domain_area_pred, domain_area_label,
-            class_names=class_names
+            class_names=eval_class_names
         )
         
         # Store results
@@ -631,7 +723,7 @@ def run_fine_grained_test(
         overall_per_class = get_per_class_metrics(
             total_area_intersect, total_area_union,
             total_area_pred, total_area_label,
-            class_names=class_names
+            class_names=eval_class_names
         )
         
         # Count total images

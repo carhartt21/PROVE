@@ -1,6 +1,6 @@
 # Retraining Progress Tracker
 
-**Last Updated:** 2026-01-11 08:31
+**Last Updated:** 2026-01-11 12:15
 
 This document tracks the progress of retraining models with the corrected native class labels.
 
@@ -91,32 +91,32 @@ This document tracks the progress of retraining models with the corrected native
 | Strategy | BDD10k | IDD-AW | MapillaryVistas | OUTSIDE15k | Notes |
 |----------|--------|--------|-----------------|------------|-------|
 | gen_Attribute_Hallucination | ✅ 🎯 | ✅ 🎯 | ✅ 🎯 | ✅ 🎯 |  |
-| gen_augmenters | ✅ 🎯 | 🔄 🎯 | 🔄 🎯 | ✅ 🎯 |  |
-| gen_automold | ✅ 🎯 | 🔄 🎯 | 🔄 🎯 | ✅ 🎯 |  |
+| gen_augmenters | ✅ 🎯 | 🔄 🎯 | ✅ 🎯 | ✅ 🎯 |  |
+| gen_automold | ✅ 🎯 | 🔄 🎯 | ✅ 🎯 | ✅ 🎯 |  |
 | gen_CNetSeg | ✅ 🎯 | ✅ 🎯 | ✅ 🎯 | ✅ 🎯 |  |
-| gen_CUT | ✅ 🎯 | 🔄 🎯 | ✅ 🎯 | ✅ 🎯 |  |
+| gen_CUT | ✅ 🎯 | ✅ 🎯 | ✅ 🎯 | ✅ 🎯 |  |
 | gen_cyclediffusion | ✅ 🎯 | 🔄 🎯 | ⏳ | ➖ |  |
-| gen_cycleGAN | ✅ 🎯 | ⏳ | 🔄 🎯 | ✅ 🎯 |  |
-| gen_flux_kontext | ➖ | ➖ | 🔄 🎯 | ✅ 🎯 |  |
-| gen_Img2Img | ✅ 🎯 | ⏳ | ✅ 🎯 | ✅ 🎯 |  |
-| gen_IP2P | ✅ 🎯 | 🔄 | ✅ 🎯 | ✅ 🎯 |  |
-| gen_LANIT | ✅ | ⏳ | ✅ 🎯 | ✅ 🎯 |  |
-| gen_Qwen_Image_Edit | ➖ | ⏳ | 🔄 🎯 | ✅ 🎯 | No BDD10k data |
-| gen_stargan_v2 | ✅ 🎯 | ⏳ | 🔄 🎯 | ✅ 🎯 |  |
-| gen_step1x_new | ➖ | ⏳ | 🔄 🎯 | ✅ 🎯 |  |
-| gen_step1x_v1p2 | ✅ 🎯 | ⏳ | 🔄 | ✅ 🎯 |  |
+| gen_cycleGAN | ✅ 🎯 | 🔄 🎯 | ✅ 🎯 | ✅ 🎯 |  |
+| gen_flux_kontext | ➖ | ➖ | ✅ 🎯 | ✅ 🎯 |  |
+| gen_Img2Img | ✅ 🎯 | 🔄 🎯 | ✅ 🎯 | ✅ 🎯 |  |
+| gen_IP2P | ✅ 🎯 | ✅ 🎯 | ✅ 🎯 | ✅ 🎯 |  |
+| gen_LANIT | ✅ | 🔄 | ✅ 🎯 | ✅ 🎯 |  |
+| gen_Qwen_Image_Edit | ➖ | 🔄 | 🔄 🎯 | ✅ 🎯 | No BDD10k data |
+| gen_stargan_v2 | ✅ 🎯 | 🔄 | 🔄 🎯 | ✅ 🎯 |  |
+| gen_step1x_new | ➖ | 🔄 | ✅ 🎯 | ✅ 🎯 |  |
+| gen_step1x_v1p2 | ✅ 🎯 | 🔄 | 🔄 | ✅ 🎯 |  |
 | gen_SUSTechGAN | ✅ 🎯 | ⏳ | ✅ 🎯 | ✅ 🎯 |  |
 | gen_TSIT | ✅ 🎯 | ⏳ | ✅ 🎯 | ✅ 🎯 |  |
 | gen_UniControl | ✅ 🎯 | ⏳ | ✅ 🎯 | ✅ 🎯 |  |
 | gen_VisualCloze | ✅ 🎯 | ⏳ | ✅ 🎯 | ✅ 🎯 |  |
 | gen_Weather_Effect_Generator | ✅ 🎯 | ⏳ | ✅ 🎯 | ✅ 🎯 |  |
-| gen_albumentations_weather | ✅ 🎯 | 🔄 🎯 | 🔄 🎯 | ✅ 🎯 |  |
+| gen_albumentations_weather | ✅ 🎯 | ✅ 🎯 | 🔄 🎯 | ✅ 🎯 |  |
 
 ### Standard Augmentation Strategies
 
 | Strategy | BDD10k | IDD-AW | MapillaryVistas | OUTSIDE15k | Notes |
 |----------|--------|--------|-----------------|------------|-------|
-| baseline | ✅ 🎯 | 🔄 🎯 | ✅ 🎯 | ✅ 🎯 |  |
+| baseline | ✅ 🎯 | ✅ 🎯 | ✅ 🎯 | ✅ 🎯 |  |
 | photometric_distort | ✅ 🎯 | ⏳ | ✅ 🎯 | ✅ 🎯 |  |
 | std_autoaugment | ✅ 🎯 | ⏳ | ✅ 🎯 | ✅ |  |
 | std_cutmix | ✅ 🎯 | ⏳ | ✅ 🎯 | ✅ 🎯 |  |
@@ -176,9 +176,9 @@ python scripts/retrain_affected_models.py --generate-scripts
 
 | Category | Total | Complete | Running | Pending | Failed |
 |----------|-------|----------|---------|---------|--------|
-| **Generative (gen_*)** | 83 | 51 | 15 | 13 | 0 |
-| **Standard (std_*)** | 24 | 18 | 1 | 5 | 0 |
-| **TOTAL** | 107 | 69 | 16 | 18 | 0 |
+| **Generative (gen_*)** | 83 | 59 | 14 | 6 | 0 |
+| **Standard (std_*)** | 24 | 19 | 0 | 5 | 0 |
+| **TOTAL** | 107 | 78 | 14 | 11 | 0 |
 
 *Note: Stage 1 trains 3 models per strategy×dataset = 324 total configurations.*
 *Total = 28 strategies × 4 datasets × 3 models - 12 skipped configs = 324 configs*
