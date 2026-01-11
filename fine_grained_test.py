@@ -86,6 +86,8 @@ DATASET_FOLDER_MAP = {
 
 # Dataset label type configuration for proper label processing during testing
 # Maps dataset folder names to their label type and class configuration
+# NOTE: For testing, ALL datasets should output Cityscapes trainIDs (0-18, 255) because
+#       models are trained to predict 19 Cityscapes classes
 DATASET_LABEL_CONFIG = {
     'ACDC': {
         'label_type': 'cityscapes_labelid',  # Cityscapes labelIDs (0-33) -> trainIds
@@ -113,33 +115,14 @@ DATASET_LABEL_CONFIG = {
         'classes': None,
     },
     'MapillaryVistas': {
-        'label_type': 'mapillary_rgb',  # RGB color-encoded -> native Mapillary IDs (0-65)
-        'num_classes': 66,
-        'classes': [  # Native Mapillary class names
-            'Bird', 'Ground Animal', 'Curb', 'Fence', 'Guard Rail', 'Barrier',
-            'Wall', 'Bike Lane', 'Crosswalk - Plain', 'Curb Cut', 'Parking',
-            'Pedestrian Area', 'Rail Track', 'Road', 'Service Lane', 'Sidewalk',
-            'Bridge', 'Building', 'Tunnel', 'Person', 'Bicyclist', 'Motorcyclist',
-            'Other Rider', 'Lane Marking - Crosswalk', 'Lane Marking - General',
-            'Mountain', 'Sand', 'Sky', 'Snow', 'Terrain', 'Vegetation', 'Water',
-            'Banner', 'Bench', 'Bike Rack', 'Billboard', 'Catch Basin', 'CCTV Camera',
-            'Fire Hydrant', 'Junction Box', 'Mailbox', 'Manhole', 'Phone Booth',
-            'Pothole', 'Street Light', 'Pole', 'Traffic Sign Frame', 'Utility Pole',
-            'Traffic Light', 'Traffic Sign (Back)', 'Traffic Sign (Front)', 'Trash Can',
-            'Bicycle', 'Boat', 'Bus', 'Car', 'Caravan', 'Motorcycle', 'On Rails',
-            'Other Vehicle', 'Trailer', 'Truck', 'Wheeled Slow', 'Car Mount',
-            'Ego Vehicle', 'Unlabeled',
-        ],
+        'label_type': 'mapillary_rgb_to_trainid',  # RGB color-encoded -> Cityscapes trainIDs (0-18)
+        'num_classes': 19,  # Output is Cityscapes 19 classes
+        'classes': None,  # Use CITYSCAPES_CLASSES (model predicts these)
     },
     'OUTSIDE15k': {
-        'label_type': 'outside15k_native',  # Native OUTSIDE15k labels (0-23)
-        'num_classes': 24,
-        'classes': [  # Native OUTSIDE15k class names
-            'unlabeled', 'animal', 'barrier', 'bicycle', 'boat', 'bridge',
-            'building', 'grass', 'ground', 'mountain', 'object', 'person',
-            'pole', 'road', 'sand', 'sidewalk', 'sign', 'sky', 'street light',
-            'traffic light', 'tunnel', 'vegetation', 'vehicle', 'water',
-        ],
+        'label_type': 'outside15k_to_trainid',  # Native OUTSIDE15k (0-23) -> Cityscapes trainIDs (0-18)
+        'num_classes': 19,  # Output is Cityscapes 19 classes
+        'classes': None,  # Use CITYSCAPES_CLASSES (model predicts these)
     },
 }
 
@@ -177,29 +160,32 @@ def get_dataset_config(dataset_name: str):
 def process_label_for_dataset(gt_seg_map: np.ndarray, dataset_name: str) -> np.ndarray:
     """Process ground truth labels according to dataset type.
     
+    All datasets are converted to Cityscapes trainIds (0-18, 255=ignore) because
+    models are trained to predict 19 Cityscapes classes.
+    
     Different datasets have different label formats that need conversion:
-    - ACDC, IDD-AW: Cityscapes labelIDs (0-33) -> trainIds (0-18)
-    - BDD10k, BDD100k: Already Cityscapes trainIds, no conversion needed
-    - MapillaryVistas: RGB color-encoded -> native class IDs (0-65) - KEEPS NATIVE CLASSES
-    - OUTSIDE15k: Native labels (0-23) - KEEPS NATIVE CLASSES
+    - ACDC: Cityscapes labelIDs (0-33) -> trainIds (0-18)
+    - BDD10k, BDD100k, Cityscapes: Already Cityscapes trainIds, no conversion needed
+    - IDD-AW: Cityscapes trainIDs (0-18, 255) - no conversion needed
+    - MapillaryVistas: RGB color-encoded -> native IDs (0-65) -> Cityscapes trainIds (0-18)
+    - OUTSIDE15k: Native labels (0-23) -> Cityscapes trainIds (0-18)
     
     Args:
         gt_seg_map: Raw label image (may be RGB or grayscale)
         dataset_name: Dataset folder name (e.g., 'MapillaryVistas', 'IDD-AW')
         
     Returns:
-        Processed label image with appropriate class IDs
+        Processed label image with Cityscapes trainIds (0-18, 255=ignore)
     """
     config = DATASET_LABEL_CONFIG.get(dataset_name, DATASET_LABEL_CONFIG['Cityscapes'])
     label_type = config['label_type']
     
-    if label_type == 'mapillary_rgb':
-        # MapillaryVistas: RGB color-encoded -> native Mapillary class IDs (0-65)
-        # Keeps native classes for single-dataset evaluation
+    if label_type == 'mapillary_rgb_to_trainid':
+        # MapillaryVistas: RGB color-encoded -> native IDs -> Cityscapes trainIds
         if gt_seg_map.ndim == 3 and gt_seg_map.shape[-1] == 3:
             # Decode RGB to Mapillary native class IDs
             h, w = gt_seg_map.shape[:2]
-            output = np.full((h, w), 255, dtype=np.uint8)
+            native_labels = np.full((h, w), 255, dtype=np.uint8)
             
             # Pack RGB values for fast lookup
             r = gt_seg_map[:, :, 0].astype(np.int32)
@@ -207,7 +193,7 @@ def process_label_for_dataset(gt_seg_map: np.ndarray, dataset_name: str) -> np.n
             b = gt_seg_map[:, :, 2].astype(np.int32)
             packed = r * 65536 + g * 256 + b
             
-            # Lookup RGB -> class ID
+            # Lookup RGB -> native class ID
             rgb_lookup = {}
             for rgb, class_id in custom_transforms.MAPILLARY_RGB_TO_ID.items():
                 packed_rgb = rgb[0] * 65536 + rgb[1] * 256 + rgb[2]
@@ -215,16 +201,22 @@ def process_label_for_dataset(gt_seg_map: np.ndarray, dataset_name: str) -> np.n
             
             for packed_rgb, class_id in rgb_lookup.items():
                 mask = packed == packed_rgb
-                output[mask] = class_id
+                native_labels[mask] = class_id
             
-            gt_seg_map = output
+            gt_seg_map = native_labels
         elif gt_seg_map.ndim == 3:
             # If 3-channel but not proper RGB, take first channel
             gt_seg_map = gt_seg_map[:, :, 0]
-        # Note: Do NOT convert to Cityscapes trainIds - keep native Mapillary classes
+        
+        # Now convert native Mapillary IDs (0-65) to Cityscapes trainIds (0-18)
+        lut = np.full(256, 255, dtype=np.uint8)
+        for mapillary_id, train_id in custom_transforms.MAPILLARY_TO_TRAINID.items():
+            if 0 <= mapillary_id < 256:
+                lut[mapillary_id] = train_id
+        gt_seg_map = lut[gt_seg_map]
         
     elif label_type == 'cityscapes_labelid':
-        # ACDC, IDD-AW: Cityscapes labelIDs (0-33) -> trainIds (0-18)
+        # ACDC: Cityscapes labelIDs (0-33) -> trainIds (0-18)
         if gt_seg_map.ndim == 3:
             gt_seg_map = gt_seg_map[:, :, 0]
         
@@ -234,14 +226,20 @@ def process_label_for_dataset(gt_seg_map: np.ndarray, dataset_name: str) -> np.n
                 lut[label_id] = train_id
         gt_seg_map = lut[gt_seg_map]
         
-    elif label_type == 'outside15k_native':
-        # OUTSIDE15k: native labels (0-23) - keep native classes
+    elif label_type == 'outside15k_to_trainid':
+        # OUTSIDE15k: native labels (0-23) -> Cityscapes trainIds (0-18)
         if gt_seg_map.ndim == 3:
             gt_seg_map = gt_seg_map[:, :, 0]
-        # Note: Do NOT convert to Cityscapes trainIds - keep native OUTSIDE15k classes
+        
+        # Convert OUTSIDE15k native IDs to Cityscapes trainIds
+        lut = np.full(256, 255, dtype=np.uint8)
+        for outside_id, train_id in custom_transforms.OUTSIDE15K_TO_TRAINID.items():
+            if 0 <= outside_id < 256:
+                lut[outside_id] = train_id
+        gt_seg_map = lut[gt_seg_map]
         
     else:  # cityscapes_trainid
-        # BDD10k, BDD100k, Cityscapes: Already Cityscapes trainIds
+        # BDD10k, BDD100k, Cityscapes, IDD-AW: Already Cityscapes trainIds
         if gt_seg_map.ndim == 3:
             gt_seg_map = gt_seg_map[:, :, 0]
     
