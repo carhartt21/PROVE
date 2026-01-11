@@ -326,6 +326,84 @@ OUTSIDE15K_TO_TRAINID = {
 }
 
 
+# IDD-AW label value mapping to Cityscapes trainId (0-18, 255=ignore)
+# IDD-AW labels are mostly in Cityscapes trainId format (0-18) but have additional values:
+#   - Value 19: appears to be IDD 'curb' class -> maps to 255 (ignore) per IDD39 csTrainId
+#   - Value 20: appears to be IDD 'wall' class -> maps to 3 (wall) per IDD39 csTrainId
+# This mapping corrects the out-of-range values while preserving valid trainIds
+IDD_AW_TO_TRAINID = {
+    # Valid Cityscapes trainIds (0-18) - pass through unchanged
+    0: 0,     # road -> road
+    1: 1,     # sidewalk -> sidewalk
+    2: 2,     # building -> building
+    3: 3,     # wall -> wall
+    4: 4,     # fence -> fence
+    5: 5,     # pole -> pole
+    6: 6,     # traffic light -> traffic light
+    7: 7,     # traffic sign -> traffic sign
+    8: 8,     # vegetation -> vegetation
+    9: 9,     # terrain -> terrain
+    10: 10,   # sky -> sky
+    11: 11,   # person -> person
+    12: 12,   # rider -> rider
+    13: 13,   # car -> car
+    14: 14,   # truck -> truck
+    15: 15,   # bus -> bus
+    16: 16,   # train -> train
+    17: 17,   # motorcycle -> motorcycle
+    18: 18,   # bicycle -> bicycle
+    # IDD-specific additional classes (19-20) - map based on IDD39 csTrainId
+    # These are likely IDD class IDs that weren't converted to Cityscapes trainIds
+    19: 255,  # IDD class 19 = curb -> Cityscapes ignore (255)
+    20: 3,    # IDD class 20 = wall -> Cityscapes wall (trainId 3)
+    # Ignore
+    255: 255, # ignore -> ignore
+}
+
+
+@TRANSFORMS.register_module()
+class IDDAWLabelTransform(BaseTransform):
+    """Convert IDD-AW label values to Cityscapes trainIds (0-18, 255=ignore).
+    
+    IDD-AW labels are mostly in Cityscapes trainId format but contain additional
+    values 19 and 20 that need to be mapped to valid Cityscapes classes:
+    - 19 (IDD traffic light) -> 6 (Cityscapes traffic light)
+    - 20 (IDD pole) -> 5 (Cityscapes pole)
+    
+    Required Keys:
+        - gt_seg_map (np.ndarray): Segmentation ground truth with IDD-AW label values
+        
+    Modified Keys:
+        - gt_seg_map (np.ndarray): Segmentation ground truth with trainIds (0-18, 255=ignore)
+    """
+    
+    def __init__(self):
+        # Create lookup table for fast mapping (values 0-255 to handle any input)
+        # Default to 255 (ignore) for any unmapped values
+        self.lut = np.full(256, 255, dtype=np.uint8)
+        for label_val, train_id in IDD_AW_TO_TRAINID.items():
+            if 0 <= label_val < 256:
+                self.lut[label_val] = train_id
+    
+    def transform(self, results: dict) -> dict:
+        """Convert IDD-AW label values to Cityscapes trainIds using lookup table."""
+        if 'gt_seg_map' in results:
+            seg_map = results['gt_seg_map']
+            # Use lookup table for fast vectorized conversion
+            results['gt_seg_map'] = self.lut[seg_map]
+        return results
+    
+    def __repr__(self) -> str:
+        return f'{self.__class__.__name__}()'
+
+
+# Alias for backward compatibility with unified_training_config.py
+@TRANSFORMS.register_module()
+class IddawLabelClamp(IDDAWLabelTransform):
+    """Alias for IDDAWLabelTransform for backward compatibility."""
+    pass
+
+
 @TRANSFORMS.register_module()
 class Outside15kLabelTransform(BaseTransform):
     """Convert OUTSIDE15k label IDs (0-23) to Cityscapes trainIds (0-18, 255=ignore).

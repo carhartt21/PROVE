@@ -110,6 +110,7 @@ class DatasetConfig:
     task: str  # 'segmentation' or 'detection'
     format: str
     data_root: str = DEFAULT_DATA_ROOT
+    ann_root: str = ''  # Optional: separate root for annotations (if different from data_root)
     train_img_dir: str = ''
     train_ann_dir: str = ''
     val_img_dir: str = ''
@@ -212,6 +213,9 @@ DATASET_CONFIGS = {
         name='IDD-AW',
         task='segmentation',
         format='cityscapes',
+        # IDD-AW uses fixed masks generated from original JSON polygon annotations
+        # with correct Cityscapes trainId mapping (labels stored separately)
+        ann_root='/scratch/mima2416/AWARE/IDD_AW_fixed_masks',
         train_img_dir='train/images/IDD-AW',
         train_ann_dir='train/labels/IDD-AW',
         val_img_dir='test/images/IDD-AW',
@@ -1177,12 +1181,12 @@ class UnifiedTrainingConfig:
         # - MapillaryVistas: 66-class labels → 19-class Cityscapes trainIDs
         # - OUTSIDE15k: 24-class labels → 19-class Cityscapes trainIDs
         # - ACDC: Cityscapes label IDs (0-33) → Cityscapes trainIDs (0-18)
-        # - IDD-AW: Extended trainIDs (0-20, with 19=auto_rickshaw, 20=animal) → clamp 19+ to ignore
+        # - IDD-AW: Uses fixed masks with correct Cityscapes trainIDs (masks regenerated from JSON polygons)
         # - BDD10k: Already uses Cityscapes trainIDs (no transform needed)
         MAPILLARY_DATASETS = {'MapillaryVistas', 'Mapillary'}
         OUTSIDE15K_DATASETS = {'OUTSIDE15k'}
         CITYSCAPES_LABEL_ID_DATASETS = {'ACDC'}  # Use Cityscapes label ID format (7=road, 8=sidewalk, etc.)
-        IDDAW_DATASETS = {'IDD-AW'}  # IDD-AW has extra classes 19=auto_rickshaw, 20=animal
+        IDDAW_DATASETS = {'IDD-AW'}  # IDD-AW uses fixed masks from JSON polygon annotations
         
         # Build individual dataset configs for ConcatDataset with per-dataset pipelines
         train_datasets = []
@@ -1208,20 +1212,24 @@ class UnifiedTrainingConfig:
                 config[pipeline_name] = self._build_cityscapes_training_pipeline(cfg, is_baseline)
                 pipeline_ref = '{{' + pipeline_name + '}}'
             elif name in IDDAW_DATASETS:
-                # IDD-AW: has extended trainIDs (19=auto_rickshaw, 20=animal), needs IddawLabelClamp
-                config[pipeline_name] = self._build_iddaw_training_pipeline(cfg, is_baseline)
+                # IDD-AW: Now uses fixed masks with correct Cityscapes trainIDs (no transform needed)
+                # Masks were regenerated from original JSON polygon annotations
+                config[pipeline_name] = self._build_trainid_training_pipeline(cfg, is_baseline)
                 pipeline_ref = '{{' + pipeline_name + '}}'
             else:
                 # BDD10k: already has trainIDs, just needs ReduceToSingleChannel
                 config[pipeline_name] = self._build_trainid_training_pipeline(cfg, is_baseline)
                 pipeline_ref = '{{' + pipeline_name + '}}'
             
+            # Determine annotation root (use ann_root if specified, otherwise data_root)
+            ann_root = cfg.ann_root if cfg.ann_root else data_root
+            
             ds_config = dict(
                 type='CityscapesDataset',
                 data_root=data_root,
                 data_prefix=dict(
                     img_path=cfg.train_img_dir,
-                    seg_map_path=cfg.train_ann_dir,
+                    seg_map_path=os.path.join(ann_root, cfg.train_ann_dir) if cfg.ann_root else cfg.train_ann_dir,
                 ),
                 img_suffix=cfg.img_suffix,
                 seg_map_suffix='.png',
@@ -1251,6 +1259,7 @@ class UnifiedTrainingConfig:
         
         # Use first dataset for validation/test (can be changed as needed)
         first_cfg = dataset_cfgs[0]
+        first_ann_root = first_cfg.ann_root if first_cfg.ann_root else data_root
         config['val_dataloader'] = dict(
             batch_size=1,
             num_workers=num_workers,
@@ -1261,7 +1270,7 @@ class UnifiedTrainingConfig:
                 data_root=data_root,
                 data_prefix=dict(
                     img_path=first_cfg.val_img_dir,
-                    seg_map_path=first_cfg.val_ann_dir,
+                    seg_map_path=os.path.join(first_ann_root, first_cfg.val_ann_dir) if first_cfg.ann_root else first_cfg.val_ann_dir,
                 ),
                 img_suffix=first_cfg.img_suffix,
                 seg_map_suffix='.png',
@@ -1306,7 +1315,7 @@ class UnifiedTrainingConfig:
             # Convert Mapillary labels (0-65) to Cityscapes trainIds (0-18, 255)
             # MapillaryLabelTransform is registered in unified_datasets.py
             dict(type='MapillaryLabelTransform', target_space='cityscapes'),
-            dict(type='Resize', scale=(1024, 512), keep_ratio=True),
+            dict(type='Resize', scale=(512, 512), keep_ratio=False),
         ]
         
         # Only add augmentations if not baseline
@@ -1347,7 +1356,7 @@ class UnifiedTrainingConfig:
             dict(type='ReduceToSingleChannel'),
             # Convert Cityscapes label IDs (0-33) to trainIDs (0-18)
             dict(type='CityscapesLabelIdToTrainId'),
-            dict(type='Resize', scale=(1024, 512), keep_ratio=True),
+            dict(type='Resize', scale=(512, 512), keep_ratio=False),
         ]
         
         # Only add augmentations if not baseline
@@ -1402,49 +1411,9 @@ class UnifiedTrainingConfig:
         
         return pipeline
     
-    def _build_iddaw_training_pipeline(self, dataset_cfg: DatasetConfig, is_baseline: bool = False) -> List[Dict]:
-        """
-        Build a training pipeline for IDD-AW dataset with label clamping.
-        
-        IDD-AW (Indian Driving Dataset - Adverse Weather) uses an extended Cityscapes
-        label format with additional India-specific classes:
-        - Class 19: auto_rickshaw (three-wheeled vehicle common in India)
-        - Class 20: animal (animals on the road)
-        
-        These classes don't exist in Cityscapes' 19-class format (0-18), so they must be
-        mapped to the ignore index (255) to avoid CUDA assertion failures when training
-        with num_classes=19.
-        
-        Args:
-            dataset_cfg: Dataset configuration object
-            is_baseline: If True, skip data augmentation transforms
-            
-        Returns:
-            List of pipeline transforms
-        """
-        crop_size = (512, 512)
-        
-        pipeline = [
-            dict(type='LoadImageFromFile'),
-            dict(type='LoadAnnotations'),
-            # Handle labels stored as 3-channel PNGs
-            dict(type='ReduceToSingleChannel'),
-            # IDD-AW has extra classes 19=auto_rickshaw, 20=animal that need clamping to ignore
-            dict(type='IddawLabelClamp'),
-            dict(type='Resize', scale=(1024, 512), keep_ratio=True),
-        ]
-        
-        # Only add augmentations if not baseline
-        if not is_baseline:
-            pipeline.extend([
-                dict(type='RandomCrop', crop_size=crop_size, cat_max_ratio=0.75),
-                dict(type='RandomFlip', prob=0.5),
-                dict(type='PhotoMetricDistortion'),
-            ])
-        
-        pipeline.append(dict(type='PackSegInputs'))
-        
-        return pipeline
+    # NOTE: _build_iddaw_training_pipeline was removed. IDD-AW now uses fixed masks
+    # with correct Cityscapes trainIDs, generated from original JSON polygon annotations.
+    # The standard _build_trainid_training_pipeline is used instead.
     
     def _build_outside15k_training_pipeline(self, dataset_cfg: DatasetConfig, is_baseline: bool = False) -> List[Dict]:
         """
@@ -1476,7 +1445,7 @@ class UnifiedTrainingConfig:
             # Convert OUTSIDE15k labels (0-23) to Cityscapes trainIds (0-18, 255)
             # Outside15kLabelTransform is registered in custom_transforms.py
             dict(type='Outside15kLabelTransform'),
-            dict(type='Resize', scale=(1024, 512), keep_ratio=True),
+            dict(type='Resize', scale=(512, 512), keep_ratio=False),
         ]
         
         # Only add augmentations if not baseline
@@ -1787,6 +1756,9 @@ class UnifiedTrainingConfig:
         config['dataset_type'] = 'CityscapesDataset' if dataset_cfg.format == 'cityscapes' else 'CocoDataset'
         config['classes'] = dataset_cfg.classes
         
+        # Determine annotation root (use ann_root if specified, otherwise data_root)
+        ann_root = dataset_cfg.ann_root if dataset_cfg.ann_root else data_root
+        
         # Apply domain filter to training directories if specified
         train_img_dir = dataset_cfg.train_img_dir
         train_ann_dir = dataset_cfg.train_ann_dir
@@ -1818,7 +1790,7 @@ class UnifiedTrainingConfig:
                     data_root=data_root,
                     data_prefix=dict(
                         img_path=train_img_dir,
-                        seg_map_path=train_ann_dir,
+                        seg_map_path=os.path.join(ann_root, train_ann_dir) if dataset_cfg.ann_root else train_ann_dir,
                     ),
                     # Custom suffixes for non-standard Cityscapes format
                     img_suffix=dataset_cfg.img_suffix,
@@ -1839,7 +1811,7 @@ class UnifiedTrainingConfig:
                     data_root=data_root,
                     data_prefix=dict(
                         img_path=dataset_cfg.val_img_dir,
-                        seg_map_path=dataset_cfg.val_ann_dir,
+                        seg_map_path=os.path.join(ann_root, dataset_cfg.val_ann_dir) if dataset_cfg.ann_root else dataset_cfg.val_ann_dir,
                     ),
                     # Custom suffixes for non-standard Cityscapes format
                     img_suffix=dataset_cfg.img_suffix,
@@ -1935,14 +1907,14 @@ class UnifiedTrainingConfig:
         # Dataset native formats:
         # - ACDC/Cityscapes: labelIds (0-33) - ALWAYS needs CityscapesLabelIdToTrainId transform
         # - BDD10k: Already Cityscapes trainIDs (0-18) - no transform needed
-        # - IDD-AW: Extended Cityscapes trainIDs (0-20) - needs IddawLabelClamp to map 19+ to ignore
-        #           IDD has extra classes: 19=auto_rickshaw, 20=animal (not in Cityscapes)
+        # - IDD-AW: Extended Cityscapes trainIDs with values 19, 20 - needs IddawLabelClamp
+        #           IDD values 19=traffic light (maps to trainId 6), 20=pole (maps to trainId 5)
         # - OUTSIDE15k: 24 native classes (0-23) - only transform in unified mode
         # - MapillaryVistas: 66 native classes (0-65) - only transform in unified mode
-        CITYSCAPES_LABEL_ID_DATASETS = {'ACDC', 'Cityscapes', 'IDD-AW'}
+        CITYSCAPES_LABEL_ID_DATASETS = {'ACDC', 'Cityscapes'}  # Uses Cityscapes labelId format (0-33)
         OUTSIDE15K_DATASETS = {'OUTSIDE15k'}
         MAPILLARY_DATASETS = {'MapillaryVistas', 'Mapillary'}
-        IDDAW_DATASETS = {'IDD-AW'}  # IDD-AW has extra classes 19, 20 that need clamping
+        IDDAW_DATASETS = {'IDD-AW'}  # IDD-AW has extra classes 19=traffic light, 20=pole
         
         # ACDC/Cityscapes always need labelId->trainId conversion (format conversion)
         needs_label_id_transform = dataset in CITYSCAPES_LABEL_ID_DATASETS if dataset else True
@@ -1950,8 +1922,7 @@ class UnifiedTrainingConfig:
         needs_outside15k_transform = dataset in OUTSIDE15K_DATASETS if dataset else False
         # MapillaryVistas always needs RGB->native->trainId conversion (now using 19 Cityscapes classes)
         needs_mapillary_transform = dataset in MAPILLARY_DATASETS if dataset else False
-        # IDD-AW needs label clamping (19=auto_rickshaw, 20=animal -> 255=ignore)
-        needs_iddaw_clamp = dataset in IDDAW_DATASETS if dataset else False
+        # IDD-AW now uses fixed masks with correct trainIds (no transform needed)
         # MapillaryVistas uses RGB color-encoded labels that need decoding
         is_mapillary = dataset in MAPILLARY_DATASETS if dataset else False
         
@@ -1979,12 +1950,9 @@ class UnifiedTrainingConfig:
         elif needs_mapillary_transform:
             # Convert Mapillary native IDs (0-65) to Cityscapes 19 trainIDs (0-18)
             pipeline.append(dict(type='MapillaryToTrainId'))
-        elif needs_iddaw_clamp:
-            # IDD-AW has extra classes 19=auto_rickshaw, 20=animal that don't exist in Cityscapes
-            # Clamp these to ignore (255) to avoid CUDA assertion failures
-            pipeline.append(dict(type='IddawLabelClamp'))
+        # NOTE: IDD-AW no longer needs IddawLabelClamp - masks have correct trainIds
         
-        pipeline.append(dict(type='Resize', scale=(1024, 512), keep_ratio=True))
+        pipeline.append(dict(type='Resize', scale=(512, 512), keep_ratio=False))
         
         # Only add augmentations if not baseline
         if not is_baseline:
@@ -2037,12 +2005,10 @@ class UnifiedTrainingConfig:
         elif needs_mapillary_transform:
             # Convert Mapillary native IDs (0-65) to Cityscapes 19 trainIDs
             test_pipeline.append(dict(type='MapillaryToTrainId'))
-        elif needs_iddaw_clamp:
-            # IDD-AW has extra classes 19=auto_rickshaw, 20=animal that don't exist in Cityscapes
-            # Clamp these to ignore (255) to avoid CUDA assertion failures
-            test_pipeline.append(dict(type='IddawLabelClamp'))
+        # NOTE: IDD-AW no longer needs IddawLabelClamp - masks have correct trainIds
         
-        test_pipeline.append(dict(type='Resize', scale=(1024, 512), keep_ratio=True))
+        # Resize to fixed 512x512 for testing (consistent with training)
+        test_pipeline.append(dict(type='Resize', scale=(512, 512), keep_ratio=False))
         
         if task == 'segmentation':
             test_pipeline.append(dict(type='PackSegInputs'))
