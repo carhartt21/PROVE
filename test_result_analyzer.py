@@ -744,9 +744,11 @@ class TestResultAnalyzer:
         
         # === BASELINE CALCULATION ===
         # Use baseline strategy with clear_day training data as reference
+        # NEW: Uses dataset suffix (_cd) instead of model suffix (_clear_day)
+        CLEAR_DAY_DATASET_SUFFIX = '_cd'
         baseline_clear_day_results = [
             r for r in valid_results 
-            if r['strategy'] == 'baseline' and '_clear_day' in r['model']
+            if r['strategy'] == 'baseline' and r['dataset'].endswith(CLEAR_DAY_DATASET_SUFFIX)
         ]
         
         if baseline_clear_day_results:
@@ -789,17 +791,13 @@ class TestResultAnalyzer:
         lines.append("-" * 80)
         
         models = set(r['model'] for r in valid_results)
-        # Clean model names (remove _clear_day suffix for grouping)
-        model_base_names = set()
-        for model in models:
-            base_name = model.replace('_clear_day', '')
-            model_base_names.add(base_name)
+        # Models are now stored without suffixes; no need to clean names
+        model_base_names = models.copy()
         
         model_stats = {}
         for model in sorted(model_base_names):
-            # Include both base model and _clear_day variant
-            model_results = [r for r in valid_results 
-                           if r['model'] == model or r['model'] == f"{model}_clear_day"]
+            # Get results for this model
+            model_results = [r for r in valid_results if r['model'] == model]
             if model_results:
                 avg_miou = sum(r['mIoU'] for r in model_results) / len(model_results)
                 model_stats[model] = {
@@ -970,11 +968,11 @@ class TestResultAnalyzer:
             lines.append(f"\n🔧 Model Performance on {dataset}:")
             model_stats = {}
             for r in dataset_results:
-                # Group by base model (remove _clear_day suffix)
-                model_base = r['model'].replace('_clear_day', '')
-                if model_base not in model_stats:
-                    model_stats[model_base] = []
-                model_stats[model_base].append(r['mIoU'])
+                # Group by model name (no suffix to remove with new organization)
+                model_name = r['model']
+                if model_name not in model_stats:
+                    model_stats[model_name] = []
+                model_stats[model_name].append(r['mIoU'])
             
             sorted_models = sorted(
                 model_stats.items(),

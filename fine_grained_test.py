@@ -65,16 +65,19 @@ DATASET_DOMAINS = {
     'OUTSIDE15k': ['clear_day', 'cloudy', 'dawn_dusk', 'foggy', 'night', 'rainy', 'snowy'],
 }
 
-# Map lowercase dataset names to folder names (for case-insensitive lookup)
+# Map dataset names to folder names (for case-insensitive lookup)
+# Includes multiple case variants to handle different input formats
 DATASET_FOLDER_MAP = {
+    # Lowercase versions
     'acdc': 'ACDC',
     'bdd10k': 'BDD10k',
     'bdd100k': 'BDD100k',
     'cityscapes': 'Cityscapes',
     'idd-aw': 'IDD-AW',
+    'iddaw': 'IDD-AW',
     'mapillaryvistas': 'MapillaryVistas',
     'outside15k': 'OUTSIDE15k',
-    # Also add proper case versions
+    # Proper case versions
     'ACDC': 'ACDC',
     'BDD10k': 'BDD10k',
     'BDD100k': 'BDD100k',
@@ -82,6 +85,14 @@ DATASET_FOLDER_MAP = {
     'IDD-AW': 'IDD-AW',
     'MapillaryVistas': 'MapillaryVistas',
     'OUTSIDE15k': 'OUTSIDE15k',
+    # All-caps versions (commonly used in scripts)
+    'BDD10K': 'BDD10k',
+    'BDD100K': 'BDD100k',
+    'CITYSCAPES': 'Cityscapes',
+    'IDDAW': 'IDD-AW',
+    'IDD_AW': 'IDD-AW',
+    'MAPILLARYVISTAS': 'MapillaryVistas',
+    'OUTSIDE15K': 'OUTSIDE15k',  # This was missing and caused test failures
 }
 
 # Dataset label type configuration for proper label processing during testing
