@@ -1757,7 +1757,15 @@ class UnifiedTrainingConfig:
         # Use base data root - dataset paths already include the dataset name
         data_root = self.data_root
         config['data_root'] = data_root
-        config['dataset_type'] = 'CityscapesDataset' if dataset_cfg.format == 'cityscapes' else 'CocoDataset'
+        
+        # Determine dataset type based on format and native classes setting
+        # MapillaryDataset_v1 must be used when training with native 66 Mapillary classes
+        # This ensures the metric evaluator uses the correct class list
+        if use_native_classes and dataset_cfg.name in ['MapillaryVistas', 'Mapillary']:
+            config['dataset_type'] = 'MapillaryDataset_v1'
+            print(f"[INFO] Using MapillaryDataset_v1 for proper 66-class evaluation metrics")
+        else:
+            config['dataset_type'] = 'CityscapesDataset' if dataset_cfg.format == 'cityscapes' else 'CocoDataset'
         
         # Handle native classes for MapillaryVistas and OUTSIDE15k
         if use_native_classes:
@@ -1814,16 +1822,20 @@ class UnifiedTrainingConfig:
         batch_size = 2
         num_workers = 4
         
+        # Determine the dataset type to use for dataloaders
+        # Must match the dataset_type set above for consistent class handling
+        seg_dataset_type = config['dataset_type']
+        
         if dataset_cfg.task == 'segmentation':
             # Train dataloader
-            # Use CityscapesDataset with custom suffixes for our data format
+            # Use correct dataset type based on native class setting
             config['train_dataloader'] = dict(
                 batch_size=batch_size,
                 num_workers=num_workers,
                 persistent_workers=True,
                 sampler=dict(type='InfiniteSampler', shuffle=True),
                 dataset=dict(
-                    type='CityscapesDataset',
+                    type=seg_dataset_type,
                     data_root=data_root,
                     data_prefix=dict(
                         img_path=train_img_dir,
@@ -1844,7 +1856,7 @@ class UnifiedTrainingConfig:
                 persistent_workers=True,
                 sampler=dict(type='DefaultSampler', shuffle=False),
                 dataset=dict(
-                    type='CityscapesDataset',
+                    type=seg_dataset_type,
                     data_root=data_root,
                     data_prefix=dict(
                         img_path=dataset_cfg.val_img_dir,
