@@ -110,9 +110,12 @@ STRATEGY_TYPES = {
 }
 
 # Baseline configurations
-# Note: baseline_clear_day is NOT a separate strategy label; it is baseline with model suffix "_clear_day".
+# Note: baseline_clear_day is NOT a separate strategy label; it is baseline with dataset suffix "_cd".
+# OLD: WEIGHTS/strategy/dataset/model_clear_day/...
+# NEW: WEIGHTS/strategy/dataset_cd/model/...
 BASELINE_CLEAR_DAY_LABEL = 'baseline_clear_day'  # For display/reference only
 BASELINE_FULL = 'baseline'  # Full baseline (trained on all conditions)
+CLEAR_DAY_DATASET_SUFFIX = '_cd'  # Dataset suffix for clear_day trained models
 
 
 # ============================================================================
@@ -294,10 +297,15 @@ def _read_per_domain_metrics_from_run(run_dir: Path) -> Optional[Dict[str, float
 
     return None
 
-def load_per_domain_results(weights_root: Path, strategy: str) -> Dict:
+def load_per_domain_results(weights_root: Path, strategy: str, scope: str = 'full') -> Dict:
     """Load per-domain results by locating latest detailed run and reading metrics.
 
     Returns a dict keyed by (dataset, model) -> per-domain metrics dict.
+    
+    Args:
+        weights_root: Path to WEIGHTS directory
+        strategy: Strategy name
+        scope: 'full' to exclude _cd datasets, 'clear_day' to only include _cd datasets
     """
     results = {}
     strategy_dir = weights_root / strategy
@@ -309,6 +317,13 @@ def load_per_domain_results(weights_root: Path, strategy: str) -> Dict:
         if not dataset_dir.is_dir():
             continue
         dataset = dataset_dir.name
+        
+        # Filter based on scope
+        is_cd_dataset = dataset.endswith(CLEAR_DAY_DATASET_SUFFIX)
+        if scope == 'clear_day' and not is_cd_dataset:
+            continue
+        if scope == 'full' and is_cd_dataset:
+            continue
 
         for model_dir in dataset_dir.iterdir():
             if not model_dir.is_dir():
@@ -366,15 +381,19 @@ def calculate_gap_reduction(strategy_gap: float, baseline_gap: float) -> float:
 
 
 def aggregate_strategy_metrics(df: pd.DataFrame, strategy: str) -> Dict:
-    """Calculate aggregated metrics for a strategy across all datasets and models."""
+    """Calculate aggregated metrics for a strategy across all datasets and models.
+    
+    Excludes _cd suffix datasets (those are for clear_day trained models).
+    """
     
     strategy_df = df[df['strategy'] == strategy]
     
     if strategy_df.empty:
         return None
     
-    # Filter for standard models (not clear_day variants)
+    # Filter for standard models and exclude _cd suffix datasets
     strategy_df = strategy_df[strategy_df['model'].isin(MODELS)]
+    strategy_df = strategy_df[~strategy_df['dataset'].str.endswith(CLEAR_DAY_DATASET_SUFFIX)]
     
     if strategy_df.empty:
         return None
@@ -405,19 +424,42 @@ def aggregate_strategy_metrics_for_models(df: pd.DataFrame, strategy: str, model
     }
 
 
+def aggregate_strategy_metrics_for_clearday(df: pd.DataFrame, strategy: str) -> Optional[Dict]:
+    """Aggregate metrics for a strategy restricted to _cd suffix datasets.
+    
+    NEW: This replaces the old model-based filtering with dataset-based filtering.
+    """
+    # Filter for _cd suffix datasets and standard models
+    strategy_df = df[(df['strategy'] == strategy) & 
+                     (df['dataset'].str.endswith(CLEAR_DAY_DATASET_SUFFIX)) &
+                     (df['model'].isin(MODELS))]
+    if strategy_df.empty:
+        return None
+    return {
+        'strategy': strategy,
+        'overall_miou': strategy_df['mIoU'].mean(),
+        'overall_fwiou': strategy_df['fwIoU'].mean() if 'fwIoU' in strategy_df.columns else None,
+        'num_results': len(strategy_df),
+        'datasets': list(strategy_df['dataset'].unique()),
+        'models': list(strategy_df['model'].unique()),
+    }
+
+
 def compute_strategy_domain_aggregates(weights_root: Path, strategy: str) -> Tuple[Optional[float], Optional[float], Optional[float]]:
     """Compute aggregated Normal mIoU, Adverse mIoU, and Domain Gap for a strategy.
 
     Scans WEIGHTS/{strategy}/{dataset}/{model}/test_results_detailed/metrics_per_domain.json
     Only includes standard models defined in MODELS.
+    Excludes _cd suffix datasets (those are for clear_day trained models).
     """
     per_config_normals = []
     per_config_adverses = []
 
-    per_domain_all = load_per_domain_results(weights_root, strategy)
+    # Pass scope='full' to exclude _cd datasets
+    per_domain_all = load_per_domain_results(weights_root, strategy, scope='full')
     for (dataset, model), domain_metrics in per_domain_all.items():
         if model not in MODELS:
-            # Skip clear_day variants and non-standard models
+            # Skip non-standard models
             continue
         normal_miou, adverse_miou = aggregate_normal_adverse(domain_metrics)
         if normal_miou is not None and adverse_miou is not None:
@@ -435,7 +477,8 @@ def compute_strategy_domain_aggregates(weights_root: Path, strategy: str) -> Tup
 def compute_baseline_clearday_domain_gap(weights_root: Path) -> Optional[float]:
     """Compute domain gap for baseline clear_day models.
 
-    Scans WEIGHTS/baseline/{dataset}/{model}_clear_day/test_results_detailed/metrics_per_domain.json
+    Scans WEIGHTS/baseline/{dataset}_cd/{model}/test_results_detailed/metrics_per_domain.json
+    (NEW: dataset-level suffix instead of model-level suffix)
     """
     strategy = BASELINE_FULL
     per_config_normals = []
@@ -449,9 +492,12 @@ def compute_baseline_clearday_domain_gap(weights_root: Path) -> Optional[float]:
         if not dataset_dir.is_dir():
             continue
         dataset = dataset_dir.name
+        # Only process _cd suffixed datasets for clear_day models
+        if not dataset.endswith(CLEAR_DAY_DATASET_SUFFIX):
+            continue
 
         for model in MODELS:
-            model_dir = dataset_dir / f"{model}_clear_day"
+            model_dir = dataset_dir / model
             detailed_root = model_dir / 'test_results_detailed'
             run_dir = _find_latest_detailed_run_dir(detailed_root)
             if run_dir is None:
@@ -476,7 +522,8 @@ def compute_baseline_clearday_domain_gap(weights_root: Path) -> Optional[float]:
 def compute_baseline_clearday_domain_aggregates(weights_root: Path) -> Tuple[Optional[float], Optional[float], Optional[float]]:
     """Compute Normal mIoU, Adverse mIoU, and Gap for baseline clear_day models.
 
-    Scans WEIGHTS/baseline/{dataset}/{model}_clear_day/test_results_detailed/metrics_per_domain.json
+    Scans WEIGHTS/baseline/{dataset}_cd/{model}/test_results_detailed/metrics_per_domain.json
+    (NEW: dataset-level suffix instead of model-level suffix)
     and aggregates across standard models.
     """
     strategy = BASELINE_FULL
@@ -490,8 +537,11 @@ def compute_baseline_clearday_domain_aggregates(weights_root: Path) -> Tuple[Opt
     for dataset_dir in strategy_dir.iterdir():
         if not dataset_dir.is_dir():
             continue
+        # Only process _cd suffixed datasets for clear_day models
+        if not dataset_dir.name.endswith(CLEAR_DAY_DATASET_SUFFIX):
+            continue
         for model in MODELS:
-            model_dir = dataset_dir / f"{model}_clear_day"
+            model_dir = dataset_dir / model
             detailed_root = model_dir / 'test_results_detailed'
             run_dir = _find_latest_detailed_run_dir(detailed_root)
             if run_dir is None:
@@ -516,7 +566,8 @@ def compute_baseline_clearday_domain_aggregates(weights_root: Path) -> Tuple[Opt
 def compute_strategy_clearday_domain_aggregates(weights_root: Path, strategy: str) -> Tuple[Optional[float], Optional[float], Optional[float]]:
     """Compute Normal/Adverse/Gap for a strategy's clear_day-trained models.
 
-    Scans WEIGHTS/{strategy}/{dataset}/{model}_clear_day/...
+    Scans WEIGHTS/{strategy}/{dataset}_cd/{model}/...
+    (NEW: dataset-level suffix instead of model-level suffix)
     """
     per_config_normals = []
     per_config_adverses = []
@@ -528,8 +579,11 @@ def compute_strategy_clearday_domain_aggregates(weights_root: Path, strategy: st
     for dataset_dir in strategy_dir.iterdir():
         if not dataset_dir.is_dir():
             continue
+        # Only process _cd suffixed datasets for clear_day models
+        if not dataset_dir.name.endswith(CLEAR_DAY_DATASET_SUFFIX):
+            continue
         for model in MODELS:
-            model_dir = dataset_dir / f"{model}_clear_day"
+            model_dir = dataset_dir / model
             detailed_root = model_dir / 'test_results_detailed'
             run_dir = _find_latest_detailed_run_dir(detailed_root)
             if run_dir is None:
@@ -606,7 +660,7 @@ def compute_per_dataset_miou(weights_root: Path, scope: str = 'full') -> pd.Data
     
     Args:
         weights_root: Path to WEIGHTS directory (not used, kept for API compatibility)
-        scope: 'full' for standard models, 'clear_day' for _clear_day suffix models
+        scope: 'full' for standard models, 'clear_day' for _cd suffix datasets
     
     Returns:
         DataFrame with columns: Strategy, Dataset, mIoU, Num_Configs
@@ -617,13 +671,17 @@ def compute_per_dataset_miou(weights_root: Path, scope: str = 'full') -> pd.Data
     
     df = pd.read_csv(RESULTS_CSV)
     
-    # Filter for the appropriate model scope
+    # Filter for the appropriate scope
+    # NEW: clear_day filtering is now based on dataset suffix (_cd), not model suffix
     if scope == 'clear_day':
-        target_models = [f"{m}_clear_day" for m in MODELS]
+        # Filter for datasets ending with _cd suffix
+        df = df[df['dataset'].str.endswith(CLEAR_DAY_DATASET_SUFFIX)]
+        # Keep only standard model names (not _clear_day suffixed)
+        df = df[df['model'].isin(MODELS)]
     else:
-        target_models = MODELS
-    
-    df = df[df['model'].isin(target_models)]
+        # Full scope: exclude _cd suffix datasets, use standard models
+        df = df[~df['dataset'].str.endswith(CLEAR_DAY_DATASET_SUFFIX)]
+        df = df[df['model'].isin(MODELS)]
     
     if df.empty:
         return pd.DataFrame()
@@ -646,13 +704,13 @@ def compute_per_domain_miou(weights_root: Path, scope: str = 'full') -> pd.DataF
     
     Args:
         weights_root: Path to WEIGHTS directory
-        scope: 'full' for standard models, 'clear_day' for _clear_day suffix models
+        scope: 'full' for standard models, 'clear_day' for _cd suffix datasets
     
     Returns:
         DataFrame with columns: Strategy, Domain, mIoU, Num_Configs
     """
-    model_suffix = '_clear_day' if scope == 'clear_day' else ''
-    target_models = [f"{m}{model_suffix}" for m in MODELS]
+    # NEW: filtering is now based on dataset suffix (_cd), not model suffix
+    target_models = MODELS  # Always use standard model names
     
     # Collect per-domain metrics across all configs
     domain_data = defaultdict(lambda: defaultdict(list))  # strategy -> domain -> [mIoU values]
@@ -666,6 +724,13 @@ def compute_per_domain_miou(weights_root: Path, scope: str = 'full') -> pd.DataF
         
         for dataset_dir in strategy_dir.iterdir():
             if not dataset_dir.is_dir():
+                continue
+            
+            # Filter based on scope: clear_day looks for _cd suffix, full excludes it
+            is_cd_dataset = dataset_dir.name.endswith(CLEAR_DAY_DATASET_SUFFIX)
+            if scope == 'clear_day' and not is_cd_dataset:
+                continue
+            if scope == 'full' and is_cd_dataset:
                 continue
             
             for model_dir in dataset_dir.iterdir():
@@ -981,15 +1046,15 @@ def generate_leaderboard_for_scope(main_df: pd.DataFrame, weights_root: Path, sc
     # Baselines first
     if scope == 'clear_day':
         cd_normal, cd_adverse, cd_gap = compute_baseline_clearday_domain_aggregates(weights_root)
-        clear_models = [f"{m}_clear_day" for m in MODELS]
-        cd_metrics = aggregate_strategy_metrics_for_models(main_df, BASELINE_FULL, clear_models)
+        # NEW: Use dataset-based filtering instead of model-based
+        cd_metrics = aggregate_strategy_metrics_for_clearday(main_df, BASELINE_FULL)
         add_row('baseline_clear_day', STRATEGY_TYPES.get('baseline_clear_day', 'Baseline Clear Day'),
                 cd_metrics['overall_miou'] if cd_metrics else None, cd_normal, cd_adverse, cd_gap, cd_metrics['num_results'] if cd_metrics else 0)
     else:
         # Include clear-day baseline as reference
         cd_normal, cd_adverse, cd_gap = compute_baseline_clearday_domain_aggregates(weights_root)
-        clear_models = [f"{m}_clear_day" for m in MODELS]
-        cd_metrics = aggregate_strategy_metrics_for_models(main_df, BASELINE_FULL, clear_models)
+        # NEW: Use dataset-based filtering instead of model-based
+        cd_metrics = aggregate_strategy_metrics_for_clearday(main_df, BASELINE_FULL)
         add_row('baseline_clear_day', STRATEGY_TYPES.get('baseline_clear_day', 'Baseline Clear Day'),
                 cd_metrics['overall_miou'] if cd_metrics else None, cd_normal, cd_adverse, cd_gap, cd_metrics['num_results'] if cd_metrics else 0)
         # Baseline full row
@@ -1011,8 +1076,8 @@ def generate_leaderboard_for_scope(main_df: pd.DataFrame, weights_root: Path, sc
             continue
         stype = 'Generative' if strategy.startswith('gen_') else ('Standard Aug' if strategy.startswith('std_') else STRATEGY_TYPES.get(strategy, 'Other'))
         if scope == 'clear_day':
-            model_names = [f"{m}_clear_day" for m in MODELS]
-            met = aggregate_strategy_metrics_for_models(main_df, strategy, model_names)
+            # NEW: Use dataset-based filtering instead of model-based
+            met = aggregate_strategy_metrics_for_clearday(main_df, strategy)
             if met is None:
                 continue
             nrm, adv, gap = compute_strategy_clearday_domain_aggregates(weights_root, strategy)
@@ -1176,11 +1241,15 @@ def analyze_baseline(df: pd.DataFrame) -> Dict:
 
 
 def analyze_baseline_clear_day(df: pd.DataFrame) -> Dict:
-    """Analyze baseline_clear_day (models trained only on clear day) performance."""
+    """Analyze baseline_clear_day (models trained only on clear day) performance.
     
-    clear_day_models = [f"{m}_clear_day" for m in MODELS]
-    # Restrict to baseline strategy models trained on clear_day only
-    clearday_df = df[(df['strategy'] == BASELINE_FULL) & (df['model'].isin(clear_day_models))]
+    NEW: Uses dataset suffix (_cd) instead of model suffix (_clear_day).
+    """
+    
+    # Restrict to baseline strategy with _cd suffix datasets and standard models
+    clearday_df = df[(df['strategy'] == BASELINE_FULL) & 
+                     (df['dataset'].str.endswith(CLEAR_DAY_DATASET_SUFFIX)) &
+                     (df['model'].isin(MODELS))]
     
     if clearday_df.empty:
         return None
@@ -1199,7 +1268,7 @@ def analyze_baseline_clear_day(df: pd.DataFrame) -> Dict:
             'std': ds_data['mIoU'].std(),
         }
     
-    for model in clear_day_models:
+    for model in MODELS:
         model_data = clearday_df[clearday_df['model'] == model]
         if not model_data.empty:
             analysis['by_model'][model] = {

@@ -97,11 +97,14 @@ def load_baseline_results(strategy: str = "baseline", include_clear_day_models: 
     
     Args:
         strategy: Which strategy folder to look in (default: "baseline")
-        include_clear_day_models: If True, include *_clear_day model variants
+        include_clear_day_models: If True, include _cd suffix dataset variants (clear_day trained)
+        
+    NEW: Uses dataset suffix (_cd) instead of model suffix (_clear_day).
         
     Returns:
         DataFrame with per-domain results for all configurations
     """
+    CLEAR_DAY_DATASET_SUFFIX = '_cd'
     results = []
     strategy_dir = Path(WEIGHTS_ROOT) / strategy
     
@@ -112,18 +115,23 @@ def load_baseline_results(strategy: str = "baseline", include_clear_day_models: 
     for dataset_dir in strategy_dir.iterdir():
         if not dataset_dir.is_dir():
             continue
-        dataset = dataset_dir.name.lower()
+        dataset_name = dataset_dir.name.lower()
+        
+        # Handle clear_day dataset filtering
+        is_clear_day_dataset = dataset_name.endswith(CLEAR_DAY_DATASET_SUFFIX.lower())
+        if is_clear_day_dataset and not include_clear_day_models:
+            continue
+        
+        # Get base dataset name (remove _cd suffix if present)
+        base_dataset = dataset_name[:-len(CLEAR_DAY_DATASET_SUFFIX)] if is_clear_day_dataset else dataset_name
         
         for model_dir in dataset_dir.iterdir():
             if not model_dir.is_dir():
                 continue
             model = model_dir.name
             
-            # Handle clear_day model filtering
-            is_clear_day_model = model.endswith('_clear_day')
-            if is_clear_day_model and not include_clear_day_models:
-                continue
-            if not is_clear_day_model and model not in MODELS:
+            # Skip non-standard models
+            if model not in MODELS:
                 # Skip other domain-specific models
                 if any(domain in model for domain in ALL_DOMAINS):
                     continue
@@ -148,9 +156,9 @@ def load_baseline_results(strategy: str = "baseline", include_clear_day_models: 
             for domain, metrics in per_domain.items():
                 summary = metrics.get('summary', metrics)
                 results.append({
-                    'dataset': dataset,
-                    'model': model.replace('_clear_day', '') if is_clear_day_model else model,
-                    'model_type': 'clear_day' if is_clear_day_model else 'full',
+                    'dataset': base_dataset,
+                    'model': model,
+                    'model_type': 'clear_day' if is_clear_day_dataset else 'full',
                     'domain': domain,
                     'mIoU': summary.get('mIoU', 0),
                     'aAcc': summary.get('aAcc', 0),

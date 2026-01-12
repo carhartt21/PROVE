@@ -158,7 +158,11 @@ def load_strategy_domain_results(weights_root, strategy='baseline'):
 
 
 def load_clear_day_baseline(weights_root):
-    """Load clear_day trained baseline results."""
+    """Load clear_day trained baseline results.
+    
+    NEW: Uses dataset suffix (_cd) instead of model suffix (_clear_day).
+    """
+    CLEAR_DAY_DATASET_SUFFIX = '_cd'
     results = []
     baseline_dir = Path(weights_root) / "baseline"
     
@@ -170,17 +174,17 @@ def load_clear_day_baseline(weights_root):
             continue
         dataset = dataset_dir.name
         
+        # Only include _cd suffix datasets for clear_day trained models
+        if not dataset.endswith(CLEAR_DAY_DATASET_SUFFIX):
+            continue
+        
+        # Get base dataset name (remove _cd suffix)
+        base_dataset = dataset[:-len(CLEAR_DAY_DATASET_SUFFIX)]
+        
         for model_dir in dataset_dir.iterdir():
             if not model_dir.is_dir():
                 continue
             model = model_dir.name
-            
-            # Only include clear_day trained models
-            if '_clear_day' not in model:
-                continue
-            
-            # Get base model name
-            base_model = model.replace('_clear_day', '')
             
             detailed_dir = model_dir / "test_results_detailed"
             if not detailed_dir.exists():
@@ -197,8 +201,8 @@ def load_clear_day_baseline(weights_root):
                     for domain, metrics in domain_metrics.items():
                         results.append({
                             'strategy': 'baseline_clear_day',
-                            'dataset': dataset,
-                            'model': base_model,
+                            'dataset': base_dataset,
+                            'model': model,
                             'domain': domain,
                             'mIoU': metrics.get('mIoU'),
                             'fwIoU': metrics.get('fwIoU'),
