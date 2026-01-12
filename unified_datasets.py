@@ -90,6 +90,45 @@ UNIFIED_PALETTE = [
     [255, 255, 255], [200, 128, 128],
 ]
 
+# =============================================================================
+# OUTSIDE15K CLASSES AND PALETTE (24 classes, 0-23)
+# =============================================================================
+
+OUTSIDE15K_CLASSES_NAMES = (
+    'unlabeled', 'animal', 'barrier', 'bicycle', 'boat', 'bridge',
+    'building', 'grass', 'ground', 'mountain', 'object', 'person',
+    'pole', 'road', 'sand', 'sidewalk', 'sign', 'sky', 'street light',
+    'traffic light', 'tunnel', 'vegetation', 'vehicle', 'water',
+)
+
+# Color palette for OUTSIDE15K (24 colors)
+OUTSIDE15K_PALETTE = [
+    [0, 0, 0],        # unlabeled
+    [165, 42, 42],    # animal
+    [90, 120, 150],   # barrier
+    [119, 11, 32],    # bicycle
+    [150, 0, 255],    # boat
+    [150, 100, 100],  # bridge
+    [70, 70, 70],     # building
+    [152, 251, 152],  # grass
+    [81, 0, 81],      # ground
+    [64, 170, 64],    # mountain
+    [140, 140, 140],  # object
+    [220, 20, 60],    # person
+    [153, 153, 153],  # pole
+    [128, 64, 128],   # road
+    [230, 160, 50],   # sand
+    [244, 35, 232],   # sidewalk
+    [220, 220, 0],    # sign
+    [70, 130, 180],   # sky
+    [210, 170, 100],  # street light
+    [250, 170, 30],   # traffic light
+    [150, 120, 90],   # tunnel
+    [107, 142, 35],   # vegetation
+    [0, 0, 142],      # vehicle
+    [0, 170, 30],     # water
+]
+
 
 # =============================================================================
 # MAPILLARY UNIFIED DATASET (Maps Mapillary to Cityscapes or Unified)
@@ -349,6 +388,43 @@ if MMSEG_AVAILABLE:
         
         def __len__(self) -> int:
             return len(self.data_list)
+
+
+    @DATASETS.register_module()
+    class Outside15kDataset(BaseSegDataset):
+        """
+        OUTSIDE15k Dataset with native 24 classes.
+        
+        This dataset provides proper class metadata for OUTSIDE15k,
+        which has 24 native classes (0-23). This is needed when training
+        with native OUTSIDE15k labels to ensure correct metric evaluation.
+        
+        The OUTSIDE15k classes are:
+        - unlabeled, animal, barrier, bicycle, boat, bridge,
+        - building, grass, ground, mountain, object, person,
+        - pole, road, sand, sidewalk, sign, sky, street light,
+        - traffic light, tunnel, vegetation, vehicle, water
+        
+        Args:
+            img_suffix: Image file suffix. Defaults to '.jpg'.
+            seg_map_suffix: Segmentation map suffix. Defaults to '.png'.
+            **kwargs: Additional arguments passed to BaseSegDataset
+        """
+        
+        METAINFO = dict(
+            classes=OUTSIDE15K_CLASSES_NAMES,
+            palette=OUTSIDE15K_PALETTE
+        )
+        
+        def __init__(self,
+                     img_suffix: str = '.jpg',
+                     seg_map_suffix: str = '.png',
+                     **kwargs) -> None:
+            super().__init__(
+                img_suffix=img_suffix,
+                seg_map_suffix=seg_map_suffix,
+                **kwargs
+            )
 
 
 # =============================================================================

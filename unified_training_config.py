@@ -1760,10 +1760,14 @@ class UnifiedTrainingConfig:
         
         # Determine dataset type based on format and native classes setting
         # MapillaryDataset_v1 must be used when training with native 66 Mapillary classes
+        # Outside15kDataset must be used when training with native 24 OUTSIDE15k classes
         # This ensures the metric evaluator uses the correct class list
         if use_native_classes and dataset_cfg.name in ['MapillaryVistas', 'Mapillary']:
             config['dataset_type'] = 'MapillaryDataset_v1'
             print(f"[INFO] Using MapillaryDataset_v1 for proper 66-class evaluation metrics")
+        elif use_native_classes and dataset_cfg.name == 'OUTSIDE15k':
+            config['dataset_type'] = 'Outside15kDataset'
+            print(f"[INFO] Using Outside15kDataset for proper 24-class evaluation metrics")
         else:
             config['dataset_type'] = 'CityscapesDataset' if dataset_cfg.format == 'cityscapes' else 'CocoDataset'
         
