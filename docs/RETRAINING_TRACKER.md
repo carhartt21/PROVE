@@ -1,6 +1,6 @@
 # Retraining Progress Tracker
 
-**Last Updated:** 2026-01-12 22:19
+**Last Updated:** 2026-01-13 08:23
 
 This document tracks the progress of retraining models with the corrected native class labels.
 
@@ -21,7 +21,7 @@ This document tracks the progress of retraining models with the corrected native
 | Stage | Focus | Description | Domain Filter | Status |
 |-------|-------|-------------|---------------|--------|
 | **Stage 1** | Initial Training | All strategies on clear_day | `clear_day` | 🔄 In Progress |
-| Stage 2 | Top Performers | Top 10 methods on all domains | All | ⏳ Pending |
+| **Stage 2** | Top Performers | Top 10 + baseline + flux_kontext on all domains | None | 🔄 In Progress |
 | Stage 3 | Extended Training | Top methods with 160k iterations | All | ⏳ Pending |
 
 ### Ablation Studies
@@ -76,6 +76,62 @@ This document tracks the progress of retraining models with the corrected native
 
 ---
 
+## Stage 2: Full Dataset Training (All Domains)
+
+**Objective:** Train top-performing strategies on full datasets without domain filtering.
+
+**Started:** 2026-01-12
+
+### Selected Strategies (12 total)
+Based on Stage 1 clear_day results (average mIoU):
+
+| Rank | Strategy | Stage 1 Avg mIoU |
+|------|----------|------------------|
+| 🥇 | gen_TSIT | 48.8 |
+| 🥈 | gen_albumentations_weather | 48.8 |
+| 🥉 | gen_cycleGAN | 48.5 |
+| 4 | gen_UniControl | 48.5 |
+| 5 | gen_Qwen_Image_Edit | 48.2 |
+| 6 | gen_automold | 47.5 |
+| 7 | gen_CNetSeg | 47.3 |
+| 8 | gen_VisualCloze | 47.2 |
+| 9 | gen_SUSTechGAN | 47.1 |
+| 10 | gen_augmenters | 46.9 |
+| + | baseline | (reference) |
+| + | gen_flux_kontext | (newly available) |
+
+### Training Configuration
+- **Iterations:** 80,000
+- **Real/Gen Ratio:** 0.5 (gen_*), 1.0 (baseline)
+- **Domain Filter:** None (all domains)
+- **Models:** deeplabv3plus_r50, pspnet_r50, segformer_mit-b2
+- **Output Directory:** `{strategy}/{dataset}_ad/` (ad = all domains)
+
+### Stage 2 Jobs Submitted
+- **Total Jobs:** 48 (12 strategies × 4 datasets)
+- **Total Models:** 144 (48 jobs × 3 models each)
+- **Job IDs:** 9518533-9518580
+- **Status:** 🔄 In Progress
+
+### Stage 2 Status Matrix
+
+| Strategy | BDD10k | IDD-AW | MapillaryVistas | OUTSIDE15k |
+|----------|--------|--------|-----------------|------------|
+| gen_TSIT | ⏳ | ⏳ | ⏳ | ⏳ |
+| gen_albumentations_weather | ⏳ | ⏳ | ⏳ | ⏳ |
+| gen_cycleGAN | ⏳ | ⏳ | ⏳ | ⏳ |
+| gen_UniControl | ⏳ | ⏳ | ⏳ | ⏳ |
+| gen_Qwen_Image_Edit | ⏳ | ⏳ | ⏳ | ⏳ |
+| gen_automold | ⏳ | ⏳ | ⏳ | ⏳ |
+| gen_CNetSeg | ⏳ | ⏳ | ⏳ | ⏳ |
+| gen_VisualCloze | ⏳ | ⏳ | ⏳ | ⏳ |
+| gen_SUSTechGAN | ⏳ | ⏳ | ⏳ | ⏳ |
+| gen_augmenters | ⏳ | ⏳ | ⏳ | ⏳ |
+| baseline | ⏳ | ⏳ | ⏳ | ⏳ |
+| gen_flux_kontext | ⏳ | ⏳ | ⏳ | ⏳ |
+
+---
+
 ## Strategy Status Matrix
 
 ### Legend
@@ -97,13 +153,13 @@ This document tracks the progress of retraining models with the corrected native
 | gen_CUT | ✅ 🎯 | ✅ 🎯 | ✅ | ✅ 🎯 |  |
 | gen_cyclediffusion | ✅ 🎯 | ✅ 🎯 | ⏳ | ⏳ |  |
 | gen_cycleGAN | ✅ 🎯 | ✅ 🎯 | ✅ | ✅ 🎯 |  |
-| gen_flux_kontext | ⏳ | ⏳ | ✅ | ✅ 🎯 |  |
-| gen_Img2Img | ✅ 🎯 | ✅ 🎯 | ✅ | ✅ 🎯 |  |
-| gen_IP2P | ✅ 🎯 | ✅ 🎯 | ✅ | ✅ 🎯 |  |
-| gen_LANIT | ✅ | ✅ 🎯 | ✅ | ✅ 🎯 |  |
+| gen_flux_kontext | ❌ | ❌ | ✅ | ✅ 🎯 |  |
+| gen_Img2Img | 🔄 🎯 | ✅ 🎯 | ✅ | ✅ 🎯 |  |
+| gen_IP2P | 🔄 🎯 | ✅ 🎯 | ✅ | ✅ 🎯 |  |
+| gen_LANIT | 🔄 | ✅ 🎯 | ✅ | ✅ 🎯 |  |
 | gen_Qwen_Image_Edit | ⏳ | ✅ 🎯 | ✅ | ✅ 🎯 | No BDD10k data |
 | gen_stargan_v2 | ✅ 🎯 | ✅ 🎯 | ✅ | ✅ 🎯 |  |
-| gen_step1x_new | ⏳ | ✅ 🎯 | ✅ | ✅ 🎯 |  |
+| gen_step1x_new | ❌ | 🔄 🎯 | ✅ | ✅ 🎯 |  |
 | gen_step1x_v1p2 | ✅ 🎯 | ✅ 🎯 | ✅ | ✅ 🎯 |  |
 | gen_SUSTechGAN | ✅ 🎯 | ✅ 🎯 | ✅ | ✅ 🎯 |  |
 | gen_TSIT | ✅ 🎯 | ✅ 🎯 | ✅ | ✅ 🎯 |  |
@@ -117,11 +173,11 @@ This document tracks the progress of retraining models with the corrected native
 | Strategy | BDD10k | IDD-AW | MapillaryVistas | OUTSIDE15k | Notes |
 |----------|--------|--------|-----------------|------------|-------|
 | baseline | ✅ 🎯 | ✅ 🎯 | ✅ | ✅ 🎯 |  |
-| photometric_distort | ✅ 🎯 | 🔄 🎯 | ✅ | ✅ 🎯 |  |
-| std_autoaugment | ✅ 🎯 | 🔄 🎯 | ✅ | ✅ |  |
+| photometric_distort | ✅ 🎯 | ✅ 🎯 | ✅ | ✅ 🎯 |  |
+| std_autoaugment | ✅ 🎯 | ✅ 🎯 | ✅ | ✅ |  |
 | std_cutmix | ✅ 🎯 | ✅ 🎯 | ✅ | ✅ 🎯 |  |
-| std_mixup | ✅ 🎯 | 🔄 | ✅ | ✅ 🎯 |  |
-| std_randaugment | ✅ 🎯 | ⏳ | ✅ | ✅ 🎯 |  |
+| std_mixup | ✅ 🎯 | ✅ 🎯 | ✅ | ✅ 🎯 |  |
+| std_randaugment | ✅ 🎯 | ✅ 🎯 | ✅ | ✅ 🎯 |  |
 
 ### Excluded Methods
 The following methods are excluded due to insufficient training data coverage:
@@ -176,9 +232,9 @@ python scripts/retrain_affected_models.py --generate-scripts
 
 | Category | Total | Complete | Running | Pending | Failed |
 |----------|-------|----------|---------|---------|--------|
-| **Generative (gen_*)** | 83 | 78 | 0 | 6 | 0 |
-| **Standard (std_*)** | 24 | 20 | 3 | 1 | 0 |
-| **TOTAL** | 107 | 98 | 3 | 7 | 0 |
+| **Generative (gen_*)** | 83 | 74 | 4 | 3 | 3 |
+| **Standard (std_*)** | 24 | 24 | 0 | 0 | 0 |
+| **TOTAL** | 107 | 98 | 4 | 3 | 3 |
 
 *Note: Stage 1 trains 3 models per strategy×dataset = 324 total configurations.*
 *Total = 28 strategies × 4 datasets × 3 models - 12 skipped configs = 324 configs*
@@ -203,6 +259,12 @@ python scripts/update_retraining_tracker.py --no-update
 ---
 
 ## Changelog
+
+### 2026-01-12
+- **Stage 2 Started:** Submitted 48 training jobs for full dataset training
+- Selected top 10 strategies + baseline + flux_kontext
+- Updated SKIP_COMBOS - flux_kontext now has full 4/4 coverage
+- Updated tracker scripts to handle `train_` prefix jobs
 
 ### 2026-01-09
 - Initial tracker creation
