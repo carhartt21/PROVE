@@ -1,6 +1,6 @@
 # Testing Progress Tracker
 
-**Last Updated:** 2026-01-13 10:58
+**Last Updated:** 2026-01-13 16:41
 
 
 This document tracks the progress of fine-grained testing for trained models.
@@ -96,6 +96,7 @@ This document tracks the progress of fine-grained testing for trained models.
 |----------|-------:|-------:|-------:|-------:|-------:|
 | baseline | 43.2 | 36.6 | 51.0 | 48.8 | 44.9 |
 | photometric_distort | 45.2 | 38.4 | 51.7 | 29.9 | 41.3 |
+| std_minimal | ⏳ | ⏳ | ⏳ | ⏳ | - |
 | std_autoaugment | 45.5 | ⏳ | 52.1 | 29.0 | 42.2 |
 | std_cutmix | 45.3 | 43.1 | 52.0 | ⏳ | 46.8 |
 | std_mixup | 44.6 | ⏳ | 51.7 | ⏳ | 48.1 |
@@ -147,6 +148,7 @@ This document tracks the progress of fine-grained testing for trained models.
 |----------|--------|--------|--------|--------|
 | baseline | ✅ | ✅ | ✅ | ✅ |
 | photometric_distort | ✅ | ✅ | ✅ | ✅ |
+| std_minimal | ⏳ | ⏳ | ⏳ | ⏳ |
 | std_autoaugment | ✅ | ⏳ | ✅ | ✅ |
 | std_cutmix | ✅ | ✅ | ✅ | ⏳ |
 | std_mixup | ✅ | ⏳ | ✅ | ⏳ |
@@ -159,10 +161,10 @@ This document tracks the progress of fine-grained testing for trained models.
 
 | Dataset | Complete | Running | Pending | Skip |
 |---------|----------|---------|---------|------|
-| BDD10k | 24 | 0 | 3 | 0 |
-| IDD-AW | 23 | 0 | 4 | 0 |
-| MapillaryVistas | 25 | 0 | 2 | 0 |
-| OUTSIDE15k | 23 | 0 | 4 | 0 |
+| BDD10k | 24 | 0 | 4 | 0 |
+| IDD-AW | 23 | 0 | 5 | 0 |
+| MapillaryVistas | 25 | 0 | 3 | 0 |
+| OUTSIDE15k | 23 | 0 | 5 | 0 |
 
 ---
 

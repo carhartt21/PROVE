@@ -1,6 +1,6 @@
 # Retraining Progress Tracker
 
-**Last Updated:** 2026-01-13 08:23
+**Last Updated:** 2026-01-13 15:10
 
 This document tracks the progress of retraining models with the corrected native class labels.
 
@@ -151,15 +151,15 @@ Based on Stage 1 clear_day results (average mIoU):
 | gen_automold | ✅ 🎯 | ✅ 🎯 | ✅ | ✅ 🎯 |  |
 | gen_CNetSeg | ✅ 🎯 | ✅ 🎯 | ✅ | ✅ 🎯 |  |
 | gen_CUT | ✅ 🎯 | ✅ 🎯 | ✅ | ✅ 🎯 |  |
-| gen_cyclediffusion | ✅ 🎯 | ✅ 🎯 | ⏳ | ⏳ |  |
+| gen_cyclediffusion | ✅ 🎯 | ✅ 🎯 | 🔄 | ⏳ |  |
 | gen_cycleGAN | ✅ 🎯 | ✅ 🎯 | ✅ | ✅ 🎯 |  |
-| gen_flux_kontext | ❌ | ❌ | ✅ | ✅ 🎯 |  |
-| gen_Img2Img | 🔄 🎯 | ✅ 🎯 | ✅ | ✅ 🎯 |  |
-| gen_IP2P | 🔄 🎯 | ✅ 🎯 | ✅ | ✅ 🎯 |  |
-| gen_LANIT | 🔄 | ✅ 🎯 | ✅ | ✅ 🎯 |  |
+| gen_flux_kontext | ⏳ | ⏳ | ✅ | ⏳ |  |
+| gen_Img2Img | ✅ 🎯 | ✅ 🎯 | ✅ | ✅ 🎯 |  |
+| gen_IP2P | ✅ 🎯 | ✅ 🎯 | ✅ | ✅ 🎯 |  |
+| gen_LANIT | ✅ | ✅ 🎯 | ✅ | ✅ 🎯 |  |
 | gen_Qwen_Image_Edit | ⏳ | ✅ 🎯 | ✅ | ✅ 🎯 | No BDD10k data |
 | gen_stargan_v2 | ✅ 🎯 | ✅ 🎯 | ✅ | ✅ 🎯 |  |
-| gen_step1x_new | ❌ | 🔄 🎯 | ✅ | ✅ 🎯 |  |
+| gen_step1x_new | ⏳ | ✅ 🎯 | ✅ | ✅ 🎯 |  |
 | gen_step1x_v1p2 | ✅ 🎯 | ✅ 🎯 | ✅ | ✅ 🎯 |  |
 | gen_SUSTechGAN | ✅ 🎯 | ✅ 🎯 | ✅ | ✅ 🎯 |  |
 | gen_TSIT | ✅ 🎯 | ✅ 🎯 | ✅ | ✅ 🎯 |  |
@@ -175,8 +175,8 @@ Based on Stage 1 clear_day results (average mIoU):
 | baseline | ✅ 🎯 | ✅ 🎯 | ✅ | ✅ 🎯 |  |
 | photometric_distort | ✅ 🎯 | ✅ 🎯 | ✅ | ✅ 🎯 |  |
 | std_autoaugment | ✅ 🎯 | ✅ 🎯 | ✅ | ✅ |  |
-| std_cutmix | ✅ 🎯 | ✅ 🎯 | ✅ | ✅ 🎯 |  |
-| std_mixup | ✅ 🎯 | ✅ 🎯 | ✅ | ✅ 🎯 |  |
+| std_cutmix | ✅ 🎯 | ✅ 🎯 | ✅ | ⏳ |  |
+| std_mixup | ✅ 🎯 | ✅ 🎯 | ✅ | ⏳ |  |
 | std_randaugment | ✅ 🎯 | ✅ 🎯 | ✅ | ✅ 🎯 |  |
 
 ### Excluded Methods
@@ -232,9 +232,9 @@ python scripts/retrain_affected_models.py --generate-scripts
 
 | Category | Total | Complete | Running | Pending | Failed |
 |----------|-------|----------|---------|---------|--------|
-| **Generative (gen_*)** | 83 | 74 | 4 | 3 | 3 |
-| **Standard (std_*)** | 24 | 24 | 0 | 0 | 0 |
-| **TOTAL** | 107 | 98 | 4 | 3 | 3 |
+| **Generative (gen_*)** | 83 | 77 | 1 | 6 | 0 |
+| **Standard (std_*)** | 24 | 22 | 0 | 2 | 0 |
+| **TOTAL** | 107 | 99 | 1 | 8 | 0 |
 
 *Note: Stage 1 trains 3 models per strategy×dataset = 324 total configurations.*
 *Total = 28 strategies × 4 datasets × 3 models - 12 skipped configs = 324 configs*

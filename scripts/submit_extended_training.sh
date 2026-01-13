@@ -4,22 +4,14 @@
 # This script continues training from the latest checkpoint for an extended
 # number of iterations to study the effect of longer training.
 #
-# Top 15 Strategies (by average mIoU):
-#   1.  std_randaugment+std_mixup    (56.06)
-#   2.  gen_LANIT                    (55.71)
-#   3.  gen_step1x_new               (55.70)
-#   4.  std_mixup+std_autoaugment    (55.67)
-#   5.  gen_automold                 (55.62)
-#   6.  gen_TSIT                     (55.61)
-#   7.  std_randaugment              (55.58)
-#   8.  gen_NST                      (55.55)
-#   9.  gen_CUT                      (55.52)
-#   10. gen_Attribute_Hallucination  (55.46)
-#   11. gen_UniControl               (55.46)
-#   12. std_cutmix+std_autoaugment   (55.45)
-#   13. gen_Img2Img                  (55.43)
-#   14. gen_flux1_kontext            (55.40)
-#   15. gen_SUSTechGAN               (55.37)
+# Top 5 Strategies (by average mIoU from TESTING_TRACKER.md):
+#   1. gen_TSIT                    (48.8)  - All 4 datasets
+#   2. gen_albumentations_weather  (48.8)  - All 4 datasets
+#   3. gen_cycleGAN                (48.5)  - All 4 datasets
+#   4. gen_UniControl              (48.5)  - All 4 datasets
+#   5. gen_automold                (47.5)  - All 4 datasets
+#
+# Note: Only strategies with full coverage (4/4 datasets) are included.
 #
 # This script:
 #   - Finds the latest checkpoint for each configuration
@@ -55,28 +47,20 @@ cd "$PROJECT_ROOT"
 # Configuration
 # ============================================================================
 
-# Top 15 strategies by average mIoU (including combined std strategies)
-TOP_15_STRATEGIES=(
-    "std_randaugment+std_mixup"
-    "gen_LANIT"
-    "gen_step1x_new"
-    "std_mixup+std_autoaugment"
-    "gen_automold"
+# Top 5 strategies by average mIoU with full coverage (4/4 datasets)
+TOP_5_STRATEGIES=(
     "gen_TSIT"
-    "std_randaugment"
-    "gen_NST"
-    "gen_CUT"
-    "gen_Attribute_Hallucination"
+    "gen_albumentations_weather"
+    "gen_cycleGAN"
     "gen_UniControl"
-    "std_cutmix+std_autoaugment"
-    "gen_Img2Img"
-    "gen_flux1_kontext"
-    "gen_SUSTechGAN"
+    "gen_automold"
 )
 
-# Datasets and models
-DATASETS=("ACDC" "BDD10k" "IDD-AW" "MapillaryVistas" "OUTSIDE15k")
-MODELS=("deeplabv3plus_r50" "pspnet_r50" "segformer_mit-b5")
+# Datasets and models - Stage 1 (Clear Day) training datasets
+# Note: ACDC excluded as it's an adverse conditions only dataset
+# Note: Only using PSPNet and Segformer for extended training ablation
+DATASETS=("BDD10k" "IDD-AW" "MapillaryVistas" "OUTSIDE15k")
+MODELS=("pspnet_r50" "segformer_mit-b5")
 
 # Default settings
 DEFAULT_MAX_ITERS=160000  # 2x the default 80000
@@ -96,7 +80,7 @@ print_usage() {
     echo "==============================================================="
     echo ""
     echo "Continues training from the latest checkpoint for extended iterations"
-    echo "using the top 15 best performing strategies."
+    echo "using the top 5 best performing strategies from TESTING_TRACKER.md."
     echo ""
     echo "Usage: $0 [options]"
     echo ""
@@ -120,9 +104,9 @@ print_usage() {
     echo "                      Output weights root (default: $DEFAULT_OUTPUT_ROOT)"
     echo "  --help              Show this help message"
     echo ""
-    echo "Top 15 Strategies (by average mIoU):"
-    for i in "${!TOP_15_STRATEGIES[@]}"; do
-        printf "  %2d. %s\n" $((i+1)) "${TOP_15_STRATEGIES[$i]}"
+    echo "Top 5 Strategies (by average mIoU):"
+    for i in "${!TOP_5_STRATEGIES[@]}"; do
+        printf "  %2d. %s\n" $((i+1)) "${TOP_5_STRATEGIES[$i]}"
     done
     echo ""
     echo "Training Extension:"
@@ -140,10 +124,10 @@ print_usage() {
     echo "  $0 --list                                    # List all jobs"
     echo "  $0 --dry-run                                 # Show commands"
     echo "  $0 --dataset ACDC --model deeplabv3plus_r50  # Single config"
-    echo "  $0 --strategy gen_LANIT --max-iters 240000   # One strategy, 3x iters"
+    echo "  $0 --strategy gen_TSIT --max-iters 240000    # One strategy, 3x iters"
     echo "  $0 --limit 10                                # Submit first 10 jobs"
     echo ""
-    echo "Total jobs (full ablation): 15 strategies × 5 datasets × 3 models = 225 jobs"
+    echo "Total jobs (full ablation): 5 strategies × 4 datasets × 2 models = 40 jobs"
 }
 
 # Find latest checkpoint for a given model directory
@@ -325,7 +309,7 @@ mkdir -p logs
 declare -a JOBS=()
 declare -a SKIPPED_NO_CHECKPOINT=()
 
-for strategy in "${TOP_15_STRATEGIES[@]}"; do
+for strategy in "${TOP_5_STRATEGIES[@]}"; do
     # Apply strategy filter
     if [ -n "$FILTER_STRATEGY" ] && [ "$strategy" != "$FILTER_STRATEGY" ]; then
         continue
@@ -347,6 +331,8 @@ for strategy in "${TOP_15_STRATEGIES[@]}"; do
             continue
         fi
         
+        # Convert dataset name to lowercase directory name
+        # Handle special cases: IDD-AW -> idd-aw (keep hyphen)
         dataset_lower=$(echo "$dataset" | tr '[:upper:]' '[:lower:]')
         
         for model in "${MODELS[@]}"; do
@@ -355,8 +341,13 @@ for strategy in "${TOP_15_STRATEGIES[@]}"; do
                 continue
             fi
             
-            # Build model directory path
-            model_dir="${WEIGHTS_ROOT}/${strategy_dir}/${dataset_lower}/${model}"
+            # Build model directory path - Stage 1 uses *_cd suffix (clear day)
+            # For gen_* strategies trained with ratio=0.5, models have _ratio0p50 suffix
+            if [[ "$main_strategy" == gen_* ]]; then
+                model_dir="${WEIGHTS_ROOT}/${strategy_dir}/${dataset_lower}_cd/${model}_ratio0p50"
+            else
+                model_dir="${WEIGHTS_ROOT}/${strategy_dir}/${dataset_lower}_cd/${model}"
+            fi
             
             # Find latest checkpoint
             latest_ckpt=$(find_latest_checkpoint "$model_dir")
@@ -453,8 +444,9 @@ for job in "${JOBS[@]}"; do
     # Sanitize job name (replace + with _)
     job_name="${job_name//+/_}"
     
-    # Build training command
-    train_cmd="PROVE_WEIGHTS_ROOT='${OUTPUT_ROOT}' $SCRIPT_DIR/train_unified.sh single --dataset $dataset --model $model --strategy $main_strategy --no-early-stop --max-iters $MAX_ITERS --resume-from $checkpoint"
+    # Build training command - call unified_training.py directly
+    dataset_lower=$(echo "$dataset" | tr '[:upper:]' '[:lower:]')
+    train_cmd="cd $PROJECT_ROOT && source venv/bin/activate && PROVE_WEIGHTS_ROOT='${OUTPUT_ROOT}' python unified_training.py --dataset $dataset --model $model --strategy $main_strategy --real-gen-ratio 0.5 --no-early-stop --max-iters $MAX_ITERS --resume-from $checkpoint"
     
     # Add std_strategy if present
     if [ -n "$std_strategy" ]; then
