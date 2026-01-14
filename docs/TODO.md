@@ -36,13 +36,26 @@
 - MapillaryVistas: DeepLabV3+, PSPNet, SegFormer (running)
 - OUTSIDE15k: DeepLabV3+, PSPNet, SegFormer (running)
 
-### Ratio Ablation Study (Jan 13, 2026)
+### Ratio Ablation Study (Jan 13-14, 2026)
 
-**Status:** 🔄 Running
+**Status:** 🔄 Running (117 jobs)
 
-Long-running SegFormer training jobs for ratio ablation:
-- gen_cycleGAN on IDD-AW, MapillaryVistas, OUTSIDE15k
-- gen_flux_kontext on MapillaryVistas, OUTSIDE15k
+**Correct Top 5 gen_* Strategies (from TESTING_TRACKER.md):**
+| Rank | Strategy | Avg mIoU | Job Status |
+|------|----------|----------|------------|
+| 🥇 | gen_cyclediffusion | 55.8 | ⏳ Needs verification |
+| 🥈 | gen_step1x_new | 52.8 | ✅ 56 jobs submitted |
+| 🥉 | gen_step1x_v1p2 | 52.5 | ✅ 56 jobs submitted |
+| 4 | gen_stargan_v2 | 52.4 | ❌ Not submitted |
+| 5 | gen_TSIT | 52.0 | ❌ Not submitted |
+
+**Models:** PSPNet, SegFormer (DeepLabV3+ intentionally excluded)
+**Datasets:** BDD10k, IDD-AW, MapillaryVistas, OUTSIDE15k
+**Ratios:** 0.0, 0.125, 0.25, 0.375, 0.625, 0.75, 0.875
+
+**Currently running from Jan 13:**
+- gen_cycleGAN SegFormer (3 datasets)
+- gen_flux_kontext SegFormer (2 datasets)
 
 ---
 
@@ -50,7 +63,13 @@ Long-running SegFormer training jobs for ratio ablation:
 
 ### High Priority
 
-1. **Monitor IDD-AW Retraining**
+1. **Submit Remaining Ratio Ablation Strategies**
+   - gen_stargan_v2 (56 jobs needed)
+   - gen_TSIT (56 jobs needed)
+   - Verify gen_cyclediffusion status
+   - Command: `bash scripts/submit_ratio_ablation.sh --strategy <strategy_name>`
+
+2. **Monitor IDD-AW Retraining**
    - Check job completion: `bjobs -w | grep rtfix`
    - Expected completion: ~12-24 hours
    - After completion, verify test results show mIoU > 30%
@@ -98,6 +117,10 @@ Long-running SegFormer training jobs for ratio ablation:
 - ✅ Submitted 11 training + 11 test jobs with dependencies
 - ✅ Deleted old corrupted checkpoints
 - ✅ Fixed model name issues in submit_missing_training.sh
+- ✅ Updated `scripts/submit_ratio_ablation.sh` with correct top 5 strategies
+- ✅ Submitted ratio ablation jobs for gen_step1x_new and gen_step1x_v1p2 (56 jobs each)
+- ✅ Killed incorrectly submitted DeepLabV3+ ratio ablation jobs (DeepLabV3+ intentionally excluded)
+- ✅ Killed 168 jobs from incorrect top 5 strategies (gen_albumentations_weather, gen_UniControl, gen_automold)
 
 ### Jan 13, 2026
 - ✅ Started ratio ablation training for SegFormer models
@@ -116,6 +139,9 @@ bjobs -w | grep rtfix
 
 # Check std_minimal training status
 bjobs -w | grep rt_std
+
+# Check ratio ablation jobs
+bjobs -w | grep ratio_
 
 # Check test job status
 bjobs -w | grep test_
