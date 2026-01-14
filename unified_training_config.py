@@ -799,6 +799,14 @@ AUGMENTATION_STRATEGIES = {
         type='transform',
         transforms=[dict(type='PhotoMetricDistortion')],
     ),
+    'std_minimal': AugmentationStrategy(
+        # Minimal standard augmentation: RandomCrop, RandomFlip, 1x PhotoMetricDistortion
+        # Created from gen_* models accidentally trained with real_gen_ratio=1.0
+        # Serves as ablation baseline between 'baseline' and 'photometric_distort'
+        name='std_minimal',
+        type='transform',
+        transforms=[],  # Uses default pipeline which includes 1x PhotoMetricDistortion
+    ),
 }
 
 # Add generative model strategies dynamically
@@ -2254,7 +2262,7 @@ class UnifiedTrainingConfig:
             ratio_str = ''
         
         # Include domain filter in dataset directory name if specified
-        # Format: dataset_cd for clear_day, dataset for no filter
+        # Format: dataset_cd for clear_day, dataset_ad for no filter (all domains)
         domain_abbrev = {
             'clear_day': 'cd',
             'clear_night': 'cn',
@@ -2266,7 +2274,7 @@ class UnifiedTrainingConfig:
         if domain_filter:
             domain_str = f'_{domain_abbrev.get(domain_filter, domain_filter[:2])}'
         else:
-            domain_str = ''
+            domain_str = '_ad'  # All domains suffix when no filter
         
         # Include std_strategy in directory name if combined
         if std_strategy:
@@ -2274,10 +2282,13 @@ class UnifiedTrainingConfig:
         else:
             std_str = ''
         
+        # Normalize dataset name for directory (remove hyphens for consistency)
+        dataset_dir = dataset.lower().replace('-', '')
+        
         config['work_dir'] = os.path.join(
             self.weights_root,
             f'{strategy}{std_str}',
-            f'{dataset.lower()}{domain_str}',  # Domain filter applied to dataset
+            f'{dataset_dir}{domain_str}',  # Domain filter applied to dataset
             f'{model}{ratio_str}',  # Model no longer has domain suffix
         )
         

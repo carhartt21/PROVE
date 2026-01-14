@@ -243,6 +243,10 @@ def process_label_for_dataset(gt_seg_map: np.ndarray, dataset_name: str,
     - MapillaryVistas: RGB color-encoded -> native IDs (0-65) for native evaluation
     - OUTSIDE15k: Already native class IDs (0-23) for native evaluation
     
+    REVERSE CROSS-DOMAIN (Cityscapes model on native test data):
+    - When model_num_classes == 19 and test dataset is MapillaryVistas or OUTSIDE15k
+    - Convert native GT labels to Cityscapes trainIDs for fair comparison
+    
     Args:
         gt_seg_map: Raw label image (may be RGB or grayscale)
         dataset_name: Dataset folder name (e.g., 'MapillaryVistas', 'IDD-AW')
@@ -253,10 +257,15 @@ def process_label_for_dataset(gt_seg_map: np.ndarray, dataset_name: str,
     """
     config = DATASET_LABEL_CONFIG.get(dataset_name, DATASET_LABEL_CONFIG['Cityscapes'])
     label_type = config['label_type']
+    dataset_num_classes = config['num_classes']
     
-    # For cross-domain testing (model has native classes, test data has Cityscapes),
-    # the GT should stay in Cityscapes format
-    is_cross_domain = model_num_classes in [66, 24] and config['num_classes'] == 19
+    # Cross-domain testing scenarios:
+    # 1. Native model (66/24 classes) on Cityscapes test data (19 classes)
+    #    -> Predictions are mapped in map_predictions_to_cityscapes(), GT stays as-is
+    # 2. Cityscapes model (19 classes) on native test data (66/24 classes) [REVERSE]
+    #    -> GT must be converted from native to Cityscapes format
+    is_cross_domain = model_num_classes in [66, 24] and dataset_num_classes == 19
+    is_reverse_cross_domain = model_num_classes == 19 and dataset_num_classes in [66, 24]
     
     if label_type == 'mapillary_rgb_to_native':
         # MapillaryVistas: RGB color-encoded -> native IDs (0-65)
@@ -287,11 +296,25 @@ def process_label_for_dataset(gt_seg_map: np.ndarray, dataset_name: str,
         
         # If cross-domain testing (evaluating with Cityscapes GT), convert to trainIds
         # Otherwise keep native for same-dataset evaluation
-        if is_cross_domain:
+        if is_cross_domain or is_reverse_cross_domain:
             lut = np.full(256, 255, dtype=np.uint8)
             for mapillary_id, train_id in custom_transforms.MAPILLARY_TO_TRAINID.items():
                 if 0 <= mapillary_id < 256:
                     lut[mapillary_id] = train_id
+            gt_seg_map = lut[gt_seg_map]
+        
+    elif label_type == 'native':
+        # OUTSIDE15k: native class IDs (0-23)
+        if gt_seg_map.ndim == 3:
+            gt_seg_map = gt_seg_map[:, :, 0]
+        
+        # For reverse cross-domain (Cityscapes model on OUTSIDE15k),
+        # convert GT to Cityscapes format
+        if is_reverse_cross_domain:
+            lut = np.full(256, 255, dtype=np.uint8)
+            for native_id, train_id in custom_transforms.OUTSIDE15K_TO_TRAINID.items():
+                if 0 <= native_id < 256:
+                    lut[native_id] = train_id
             gt_seg_map = lut[gt_seg_map]
         
     elif label_type == 'cityscapes_labelid':
@@ -486,11 +509,20 @@ def run_fine_grained_test(
     print(f"Test dataset '{folder_name}' has {gt_num_classes} classes")
     
     # Determine evaluation mode
-    # For cross-domain testing (native model on Cityscapes test data), use Cityscapes classes
+    # For cross-domain testing scenarios:
+    # 1. Native model (66/24) on Cityscapes test data (19): map predictions
+    # 2. Cityscapes model (19) on native test data (66/24): convert GT labels [REVERSE]
     is_cross_domain = model_num_classes in [66, 24] and gt_num_classes == 19
+    is_reverse_cross_domain = model_num_classes == 19 and gt_num_classes in [66, 24]
+    
     if is_cross_domain:
         print(f"CROSS-DOMAIN TEST: Model ({model_num_classes} classes) -> Test data ({gt_num_classes} classes)")
         print(f"  Predictions will be mapped to Cityscapes classes for evaluation")
+        eval_num_classes = 19  # Evaluate in Cityscapes space
+        eval_class_names = CITYSCAPES_CLASSES
+    elif is_reverse_cross_domain:
+        print(f"REVERSE CROSS-DOMAIN TEST: Cityscapes model ({model_num_classes} classes) -> Native test data ({gt_num_classes} classes)")
+        print(f"  GT labels will be converted to Cityscapes classes for evaluation")
         eval_num_classes = 19  # Evaluate in Cityscapes space
         eval_class_names = CITYSCAPES_CLASSES
     else:
@@ -509,6 +541,7 @@ def run_fine_grained_test(
             'num_classes': eval_num_classes,
             'model_num_classes': model_num_classes,
             'is_cross_domain': is_cross_domain,
+            'is_reverse_cross_domain': is_reverse_cross_domain,
         },
         'overall': {},
         'per_domain': {},
