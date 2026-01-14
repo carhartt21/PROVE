@@ -2,7 +2,8 @@
 """
 Update the testing progress tracker based on current job status and test results.
 
-Reads results directly from the weights folder (test_results_detailed_fixed/*/results.json)
+Reads results directly from the weights folder (test_results_detailed/*/results.json
+or test_results_detailed_fixed/*/results.json for backward compatibility)
 to get the latest mIoU values without needing to run the test_result_analyzer first.
 
 Usage:
@@ -17,6 +18,76 @@ from pathlib import Path
 from datetime import datetime
 from collections import defaultdict
 import re
+import logging
+
+# Set up logging for permission errors (silent by default)
+logger = logging.getLogger(__name__)
+
+
+def safe_iterdir(path, default=None):
+    """Safely iterate over a directory, handling permission errors.
+    
+    Args:
+        path: Path object to iterate
+        default: Default value to return on permission error (defaults to empty list)
+    
+    Returns:
+        List of Path objects or default value on error
+    """
+    if default is None:
+        default = []
+    try:
+        return list(path.iterdir())
+    except PermissionError as e:
+        logger.debug(f"Permission denied accessing {path}: {e}")
+        return default
+    except OSError as e:
+        logger.debug(f"OS error accessing {path}: {e}")
+        return default
+
+
+def safe_glob(path, pattern, default=None):
+    """Safely glob a directory, handling permission errors.
+    
+    Args:
+        path: Path object to glob in
+        pattern: Glob pattern
+        default: Default value to return on permission error (defaults to empty list)
+    
+    Returns:
+        List of matching Path objects or default value on error
+    """
+    if default is None:
+        default = []
+    try:
+        return list(path.glob(pattern))
+    except PermissionError as e:
+        logger.debug(f"Permission denied globbing {path}/{pattern}: {e}")
+        return default
+    except OSError as e:
+        logger.debug(f"OS error globbing {path}/{pattern}: {e}")
+        return default
+
+
+def safe_is_dir(path):
+    """Safely check if path is a directory, handling permission errors."""
+    try:
+        return path.is_dir()
+    except PermissionError:
+        return False
+    except OSError:
+        return False
+
+
+def safe_exists(path):
+    """Safely check if path exists, handling permission errors."""
+    try:
+        return path.exists()
+    except PermissionError:
+        return False
+    except OSError:
+        return False
+
 
 # Configuration
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -61,6 +132,7 @@ GENERATIVE_STRATEGIES = [
 STANDARD_STRATEGIES = [
     'baseline',
     'photometric_distort',
+    'std_minimal',  # Minimal augmentation baseline
     'std_autoaugment',
     'std_cutmix',
     'std_mixup',
@@ -92,7 +164,7 @@ def load_per_model_results():
     import pandas as pd
     
     csv_path = TEST_RESULTS_CSV
-    if not csv_path.exists():
+    if not safe_exists(csv_path):
         return {}
     
     try:
@@ -129,7 +201,8 @@ def load_per_model_results():
 def load_miou_results():
     """Load mIoU results directly from the weights folder.
     
-    Scans all strategy/dataset/model directories for test_results_detailed_fixed
+    Scans all strategy/dataset/model directories for test_results_detailed
+    (or test_results_detailed_fixed for backward compatibility)
     and extracts mIoU from results.json files.
     
     Returns:
@@ -145,30 +218,34 @@ def load_miou_results():
             dataset_dir = f"{dataset}_cd"  # Add _cd suffix for directory
             strategy_path = WEIGHTS_ROOT / strategy / dataset_dir
             
-            if not strategy_path.exists():
+            if not safe_exists(strategy_path):
                 continue
             
             # Get mIoU values per model
             models = {}
-            for model_dir in strategy_path.iterdir():
-                if not model_dir.is_dir() or model_dir.name.endswith('_backup'):
+            for model_dir in safe_iterdir(strategy_path):
+                if not safe_is_dir(model_dir) or model_dir.name.endswith('_backup'):
                     continue
                 
-                # Look for test_results_detailed_fixed
-                fixed_path = model_dir / 'test_results_detailed_fixed'
-                if not fixed_path.exists():
+                # Look for test_results_detailed first, then fall back to _fixed
+                # (Most results are now in test_results_detailed after cleanup,
+                # but some IDD-AW results remain in _fixed due to permission issues)
+                results_path = model_dir / 'test_results_detailed'
+                if not safe_exists(results_path):
+                    results_path = model_dir / 'test_results_detailed_fixed'
+                if not safe_exists(results_path):
                     continue
                 
                 # Find the latest result directory (by timestamp)
-                result_dirs = [d for d in fixed_path.iterdir() 
-                              if d.is_dir() and d.name.startswith('2026')]
+                result_dirs = [d for d in safe_iterdir(results_path) 
+                              if safe_is_dir(d) and d.name.startswith('2026')]
                 if not result_dirs:
                     continue
                 
                 latest = sorted(result_dirs, key=lambda x: x.name)[-1]
                 results_json = latest / 'results.json'
                 
-                if not results_json.exists():
+                if not safe_exists(results_json):
                     continue
                 
                 try:
@@ -255,30 +332,37 @@ def get_retest_jobs():
     return jobs, dict(job_counts)
 
 
-def check_test_results(strategy, dataset, test_dir='test_results_detailed_fixed'):
-    """Check if test results exist for a strategy/dataset combination."""
+def check_test_results(strategy, dataset, test_dir='test_results_detailed'):
+    """Check if test results exist for a strategy/dataset combination.
+    
+    Checks test_results_detailed first, then falls back to test_results_detailed_fixed
+    for backward compatibility with the 32 IDD-AW cases that couldn't be renamed.
+    """
     # Dataset directory pattern (with _cd suffix)
     dataset_dir = f"{dataset}_cd"
     
     # Check for any model's test results
     strategy_path = WEIGHTS_ROOT / strategy / dataset_dir
-    if not strategy_path.exists():
+    if not safe_exists(strategy_path):
         return False, False
     
     has_results = False
     has_detailed = False
     
-    for model_dir in strategy_path.iterdir():
-        if model_dir.is_dir():
+    for model_dir in safe_iterdir(strategy_path):
+        if safe_is_dir(model_dir):
+            # Check both test_results_detailed and _fixed
             test_path = model_dir / test_dir
-            if test_path.exists():
+            if not safe_exists(test_path):
+                test_path = model_dir / 'test_results_detailed_fixed'
+            if safe_exists(test_path):
                 # Check for any timestamped results
-                result_dirs = list(test_path.glob('*/'))
+                result_dirs = safe_glob(test_path, '*/')
                 if result_dirs:
                     has_results = True
                     # Check for detailed results
                     for result_dir in result_dirs:
-                        if (result_dir / 'per_domain_results.json').exists():
+                        if safe_exists(result_dir / 'per_domain_results.json'):
                             has_detailed = True
                             break
     
@@ -644,24 +728,456 @@ def update_tracker(status_matrix, summary, retest_jobs, job_counts):
     print(f"Tracker updated: {TRACKER_PATH}")
 
 
+def get_job_match_key(strategy, dataset, model):
+    """Generate the expected job name pattern for matching.
+    
+    Matches the format: fg_{short_strategy}_{short_dataset}_{short_model}
+    where short_strategy = strategy with 'gen_' replaced by 'g', then first 10 chars
+    """
+    # Match the job naming in submit_all_remaining_tests.sh
+    short_strategy = strategy.replace('gen_', 'g')[:10]
+    short_dataset = dataset[:4]
+    
+    # Model short name (3 chars of display name)
+    if 'deeplabv3plus' in model:
+        short_model = 'dee'
+    elif 'pspnet' in model:
+        short_model = 'psp'
+    elif 'segformer' in model:
+        short_model = 'seg'
+    else:
+        short_model = model[:3]
+    
+    return f"fg_{short_strategy}_{short_dataset}_{short_model}".lower()
+
+
+def job_matches_config(job_name, strategy, dataset, model):
+    """Check if a job name matches a config using flexible matching.
+    
+    Matches various job naming conventions used across different submit scripts.
+    """
+    job_lower = job_name.lower()
+    
+    # Check for the exact key first
+    key = get_job_match_key(strategy, dataset, model)
+    if key in job_lower or job_lower in key:
+        return True
+    
+    # More flexible matching: check if key parts are present
+    short_strategy = strategy.replace('gen_', 'g')[:8]  # Slightly shorter for flexibility
+    short_dataset = dataset[:4]
+    
+    if 'deeplabv3plus' in model:
+        short_model = 'dee'
+    elif 'pspnet' in model:
+        short_model = 'psp'
+    elif 'segformer' in model:
+        short_model = 'seg'
+    else:
+        short_model = model[:3]
+    
+    # Check if all parts are present in the job name
+    if (short_strategy in job_lower and 
+        short_dataset in job_lower and 
+        short_model in job_lower and
+        ('fg_' in job_lower or 'fgt_' in job_lower or 'test_' in job_lower)):
+        return True
+    
+    return False
+
+
+def get_per_model_test_status():
+    """Get detailed per-model test status with mIoU values.
+    
+    Returns:
+        dict: {(strategy, dataset, model): {'status': str, 'miou': float or None, 'is_valid': bool}}
+    """
+    import json
+    
+    results = {}
+    
+    # Also get running test jobs
+    running_jobs = set()
+    pending_jobs = set()
+    try:
+        result = subprocess.run(
+            ['bjobs', '-u', 'mima2416', '-o', 'JOB_NAME STAT'],
+            capture_output=True, text=True, timeout=10
+        )
+        for line in result.stdout.strip().split('\n')[1:]:
+            parts = line.split()
+            if len(parts) >= 2:
+                job_name, stat = parts[0], parts[1]
+                if 'fg_' in job_name or 'fgt_' in job_name or 'retest' in job_name:
+                    if stat == 'RUN':
+                        running_jobs.add(job_name.lower())
+                    elif stat == 'PEND':
+                        pending_jobs.add(job_name.lower())
+    except:
+        pass
+    
+    # Scan all model directories
+    for strategy in ALL_STRATEGIES:
+        for dataset in DATASETS:
+            dataset_dir = f"{dataset}_cd"
+            strategy_path = WEIGHTS_ROOT / strategy / dataset_dir
+            
+            if not safe_exists(strategy_path):
+                continue
+            
+            for model_dir in safe_iterdir(strategy_path):
+                if not safe_is_dir(model_dir) or model_dir.name.endswith('_backup'):
+                    continue
+                
+                model = model_dir.name
+                
+                # Check if weights exist
+                weights_path = model_dir / 'iter_80000.pth'
+                if not safe_exists(weights_path):
+                    results[(strategy, dataset, model)] = {
+                        'status': 'no_weights',
+                        'miou': None,
+                        'is_valid': False
+                    }
+                    continue
+                
+                # Check for test results
+                test_path = model_dir / 'test_results_detailed'
+                if not safe_exists(test_path):
+                    test_path = model_dir / 'test_results_detailed_fixed'
+                
+                if not safe_exists(test_path):
+                    # No test results - check if job is running
+                    status = 'missing'
+                    
+                    for job in running_jobs:
+                        if job_matches_config(job, strategy, dataset, model):
+                            status = 'running'
+                            break
+                    if status == 'missing':
+                        for job in pending_jobs:
+                            if job_matches_config(job, strategy, dataset, model):
+                                status = 'pending'
+                                break
+                    
+                    results[(strategy, dataset, model)] = {
+                        'status': status,
+                        'miou': None,
+                        'is_valid': False
+                    }
+                    continue
+                
+                # Find latest result
+                result_dirs = [d for d in safe_iterdir(test_path) 
+                              if safe_is_dir(d) and d.name.startswith('2026')]
+                if not result_dirs:
+                    results[(strategy, dataset, model)] = {
+                        'status': 'empty',
+                        'miou': None,
+                        'is_valid': False
+                    }
+                    continue
+                
+                latest = sorted(result_dirs, key=lambda x: x.name)[-1]
+                results_json = latest / 'results.json'
+                
+                if not safe_exists(results_json):
+                    # Check if a test job is running/pending for this
+                    status = 'no_json'
+                    for job in running_jobs:
+                        if job_matches_config(job, strategy, dataset, model):
+                            status = 'running'
+                            break
+                    if status == 'no_json':
+                        for job in pending_jobs:
+                            if job_matches_config(job, strategy, dataset, model):
+                                status = 'pending'
+                                break
+                    results[(strategy, dataset, model)] = {
+                        'status': status,
+                        'miou': None,
+                        'is_valid': False
+                    }
+                    continue
+                
+                try:
+                    with open(results_json) as f:
+                        data = json.load(f)
+                    miou = data.get('overall', {}).get('mIoU')
+                    
+                    if miou is None or miou < 5:  # Buggy test threshold
+                        # Check if retest job is running/pending
+                        retest_status = 'buggy'
+                        for job in running_jobs:
+                            if job_matches_config(job, strategy, dataset, model):
+                                retest_status = 'retest_running'
+                                break
+                        if retest_status == 'buggy':
+                            for job in pending_jobs:
+                                if job_matches_config(job, strategy, dataset, model):
+                                    retest_status = 'retest_pending'
+                                    break
+                        results[(strategy, dataset, model)] = {
+                            'status': retest_status,
+                            'miou': miou,
+                            'is_valid': False
+                        }
+                    else:
+                        results[(strategy, dataset, model)] = {
+                            'status': 'complete',
+                            'miou': miou,
+                            'is_valid': True
+                        }
+                except Exception as e:
+                    results[(strategy, dataset, model)] = {
+                        'status': 'error',
+                        'miou': None,
+                        'is_valid': False
+                    }
+    
+    return results
+
+
+def generate_testing_coverage():
+    """Generate detailed TESTING_COVERAGE.md report."""
+    from datetime import datetime
+    
+    per_model_status = get_per_model_test_status()
+    
+    # Count statistics
+    total_complete = 0
+    total_running = 0
+    total_pending = 0
+    total_buggy = 0
+    total_missing = 0
+    total_no_weights = 0
+    
+    per_dataset_stats = {ds: {
+        'complete': 0, 'running': 0, 'pending': 0, 
+        'buggy': 0, 'missing': 0, 'no_weights': 0, 'total': 0
+    } for ds in DATASETS}
+    
+    running_configs = []
+    pending_configs = []
+    buggy_configs = []
+    missing_configs = []
+    
+    for (strategy, dataset, model), info in per_model_status.items():
+        # Skip non-standard models (ratio ablation, backups)
+        if 'ratio0p' in model and not model.endswith('ratio0p50'):
+            continue
+        if '_backup' in model:
+            continue
+        
+        status = info['status']
+        miou = info['miou']
+        
+        per_dataset_stats[dataset]['total'] += 1
+        
+        if status == 'complete':
+            total_complete += 1
+            per_dataset_stats[dataset]['complete'] += 1
+        elif status == 'running':
+            total_running += 1
+            per_dataset_stats[dataset]['running'] += 1
+            running_configs.append((strategy, dataset, model))
+        elif status == 'pending':
+            total_pending += 1
+            per_dataset_stats[dataset]['pending'] += 1
+            pending_configs.append((strategy, dataset, model))
+        elif status == 'buggy':
+            total_buggy += 1
+            per_dataset_stats[dataset]['buggy'] += 1
+            buggy_configs.append((strategy, dataset, model, miou))
+        elif status == 'no_weights':
+            total_no_weights += 1
+            per_dataset_stats[dataset]['no_weights'] += 1
+        else:  # missing, empty, no_json, error
+            total_missing += 1
+            per_dataset_stats[dataset]['missing'] += 1
+            missing_configs.append((strategy, dataset, model, status))
+    
+    total = total_complete + total_running + total_pending + total_buggy + total_missing
+    
+    # Generate markdown
+    lines = []
+    lines.append("# Testing Coverage Report")
+    lines.append("")
+    lines.append(f"**Generated:** {datetime.now().strftime('%Y-%m-%d %H:%M')}")
+    lines.append("")
+    
+    # Summary
+    lines.append("## Summary")
+    lines.append("")
+    lines.append("| Status | Count | Percentage |")
+    lines.append("|--------|------:|----------:|")
+    lines.append(f"| ✅ Complete (valid mIoU) | {total_complete} | {100*total_complete/total:.1f}% |")
+    lines.append(f"| 🔄 Running | {total_running} | {100*total_running/total:.1f}% |")
+    lines.append(f"| ⏳ Pending (in queue) | {total_pending} | {100*total_pending/total:.1f}% |")
+    lines.append(f"| ⚠️ Buggy (mIoU < 5%) | {total_buggy} | {100*total_buggy/total:.1f}% |")
+    lines.append(f"| ❌ Missing (no results) | {total_missing} | {100*total_missing/total:.1f}% |")
+    lines.append(f"| **Total** | **{total}** | **100%** |")
+    lines.append("")
+    
+    # Per-dataset breakdown
+    lines.append("## Per-Dataset Breakdown")
+    lines.append("")
+    
+    for ds in DATASETS:
+        stats = per_dataset_stats[ds]
+        ds_total = stats['total']
+        if ds_total == 0:
+            continue
+        
+        lines.append(f"### {DATASET_DISPLAY[ds]}")
+        lines.append(f"- Complete: {stats['complete']}/{ds_total} ({100*stats['complete']/ds_total:.1f}%)")
+        lines.append(f"- Running: {stats['running']}")
+        lines.append(f"- Pending (in queue): {stats['pending']}")
+        lines.append(f"- Buggy (mIoU < 5%): {stats['buggy']}")
+        lines.append(f"- Missing (no results): {stats['missing']}")
+        lines.append("")
+    
+    # Running configurations
+    lines.append("## Running Configurations")
+    lines.append("")
+    if running_configs:
+        lines.append("| Strategy | Dataset | Model |")
+        lines.append("|----------|---------|-------|")
+        for strategy, dataset, model in sorted(running_configs):
+            model_display = MODEL_DISPLAY.get(model.replace('_ratio0p50', ''), model)
+            lines.append(f"| {strategy} | {dataset} | {model_display} |")
+    else:
+        lines.append("*No test jobs currently running.*")
+    lines.append("")
+    
+    # Pending configurations
+    lines.append("## Pending Configurations (in queue)")
+    lines.append("")
+    if pending_configs:
+        lines.append("| Strategy | Dataset | Model |")
+        lines.append("|----------|---------|-------|")
+        for strategy, dataset, model in sorted(pending_configs)[:30]:  # Limit to 30
+            model_display = MODEL_DISPLAY.get(model.replace('_ratio0p50', ''), model)
+            lines.append(f"| {strategy} | {dataset} | {model_display} |")
+        if len(pending_configs) > 30:
+            lines.append(f"| ... | ... | ... ({len(pending_configs)-30} more) |")
+    else:
+        lines.append("*No configurations pending in queue.*")
+    lines.append("")
+    
+    # Buggy configurations (need retesting)
+    lines.append("## Buggy Configurations (need retesting)")
+    lines.append("")
+    if buggy_configs:
+        lines.append("These configurations have test results with mIoU < 5%, indicating a bug in the test.")
+        lines.append("")
+        lines.append("| Strategy | Dataset | Model | mIoU |")
+        lines.append("|----------|---------|-------|-----:|")
+        for strategy, dataset, model, miou in sorted(buggy_configs):
+            model_display = MODEL_DISPLAY.get(model.replace('_ratio0p50', ''), model)
+            miou_str = f"{miou:.2f}%" if miou else "N/A"
+            lines.append(f"| {strategy} | {dataset} | {model_display} | {miou_str} |")
+    else:
+        lines.append("*No buggy configurations - all tests have valid mIoU.*")
+    lines.append("")
+    
+    # Missing configurations
+    lines.append("## Missing Configurations (no test results)")
+    lines.append("")
+    if missing_configs:
+        lines.append("| Strategy | Dataset | Model | Issue |")
+        lines.append("|----------|---------|-------|-------|")
+        for strategy, dataset, model, issue in sorted(missing_configs)[:30]:
+            model_display = MODEL_DISPLAY.get(model.replace('_ratio0p50', ''), model)
+            lines.append(f"| {strategy} | {dataset} | {model_display} | {issue} |")
+        if len(missing_configs) > 30:
+            lines.append(f"| ... | ... | ... | ({len(missing_configs)-30} more) |")
+    else:
+        lines.append("*No missing configurations.*")
+    lines.append("")
+    
+    # Complete configurations matrix
+    lines.append("## Complete Configurations")
+    lines.append("")
+    lines.append("| Strategy | BDD10k | IDD-AW | MapillaryVistas | OUTSIDE15k |")
+    lines.append("|----------|--------|--------|-----------------|------------|")
+    
+    for strategy in ALL_STRATEGIES:
+        row = [strategy]
+        for ds in DATASETS:
+            models_complete = []
+            for (s, d, m), info in per_model_status.items():
+                if s == strategy and d == ds and info['status'] == 'complete':
+                    # Get short model name
+                    if 'deeplabv3plus' in m:
+                        models_complete.append('DLV3+')
+                    elif 'pspnet' in m:
+                        models_complete.append('PSP')
+                    elif 'segformer' in m:
+                        models_complete.append('SF')
+            
+            if models_complete:
+                row.append('✅ ' + ', '.join(sorted(set(models_complete))))
+            else:
+                # Check if running/pending
+                has_running = any(s == strategy and d == ds and info['status'] == 'running' 
+                                 for (s, d, m), info in per_model_status.items())
+                if has_running:
+                    row.append('🔄')
+                else:
+                    row.append('⏳')
+        
+        lines.append('| ' + ' | '.join(row) + ' |')
+    
+    lines.append("")
+    
+    # Write to file
+    coverage_path = PROJECT_ROOT / 'docs' / 'TESTING_COVERAGE.md'
+    content = '\n'.join(lines)
+    coverage_path.write_text(content)
+    print(f"Coverage report updated: {coverage_path}")
+    
+    return {
+        'complete': total_complete,
+        'running': total_running,
+        'pending': total_pending,
+        'buggy': total_buggy,
+        'missing': total_missing,
+        'total': total
+    }
+
+
 def main():
     import argparse
     parser = argparse.ArgumentParser(description='Update testing progress tracker')
     parser.add_argument('--verbose', '-v', action='store_true', help='Show detailed status')
+    parser.add_argument('--coverage-only', action='store_true', help='Only generate TESTING_COVERAGE.md')
     args = parser.parse_args()
     
     print("Collecting test status...")
     status_matrix, summary, retest_jobs, job_counts = collect_test_status(verbose=args.verbose)
     
-    print("\nUpdating tracker...")
-    update_tracker(status_matrix, summary, retest_jobs, job_counts)
+    if not args.coverage_only:
+        print("\nUpdating TESTING_TRACKER.md...")
+        update_tracker(status_matrix, summary, retest_jobs, job_counts)
+    
+    # Generate detailed coverage report
+    print("\nGenerating TESTING_COVERAGE.md...")
+    coverage_stats = generate_testing_coverage()
     
     # Print summary
     print("\n" + "=" * 60)
-    print("TESTING PROGRESS SUMMARY")
+    print("TESTING COVERAGE SUMMARY")
     print("=" * 60)
     
-    # Print job counts
+    print(f"\n✅ Complete (valid mIoU): {coverage_stats['complete']}")
+    print(f"🔄 Running: {coverage_stats['running']}")
+    print(f"⏳ Pending: {coverage_stats['pending']}")
+    print(f"⚠️ Buggy (mIoU < 5%): {coverage_stats['buggy']}")
+    print(f"❌ Missing: {coverage_stats['missing']}")
+    print(f"\nTotal: {coverage_stats['total']}")
+    
+    # Print job counts from queue
     total_jobs = sum(sum(v.values()) for v in job_counts.values())
     if total_jobs > 0:
         print(f"\nRetest Jobs in Queue: {total_jobs}")
@@ -672,27 +1188,15 @@ def main():
                 if running + pending > 0:
                     print(f"  {DATASET_DISPLAY[ds]}: {running} running, {pending} pending")
     
-    total_complete = 0
-    total_running = 0
-    total_pending = 0
-    
     print("\nTest Result Status (by strategy/dataset combination):")
     for ds in DATASETS:
         complete = summary[ds].get('complete', 0) + summary[ds].get('complete_detailed', 0)
         running = summary[ds].get('running', 0)
         pending = summary[ds].get('pending', 0)
-        total_complete += complete
-        total_running += running
-        total_pending += pending
         print(f"\n{DATASET_DISPLAY[ds]}:")
         print(f"  Complete: {complete}")
         print(f"  Running:  {running}")
         print(f"  Pending:  {pending}")
-    
-    print(f"\nTOTAL:")
-    print(f"  Complete: {total_complete}")
-    print(f"  Running:  {total_running}")
-    print(f"  Pending:  {total_pending}")
 
 
 if __name__ == '__main__':

@@ -81,9 +81,10 @@ def get_running_test_jobs():
     """Get list of currently running/pending test jobs.
     
     Returns:
-        set: Set of (strategy, dataset, model) tuples for jobs that are RUN or PEND
+        set: Set of (strategy_prefix, dataset_prefix, model_prefix) tuples for jobs that are RUN or PEND
     """
     running_jobs = set()
+    job_names = []
     
     try:
         # Use bjobs -w for full job names, filter by RUN and PEND only
@@ -96,26 +97,18 @@ def get_running_test_jobs():
         
         for line in result.stdout.strip().split('\n')[1:]:  # Skip header
             parts = line.split()
-            if len(parts) >= 3:
-                job_name = parts[6] if len(parts) > 6 else parts[2]  # Job name is usually index 6 in -w output
+            if len(parts) >= 7:
                 stat = parts[2]  # Status is at index 2
+                job_name = parts[6]  # Job name is at index 6 in -w output
                 
                 # Only count RUN and PEND jobs (not DONE, EXIT, etc.)
                 if stat not in ('RUN', 'PEND'):
                     continue
                 
                 # Check for fine-grained test jobs (fg_ prefix)
-                if job_name.startswith('fg_') or 'retest' in job_name.lower():
-                    # Try to extract strategy, dataset, model
-                    for strat in ALL_STRATEGIES:
-                        short_strat = strat.replace('gen_', 'g').replace('std_', 's')[:10]
-                        if short_strat in job_name:
-                            for ds in DATASETS + ['iddaw']:
-                                short_ds = ds[:4]
-                                if short_ds in job_name:
-                                    running_jobs.add((strat, ds, job_name))
-                                    break
-                            break
+                if job_name.startswith('fg_'):
+                    job_names.append(job_name.lower())
+                    running_jobs.add(job_name.lower())
     except subprocess.TimeoutExpired:
         print("Warning: bjobs timed out, assuming no running jobs")
     except Exception as e:
@@ -162,6 +155,10 @@ def find_configs_needing_tests(main_only=False, stage=None):
                         if not model_dir.is_dir():
                             continue
                         if model_dir.name.endswith('_backup'):
+                            continue
+                        
+                        # Only consider main models (ratio0p50) unless explicitly requested
+                        if 'ratio' in model_dir.name and 'ratio0p50' not in model_dir.name:
                             continue
                         
                         checkpoint_path = model_dir / 'iter_80000.pth'
@@ -253,7 +250,7 @@ def submit_test_job(config, dry_run=False, shared_gpu=True):
         'bsub',
         '-J', job_name,
         '-q', 'BatchGPU',
-        '-n', '2',  # 2 CPU cores for I/O parallelism
+        '-n', '10',  # 2 CPU cores for I/O parallelism
         '-R', 'span[hosts=1]',
         '-R', 'rusage[mem=8000]',
         '-gpu', gpu_spec,
@@ -350,9 +347,16 @@ def main():
         dataset = config['dataset']
         model = config['model']
         
-        # Check if already running (simplified check)
+        # Generate normalized key for matching
+        # Jobs have pattern: fg_<strat_prefix>_<dataset_prefix>_<model_prefix>
+        strat_key = strategy.replace('gen_', 'g').replace('std_', 's').lower()[:8]
+        dataset_key = dataset[:4].lower()
+        model_key = model[:3].lower()
+        
+        # Check if any running job matches this config
+        # Match if the job name contains all the key parts
         is_running = any(
-            strategy in job[0] and dataset in job[1]
+            strat_key in job and dataset_key in job and model_key in job
             for job in running_jobs
         )
         

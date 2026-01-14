@@ -26,6 +26,9 @@ from datetime import datetime
 from pathlib import Path
 from collections import defaultdict
 from typing import Dict, List, Optional, Any, Tuple
+from concurrent.futures import ThreadPoolExecutor, Future
+import queue
+import threading
 
 import numpy as np
 import torch
@@ -420,6 +423,214 @@ def compute_metrics_from_areas(
     }
 
 
+def load_and_preprocess_image(img_path: Path, label_path: Path, 
+                               folder_name: str, model_num_classes: int,
+                               mean: np.ndarray, std: np.ndarray) -> Tuple[torch.Tensor, np.ndarray, Tuple[int, int]]:
+    """Load and preprocess a single image and its label.
+    
+    Returns:
+        img_tensor: Preprocessed image tensor (CHW format)
+        gt_seg_map: Ground truth segmentation map
+        original_size: Original image size (H, W)
+    """
+    # Load image
+    img = cv2.imread(str(img_path))
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    original_size = (img.shape[0], img.shape[1])
+    
+    # Load and process label
+    gt_seg_map = cv2.imread(str(label_path), cv2.IMREAD_UNCHANGED)
+    gt_seg_map = process_label_for_dataset(gt_seg_map, folder_name, model_num_classes)
+    
+    # Normalize and convert to tensor
+    img = (img.astype(np.float32) - mean) / std
+    img = img.transpose(2, 0, 1)  # HWC to CHW
+    img_tensor = torch.from_numpy(img).float()
+    
+    return img_tensor, gt_seg_map, original_size
+
+
+class PrefetchBatchLoader:
+    """Batch loader with multi-threaded loading and pre-fetching.
+    
+    Loads batches in background threads while GPU processes current batch.
+    This overlaps I/O with computation for better throughput.
+    """
+    
+    def __init__(self, image_pairs: List[Tuple[Path, Path]], 
+                 batch_size: int, folder_name: str, model_num_classes: int,
+                 mean: np.ndarray, std: np.ndarray, num_workers: int = 4):
+        """
+        Args:
+            image_pairs: List of (image_path, label_path) tuples
+            batch_size: Number of images per batch
+            folder_name: Dataset folder name for label processing
+            model_num_classes: Number of classes in model
+            mean: Normalization mean
+            std: Normalization std
+            num_workers: Number of parallel loading threads
+        """
+        self.image_pairs = image_pairs
+        self.batch_size = batch_size
+        self.folder_name = folder_name
+        self.model_num_classes = model_num_classes
+        self.mean = mean
+        self.std = std
+        self.num_workers = num_workers
+        
+        self.num_batches = (len(image_pairs) + batch_size - 1) // batch_size
+        self.current_batch_idx = 0
+        
+        # Pre-fetch queue (stores loaded batches ready for processing)
+        self.prefetch_queue = queue.Queue(maxsize=2)  # Pre-fetch 2 batches ahead
+        self.executor = ThreadPoolExecutor(max_workers=num_workers)
+        self.loading_complete = threading.Event()
+        
+        # Start background pre-fetch thread
+        self._prefetch_thread = threading.Thread(target=self._prefetch_batches, daemon=True)
+        self._prefetch_thread.start()
+    
+    def _load_single_image(self, img_path: Path, label_path: Path):
+        """Load a single image in a worker thread."""
+        try:
+            return load_and_preprocess_image(
+                img_path, label_path, self.folder_name, 
+                self.model_num_classes, self.mean, self.std
+            )
+        except Exception as e:
+            return None
+    
+    def _load_batch(self, batch_idx: int):
+        """Load a batch using multiple threads."""
+        start_idx = batch_idx * self.batch_size
+        end_idx = min(start_idx + self.batch_size, len(self.image_pairs))
+        batch_pairs = self.image_pairs[start_idx:end_idx]
+        
+        # Submit all images to thread pool
+        futures = []
+        for img_path, label_path in batch_pairs:
+            future = self.executor.submit(self._load_single_image, img_path, label_path)
+            futures.append(future)
+        
+        # Collect results
+        batch_tensors = []
+        batch_gt_maps = []
+        batch_sizes = []
+        
+        for future in futures:
+            result = future.result()
+            if result is not None:
+                img_tensor, gt_seg_map, original_size = result
+                batch_tensors.append(img_tensor)
+                batch_gt_maps.append(gt_seg_map)
+                batch_sizes.append(original_size)
+        
+        return batch_tensors, batch_gt_maps, batch_sizes
+    
+    def _prefetch_batches(self):
+        """Background thread that pre-fetches batches."""
+        for batch_idx in range(self.num_batches):
+            batch_data = self._load_batch(batch_idx)
+            self.prefetch_queue.put((batch_idx, batch_data))
+        self.loading_complete.set()
+    
+    def __iter__(self):
+        return self
+    
+    def __next__(self):
+        if self.current_batch_idx >= self.num_batches:
+            self.shutdown()
+            raise StopIteration
+        
+        # Get pre-fetched batch (blocks if not ready yet)
+        batch_idx, batch_data = self.prefetch_queue.get()
+        self.current_batch_idx += 1
+        
+        return batch_data
+    
+    def __len__(self):
+        return self.num_batches
+    
+    def shutdown(self):
+        """Clean up resources."""
+        self.executor.shutdown(wait=False)
+
+
+def process_batch(model, batch_tensors: List[torch.Tensor], 
+                  batch_gt_maps: List[np.ndarray],
+                  batch_sizes: List[Tuple[int, int]],
+                  device: torch.device,
+                  is_cross_domain: bool,
+                  model_num_classes: int,
+                  eval_num_classes: int) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """Process a batch of images through the model.
+    
+    Returns aggregated metrics for the batch.
+    """
+    # Stack tensors into batch
+    batch_input = torch.stack(batch_tensors).to(device)
+    batch_size = len(batch_tensors)
+    
+    # Create batch metadata
+    batch_img_metas = []
+    for h, w in batch_sizes:
+        batch_img_metas.append({
+            'ori_shape': (h, w),
+            'img_shape': (h, w),
+            'pad_shape': (h, w),
+            'scale_factor': (1.0, 1.0),
+        })
+    
+    # Batch inference
+    with torch.no_grad():
+        results = model.inference(batch_input, batch_img_metas)
+    
+    # Initialize batch metrics
+    batch_area_intersect = np.zeros(eval_num_classes, dtype=np.float64)
+    batch_area_union = np.zeros(eval_num_classes, dtype=np.float64)
+    batch_area_pred = np.zeros(eval_num_classes, dtype=np.float64)
+    batch_area_label = np.zeros(eval_num_classes, dtype=np.float64)
+    
+    # Process each result
+    for i in range(batch_size):
+        # Extract prediction
+        if isinstance(results, torch.Tensor):
+            pred_seg_map = results[i].cpu().numpy()
+        elif isinstance(results, list) and hasattr(results[i], 'pred_sem_seg'):
+            pred_seg_map = results[i].pred_sem_seg.data.cpu().numpy().squeeze()
+        else:
+            pred_seg_map = results[i].cpu().numpy().squeeze() if isinstance(results[i], torch.Tensor) else results[i]
+        
+        # Take argmax if needed (logits case)
+        if pred_seg_map.ndim == 3:
+            pred_seg_map = pred_seg_map.argmax(axis=0)
+        
+        gt_seg_map = batch_gt_maps[i]
+        
+        # Resize prediction back to original size if needed
+        if pred_seg_map.shape != gt_seg_map.shape:
+            pred_seg_map = cv2.resize(pred_seg_map.astype(np.uint8), 
+                                      (gt_seg_map.shape[1], gt_seg_map.shape[0]),
+                                      interpolation=cv2.INTER_NEAREST)
+        
+        # Map predictions to Cityscapes if cross-domain testing
+        if is_cross_domain:
+            pred_seg_map = map_predictions_to_cityscapes(pred_seg_map, model_num_classes)
+        
+        # Compute metrics
+        area_intersect, area_union, area_pred, area_label = compute_iou_metrics(
+            pred_seg_map, gt_seg_map, eval_num_classes
+        )
+        
+        # Aggregate
+        batch_area_intersect += area_intersect
+        batch_area_union += area_union
+        batch_area_pred += area_pred
+        batch_area_label += area_label
+    
+    return batch_area_intersect, batch_area_union, batch_area_pred, batch_area_label
+
+
 def get_per_class_metrics(
     area_intersect: np.ndarray,
     area_union: np.ndarray,
@@ -454,12 +665,22 @@ def run_fine_grained_test(
     output_dir: str,
     dataset_name: str,
     data_root: str,
-    test_split: str = 'test'
+    test_split: str = 'test',
+    batch_size: int = 4
 ) -> Dict[str, Any]:
     """Run fine-grained testing with per-domain and per-class results.
     
     Uses a single model instance and manually iterates over domains to avoid
     creating multiple Runners.
+    
+    Args:
+        config_path: Path to model config file
+        checkpoint_path: Path to model checkpoint
+        output_dir: Output directory for results
+        dataset_name: Name of dataset (ACDC, BDD10k, etc.)
+        data_root: Root directory of test data
+        test_split: Which split to use (test/val)
+        batch_size: Number of images per batch for inference (default: 4)
     """
     
     # Normalize dataset name to match folder structure in FINAL_SPLITS
@@ -592,133 +813,47 @@ def run_fine_grained_test(
         domain_area_pred = np.zeros(eval_num_classes, dtype=np.float64)
         domain_area_label = np.zeros(eval_num_classes, dtype=np.float64)
         
-        # Process images
-        for img_path in tqdm(img_files, desc=f"  Processing {domain}"):
-            # Find corresponding label
+        # Preprocessing constants
+        mean = np.array([123.675, 116.28, 103.53])
+        std = np.array([58.395, 57.12, 57.375])
+        
+        # Collect valid image-label pairs
+        valid_pairs = []
+        for img_path in img_files:
             label_path = label_dir / img_path.name
             if not label_path.exists():
-                # Try different extension
                 for ext in ['.png', '.jpg']:
                     label_path = label_dir / (img_path.stem + ext)
                     if label_path.exists():
                         break
-            
-            if not label_path.exists():
+            if label_path.exists():
+                valid_pairs.append((img_path, label_path))
+        
+        # Create prefetch batch loader for parallel I/O
+        batch_loader = PrefetchBatchLoader(
+            valid_pairs, batch_size, folder_name, model_num_classes,
+            mean, std, num_workers=4
+        )
+        
+        # Process batches with prefetching
+        for batch_tensors, batch_gt_maps, batch_sizes in tqdm(
+            batch_loader, total=len(batch_loader),
+            desc=f"  Processing {domain} (batches of {batch_size}, prefetch)"
+        ):
+            if not batch_tensors:
                 continue
             
-            # Prepare data dict for pipeline
-            data_dict = {
-                'img_path': str(img_path),
-                'seg_map_path': str(label_path),
-                'reduce_zero_label': False,
-                'img_info': {'filename': img_path.name},
-                'seg_fields': [],  # Required by LoadAnnotations
-            }
-            
-            # Run through pipeline
-            try:
-                data = pipeline(data_dict)
-            except Exception as e:
-                # Fall back to direct loading
-                img = cv2.imread(str(img_path))
-                img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-                gt_seg_map = cv2.imread(str(label_path), cv2.IMREAD_UNCHANGED)
-                
-                # Process labels according to dataset type and cross-domain mode
-                gt_seg_map = process_label_for_dataset(gt_seg_map, folder_name, model_num_classes)
-                
-                # Simple preprocessing
-                h, w = img.shape[:2]
-                
-                # Normalize
-                mean = np.array([123.675, 116.28, 103.53])
-                std = np.array([58.395, 57.12, 57.375])
-                img = (img - mean) / std
-                img = img.transpose(2, 0, 1)  # HWC to CHW
-                inputs = torch.from_numpy(img).float().unsqueeze(0).to(device)
-                
-                # Run inference
-                with torch.no_grad():
-                    result = model.inference(inputs, None)
-                    pred_seg_map = result[0].pred_sem_seg.data.cpu().numpy().squeeze()
-                
-                # Resize prediction back to original size if needed
-                if pred_seg_map.shape != gt_seg_map.shape:
-                    pred_seg_map = cv2.resize(pred_seg_map.astype(np.uint8), 
-                                              (gt_seg_map.shape[1], gt_seg_map.shape[0]),
-                                              interpolation=cv2.INTER_NEAREST)
-                
-                # Map predictions to Cityscapes if cross-domain testing
-                if is_cross_domain:
-                    pred_seg_map = map_predictions_to_cityscapes(pred_seg_map, model_num_classes)
-                
-                # Compute metrics
-                area_intersect, area_union, area_pred, area_label = compute_iou_metrics(
-                    pred_seg_map, gt_seg_map, eval_num_classes
-                )
-                
-                # Aggregate
-                domain_area_intersect += area_intersect
-                domain_area_union += area_union
-                domain_area_pred += area_pred
-                domain_area_label += area_label
-                continue
-            
-            # Get input - need to handle as raw image data for preprocessing
-            # Load image and preprocess manually
-            img = cv2.imread(str(img_path))
-            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-            gt_seg_map = cv2.imread(str(label_path), cv2.IMREAD_UNCHANGED)
-            
-            # Process labels according to dataset type and cross-domain mode
-            gt_seg_map = process_label_for_dataset(gt_seg_map, folder_name, model_num_classes)
-            
-            # Preprocess image
-            h, w = img.shape[:2]
-            mean = np.array([123.675, 116.28, 103.53])
-            std = np.array([58.395, 57.12, 57.375])
-            img = (img.astype(np.float32) - mean) / std
-            img = img.transpose(2, 0, 1)  # HWC to CHW
-            inputs = torch.from_numpy(img).float().unsqueeze(0).to(device)
-            
-            # Get image shape for metadata
-            img_shape = (h, w)
-            batch_img_metas = [{
-                'ori_shape': img_shape,
-                'img_shape': img_shape,
-                'pad_shape': img_shape,
-                'scale_factor': (1.0, 1.0),
-            }]
-            
-            # Run inference
-            with torch.no_grad():
-                result = model.inference(inputs, batch_img_metas)
-                # Result may be tensor or list of SegDataSample
-                if isinstance(result, torch.Tensor):
-                    pred_seg_map = result.cpu().numpy().squeeze()
-                elif isinstance(result, list) and hasattr(result[0], 'pred_sem_seg'):
-                    pred_seg_map = result[0].pred_sem_seg.data.cpu().numpy().squeeze()
-                else:
-                    pred_seg_map = result[0].cpu().numpy().squeeze() if isinstance(result, list) else result.cpu().numpy().squeeze()
-                
-                # Take argmax if needed (logits case)
-                if pred_seg_map.ndim == 3:
-                    pred_seg_map = pred_seg_map.argmax(axis=0)
-            
-            # Map predictions to Cityscapes if cross-domain testing
-            if is_cross_domain:
-                pred_seg_map = map_predictions_to_cityscapes(pred_seg_map, model_num_classes)
-            
-            # Compute metrics
-            area_intersect, area_union, area_pred, area_label = compute_iou_metrics(
-                pred_seg_map, gt_seg_map, eval_num_classes
+            # Process batch on GPU while next batch loads in background
+            batch_intersect, batch_union, batch_pred, batch_label = process_batch(
+                model, batch_tensors, batch_gt_maps, batch_sizes,
+                device, is_cross_domain, model_num_classes, eval_num_classes
             )
             
             # Aggregate
-            domain_area_intersect += area_intersect
-            domain_area_union += area_union
-            domain_area_pred += area_pred
-            domain_area_label += area_label
+            domain_area_intersect += batch_intersect
+            domain_area_union += batch_union
+            domain_area_pred += batch_pred
+            domain_area_label += batch_label
         
         # Compute domain metrics
         domain_metrics = compute_metrics_from_areas(
@@ -858,6 +993,8 @@ def main():
                        help='Data root directory')
     parser.add_argument('--test-split', default='test', choices=['val', 'test'],
                        help='Test split to use')
+    parser.add_argument('--batch-size', type=int, default=4,
+                       help='Batch size for inference (default: 4). Larger = faster but uses more GPU memory.')
     
     args = parser.parse_args()
     
@@ -867,7 +1004,8 @@ def main():
         output_dir=args.output_dir,
         dataset_name=args.dataset,
         data_root=args.data_root,
-        test_split=args.test_split
+        test_split=args.test_split,
+        batch_size=args.batch_size
     )
 
 

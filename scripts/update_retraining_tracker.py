@@ -74,6 +74,7 @@ GENERATIVE_STRATEGIES = [
 STANDARD_STRATEGIES = [
     'baseline',
     'photometric_distort',
+    'std_minimal',  # Minimal augmentation baseline (RandomCrop, RandomFlip, 1x PhotoMetricDistortion)
     'std_autoaugment',
     'std_cutmix',
     'std_mixup',
@@ -112,6 +113,7 @@ def get_status_emoji(status):
         'complete': '✅',
         'running': '🔄',
         'pending': '⏳',
+        'missing': '⚠️',
         'failed': '❌',
         'skip': '➖',
     }.get(status, '❓')
@@ -136,48 +138,67 @@ def check_weight_status(strategy, dataset, domain_filter='clear_day'):
     domain_suffix = f'_{domain_abbrev.get(domain_filter, domain_filter[:2])}' if domain_filter else ''
     dataset_dir = f'{dataset}{domain_suffix}'
     
-    weights_path = WEIGHTS_ROOT / strategy / dataset_dir / model_dir
-    checkpoint = weights_path / "iter_80000.pth"
-    lock_file = weights_path / ".training_lock"
+    # Try alternate name for idd-aw
+    dirs_to_try = [dataset_dir]
+    if dataset == 'idd-aw':
+        dirs_to_try.append(f'iddaw{domain_suffix}')
     
+    best_status = 'pending'
+    best_path = None
     has_detailed = False
-    detailed_dir = weights_path / "test_results_detailed"
-    if detailed_dir.exists():
-        # Check if there is any results.json in subdirectories
-        for sub in detailed_dir.iterdir():
-            if sub.is_dir() and (sub / "results.json").exists():
-                has_detailed = True
-                break
-
-    try:
-        # First check if training is in progress via lock file
-        if lock_file.exists():
-            return 'running', has_detailed, weights_path
-        
-        if checkpoint.exists():
-            # Check if it's a valid file (not empty)
-            if checkpoint.stat().st_size > 1000:  # At least 1KB
-                return 'complete', has_detailed, weights_path
-            else:
-                return 'failed', has_detailed, weights_path
-    except PermissionError:
-        try:
-            if weights_path.exists():
-                 # Check if the file name is visible
-                 files = os.listdir(weights_path)
-                 if ".training_lock" in files:
-                     return 'running', has_detailed, weights_path
-                 if "iter_80000.pth" in files:
-                     return 'complete', has_detailed, weights_path
-        except:
-            pass
-        return 'pending', has_detailed, weights_path
     
-    return 'pending', has_detailed, weights_path
+    for d in dirs_to_try:
+        weights_path = WEIGHTS_ROOT / strategy / d / model_dir
+        checkpoint = weights_path / "iter_80000.pth"
+        lock_file = weights_path / ".training_lock"
+        
+        current_has_detailed = False
+        detailed_dir = weights_path / "test_results_detailed"
+        if detailed_dir.exists():
+            for sub in detailed_dir.iterdir():
+                if sub.is_dir() and (sub / "results.json").exists():
+                    current_has_detailed = True
+                    break
+        
+        has_detailed = has_detailed or current_has_detailed
+        
+        status = 'pending'
+        try:
+            if lock_file.exists():
+                status = 'running'
+            elif checkpoint.exists():
+                if checkpoint.stat().st_size > 1000:
+                    status = 'complete'
+                else:
+                    status = 'failed'
+        except PermissionError:
+            try:
+                if weights_path.exists():
+                    files = os.listdir(weights_path)
+                    if ".training_lock" in files: status = 'running'
+                    elif "iter_80000.pth" in files: status = 'complete'
+            except: pass
+            
+        if status == 'complete':
+            return 'complete', has_detailed, weights_path
+        if status == 'running':
+            best_status = 'running'
+            best_path = weights_path
+        elif status == 'failed' and best_status == 'pending':
+            best_status = 'failed'
+            best_path = weights_path
+        elif best_path is None:
+            best_path = weights_path
+            
+    return best_status, has_detailed, best_path
 
 
 def get_running_jobs():
-    """Get list of currently running train/retrain jobs from both users."""
+    """Get list of currently running train/retrain jobs from both users.
+    
+    Only tracks Stage 1 (clear_day) jobs with _cd suffix.
+    Excludes Stage 2 jobs (s2_ prefix) and all_domains jobs (_ad suffix).
+    """
     running = {}  # {(strategy, dataset): status}
     
     # Known datasets for matching
@@ -190,8 +211,10 @@ def get_running_jobs():
     # Check jobs from multiple users
     users_to_check = ['', '-u chge7185']  # '' means current user
     
-    # Job name prefixes to check
-    job_prefixes = ['retrain_', 'train_']
+    # Job name prefixes to check for Stage 1
+    job_prefixes = ['retrain_', 'train_', 'fix_', 'rt_']
+    # Skip prefixes for other job types
+    skip_prefixes = ['s2_', 'ratio_', 'retest_']
     
     for user_flag in users_to_check:
         try:
@@ -211,6 +234,14 @@ def get_running_jobs():
                 if len(parts) >= 3:
                     job_name = parts[1]
                     stat = parts[2]
+                    
+                    # Skip non-Stage-1 jobs
+                    if any(job_name.startswith(skip) for skip in skip_prefixes):
+                        continue
+                    
+                    # Skip all_domains jobs (_ad suffix)
+                    if '_ad' in job_name:
+                        continue
                     
                     # Check for both train_ and retrain_ prefixes
                     job_part = None
@@ -254,6 +285,41 @@ def get_running_jobs():
                                     strategy = job_part[:idx]
                                 break
                     
+                    if dataset and strategy and strategy in ALL_STRATEGIES:
+                        # Store the most "active" status for this config
+                        current_stat = running.get((strategy, dataset))
+                        if stat == 'RUN':
+                            running[(strategy, dataset)] = 'RUN'
+                        elif stat == 'PEND' and current_stat != 'RUN':
+                            running[(strategy, dataset)] = 'PEND'
+                        elif stat in ('DONE', 'EXIT') and current_stat not in ('RUN', 'PEND'):
+                            running[(strategy, dataset)] = stat
+                        continue
+
+                    # If still not found, try fuzzy/truncated matching for rt_ jobs
+                    ds_trunc_map = {'bdd10k': 'bdd10k', 'iddaw_': 'idd-aw', 'mapill': 'mapillaryvistas', 'outsid': 'outside15k'}
+                    for trunc_ds, full_ds in ds_trunc_map.items():
+                        if f'_{trunc_ds}_' in job_part or job_part.endswith(f'_{trunc_ds}') or f'_{trunc_ds}_' in job_name:
+                            dataset = full_ds
+                            if f'_{trunc_ds}_' in job_part:
+                                strategy_part = job_part.split(f'_{trunc_ds}_')[0]
+                            elif job_part.endswith(f'_{trunc_ds}'):
+                                strategy_part = job_part[:-len(f'_{trunc_ds}')]
+                            else: # Found in job_name but maybe not clearly in job_part
+                                idx = job_part.find(trunc_ds)
+                                strategy_part = job_part[:idx].rstrip('_')
+                            
+                            # Find matching full strategy
+                            for full_s in ALL_STRATEGIES:
+                                if (len(strategy_part) >= 10 and full_s.startswith(strategy_part)) or \
+                                   (len(strategy_part) >= 10 and strategy_part.startswith(full_s[:15])):
+                                    strategy = full_s
+                                    break
+                            
+                            if dataset and strategy:
+                                print(f"DEBUG Match (jobs): {job_name} -> {strategy} / {dataset}")
+                            break
+                    
                     if dataset and strategy:
                         # Store the most "active" status for this config
                         current_stat = running.get((strategy, dataset))
@@ -290,24 +356,21 @@ def collect_status(domain_filter='clear_day', verbose=False):
         for dataset in DATASETS:
             status, has_detailed, path = check_weight_status(strategy, dataset, domain_filter)
             
-            # Use LSF status to refine the status
+            # Use LSF status to refine the status - but ONLY if checkpoint doesn't exist
+            # Jobs that train multiple models will skip existing checkpoints via pre-flight checks
             job_status = running_jobs.get((strategy, dataset))
             
-            # IMPORTANT: If a job is currently running, mark as running regardless of existing weights
-            # This ensures we track retraining jobs that override existing weights
-            if job_status == 'RUN':
-                status = 'running'
-            elif job_status == 'PEND' and status != 'complete':
-                status = 'pending'
-            elif status == 'pending':
-                if job_status == 'PEND':
+            if status != 'complete':
+                # Only consider job status if checkpoint doesn't exist
+                if job_status == 'RUN':
+                    status = 'running'
+                elif job_status == 'PEND':
                     status = 'pending'
-                elif job_status in ('DONE', 'EXIT'):
-                    # Job finished but weights are still missing -> failure
-                    status = 'failed'
-                else:
-                    # No job in queue/history and no weights -> pending (not started)
-                    status = 'pending'
+                elif status == 'pending':
+                    if job_status in ('DONE', 'EXIT'):
+                        # Job finished but weights are still missing -> failure
+                        status = 'failed'
+                    # else: No job in queue/history and no weights -> pending (not started)
             
             status_matrix[strategy][dataset] = {
                 'status': status,
@@ -331,38 +394,46 @@ def check_model_weight_status(strategy, dataset, model, domain_filter='clear_day
     domain_suffix = f'_{domain_abbrev.get(domain_filter, domain_filter[:2])}' if domain_filter else ''
     dataset_dir = f'{dataset}{domain_suffix}'
     
-    weights_path = WEIGHTS_ROOT / strategy / dataset_dir / model
-    checkpoint = weights_path / "iter_80000.pth"
-    lock_file = weights_path / ".training_lock"
-    
-    try:
-        # Check if training is in progress via lock file
-        if lock_file.exists():
-            return 'running', weights_path
+    # Try alternate name for idd-aw (iddaw)
+    dirs_to_try = [dataset_dir]
+    if dataset == 'idd-aw':
+        dirs_to_try.append(f'iddaw{domain_suffix}')
         
-        if checkpoint.exists():
-            if checkpoint.stat().st_size > 1000:  # At least 1KB
-                return 'complete', weights_path
-            else:
-                return 'failed', weights_path
-    except PermissionError:
+    for d in dirs_to_try:
+        weights_path = WEIGHTS_ROOT / strategy / d / model
+        checkpoint = weights_path / "iter_80000.pth"
+        lock_file = weights_path / ".training_lock"
+        
         try:
-            if weights_path.exists():
-                files = os.listdir(weights_path)
-                if ".training_lock" in files:
-                    return 'running', weights_path
-                if "iter_80000.pth" in files:
+            if lock_file.exists():
+                return 'running', weights_path
+            
+            if checkpoint.exists():
+                if checkpoint.stat().st_size > 1000:
                     return 'complete', weights_path
-        except:
-            pass
-        return 'pending', weights_path
-    
+                else:
+                    return 'failed', weights_path
+        except PermissionError:
+            try:
+                if weights_path.exists():
+                    files = os.listdir(weights_path)
+                    if ".training_lock" in files: return 'running', weights_path
+                    if "iter_80000.pth" in files: return 'complete', weights_path
+            except: pass
+            
     return 'pending', weights_path
 
 
-def get_running_jobs_detailed():
-    """Get detailed list of running jobs including model info."""
-    jobs = {}  # {(strategy, dataset, model_type): status}
+def get_running_jobs_detailed(verbose=False):
+    """Get detailed list of running jobs including model info and user.
+    
+    Only tracks Stage 1 (clear_day) jobs with _cd suffix.
+    Excludes Stage 2 jobs (s2_ prefix) and all_domains jobs (_ad suffix).
+    
+    Returns:
+        dict: {(strategy, dataset, model_type): {'status': str, 'user': str}}
+    """
+    jobs = {}  # {(strategy, dataset, model_type): {'status': str, 'user': str}}
     
     # Model suffix patterns
     model_patterns = {
@@ -376,23 +447,34 @@ def get_running_jobs_detailed():
     
     known_datasets = ['bdd10k', 'idd-aw', 'mapillaryvistas', 'outside15k']
     known_datasets_cd = ['bdd10k_cd', 'iddaw_cd', 'mapillaryvistas_cd', 'outside15k_cd']
-    job_prefixes = ['retrain_', 'train_', 'fix_']
+    # Only match Stage 1 job prefixes (not s2_ or ratio ablation jobs)
+    job_prefixes = ['rt_', 'retrain_', 'train_', 'fix_']
+    # Skip prefixes for other job types
+    skip_prefixes = ['s2_', 'ratio_', 'retest_']
     
     users_to_check = ['', '-u chge7185']
     
     for user_flag in users_to_check:
         try:
-            cmd = ['bjobs', '-a', '-o', 'JOBID JOB_NAME STAT']
+            cmd = ['bjobs', '-a', '-o', 'JOBID JOB_NAME STAT USER']
             if user_flag:
-                cmd = ['bjobs'] + user_flag.split() + ['-a', '-o', 'JOBID JOB_NAME STAT']
+                cmd = ['bjobs'] + user_flag.split() + ['-a', '-o', 'JOBID JOB_NAME STAT USER']
             
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
             
             for line in result.stdout.strip().split('\n')[1:]:
                 parts = line.split()
-                if len(parts) >= 3:
+                if len(parts) >= 4:
                     job_name = parts[1]
                     stat = parts[2]
+                    user = parts[3]
+                    
+                    if any(job_name.startswith(skip) for skip in skip_prefixes):
+                        continue
+                    
+                    # Skip all_domains jobs (_ad suffix)
+                    if '_ad' in job_name:
+                        continue
                     
                     job_part = None
                     for prefix in job_prefixes:
@@ -407,47 +489,100 @@ def get_running_jobs_detailed():
                     dataset = None
                     strategy = None
                     model_type = None
+                    remaining = ''
                     
-                    # Match _cd suffix datasets first
-                    for ds_cd, ds in zip(known_datasets_cd, known_datasets):
-                        if ds_cd in job_part:
-                            dataset = ds
-                            idx = job_part.find(ds_cd)
-                            strategy = job_part[:idx].rstrip('_')
-                            remaining = job_part[idx + len(ds_cd):]
+                    # 1. Fuzzy/truncated matching for rt_ jobs (highest priority for short names)
+                    ds_trunc_map = {'bdd10k': 'bdd10k', 'iddaw_': 'idd-aw', 'mapill': 'mapillaryvistas', 'outsid': 'outside15k'}
+                    for trunc_ds, full_ds in ds_trunc_map.items():
+                        if f'_{trunc_ds}_' in job_part or job_part.endswith(f'_{trunc_ds}') or f'_{trunc_ds}_' in job_name:
+                            dataset = full_ds
+                            if f'_{trunc_ds}_' in job_part:
+                                strategy_part = job_part.split(f'_{trunc_ds}_')[0]
+                                remaining = job_part.split(f'_{trunc_ds}_')[1]
+                            elif job_part.endswith(f'_{trunc_ds}'):
+                                strategy_part = job_part[:-len(f'_{trunc_ds}')]
+                                remaining = ''
+                            else:
+                                idx = job_part.find(trunc_ds)
+                                strategy_part = job_part[:idx].rstrip('_')
+                                remaining = job_part[idx + len(trunc_ds):]
+                            
+                            # Find matching full strategy
+                            for full_s in ALL_STRATEGIES:
+                                if full_s == strategy_part or \
+                                   (len(strategy_part) >= 10 and (full_s.startswith(strategy_part) or strategy_part.startswith(full_s[:15]))):
+                                    strategy = full_s
+                                    break
                             break
                     
-                    # Original matching
+                    # 2. Match _cd suffix datasets (train_gen_xxx_dataset_cd format)
+                    if dataset is None:
+                        for ds_cd, ds in zip(known_datasets_cd, known_datasets):
+                            if ds_cd in job_part:
+                                dataset = ds
+                                idx = job_part.find(ds_cd)
+                                strategy = job_part[:idx].rstrip('_')
+                                remaining = job_part[idx + len(ds_cd):]
+                                break
+                    
+                    # 3. Match dataset at the end (fix_gen_xxx_model_dataset format)
+                    if dataset is None:
+                        for ds in known_datasets:
+                            # Check if job_part ends with the dataset name
+                            if job_part.endswith(f'_{ds}') or job_part.endswith(ds):
+                                dataset = ds
+                                # Find where the dataset starts
+                                if job_part.endswith(f'_{ds}'):
+                                    remaining_part = job_part[:-len(f'_{ds}')]
+                                else:
+                                    remaining_part = job_part[:-len(ds)].rstrip('_')
+                                
+                                # Now extract strategy and model from remaining_part
+                                found_model = False
+                                for model_suffix, model_name in model_patterns.items():
+                                    if remaining_part.endswith(f'_{model_suffix}'):
+                                        model_type = model_name
+                                        strategy = remaining_part[:-len(f'_{model_suffix}')]
+                                        found_model = True
+                                        break
+                                
+                                if not found_model:
+                                    strategy = remaining_part
+                                break
+                    
+                    # 4. Original middle matching (strategy_dataset_xxx format)
                     if dataset is None:
                         for ds in known_datasets:
                             ds_pattern = f'_{ds}_'
-                            ds_pattern_end = f'_{ds}'
                             if ds_pattern in job_part:
                                 dataset = ds
                                 strategy = job_part.split(ds_pattern)[0]
-                                remaining = job_part.split(ds_pattern)[1] if ds_pattern in job_part else ''
-                                break
-                            elif job_part.endswith(ds_pattern_end):
-                                dataset = ds
-                                idx = job_part.rfind(ds_pattern_end)
-                                strategy = job_part[:idx]
-                                remaining = ''
+                                remaining = job_part.split(ds_pattern)[1]
                                 break
                     
+                        # Use ALL_STRATEGIES to validate strategy
+                    if strategy and strategy not in ALL_STRATEGIES:
+                        for full_s in ALL_STRATEGIES:
+                            if (len(strategy) >= 10 and (full_s.startswith(strategy) or strategy.startswith(full_s[:15]))):
+                                strategy = full_s
+                                break
+
                     if dataset and strategy:
                         # Try to extract model type from remaining part
                         remaining = remaining.lstrip('_') if remaining else ''
-                        for pattern, model_name in model_patterns.items():
-                            if pattern in remaining.lower():
-                                model_type = model_name
-                                break
+                        if not model_type:
+                            for pattern, model_name in model_patterns.items():
+                                if pattern in remaining.lower():
+                                    model_type = model_name
+                                    break
                         
                         key = (strategy, dataset, model_type)
                         current = jobs.get(key)
+                        current_status = current['status'] if current else None
                         if stat == 'RUN':
-                            jobs[key] = 'RUN'
-                        elif stat == 'PEND' and current != 'RUN':
-                            jobs[key] = 'PEND'
+                            jobs[key] = {'status': 'RUN', 'user': user}
+                        elif stat == 'PEND' and current_status != 'RUN':
+                            jobs[key] = {'status': 'PEND', 'user': user}
         except Exception as e:
             pass
     
@@ -455,11 +590,19 @@ def get_running_jobs_detailed():
 
 
 def collect_detailed_coverage(domain_filter='clear_day', verbose=False):
-    """Collect detailed coverage showing each (strategy, dataset, model) combination."""
-    running_jobs = get_running_jobs_detailed()
+    """Collect detailed coverage showing each (strategy, dataset, model) combination.
+    
+    Status definitions:
+    - complete: Checkpoint exists and is valid
+    - running: Job is actively running (RUN status)
+    - pending: Job is in queue waiting (PEND status)
+    - missing: No checkpoint AND no job in queue - needs to be started
+    - failed: Checkpoint exists but is invalid/corrupted
+    """
+    running_jobs = get_running_jobs_detailed(verbose)
     
     coverage = []  # List of dicts with strategy, dataset, model, status info
-    summary = {'complete': 0, 'running': 0, 'pending': 0, 'failed': 0}
+    summary = {'complete': 0, 'running': 0, 'pending': 0, 'missing': 0, 'failed': 0}
     
     for strategy in ALL_STRATEGIES:
         # Determine which models to check based on strategy type
@@ -471,20 +614,35 @@ def collect_detailed_coverage(domain_filter='clear_day', verbose=False):
         for dataset in DATASETS:
             for model in models_to_check:
                 status, path = check_model_weight_status(strategy, dataset, model, domain_filter)
+                user = None
                 
-                # Check job status for refinement
-                model_type = 'deeplabv3plus' if 'deeplabv3plus' in model else ('pspnet' if 'pspnet' in model else 'segformer')
-                job_key = (strategy, dataset, model_type)
-                job_status = running_jobs.get(job_key)
-                
-                # Also check without model type
-                job_key_no_model = (strategy, dataset, None)
-                job_status_no_model = running_jobs.get(job_key_no_model)
-                
-                if job_status == 'RUN' or job_status_no_model == 'RUN':
-                    status = 'running'
-                elif (job_status == 'PEND' or job_status_no_model == 'PEND') and status != 'complete':
-                    status = 'pending'
+                # Check job status for refinement - but ONLY if checkpoint doesn't already exist
+                # Jobs that train multiple models will skip existing checkpoints via pre-flight checks
+                if status != 'complete':
+                    model_type = 'deeplabv3plus' if 'deeplabv3plus' in model else ('pspnet' if 'pspnet' in model else 'segformer')
+                    job_key = (strategy, dataset, model_type)
+                    job_info = running_jobs.get(job_key)
+                    
+                    # Also check without model type
+                    job_key_no_model = (strategy, dataset, None)
+                    job_info_no_model = running_jobs.get(job_key_no_model)
+                    
+                    # Determine status and user from job info
+                    if job_info and job_info.get('status') == 'RUN':
+                        status = 'running'
+                        user = job_info.get('user')
+                    elif job_info_no_model and job_info_no_model.get('status') == 'RUN':
+                        status = 'running'
+                        user = job_info_no_model.get('user')
+                    elif job_info and job_info.get('status') == 'PEND':
+                        status = 'pending'
+                        user = job_info.get('user')
+                    elif job_info_no_model and job_info_no_model.get('status') == 'PEND':
+                        status = 'pending'
+                        user = job_info_no_model.get('user')
+                    else:
+                        # No job in queue and no checkpoint - this is missing/not started
+                        status = 'missing'
                 
                 coverage.append({
                     'strategy': strategy,
@@ -494,6 +652,7 @@ def collect_detailed_coverage(domain_filter='clear_day', verbose=False):
                     'status': status,
                     'emoji': get_status_emoji(status),
                     'path': str(path) if path else None,
+                    'user': user,
                 })
                 
                 summary[status] += 1
@@ -517,7 +676,8 @@ def generate_coverage_report(coverage, summary, output_file=None):
     lines.append(f"|--------|------:|----------:|")
     lines.append(f"| ✅ Complete | {summary['complete']} | {summary['complete']/total*100:.1f}% |")
     lines.append(f"| 🔄 Running | {summary['running']} | {summary['running']/total*100:.1f}% |")
-    lines.append(f"| ⏳ Pending | {summary['pending']} | {summary['pending']/total*100:.1f}% |")
+    lines.append(f"| ⏳ Pending (in queue) | {summary['pending']} | {summary['pending']/total*100:.1f}% |")
+    lines.append(f"| ⚠️ Missing (not started) | {summary['missing']} | {summary['missing']/total*100:.1f}% |")
     lines.append(f"| ❌ Failed | {summary['failed']} | {summary['failed']/total*100:.1f}% |")
     lines.append(f"| **Total** | **{total}** | **100%** |")
     
@@ -528,35 +688,49 @@ def generate_coverage_report(coverage, summary, output_file=None):
         complete = sum(1 for c in dataset_items if c['status'] == 'complete')
         running = sum(1 for c in dataset_items if c['status'] == 'running')
         pending = sum(1 for c in dataset_items if c['status'] == 'pending')
+        missing = sum(1 for c in dataset_items if c['status'] == 'missing')
         failed = sum(1 for c in dataset_items if c['status'] == 'failed')
         total_ds = len(dataset_items)
         
         lines.append(f"### {dataset.upper()}")
         lines.append(f"- Complete: {complete}/{total_ds} ({complete/total_ds*100:.1f}%)")
         lines.append(f"- Running: {running}")
-        lines.append(f"- Pending: {pending}")
+        lines.append(f"- Pending (in queue): {pending}")
+        lines.append(f"- Missing (not started): {missing}")
         lines.append(f"- Failed: {failed}\n")
     
     # Detailed tables by status
     lines.append("\n## Running Configurations\n")
     running_items = [c for c in coverage if c['status'] == 'running']
     if running_items:
-        lines.append("| Strategy | Dataset | Model |")
-        lines.append("|----------|---------|-------|")
+        lines.append("| Strategy | Dataset | Model | User |")
+        lines.append("|----------|---------|-------|------|")
         for item in sorted(running_items, key=lambda x: (x['strategy'], x['dataset'], x['model'])):
-            lines.append(f"| {item['strategy']} | {item['dataset']} | {item['model_short']} |")
+            user = item.get('user', '-') or '-'
+            lines.append(f"| {item['strategy']} | {item['dataset']} | {item['model_short']} | {user} |")
     else:
         lines.append("*No configurations currently running.*\n")
     
-    lines.append("\n## Pending Configurations\n")
+    lines.append("\n## Pending Configurations (in queue)\n")
     pending_items = [c for c in coverage if c['status'] == 'pending']
     if pending_items:
+        lines.append("| Strategy | Dataset | Model | User |")
+        lines.append("|----------|---------|-------|------|")
+        for item in sorted(pending_items, key=lambda x: (x['strategy'], x['dataset'], x['model'])):
+            user = item.get('user', '-') or '-'
+            lines.append(f"| {item['strategy']} | {item['dataset']} | {item['model_short']} | {user} |")
+    else:
+        lines.append("*No configurations pending in queue.*\n")
+    
+    lines.append("\n## Missing Configurations (not started)\n")
+    missing_items = [c for c in coverage if c['status'] == 'missing']
+    if missing_items:
         lines.append("| Strategy | Dataset | Model |")
         lines.append("|----------|---------|-------|")
-        for item in sorted(pending_items, key=lambda x: (x['strategy'], x['dataset'], x['model'])):
+        for item in sorted(missing_items, key=lambda x: (x['strategy'], x['dataset'], x['model'])):
             lines.append(f"| {item['strategy']} | {item['dataset']} | {item['model_short']} |")
     else:
-        lines.append("*No pending configurations.*\n")
+        lines.append("*No configurations missing.*\n")
     
     lines.append("\n## Failed Configurations\n")
     failed_items = [c for c in coverage if c['status'] == 'failed']
@@ -769,10 +943,11 @@ def main():
         print("DETAILED COVERAGE SUMMARY")
         print(f"{'='*60}")
         print(f"Total configurations: {total}")
-        print(f"  ✅ Complete: {summary['complete']} ({summary['complete']/total*100:.1f}%)")
-        print(f"  🔄 Running:  {summary['running']} ({summary['running']/total*100:.1f}%)")
-        print(f"  ⏳ Pending:  {summary['pending']} ({summary['pending']/total*100:.1f}%)")
-        print(f"  ❌ Failed:   {summary['failed']} ({summary['failed']/total*100:.1f}%)")
+        print(f"  ✅ Complete:           {summary['complete']} ({summary['complete']/total*100:.1f}%)")
+        print(f"  🔄 Running:            {summary['running']} ({summary['running']/total*100:.1f}%)")
+        print(f"  ⏳ Pending (in queue): {summary['pending']} ({summary['pending']/total*100:.1f}%)")
+        print(f"  ⚠️ Missing (not started): {summary['missing']} ({summary['missing']/total*100:.1f}%)")
+        print(f"  ❌ Failed:             {summary['failed']} ({summary['failed']/total*100:.1f}%)")
         return
     
     print(f"Checking Stage {args.stage} ({domain_filter}) status...")
