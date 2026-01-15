@@ -10,15 +10,15 @@ The ratio ablation study investigates how the proportion of generated images in 
 
 The ablation uses the 5 best performing `gen_*` strategies based on average mIoU across all datasets (with complete 4/4 dataset results):
 
-| Rank | Strategy | Avg mIoU |
-|------|----------|----------|
-| 1 | gen_TSIT | 48.8 |
-| 2 | gen_albumentations_weather | 48.8 |
-| 3 | gen_cycleGAN | 48.5 |
-| 4 | gen_UniControl | 48.5 |
-| 5 | gen_automold | 47.5 |
+| Rank | Strategy | Status |
+|------|----------|--------|
+| 1 | gen_cyclediffusion | ⏳ Needs verification |
+| 2 | gen_step1x_new | ✅ 56 jobs running |
+| 3 | gen_step1x_v1p2 | ✅ 56 jobs running |
+| 4 | gen_stargan_v2 | ❌ Not needed |
+| 5 | gen_TSIT | ❌ Not needed |
 
-*Note: Updated 2026-01-14 based on TESTING_TRACKER.md results.*
+*Note: Updated 2026-01-15. Only strategies 1-3 are being ablated; 4-5 not required for analysis.*
 
 ## Ratio Values
 

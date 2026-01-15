@@ -1,6 +1,6 @@
 # Testing Progress Tracker
 
-**Last Updated:** 2026-01-14 21:24
+**Last Updated:** 2026-01-15 09:40
 
 
 This document tracks the progress of fine-grained testing for trained models.
@@ -72,7 +72,7 @@ This document tracks the progress of fine-grained testing for trained models.
 | gen_augmenters | 50.5 | 43.2 | 51.8 | 48.6 | 48.5 |
 | gen_automold | 51.2 | 43.1 | 51.7 | 48.5 | 48.6 |
 | gen_CNetSeg | 50.0 | 43.3 | 52.6 | 48.4 | 48.6 |
-| gen_CUT | 50.9 | 25.5 | 51.8 | 48.3 | 44.1 |
+| gen_CUT | 50.9 | ⏳ | 51.8 | 48.3 | 50.3 |
 | gen_cyclediffusion | 50.9 | 43.2 | 65.3 | 63.8 | 55.8 |
 | gen_cycleGAN | 50.0 | 43.3 | 52.1 | 48.7 | 48.5 |
 | gen_flux_kontext | 50.8 | ⏳ | 52.0 | 63.8 | 55.5 |
@@ -124,7 +124,7 @@ This document tracks the progress of fine-grained testing for trained models.
 | gen_augmenters | ✅ | ✅ | ✅ | ✅ |
 | gen_automold | ✅ | ✅ | ✅ | ✅ |
 | gen_CNetSeg | ✅ | ✅ | ✅ | ✅ |
-| gen_CUT | ✅ | ✅ | ✅ | ✅ |
+| gen_CUT | ✅ | ⏳ | ✅ | ✅ |
 | gen_cyclediffusion | ✅ | ✅ | ✅ | ✅ |
 | gen_cycleGAN | ✅ | ✅ | ✅ | ✅ |
 | gen_flux_kontext | ✅ | ⏳ | ✅ | ✅ |
@@ -162,7 +162,7 @@ This document tracks the progress of fine-grained testing for trained models.
 | Dataset | Complete | Running | Pending | Skip |
 |---------|----------|---------|---------|------|
 | BDD10k | 28 | 0 | 0 | 0 |
-| IDD-AW | 27 | 0 | 1 | 0 |
+| IDD-AW | 26 | 0 | 2 | 0 |
 | MapillaryVistas | 27 | 0 | 1 | 0 |
 | OUTSIDE15k | 27 | 0 | 1 | 0 |
 

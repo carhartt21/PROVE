@@ -1,6 +1,6 @@
 # Testing Coverage Report
 
-**Generated:** 2026-01-14 23:40
+**Generated:** 2026-01-15 09:40
 
 ## Summary
 
@@ -16,14 +16,14 @@
 ## Per-Dataset Breakdown
 
 ### BDD10k
-- Complete: 82/93 (88.2%)
+- Complete: 82/84 (97.6%)
 - Running: 0
 - Pending (in queue): 0
 - Buggy (mIoU < 5%): 0
 - Missing (no results): 0
 
 ### IDD-AW
-- Complete: 66/80 (82.5%)
+- Complete: 66/69 (95.7%)
 - Running: 0
 - Pending (in queue): 0
 - Buggy (mIoU < 5%): 0
@@ -37,7 +37,7 @@
 - Missing (no results): 8
 
 ### OUTSIDE15k
-- Complete: 81/87 (93.1%)
+- Complete: 81/81 (100.0%)
 - Running: 0
 - Pending (in queue): 0
 - Buggy (mIoU < 5%): 0
@@ -59,14 +59,14 @@
 
 | Strategy | Dataset | Model | Issue |
 |----------|---------|-------|-------|
-| gen_Attribute_Hallucination | mapillaryvistas | PSPNet | no_json |
-| gen_IP2P | mapillaryvistas | PSPNet | no_json |
-| gen_Weather_Effect_Generator | mapillaryvistas | PSPNet | no_json |
-| gen_albumentations_weather | mapillaryvistas | DeepLabV3+ | no_json |
-| gen_augmenters | mapillaryvistas | DeepLabV3+ | no_json |
-| gen_automold | mapillaryvistas | DeepLabV3+ | no_json |
-| gen_cycleGAN | mapillaryvistas | PSPNet | no_json |
-| gen_flux_kontext | mapillaryvistas | PSPNet | no_json |
+| gen_Attribute_Hallucination | mapillaryvistas | PSPNet | missing |
+| gen_IP2P | mapillaryvistas | PSPNet | missing |
+| gen_Weather_Effect_Generator | mapillaryvistas | PSPNet | missing |
+| gen_albumentations_weather | mapillaryvistas | DeepLabV3+ | missing |
+| gen_augmenters | mapillaryvistas | DeepLabV3+ | missing |
+| gen_automold | mapillaryvistas | DeepLabV3+ | missing |
+| gen_cycleGAN | mapillaryvistas | PSPNet | missing |
+| gen_flux_kontext | mapillaryvistas | PSPNet | missing |
 
 ## Complete Configurations
 
