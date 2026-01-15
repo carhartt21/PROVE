@@ -98,6 +98,37 @@ DATASET_FOLDER_MAP = {
     'OUTSIDE15K': 'OUTSIDE15k',  # This was missing and caused test failures
 }
 
+# Cityscapes class names (19 classes)
+CITYSCAPES_CLASSES = [
+    'road', 'sidewalk', 'building', 'wall', 'fence', 'pole',
+    'traffic light', 'traffic sign', 'vegetation', 'terrain', 'sky',
+    'person', 'rider', 'car', 'truck', 'bus', 'train', 'motorcycle', 'bicycle'
+]
+
+# Mapillary Vistas class names (66 classes) - ordered by class ID 0-65
+# Matches the class definitions in label_unification.py
+MAPILLARY_CLASSES = [
+    'Bird', 'Ground Animal', 'Curb', 'Fence', 'Guard Rail', 'Barrier', 'Wall',
+    'Bike Lane', 'Crosswalk - Plain', 'Curb Cut', 'Parking', 'Pedestrian Area',
+    'Rail Track', 'Road', 'Service Lane', 'Sidewalk', 'Bridge', 'Building', 'Tunnel',
+    'Person', 'Bicyclist', 'Motorcyclist', 'Other Rider', 'Lane Marking - Crosswalk',
+    'Lane Marking - General', 'Mountain', 'Sand', 'Sky', 'Snow', 'Terrain', 'Vegetation',
+    'Water', 'Banner', 'Bench', 'Bike Rack', 'Billboard', 'Catch Basin', 'CCTV Camera',
+    'Fire Hydrant', 'Junction Box', 'Mailbox', 'Manhole', 'Phone Booth', 'Pothole',
+    'Street Light', 'Pole', 'Traffic Sign Frame', 'Utility Pole', 'Traffic Light',
+    'Traffic Sign (Back)', 'Traffic Sign (Front)', 'Trash Can', 'Bicycle', 'Boat',
+    'Bus', 'Car', 'Caravan', 'Motorcycle', 'On Rails', 'Other Vehicle', 'Trailer',
+    'Truck', 'Wheeled Slow', 'Car Mount', 'Ego Vehicle', 'Unlabeled'
+]
+
+# OUTSIDE15k class names (24 classes) - ordered by class ID 0-23
+OUTSIDE15K_CLASSES = [
+    'road', 'sidewalk', 'building', 'wall', 'fence', 'pole',
+    'traffic light', 'traffic sign', 'vegetation', 'terrain', 'sky',
+    'person', 'rider', 'car', 'truck', 'bus', 'train', 'motorcycle', 'bicycle',
+    'construction', 'animal', 'water', 'other', 'ignore'
+]
+
 # Dataset label type configuration for proper label processing during testing
 # Maps dataset folder names to their label type and class configuration
 #
@@ -138,14 +169,14 @@ DATASET_LABEL_CONFIG = {
         # For cross-domain evaluation on Cityscapes test data, convert GT labels
         'label_type': 'mapillary_rgb_to_native',  # RGB color-encoded -> native IDs (0-65)
         'num_classes': 66,  # Native MapillaryVistas classes
-        'classes': None,  # Will be set dynamically
+        'classes': MAPILLARY_CLASSES,  # Use proper Mapillary class names for native evaluation
     },
     'OUTSIDE15k': {
         # For native OUTSIDE15k models (24 classes), keep in native format
         # For cross-domain evaluation on Cityscapes test data, convert predictions
         'label_type': 'native',  # Already native class IDs (0-23)
         'num_classes': 24,  # Native OUTSIDE15k classes
-        'classes': None,  # Will be set dynamically
+        'classes': OUTSIDE15K_CLASSES,  # Use proper OUTSIDE15k class names
     },
 }
 
@@ -153,13 +184,6 @@ DATASET_LABEL_CONFIG = {
 # Used when model predicts native classes but test data uses Cityscapes labels
 MAPILLARY_PRED_TO_CITYSCAPES = custom_transforms.MAPILLARY_TO_TRAINID
 OUTSIDE15K_PRED_TO_CITYSCAPES = custom_transforms.OUTSIDE15K_TO_TRAINID
-
-# Cityscapes class names (19 classes)
-CITYSCAPES_CLASSES = [
-    'road', 'sidewalk', 'building', 'wall', 'fence', 'pole',
-    'traffic light', 'traffic sign', 'vegetation', 'terrain', 'sky',
-    'person', 'rider', 'car', 'truck', 'bus', 'train', 'motorcycle', 'bicycle'
-]
 
 
 def detect_model_num_classes(cfg) -> int:
