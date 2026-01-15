@@ -165,13 +165,35 @@ python unified_training.py --list
 | `--strategy` | Main augmentation strategy (baseline, std_cutmix, gen_cycleGAN, etc.) | baseline |
 | `--std-strategy` | Standard augmentation to combine with main strategy (see Combined Strategies) | None |
 | `--real-gen-ratio` | Ratio of real to generated images (0.0 to 1.0) | 1.0 |
-| `--domain-filter` | Filter training data to specific domain (e.g., clear_day) | None |
+| `--domain-filter` | Filter training data to specific domain (e.g., clear_day for Stage 1 training) | None |
 | `--work-dir` | Output directory for checkpoints and logs | Auto-generated |
 | `--cache-dir` | Directory for caching pretrained weights and checkpoints | ~/.cache/torch |
 | `--load-from` | Path to pretrained weights to initialize model | None |
 | `--resume-from` | Path to checkpoint to resume training from | None |
+| `--max-iters` | Maximum training iterations | 80000 (seg) / 40000 (det) |
 | `--no-early-stop` | Disable early stopping (stops when no improvement for 5 validations) | Enabled |
 | `--early-stop-patience` | Number of validations without improvement before stopping | 5 |
+| `--use-native-classes` | Use native labels (66 for Mapillary, 24 for OUTSIDE15k) instead of Cityscapes 19 | False |
+
+**Important Training Modes:**
+
+```bash
+# Stage 1 Training: Clear-day only (domain-filtered)
+python unified_training.py --dataset BDD10k --model segformer_mit-b5 \
+    --strategy gen_cycleGAN --domain-filter clear_day
+
+# Stage 2 Training: All domains  
+python unified_training.py --dataset BDD10k --model segformer_mit-b5 \
+    --strategy gen_cycleGAN
+
+# Extended Training: Longer training with no early stopping
+python unified_training.py --dataset BDD10k --model segformer_mit-b5 \
+    --strategy gen_cycleGAN --max-iters 320000 --no-early-stop
+
+# Resume from checkpoint
+python unified_training.py --dataset BDD10k --model segformer_mit-b5 \
+    --strategy gen_cycleGAN --resume-from /path/to/iter_80000.pth --max-iters 160000
+```
 
 #### Combined Strategies
 
@@ -422,6 +444,56 @@ For detailed analysis of model performance across weather domains and semantic c
 # Submit batch detailed tests
 ./scripts/test_unified.sh submit-detailed-batch --all-seg-datasets --all-seg-models --strategy baseline --dry-run
 ```
+
+#### Using fine_grained_test.py Directly
+
+The `fine_grained_test.py` script provides fine-grained per-domain and per-class evaluation:
+
+```bash
+# Basic usage (all required arguments)
+python fine_grained_test.py \
+    --config /path/to/config.py \
+    --checkpoint /path/to/checkpoint.pth \
+    --dataset BDD10k \
+    --output-dir results/my_experiment
+
+# With custom batch size (larger = faster, uses more GPU memory)
+python fine_grained_test.py \
+    --config /path/to/config.py \
+    --checkpoint /path/to/checkpoint.pth \
+    --dataset MapillaryVistas \
+    --output-dir results/mapillary_test \
+    --batch-size 8
+
+# Test on validation split instead of test split
+python fine_grained_test.py \
+    --config /path/to/config.py \
+    --checkpoint /path/to/checkpoint.pth \
+    --dataset ACDC \
+    --output-dir results/acdc_val \
+    --test-split val
+```
+
+**Required Arguments:**
+
+| Argument | Description |
+|----------|-------------|
+| `--config` | Path to the MMSeg config file (usually in `configs/` subdirectory of weights folder) |
+| `--checkpoint` | Path to the checkpoint file (e.g., `iter_80000.pth`) |
+| `--dataset` | Dataset name: `ACDC`, `BDD10k`, `IDD-AW`, `MapillaryVistas`, `OUTSIDE15k` |
+| `--output-dir` | Directory where results will be saved |
+
+**Optional Arguments:**
+
+| Argument | Default | Description |
+|----------|---------|-------------|
+| `--data-root` | Auto | Override the data root directory |
+| `--test-split` | `test` | Use `val` for validation split or `test` for test split |
+| `--batch-size` | `10` | Batch size for inference (reduce if OOM errors occur) |
+
+**Output Files:**
+- `results.json` - Complete metrics (overall, per-domain, per-class)
+- `test_report.txt` - Human-readable summary
 
 **Detailed Test Output Files:**
 

@@ -1017,8 +1017,8 @@ def main():
                        help='Data root directory')
     parser.add_argument('--test-split', default='test', choices=['val', 'test'],
                        help='Test split to use')
-    parser.add_argument('--batch-size', type=int, default=4,
-                       help='Batch size for inference (default: 4). Larger = faster but uses more GPU memory.')
+    parser.add_argument('--batch-size', type=int, default=10,
+                       help='Batch size for inference (default: 10). Larger = faster but uses more GPU memory.')
     
     args = parser.parse_args()
     
