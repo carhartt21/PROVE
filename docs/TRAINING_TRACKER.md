@@ -1,6 +1,6 @@
 # Retraining Progress Tracker
 
-**Last Updated:** 2026-01-15 12:10
+**Last Updated:** 2026-01-15 13:05
 
 This document tracks the progress of retraining models with the corrected native class labels.
 
@@ -155,7 +155,7 @@ Based on Stage 1 clear_day results (average mIoU):
 | gen_cycleGAN | ✅ 🎯 | ✅ 🎯 | ✅ 🎯 | ✅ 🎯 |  |
 | gen_flux_kontext | ✅ 🎯 | ✅ 🎯 | ✅ 🎯 | ✅ 🎯 |  |
 | gen_Img2Img | ✅ 🎯 | ✅ 🎯 | ✅ 🎯 | ✅ 🎯 |  |
-| gen_IP2P | ✅ 🎯 | ⏳ | ✅ 🎯 | ✅ 🎯 |  |
+| gen_IP2P | ✅ 🎯 | 🔄 | ✅ 🎯 | ✅ 🎯 |  |
 | gen_LANIT | ✅ 🎯 | ✅ 🎯 | ✅ 🎯 | ✅ 🎯 |  |
 | gen_Qwen_Image_Edit | ✅ 🎯 | ✅ 🎯 | ✅ 🎯 | ✅ 🎯 | No BDD10k data |
 | gen_stargan_v2 | ✅ 🎯 | ✅ 🎯 | ✅ 🎯 | ✅ 🎯 |  |
@@ -233,9 +233,9 @@ python scripts/retrain_affected_models.py --generate-scripts
 
 | Category | Total | Complete | Running | Pending | Failed |
 |----------|-------|----------|---------|---------|--------|
-| **Generative (gen_*)** | 83 | 80 | 0 | 4 | 0 |
+| **Generative (gen_*)** | 83 | 80 | 1 | 3 | 0 |
 | **Standard (std_*)** | 28 | 20 | 0 | 8 | 0 |
-| **TOTAL** | 111 | 100 | 0 | 12 | 0 |
+| **TOTAL** | 111 | 100 | 1 | 11 | 0 |
 
 *Note: Stage 1 trains 3 models per strategy×dataset = 324 total configurations.*
 *Total = 28 strategies × 4 datasets × 3 models - 12 skipped configs = 324 configs*

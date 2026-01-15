@@ -27,7 +27,7 @@ PROJECT_ROOT = SCRIPT_DIR.parent
 
 # Configuration
 WEIGHTS_ROOT = Path(os.environ.get('PROVE_WEIGHTS_ROOT', '/scratch/aaa_exchange/AWARE/WEIGHTS'))
-TRACKER_PATH = PROJECT_ROOT / 'docs' / 'RETRAINING_TRACKER.md'
+TRACKER_PATH = PROJECT_ROOT / 'docs' / 'TRAINING_TRACKER.md'
 DATASETS = ['bdd10k', 'idd-aw', 'mapillaryvistas', 'outside15k']
 
 # Models - now using new structure: dataset_cd/model_ratio
@@ -204,17 +204,31 @@ def get_running_jobs():
     # Known datasets for matching
     known_datasets = ['bdd10k', 'idd-aw', 'mapillaryvistas', 'outside15k']
     # Also check for _cd suffix variants
-    known_datasets_cd = ['bdd10k_cd', 'iddaw_cd', 'mapillaryvistas_cd', 'outside15k_cd']
+    known_datasets_cd = ['bdd10k_cd', 'idd-aw_cd', 'mapillaryvistas_cd', 'outside15k_cd']
     # Model suffixes that might appear at the end of job names
     model_suffixes = ['dlv3p', 'pspn', 'segf', 'deeplabv3plus', 'pspnet', 'segformer']
     
     # Check jobs from multiple users
-    users_to_check = ['', '-u chge7185']  # '' means current user
+    users_to_check = ['-u mima2416', '-u chge7185']  # '' means current user
     
     # Job name prefixes to check for Stage 1
-    job_prefixes = ['retrain_', 'train_', 'fix_', 'rt_']
+    job_prefixes = ['retrain_', 'train_', 'fix_', 'rt3_', 'rt4_']
     # Skip prefixes for other job types
     skip_prefixes = ['s2_', 'ratio_', 'retest_']
+    
+    # Mapping from abbreviated job names to full strategy names (for rt3_/rt4_ jobs)
+    abbrev_to_strategy = {
+        'AttrHall': 'gen_Attribute_Hallucination',
+        'baseline': 'baseline',
+        'CNetSeg': 'gen_CNetSeg',
+        'CUT': 'gen_CUT',
+        'IP2P': 'gen_IP2P',
+        'autoaug': 'std_autoaugment',
+        'cutmix': 'std_cutmix',
+        'mixup': 'std_mixup',
+        'photom': 'photometric_distort',
+        'randaug': 'std_randaugment',
+    }
     
     for user_flag in users_to_check:
         try:
@@ -294,6 +308,27 @@ def get_running_jobs():
                             running[(strategy, dataset)] = 'PEND'
                         elif stat in ('DONE', 'EXIT') and current_stat not in ('RUN', 'PEND'):
                             running[(strategy, dataset)] = stat
+                        continue
+                    
+                    # Handle rt3_/rt4_ job format: <abbrev>_iddaw_<model>
+                    # Example: rt4_randaug_iddaw_psp -> std_randaugment / idd-aw
+                    if any(job_name.startswith(p) for p in ['rt3_', 'rt4_']):
+                        parts = job_part.split('_')
+                        if len(parts) >= 2:
+                            abbrev = parts[0]
+                            # Check for iddaw in second or third position
+                            if 'iddaw' in parts:
+                                dataset = 'idd-aw'
+                                if abbrev in abbrev_to_strategy:
+                                    strategy = abbrev_to_strategy[abbrev]
+                                    current_stat = running.get((strategy, dataset))
+                                    if stat == 'RUN':
+                                        running[(strategy, dataset)] = 'RUN'
+                                    elif stat == 'PEND' and current_stat != 'RUN':
+                                        running[(strategy, dataset)] = 'PEND'
+                                    elif stat in ('DONE', 'EXIT') and current_stat not in ('RUN', 'PEND'):
+                                        running[(strategy, dataset)] = stat
+                                    continue
                         continue
 
                     # If still not found, try fuzzy/truncated matching for rt_ jobs
