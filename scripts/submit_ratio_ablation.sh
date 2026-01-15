@@ -4,12 +4,12 @@
 # This script submits training jobs to vary the ratio of generated to real images
 # using the top 5 best performing gen_* strategies.
 #
-# Top 5 Gen Strategies (by average mIoU):
-#   1. gen_LANIT       (55.71)
-#   2. gen_step1x_new  (55.70)
-#   3. gen_automold    (55.62)
-#   4. gen_TSIT        (55.61)
-#   5. gen_NST         (55.55)
+# Top 5 Gen Strategies (by average mIoU, with 4/4 datasets complete):
+#   1. gen_TSIT                  (48.8)
+#   2. gen_albumentations_weather (48.8)
+#   3. gen_cycleGAN              (48.5)
+#   4. gen_UniControl            (48.5)
+#   5. gen_automold              (47.5)
 #
 # Ratios: 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875, 1.0
 #   - ratio 1.0 = 100% real images (baseline for that strategy)
@@ -44,22 +44,25 @@ cd "$PROJECT_ROOT"
 # Configuration
 # ============================================================================
 
-# Top 5 gen_* strategies by average mIoU
+# Top 5 gen_* strategies by average mIoU (with 4/4 datasets complete)
+# Updated 2026-01-14 based on TESTING_COVERAGE.md results
+# NOTE: gen_flux_kontext has 3/4 datasets, excluded for now
 TOP_5_GEN_STRATEGIES=(
-    "gen_LANIT"
+    "gen_cyclediffusion"
     "gen_step1x_new"
-    "gen_automold"
+    "gen_step1x_v1p2"
+    "gen_stargan_v2"
     "gen_TSIT"
-    "gen_NST"
 )
 
 # Ratios to test (0.0 to 1.0 in 0.125 increments)
 # Note: 0.0 = 100% synthetic, 0.5 is excluded (same as standard gen_* training in WEIGHTS)
-RATIOS=(0.0 0.125 0.25 0.375 0.625 0.75 0.875 1.0)
+RATIOS=(0.0 0.125 0.25 0.375 0.625 0.75 0.875)
 
 # Datasets and models for ablation
-DATASETS=("ACDC" "BDD10k" "IDD-AW" "MapillaryVistas" "OUTSIDE15k")
-MODELS=("deeplabv3plus_r50" "pspnet_r50" "segformer_mit-b5")
+# Note: DeepLabV3+ intentionally excluded from ratio ablation study
+DATASETS=("BDD10k" "IDD-AW" "MapillaryVistas" "OUTSIDE15k")
+MODELS=("pspnet_r50" "segformer_mit-b5")
 
 # Default LSF settings
 DEFAULT_QUEUE="BatchGPU"
@@ -102,12 +105,12 @@ print_usage() {
     echo "                      (default: $DEFAULT_WEIGHTS_ROOT)"
     echo "  --help              Show this help message"
     echo ""
-    echo "Top 5 Gen Strategies (by average mIoU across all datasets/models):"
-    echo "  1. gen_LANIT       (55.71)"
-    echo "  2. gen_step1x_new  (55.70)"
-    echo "  3. gen_automold    (55.62)"
-    echo "  4. gen_TSIT        (55.61)"
-    echo "  5. gen_NST         (55.55)"
+    echo "Top 5 Gen Strategies (by average mIoU, with 4/4 datasets complete):"
+    echo "  1. gen_TSIT                  (48.8)"
+    echo "  2. gen_albumentations_weather (48.8)"
+    echo "  3. gen_cycleGAN              (48.5)"
+    echo "  4. gen_UniControl            (48.5)"
+    echo "  5. gen_automold              (47.5)"
     echo ""
     echo "Ratios:"
     echo "  - 1.0   = 100% real images (strategy baseline)"
@@ -319,8 +322,32 @@ for job in "${JOBS[@]}"; do
     ratio_pct=$(echo "$ratio * 100" | bc | cut -d. -f1)
     job_name="ratio_${dataset}_${model}_${strategy}_r${ratio_pct}"
     
-    # Build training command with custom weights root via environment variable
-    train_cmd="PROVE_WEIGHTS_ROOT='${WEIGHTS_ROOT}' $SCRIPT_DIR/train_unified.sh single --dataset $dataset --model $model --strategy $strategy --ratio $ratio"
+    # Map dataset to folder name for paths
+    dataset_lower=$(echo "$dataset" | tr '[:upper:]' '[:lower:]')
+    case "$dataset_lower" in
+        "bdd10k") dataset_folder="bdd10k_cd" ;;
+        "idd-aw") dataset_folder="idd-aw_cd" ;;
+        "mapillaryvistas") dataset_folder="mapillaryvistas_cd" ;;
+        "outside15k") dataset_folder="outside15k_cd" ;;
+        *) dataset_folder="${dataset_lower}_cd" ;;
+    esac
+    
+    # Build model path with ratio suffix (e.g., pspnet_r50_ratio0p12)
+    ratio_suffix=$(echo "$ratio" | sed 's/0\./0p/;s/\.//g')
+    model_path="${model}_ratio${ratio_suffix}"
+    
+    # Full paths for checkpoints and results
+    weights_path="${WEIGHTS_ROOT}/${strategy}/${dataset_folder}/${model_path}"
+    results_path="${PROJECT_ROOT}/results_ratio_ablation/${strategy}/${dataset_folder}/${model_path}"
+    
+    # Build training command
+    train_cmd="PROVE_WEIGHTS_ROOT='${WEIGHTS_ROOT}' python unified_training.py --dataset $dataset --model $model --strategy $strategy --real-gen-ratio $ratio --no-early-stop --max-iters 80000"
+    
+    # Build test command (runs after training completes)
+    test_cmd="python fine_grained_test.py --config \$(ls ${weights_path}/configs/*.py 2>/dev/null | head -1) --checkpoint ${weights_path}/iter_80000.pth --dataset $dataset --output-dir ${results_path}"
+    
+    # Combined command: train then test
+    full_cmd="source ~/.bashrc && conda activate prove && cd ${PROJECT_ROOT} && ${train_cmd} && echo 'Training complete, starting test...' && ${test_cmd}"
     
     # Build bsub command
     bsub_cmd="bsub -gpu \"num=1:mode=${GPU_MODE}:gmem=${GPU_MEM}\" \
@@ -331,7 +358,7 @@ for job in "${JOBS[@]}"; do
         -eo \"logs/${job_name}_%J.err\" \
         -L /bin/bash \
         -J \"${job_name}\" \
-        \"${train_cmd}\""
+        \"${full_cmd}\""
     
     if [ "$DRY_RUN" = true ]; then
         echo "[DRY-RUN] $job_name"
@@ -339,7 +366,8 @@ for job in "${JOBS[@]}"; do
         echo "  Ratio:    $ratio"
         echo "  Dataset:  $dataset"
         echo "  Model:    $model"
-        echo "  Command:  $train_cmd"
+        echo "  Train:    $train_cmd"
+        echo "  Test:     $test_cmd"
         echo ""
         SUBMITTED=$((SUBMITTED + 1))
     else
