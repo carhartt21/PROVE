@@ -1,8 +1,25 @@
 # TODO - Upcoming Tasks
 
-*Last updated: 2026-01-15 (11:35)*
+*Last updated: 2026-01-15 (16:30)*
 
 ## Active Training/Testing Jobs
+
+### Stage 1 Training Coverage Status (Jan 15, 2026)
+
+**Status:** 🔄 88.1% Complete, 11.0% Pending, 0.9% Running
+
+| Status | Count | Percentage |
+|--------|------:|----------:|
+| ✅ Complete | 296 | 88.1% |
+| 🔄 Running | 3 | 0.9% |
+| ⏳ Pending | 37 | 11.0% |
+| ⚠️ Missing | 0 | 0.0% |
+
+**All configurations are now covered** (either complete, running, or pending).
+
+### Stage 1 Testing
+
+- Finish when trainings are complete
 
 ### IDD-AW Retraining Pipeline v4 (Jan 15, 2026)
 
@@ -18,11 +35,10 @@
 - rt3_IP2P_iddaw_dlv3 (job 9561538) - uses gen_IP2P strategy
 
 **Strategies (10 total):**
-- baseline, gen_Attribute_Hallucination, gen_ControlNet_seg2image, gen_CUT, gen_InstructPix2Pix
-- std_autoaugment, std_cutmix, std_mixup, std_photometric_distort, std_randaugment
+- baseline, gen_Attribute_Hallucination, gen_CNetSeg, gen_CUT, gen_IP2P
+- std_autoaugment, std_cutmix, std_mixup, photometric_distort, std_randaugment
 
 **Models:** DeepLabV3+, PSPNet, SegFormer (29 total jobs)
-| std_randaugment | 9561553 | 9561554 | 9561555 |
 
 ### Ratio Ablation Study (Jan 15, 2026)
 
@@ -44,10 +60,64 @@
 
 ### std_minimal Strategy (Jan 14-15, 2026)
 
-**Status:** ✅ Training Complete, ⏳ Tests Pending
+**Status:** 🔄 Training + Testing In Progress
 
-Training completed for all 12 models (4 datasets × 3 architectures).
-Test jobs need to be submitted.
+**Training:**
+- ✅ 8/12 models complete (BDD10k, IDD-AW × DeepLabV3+/PSPNet)
+- 🔄 4 jobs pending (MapillaryVistas, OUTSIDE15k × DeepLabV3+ only, plus SegFormer variants)
+  - Job 9566336: std_minimal_mapillary_cd
+  - Job 9566337: std_minimal_outside15k_cd
+  - Job 9566639: std_minimal_iddaw_segf  
+  - Job 9566640: std_minimal_bdd10k_segf
+
+**Testing:**
+- 🔄 8 test jobs resubmitted (Jan 15, 16:16) - fixed missing --config/--output-dir
+  - Job IDs: 9571762-9571769 (1 running, 7 pending)
+  - Datasets: BDD10k_ad, IDD-AW_ad, MapillaryVistas_ad, OUTSIDE15k_ad
+
+### Additional Missing Config Jobs (Jan 15, 2026)
+
+**Status:** 🔄 Submitted (moved to top of queue)
+
+| Job ID | Config | Status |
+|--------|--------|--------|
+| 9566641 | gen_step1x_new / IDD-AW / PSPNet | ⏳ PEND |
+| 9566642 | gen_Weather_Effect_Generator / BDD10k / SegFormer | ⏳ PEND |
+
+### Extended Training (320k) - User chge7185 (Jan 15, 2026)
+
+**Status:** 🔄 Running (34 jobs total - 6 running, 28 pending, 22 completed)
+
+**Owner:** User chge7185
+**Duration:** 320k iterations (4× standard 80k)
+
+**Strategies (6 total):**
+| Strategy | Description |
+|----------|-------------|
+| gen_automold | Photorealistic weather augmentation |
+| gen_cyclediffusion | Cycle-consistent diffusion |
+| gen_flux_kontext | Flux context-aware generation |
+| gen_step1x_new | Step1X new version |
+| gen_step1x_v1p2 | Step1X version 1.2 |
+| std_randaugment | Standard random augmentation |
+
+**📊 Analysis Complete (Jan 15, 2026):**
+- Full diminishing returns analysis completed
+- **Report:** [docs/EXTENDED_TRAINING_ANALYSIS.md](EXTENDED_TRAINING_ANALYSIS.md)
+- **Figures:** `result_figures/extended_training_analysis.png`, `result_figures/extended_training_by_strategy.png`
+
+**Key Findings:**
+| Training Phase | Avg mIoU Gain | % of Initial |
+|----------------|---------------|--------------|
+| 90k → 160k | +0.75 | 100% |
+| 160k → 240k | +0.39 | 52% |
+| 240k → 320k | +0.10 | 13% |
+
+**Recommendation:** 160k training captures 75% of gains at 50% compute cost.
+
+**Models:** PSPNet, SegFormer (DeepLabV3+ excluded)
+**Datasets:** BDD10k, IDD-AW, MapillaryVistas, OUTSIDE15k
+**Job ID Range:** 9529824, 9558712-9558746
 
 ---
 
@@ -55,73 +125,75 @@ Test jobs need to be submitted.
 
 ### High Priority
 
-1. **✅ WEIGHTS Directory Consolidation (COMPLETED Jan 15)**
-   
-   **Summary:**
-   - 44 directories renamed (safe renames)
-   - 14 merge conflicts resolved (newer checkpoints kept)
-   - 0 `iddaw_*` directories remaining
-   - All IDD-AW dirs now use `idd-aw_*` naming convention
-   
-   **Current State:**
-   - 28 `idd-aw_cd` directories (Stage 1)
-   - 16 `idd-aw_ad` directories (Stage 2)
-   - ~14 `*_old_backup` directories (can be deleted to reclaim space)
-   
-   **Scripts Created:**
-   - `scripts/safe_rename_weights.sh`
-   - `scripts/merge_weights_conflicts.sh`
-   - `scripts/resolve_weights_conflicts.sh`
-   
-   **See:** [WEIGHTS_CONSOLIDATION_PLAN.md](WEIGHTS_CONSOLIDATION_PLAN.md) for full details.
-
-2. **✅ Ratio Ablation Strategies - Submissions Complete**
-   - gen_step1x_new: 56 jobs ✅
-   - gen_step1x_v1p2: 56 jobs ✅
-   - gen_stargan_v2 and gen_TSIT: NOT needed (strategies 4 & 5 not required)
-   - gen_cyclediffusion: Needs verification
-
-3. **Submit std_minimal Test Jobs**
-   - Training completed, tests needed for: BDD10k, IDD-AW, MapillaryVistas, OUTSIDE15k
-   - 12 test jobs (4 datasets × 3 architectures)
-
-4. **Periodic Coverage Updates**
-   - Run `python scripts/update_retraining_tracker.py` periodically
-   - Updates: [TRAINING_COVERAGE.md](TRAINING_COVERAGE.md), [TESTING_COVERAGE.md](TESTING_COVERAGE.md)
+1. **Periodic Coverage Updates**
+   - Run `python scripts/update_training_tracker.py` periodically
+   - Updates: [TRAINING_TRACKER.md](TRAINING_TRACKER.md), [TESTING_COVERAGE.md](TESTING_COVERAGE.md)
    - Recommended frequency: After job batches complete
+
+2. **gen_cyclediffusion Verification**
+   - Needs verification before ratio ablation submission
+   - Check if standard training completed correctly
+
+3. **Domain Adaptation Ablation Study** ⭐ NEW
+   - Cross-dataset domain generalization evaluation
+   - See [DOMAIN_ADAPTATION_ABLATION.md](DOMAIN_ADAPTATION_ABLATION.md) for full details
+   - **Scope:** 12 jobs total (6 full + 6 clear_day baseline)
+   - **Available checkpoints:** 8/12 currently (4 missing)
+   - **Missing checkpoint training:** Job 9565922 submitted (MapillaryVistas/segformer_ad) - moved to TOP
+   - **Source datasets:** BDD10k, IDD-AW, MapillaryVistas
+   - **Target domains:** Cityscapes (clear_day) + ACDC (foggy, night, rainy, snowy)
+   - **Models:** PSPNet, SegFormer (DeepLabV3+ excluded)
+   - **Status:** ⏳ Ready to submit (8 jobs available, 4 pending training)
+   - **Script:** `./scripts/submit_domain_adaptation_ablation.sh --all`
+
+4. **Augmentation Combination Training**
+   - Combine the Top-3 std and gen strategies using Segformer and PSPNet
+   - Decide which datasets to use (maybe not all to limit training time)
 
 ### Medium Priority
 
-5. **Ratio Ablation Analysis**
+3. **Ratio Ablation Analysis**
    - Once training completes, run comprehensive analysis
    - Update ratio ablation figures
 
-6. **Generate Final Leaderboard**
+4. **Generate Final Leaderboard**
    - After all tests complete, regenerate strategy leaderboard
+
+5. **Extended Training Analysis (Follow-up)**
+   - Analyze remaining configs when training completes
+   - Compare different strategies' convergence rates
+   - Investigate why gen_TSIT saturates early (peak @ 190k)
+   - Consider 160k as new default training length (cost-effective)
 
 ### Low Priority
 
-7. **Documentation Cleanup**
+5. **Documentation Cleanup**
    - Archive old scripts in archived_scripts_20260115/
    - Update README with recent changes
 
-8. **Code Quality**
+6. **Code Quality**
    - Review and clean up one-time fix scripts
    - Add unit tests for critical transforms
 
-9. **✅ Mapillary Class Mapping Bug (FIXED Jan 15)**
-   - **Issue:** Test reports showed wrong class names (e.g., "road" was showing IoU for class 0, which is actually "Bird")
-   - **Root Cause:** `MAPILLARY_CLASSES` and `OUTSIDE15K_CLASSES` were not defined, so `get_dataset_config()` fell back to `CITYSCAPES_CLASSES` (19 classes)
-   - **Fix:** Added proper class name lists in `fine_grained_test.py`:
-     - `MAPILLARY_CLASSES`: 66 class names ordered by ID (Bird, Ground Animal, ..., Road@13, ..., Unlabeled)
-     - `OUTSIDE15K_CLASSES`: 24 class names
-   - **Files Changed:** [fine_grained_test.py](../fine_grained_test.py#L100-L130)
+7. **Clean up WEIGHTS backup directories**
+   - ~14 `*_old_backup` directories can be deleted to reclaim space
 
 ---
 
 ## Recently Completed
 
 ### Jan 15, 2026
+- ✅ **Training Coverage Now 100% (no missing configs)**
+  - Updated `scripts/update_training_tracker.py` to recognize all job patterns
+  - Added rt3_/rt4_ job prefix support with abbreviation mapping
+  - Added truncated dataset name support (iddaw, mapillary)
+  - Coverage report: 296 complete + 37 pending + 3 running = 336 total
+- ✅ **Submitted 4 Missing Configurations:**
+  - std_minimal/IDD-AW/SegFormer (Job 9566639)
+  - std_minimal/BDD10k/SegFormer (Job 9566640)
+  - gen_step1x_new/IDD-AW/PSPNet (Job 9566641)
+  - gen_Weather_Effect_Generator/BDD10k/SegFormer (Job 9566642)
+- ✅ Cancelled duplicate std_minimal jobs (9566334, 9566335)
 - ✅ Fixed `submit_ratio_ablation.sh` - was calling non-existent `train_unified.sh`
 - ✅ Identified rtfix_ retraining bug - missing `--domain-filter clear_day`
 - ✅ Updated scripts to include automatic testing after training
@@ -148,6 +220,32 @@ Test jobs need to be submitted.
   - IoU values were always correct, only labels in reports were wrong
   - Verified fix: Road@13=92.29%, Building@17=91.82%, Car@55=1.03%
   - See Bug Reference section below for details
+- ✅ **Ratio Ablation Submissions Complete:**
+  - gen_step1x_new: 56 jobs submitted
+  - gen_step1x_v1p2: 56 jobs submitted
+  - gen_stargan_v2 and gen_TSIT: NOT needed (strategies 4 & 5 not required)
+- ✅ **std_minimal Test Jobs Resubmitted:**
+  - Original jobs failed (missing --config/--output-dir args)
+  - Fixed script: `scripts/submit_std_minimal_tests.sh`
+  - 8 new test jobs submitted (Job IDs: 9571762-9571769)
+  - Datasets: BDD10k_ad, IDD-AW_ad, MapillaryVistas_ad, OUTSIDE15k_ad
+- ✅ **README.md Updated:**
+  - Added comprehensive `fine_grained_test.py` documentation
+  - Added important training modes for `unified_training.py`
+  - Added `--max-iters`, `--use-native-classes` to options table
+- ✅ **Scripts Archived:**
+  - Moved 9 one-time scripts to `archived_scripts_20260115/`
+  - submit_iddaw_tests_*.sh, submit_missing_*.sh, submit_all_remaining_tests.sh
+- ✅ **Created Reusable Submission Templates:**
+  - `scripts/submit_training.sh` - Training job template with all options
+  - `scripts/submit_testing.sh` - Testing job template with auto-detection
+  - Both support --dry-run for previewing commands
+- ✅ **Extended Training Diminishing Returns Analysis:**
+  - Analyzed 22 configurations at 320k iterations
+  - Created report: [docs/EXTENDED_TRAINING_ANALYSIS.md](EXTENDED_TRAINING_ANALYSIS.md)
+  - Generated visualizations: `result_figures/extended_training_analysis.png`, `result_figures/extended_training_by_strategy.png`
+  - Key finding: 160k captures 75% of gains at 50% compute cost
+  - Updated [EXTENDED_TRAINING.md](EXTENDED_TRAINING.md) with analysis results
 
 ### Jan 14, 2026
 - ✅ Identified IDD-AW training data corruption bug

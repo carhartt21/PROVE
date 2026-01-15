@@ -70,14 +70,12 @@ Labels: `*_gt_labelIds.png` (Cityscapes labelID format, converted to trainID)
 
 ### Models
 
-All three segmentation architectures:
-- **DeepLabV3+ ResNet-50** (deeplabv3plus_r50)
 - **PSPNet ResNet-50** (pspnet_r50)
 - **SegFormer MiT-B5** (segformer_mit-b5)
 
 ### Training Configurations
 
-Two training configurations are compared:
+Two training configurations are compared against the Top 5 augmentation strategies:
 
 1. **Full Dataset Models** - Trained on all available data from each source dataset
 2. **Clear Day Baseline Models** - Trained only on clear_day subset of each source dataset
@@ -150,7 +148,7 @@ CITYSCAPES_ID_TO_TRAINID = {
    - Is the domain gap from clear_day (Cityscapes) to adverse (ACDC) larger than between source and clear_day?
 
 3. **Q3: Architecture Sensitivity**
-   - Do transformer-based models (SegFormer) generalize better than CNN-based (DeepLabV3+, PSPNet)?
+   - Do transformer-based models (SegFormer) generalize better than CNN-based (PSPNet)?
    - Is there an architecture-dataset interaction effect?
 
 ### Secondary Questions
@@ -228,35 +226,29 @@ def transform_cityscapes_label(label: np.ndarray) -> np.ndarray:
 
 ## Job Submission Matrix
 
-### Full Dataset Models (9 jobs)
+### Full Dataset Models (6 jobs)
 
 | Source Dataset | Model | Checkpoint | Target Domains |
 |---------------|-------|------------|----------------|
-| BDD10k | deeplabv3plus_r50 | iter_80000.pth | clear_day + 4 ACDC domains |
 | BDD10k | pspnet_r50 | iter_80000.pth | clear_day + 4 ACDC domains |
 | BDD10k | segformer_mit-b5 | iter_80000.pth | clear_day + 4 ACDC domains |
-| IDD-AW | deeplabv3plus_r50 | iter_80000.pth | clear_day + 4 ACDC domains |
 | IDD-AW | pspnet_r50 | iter_80000.pth | clear_day + 4 ACDC domains |
 | IDD-AW | segformer_mit-b5 | iter_80000.pth | clear_day + 4 ACDC domains |
-| MapillaryVistas | deeplabv3plus_r50 | iter_80000.pth | clear_day + 4 ACDC domains |
 | MapillaryVistas | pspnet_r50 | iter_80000.pth | clear_day + 4 ACDC domains |
 | MapillaryVistas | segformer_mit-b5 | iter_80000.pth | clear_day + 4 ACDC domains |
 
-### Clear Day Baseline Models (9 jobs)
+### Clear Day Baseline Models (6 jobs)
 
 | Source Dataset | Model | Checkpoint | Target Domains |
 |---------------|-------|------------|----------------|
-| BDD10k | deeplabv3plus_r50_clear_day | iter_80000.pth | clear_day + 4 ACDC domains |
 | BDD10k | pspnet_r50_clear_day | iter_80000.pth | clear_day + 4 ACDC domains |
 | BDD10k | segformer_mit-b5_clear_day | iter_80000.pth | clear_day + 4 ACDC domains |
-| IDD-AW | deeplabv3plus_r50_clear_day | iter_80000.pth | clear_day + 4 ACDC domains |
 | IDD-AW | pspnet_r50_clear_day | iter_80000.pth | clear_day + 4 ACDC domains |
 | IDD-AW | segformer_mit-b5_clear_day | iter_80000.pth | clear_day + 4 ACDC domains |
-| MapillaryVistas | deeplabv3plus_r50_clear_day | iter_80000.pth | clear_day + 4 ACDC domains |
 | MapillaryVistas | pspnet_r50_clear_day | iter_80000.pth | clear_day + 4 ACDC domains |
 | MapillaryVistas | segformer_mit-b5_clear_day | iter_80000.pth | clear_day + 4 ACDC domains |
 
-**Total: 18 evaluation jobs** (each evaluates 5 domains: clear_day, foggy, night, rainy, snowy)
+**Total: 12 evaluation jobs** (each evaluates 5 domains: clear_day, foggy, night, rainy, snowy)
 
 ## Result Storage
 
@@ -273,24 +265,24 @@ Results will be saved to:
 ## Script Usage
 
 ```bash
-# Submit all 18 evaluation jobs (9 full + 9 clear_day baseline)
+# Submit all 12 evaluation jobs (6 full + 6 clear_day baseline)
 ./scripts/submit_domain_adaptation_ablation.sh --all
 
-# Submit only the 9 full dataset model jobs
+# Submit only the 6 full dataset model jobs
 ./scripts/submit_domain_adaptation_ablation.sh --all-full
 
-# Submit only the 9 clear_day baseline model jobs
+# Submit only the 6 clear_day baseline model jobs
 ./scripts/submit_domain_adaptation_ablation.sh --all-clear-day
 
 # Submit single job (full dataset)
 ./scripts/submit_domain_adaptation_ablation.sh \
     --source-dataset BDD10k \
-    --model deeplabv3plus_r50
+    --model pspnet_r50
 
 # Submit single job (clear_day baseline)
 ./scripts/submit_domain_adaptation_ablation.sh \
     --source-dataset BDD10k \
-    --model deeplabv3plus_r50 \
+    --model pspnet_r50 \
     --variant _clear_day
 
 # Dry run
