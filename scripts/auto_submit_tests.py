@@ -26,6 +26,7 @@ from datetime import datetime
 SCRIPT_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = SCRIPT_DIR.parent
 WEIGHTS_ROOT = Path(os.environ.get('PROVE_WEIGHTS_ROOT', '/scratch/aaa_exchange/AWARE/WEIGHTS'))
+WEIGHTS_ROOT_STAGE2 = Path(os.environ.get('PROVE_WEIGHTS_ROOT_STAGE2', '/scratch/aaa_exchange/AWARE/WEIGHTS_STAGE_2'))
 LOG_DIR = PROJECT_ROOT / 'logs'
 
 DATASETS = ['bdd10k', 'idd-aw', 'mapillaryvistas', 'outside15k']
@@ -138,11 +139,11 @@ def find_configs_needing_tests(main_only=False, stage=None):
             continue
         
         for dataset in datasets_to_check:
-            # Handle different directory naming conventions
-            ds_dir_candidates = [f"{dataset}_cd"]
+            # Directory name is just the dataset (no _cd suffix anymore)
+            ds_dir_candidates = [dataset]
             # Add alternate naming for idd-aw -> iddaw
             if '-' in dataset:
-                ds_dir_candidates.append(f"{dataset.replace('-', '')}_cd")
+                ds_dir_candidates.append(dataset.replace('-', ''))
             
             for ds_dir_name in ds_dir_candidates:
                 dataset_path = strategy_path / ds_dir_name
