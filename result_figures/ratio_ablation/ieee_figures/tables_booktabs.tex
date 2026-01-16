@@ -1,0 +1,48 @@
+
+% Table 1: Ratio Ablation Results - Best Performance
+\begin{table}[htbp]
+\centering
+\caption{Best mIoU (\%) Achieved at Different Synthetic Data Ratios}
+\label{tab:ratio_ablation_best}
+\begin{tabular}{@{}llccc@{}}
+\toprule
+Dataset & Model & Best Ratio & mIoU & Baseline \\
+\midrule
+IDD-AW & DeepLabV3+ & 38\% & 73.5 & 70.4 \\
+IDD-AW & PSPNet & 12\% & 78.4 & 75.0 \\
+IDD-AW & SegFormer & 38\% & 85.4 & 85.3 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+% Table 2: Mean Performance Across Ratios
+\begin{table}[htbp]
+\centering
+\caption{Mean mIoU (\%) Across Models at Different Ratios}
+\label{tab:ratio_mean_performance}
+\begin{tabular}{@{}lrrrrrrr@{}}
+\toprule
+Dataset & 0\% & 12\% & 25\% & 38\% & 62\% & 75\% & 88\% \\
+\midrule
+IDD-AW & 76.9 & 75.3 & 76.2 & 78.9 & 77.4 & 76.7 & 77.7 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+% Table 3: Per-Domain Performance at Optimal Ratio
+\begin{table}[htbp]
+\centering
+\caption{Per-Domain mIoU (\%) at Optimal Synthetic Data Ratio}
+\label{tab:ratio_per_domain}
+\begin{tabular}{@{}llccccccc@{}}
+\toprule
+Dataset & Model & Clear & Cloudy & Dawn & Foggy & Night & Rainy & Snowy \\
+\midrule
+IDD-AW & DeepLabV3+ & 72.9 & 75.3 & 66.3 & 73.0 & 67.4 & 66.6 & 59.2 \\
+IDD-AW & PSPNet & 79.4 & 76.8 & 69.1 & 75.7 & 71.4 & 68.7 & 66.2 \\
+IDD-AW & SegFormer & 82.9 & 83.2 & 73.7 & 90.2 & 80.4 & 74.8 & 79.3 \\
+\bottomrule
+\end{tabular}
+\end{table}

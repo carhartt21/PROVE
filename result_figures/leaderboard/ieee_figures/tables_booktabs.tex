@@ -1,0 +1,291 @@
+% ============================================================================
+% IEEE Publication Tables - Strategy Leaderboard Analysis
+% Generated: January 8, 2026
+% Requires: booktabs, multirow, siunitx packages
+% ============================================================================
+
+% Add to preamble:
+% \usepackage{booktabs}
+% \usepackage{multirow}
+% \usepackage{siunitx}
+% \sisetup{detect-weight=true, detect-family=true}
+
+% ============================================================================
+% Table I: Strategy Leaderboard (Top 15)
+% ============================================================================
+
+\begin{table}[t]
+\centering
+\caption{Strategy Leaderboard: Top 15 Augmentation Methods by Overall mIoU Gain. Reference baseline is clear-day-only trained model. Best results in \textbf{bold}.}
+\label{tab:strategy_leaderboard}
+\begin{tabular}{@{}llcccc@{}}
+\toprule
+\textbf{Rank} & \textbf{Strategy} & \textbf{Type} & \textbf{mIoU} & \textbf{Gain} & \textbf{Gap Red.} \\
+ & & & (\%) & (\%) & (\%) \\
+\midrule
+1 & AutoMold & Generative & \textbf{62.1} & \textbf{+2.7} & +3.5 \\
+2 & NST & Generative & 61.6 & +2.2 & +4.6 \\
+3 & Photometric & Augmentation & 61.5 & +2.1 & +3.9 \\
+4 & SUSTechGAN & Generative & 61.4 & +2.0 & +3.6 \\
+5 & UniControl & Generative & 61.3 & +2.0 & +3.5 \\
+6 & Attr. Halluc. & Generative & 61.1 & +1.8 & +3.9 \\
+7 & RandAugment & Standard & 61.1 & +1.7 & +4.6 \\
+8 & MixUp & Standard & 61.1 & +1.7 & +2.7 \\
+9 & LANIT & Generative & 61.0 & +1.7 & +4.1 \\
+10 & Step1x & Generative & 61.0 & +1.6 & +4.0 \\
+11 & CutMix & Standard & 60.9 & +1.6 & +2.6 \\
+12 & CUT & Generative & 60.9 & +1.6 & $-$4.4 \\
+13 & Flux1 Kontext & Generative & 60.9 & +1.5 & +4.2 \\
+14 & TSIT & Generative & 60.6 & +1.3 & \textbf{+5.5} \\
+15 & Weather Gen. & Generative & 60.6 & +1.2 & +3.3 \\
+\midrule
+-- & Baseline (Full) & Baseline & 60.3 & +0.9 & +3.8 \\
+-- & Baseline (Clear) & Baseline & 59.4 & 0.0 & 0.0 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+% ============================================================================
+% Table II: Normal vs Adverse Performance
+% ============================================================================
+
+\begin{table}[t]
+\centering
+\caption{Strategy Performance on Normal vs Adverse Weather Conditions. Gain values are relative to clear-day baseline.}
+\label{tab:normal_adverse}
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+\textbf{Strategy} & \textbf{Normal} & \textbf{Adverse} & \textbf{Domain} & \textbf{Gap} \\
+ & \textbf{Gain (\%)} & \textbf{Gain (\%)} & \textbf{Gap (\%)} & \textbf{Red. (\%)} \\
+\midrule
+AutoMold & +1.8 & +5.4 & $-$0.9 & +3.5 \\
+NST & +1.1 & \textbf{+5.7} & $-$2.0 & +4.6 \\
+Photometric & +1.6 & +5.6 & $-$1.4 & +3.9 \\
+SUSTechGAN & +1.3 & +4.9 & $-$1.0 & +3.6 \\
+RandAugment & +0.9 & +5.4 & $-$2.0 & +4.6 \\
+TSIT & $-$0.1 & +5.4 & $-$2.9 & \textbf{+5.5} \\
+StyleID & +2.8 & \textbf{+6.0} & $-$0.6 & +3.2 \\
+CUT & \textbf{+4.8} & +0.4 & +7.0 & $-$4.4 \\
+\midrule
+Baseline (Full) & +0.8 & +4.7 & $-$1.2 & +3.8 \\
+Baseline (Clear) & 0.0 & 0.0 & +2.6 & 0.0 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+% ============================================================================
+% Table III: Per-Domain Performance Gains
+% ============================================================================
+
+\begin{table*}[t]
+\centering
+\caption{Per-Domain mIoU Gains (\%) for Top Augmentation Strategies vs Clear-Day Baseline. Positive values indicate improvement.}
+\label{tab:per_domain_gains}
+\begin{tabular}{@{}llccccccc|c@{}}
+\toprule
+\textbf{Strategy} & \textbf{Type} & \textbf{Clear} & \textbf{Cloudy} & \textbf{Dawn} & \textbf{Foggy} & \textbf{Night} & \textbf{Rainy} & \textbf{Snowy} & \textbf{Avg} \\
+\midrule
+Baseline (Full) & Baseline & $-$0.8 & +2.5 & +2.0 & +7.4 & +1.6 & +3.1 & +6.6 & +3.2 \\
+AutoMold & Generative & +1.3 & +2.4 & +2.3 & +7.8 & +3.1 & +3.9 & +6.7 & +3.9 \\
+NST & Generative & +0.5 & +1.6 & +6.2 & +7.8 & +3.4 & +4.3 & +7.3 & +4.4 \\
+Photometric & Augmentation & +0.5 & +2.8 & +5.1 & +8.5 & +3.6 & +3.6 & +6.6 & +4.4 \\
+SUSTechGAN & Generative & +0.4 & +2.3 & +6.3 & +6.8 & +3.2 & +2.0 & +7.6 & +4.1 \\
+RandAugment & Standard & +0.2 & +1.6 & +5.4 & +7.9 & +3.5 & +2.4 & +8.0 & +4.1 \\
+StyleID & Generative & +2.8 & +2.8 & +9.1 & +5.5 & +5.3 & +3.0 & +8.2 & +5.2 \\
+TSIT & Generative & $-$0.3 & +0.1 & +5.2 & +7.9 & +2.5 & +3.8 & +7.2 & +3.8 \\
+CUT & Generative & +5.7 & +3.9 & +9.5 & +7.6 & $-$4.3 & +7.4 & +15.6 & +6.5 \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+
+% ============================================================================
+% Table IV: Per-Dataset Performance Gains
+% ============================================================================
+
+\begin{table}[t]
+\centering
+\caption{Per-Dataset mIoU Gains (\%) for Top Strategies vs Clear-Day Baseline.}
+\label{tab:per_dataset_gains}
+\begin{tabular}{@{}lcccc|c@{}}
+\toprule
+\textbf{Strategy} & \textbf{BDD10K} & \textbf{IDD-AW} & \textbf{Mapillary} & \textbf{Outside15K} & \textbf{Avg} \\
+\midrule
+Baseline (Full) & $-$1.5 & +2.7 & +2.7 & $-$0.2 & +0.9 \\
+AutoMold & +2.0 & +2.6 & \textbf{+5.6} & +0.8 & \textbf{+2.7} \\
+NST & +3.0 & +2.9 & +2.3 & +0.8 & +2.3 \\
+Photometric & +2.1 & +2.7 & +1.7 & \textbf{+2.0} & +2.1 \\
+SUSTechGAN & +2.7 & +2.9 & +1.7 & +0.7 & +2.0 \\
+RandAugment & \textbf{+3.4} & +2.6 & $-$0.8 & +1.7 & +1.7 \\
+MixUp & +4.1 & +2.2 & $-$0.5 & +1.1 & +1.7 \\
+LANIT & +1.0 & \textbf{+3.6} & +1.6 & +0.6 & +1.7 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+% ============================================================================
+% Table V: Strategy Type Summary
+% ============================================================================
+
+\begin{table}[t]
+\centering
+\caption{Aggregated Performance by Strategy Type. Mean $\pm$ standard deviation across all strategies of each type.}
+\label{tab:strategy_type_summary}
+\begin{tabular}{@{}lccc@{}}
+\toprule
+\textbf{Type} & \textbf{Count} & \textbf{mIoU (\%)} & \textbf{Adverse Gain (\%)} \\
+\midrule
+Generative & 20 & 60.6 $\pm$ 2.3 & +4.6 $\pm$ 1.2 \\
+Standard Aug & 4 & 60.5 $\pm$ 0.8 & +4.0 $\pm$ 1.1 \\
+Photometric & 1 & 61.5 & +5.6 \\
+Baseline (Full) & 1 & 60.3 & +4.7 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+% ============================================================================
+% Table VI: Training Strategy Comparison
+% ============================================================================
+
+\begin{table}[t]
+\centering
+\caption{Impact of Training Data on Augmentation Effectiveness. Full: trained on all weather; Clear Day: trained on clear weather only.}
+\label{tab:training_comparison}
+\begin{tabular}{@{}lcc@{}}
+\toprule
+\textbf{Strategy} & \textbf{Full Training} & \textbf{Clear Day Training} \\
+ & \textbf{Gain (\%)} & \textbf{Gain (\%)} \\
+\midrule
+AutoMold & \textbf{+2.7} & $-$0.6 \\
+NST & \textbf{+2.2} & $-$0.1 \\
+Photometric & \textbf{+2.1} & $-$0.5 \\
+SUSTechGAN & \textbf{+2.0} & $-$0.4 \\
+UniControl & \textbf{+2.0} & $-$0.1 \\
+RandAugment & \textbf{+1.7} & +0.3 \\
+LANIT & +1.7 & +0.8 \\
+TSIT & +1.3 & \textbf{+0.9} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+% ============================================================================
+% Table VII: Full vs Clear Day Baseline Leaderboard Comparison
+% ============================================================================
+
+\begin{table}[t]
+\centering
+\caption{Strategy Rankings Under Different Training Regimes. Rankings may differ significantly based on training data diversity.}
+\label{tab:leaderboard_comparison}
+\begin{tabular}{@{}lcclcc@{}}
+\toprule
+\multicolumn{3}{c}{\textbf{Full Training}} & \multicolumn{3}{c}{\textbf{Clear Day Training}} \\
+\cmidrule(r){1-3} \cmidrule(l){4-6}
+\textbf{Strategy} & \textbf{mIoU} & \textbf{Gain} & \textbf{Strategy} & \textbf{mIoU} & \textbf{Gain} \\
+\midrule
+AutoMold & 62.1 & +2.7 & TSIT & 60.2 & +0.9 \\
+NST & 61.6 & +2.2 & LANIT & 60.1 & +0.8 \\
+Photometric & 61.5 & +2.1 & Step1x & 60.1 & +0.8 \\
+SUSTechGAN & 61.4 & +2.0 & Img2Img & 60.1 & +0.7 \\
+UniControl & 61.3 & +2.0 & StyleID & 59.8 & +0.5 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+% ============================================================================
+% Table VIII: Top 5 Strategies Detailed Metrics
+% ============================================================================
+
+\begin{table}[t]
+\centering
+\caption{Detailed Performance Metrics for Top 5 Strategies (Full Training). All metrics relative to clear-day baseline.}
+\label{tab:top5_detailed}
+\begin{tabular}{@{}lcccccc@{}}
+\toprule
+\textbf{Strategy} & \textbf{Overall} & \textbf{Normal} & \textbf{Adverse} & \textbf{Gap} & \textbf{Gap} \\
+ & \textbf{mIoU} & \textbf{Gain} & \textbf{Gain} & & \textbf{Red.} \\
+\midrule
+AutoMold & 62.1\% & +1.8\% & +5.4\% & $-$0.9\% & +3.5\% \\
+NST & 61.6\% & +1.1\% & +5.7\% & $-$2.0\% & +4.6\% \\
+Photometric & 61.5\% & +1.6\% & +5.6\% & $-$1.4\% & +3.9\% \\
+SUSTechGAN & 61.4\% & +1.3\% & +4.9\% & $-$1.0\% & +3.6\% \\
+UniControl & 61.3\% & +1.5\% & +5.0\% & $-$0.9\% & +3.5\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+% ============================================================================
+% Table IX: Domain-Specific Best Strategies
+% ============================================================================
+
+\begin{table}[t]
+\centering
+\caption{Best Performing Strategy for Each Weather Domain (Full Training). Gain values relative to clear-day baseline.}
+\label{tab:domain_best}
+\begin{tabular}{@{}llc@{}}
+\toprule
+\textbf{Domain} & \textbf{Best Strategy} & \textbf{Gain (\%)} \\
+\midrule
+Clear Day & CUT & +5.7 \\
+Cloudy & CUT & +3.9 \\
+Dawn/Dusk & CUT & +9.5 \\
+Foggy & Qwen Image Edit & +18.9 \\
+Night & StyleID & +5.3 \\
+Rainy & CUT & +7.4 \\
+Snowy & CUT & +15.6 \\
+\midrule
+\textbf{Overall} & \textbf{AutoMold} & \textbf{+2.7} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+% ============================================================================
+% Table X: Key Findings Summary
+% ============================================================================
+
+\begin{table}[t]
+\centering
+\caption{Summary of Key Findings from Strategy Leaderboard Analysis.}
+\label{tab:key_findings}
+\begin{tabular}{@{}ll@{}}
+\toprule
+\textbf{Finding} & \textbf{Value} \\
+\midrule
+Best Overall Strategy & AutoMold (+2.7\%) \\
+Best Adverse Weather Strategy & StyleID (+6.0\%) \\
+Best Gap Reduction & TSIT (+5.5\%) \\
+Best Normal Weather Strategy & CUT (+4.8\%) \\
+\midrule
+Generative vs Standard Aug & +0.1\% mIoU \\
+Full vs Clear Day Training & +2.1\% avg gain \\
+\midrule
+Average Strategy Gain (Full) & +1.4\% \\
+Average Strategy Gain (Clear) & +0.0\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+% ============================================================================
+% USAGE NOTES
+% ============================================================================
+%
+% For IEEE Transactions format:
+% - Use single column tables with table environment
+% - Use double column tables with table* environment
+% - Caption should be above the table
+% - Use \label immediately after \caption
+%
+% Required packages in preamble:
+% \usepackage{booktabs}   % For \toprule, \midrule, \bottomrule
+% \usepackage{multirow}   % For \multirow
+% \usepackage{siunitx}    % Optional: for number alignment
+%
+% ============================================================================

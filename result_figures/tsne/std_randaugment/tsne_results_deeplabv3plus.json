@@ -1,0 +1,7 @@
+{
+  "baseline_silhouette": -0.0396665558218956,
+  "augmented_silhouette": -0.05857069790363312,
+  "domain_gap_reduction": 0.01890414208173752,
+  "num_samples": 75000,
+  "model_type": "deeplabv3plus"
+}
