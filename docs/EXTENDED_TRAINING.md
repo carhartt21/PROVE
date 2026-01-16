@@ -8,25 +8,7 @@ The extended training ablation study investigates whether training for longer im
 
 ## Top 15 Strategies
 
-The ablation uses the 15 best performing strategies based on average mIoU across all datasets and models:
-
-| Rank | Strategy | Avg mIoU |
-|------|----------|----------|
-| 1 | std_randaugment+std_mixup | 56.06 |
-| 2 | gen_LANIT | 55.71 |
-| 3 | gen_step1x_new | 55.70 |
-| 4 | std_mixup+std_autoaugment | 55.67 |
-| 5 | gen_automold | 55.62 |
-| 6 | gen_TSIT | 55.61 |
-| 7 | std_randaugment | 55.58 |
-| 8 | gen_NST | 55.55 |
-| 9 | gen_CUT | 55.52 |
-| 10 | gen_Attribute_Hallucination | 55.46 |
-| 11 | gen_UniControl | 55.46 |
-| 12 | std_cutmix+std_autoaugment | 55.45 |
-| 13 | gen_Img2Img | 55.43 |
-| 14 | gen_flux1_kontext | 55.40 |
-| 15 | gen_SUSTechGAN | 55.37 |
+The ablation uses the 5 best performing strategies based on average mIoU across all datasets and models
 
 ## Iteration Recommendations
 
