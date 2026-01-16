@@ -1,14 +1,16 @@
 # TODO - Upcoming Tasks
 
-*Last updated: 2026-01-16 (15:00)*
+*Last updated: 2026-01-16 (16:00)*
 
 ## Current Job Status Summary
 
 ### Stage 1 (Clear Day Domain) - WEIGHTS directory
 | Category | Running | Pending | Done | Total |
 |----------|--------:|--------:|-----:|------:|
-| Training | 0 | 1 | 110 | 111 |
+| Training | 21 | 0 | 101 | 107* |
 | Testing | 2 | 5 | 328 | 335 |
+
+*Note: Reduced from 111 to 107 strategies after removing std_minimal (not useful)
 
 ### Stage 2 (All Domains - Adverse Weather) - WEIGHTS_STAGE_2 directory
 | Category | Running | Pending | Done | Partial | Total |
@@ -24,6 +26,28 @@ Partial indicates configurations where 1/3 or 2/3 models are complete.
 |-------|-------|--------:|--------:|------:|
 | Ratio Ablation | mima2416 | 13 | 54 | 112 |
 | Extended Training | chge7185 | 6 | 454 | 460 |
+
+---
+
+## ✅ RESOLVED: Wrong num_classes Models (Jan 16)
+
+**Issue:** Some models were trained with wrong number of classes.
+**Resolution:** Removed incorrect checkpoints and submitted 21 retraining jobs.
+
+| Dataset | Expected Classes | Actions Taken |
+|---------|------------------|---------------|
+| MapillaryVistas | 66 | Removed wrong models, retraining 6 jobs |
+| OUTSIDE15k | 24 | Removed wrong models, retraining 15 jobs |
+
+**Strategies Removed (permanently):**
+- `std_minimal` - Not useful, removed from all datasets
+
+**Strategies Retraining (21 jobs, IDs 9611966-9611986):**
+- MapillaryVistas: gen_cyclediffusion (×3), gen_TSIT (×3)
+- OUTSIDE15k: std_cutmix (×3), std_mixup (×3), gen_cyclediffusion (×3), gen_flux_kontext (×3), gen_TSIT (×3)
+
+**Native Classes Default:** `unified_training.py` now uses native classes by default.
+Use `--no-native-classes` to force Cityscapes 19 classes.
 
 ---
 
@@ -62,34 +86,25 @@ WEIGHTS_STAGE_2/             # Stage 2 (all domains)
 - Stage 1 models → `WEIGHTS/`
 - Stage 2 models → `WEIGHTS_STAGE_2/`
 - Scripts updated: `unified_training_config.py`, `update_training_tracker.py`, `auto_submit_tests.py`, `test_result_analyzer.py`
-
----
-
-## ⚠️ CRITICAL: Wrong num_classes Models
-
-**Issue Discovered:** Some models were trained with wrong number of classes:
-
-| Dataset | Expected | Strategies Affected |
-|---------|----------|---------------------|
-| MapillaryVistas | 66 classes | std_minimal, gen_cyclediffusion (trained with 19) |
-| OUTSIDE15K | 24 classes | std_minimal, std_cutmix, std_mixup, gen_cyclediffusion, gen_flux_kontext (trained with 19) |
-
-**Total:** 21 models need retraining (7 configs × 3 models each)
-
-**Status:** Pending - need to create retraining jobs with `--use-native-classes` flag
+- Nested `_cd` directories cleaned up (gen_Qwen_Image_Edit, gen_UniControl)
 
 ---
 
 ## Active Tasks
 
-### Stage 1 Training Completion (99.7%)
+### 🔄 Stage 1 Retraining (21 jobs running)
 
-| Job ID | Configuration | Status |
-|--------|---------------|--------|
-| 9602498 | gen_step1x_new / IDD-AW / PSPNet | 🔄 RUNNING |
+**Job IDs:** 9611966-9611986 (moved to top of queue)
 
-- ✅ gen_IP2P / IDD-AW / DeepLabV3+ completed (Job 9602408)
-- Last training needed to reach 336/336 (100%)
+| Strategy | MapillaryVistas | OUTSIDE15k |
+|----------|-----------------|------------|
+| gen_cyclediffusion | 🔄 3 jobs | 🔄 3 jobs |
+| gen_flux_kontext | ✅ | 🔄 3 jobs |
+| gen_TSIT | 🔄 3 jobs | 🔄 3 jobs |
+| std_cutmix | ✅ | 🔄 3 jobs |
+| std_mixup | ✅ | 🔄 3 jobs |
+
+- Once complete, Stage 1 will be 107/107 (100%)
 
 ### Stage 1 Testing Coverage (93.4%)
 

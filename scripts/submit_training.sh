@@ -35,6 +35,7 @@ MAX_ITERS=""
 DOMAIN_FILTER=""
 RATIO="0.5"
 STD_STRATEGY=""
+NO_NATIVE_CLASSES=false
 DRY_RUN=false
 
 # Parse arguments
@@ -46,6 +47,7 @@ while [[ $# -gt 0 ]]; do
         --std-strategy) STD_STRATEGY="$2"; shift 2 ;;
         --ratio) RATIO="$2"; shift 2 ;;
         --domain-filter) DOMAIN_FILTER="$2"; shift 2 ;;
+        --no-native-classes) NO_NATIVE_CLASSES=true; shift ;;
         --max-iters) MAX_ITERS="$2"; shift 2 ;;
         --queue) QUEUE="$2"; shift 2 ;;
         --gpu-mem) GPU_MEM="$2"; shift 2 ;;
@@ -64,6 +66,7 @@ while [[ $# -gt 0 ]]; do
             echo "  --std-strategy STD    Additional standard augmentation (std_cutmix, std_mixup, etc.)"
             echo "  --ratio RATIO         Real-to-generated ratio (default: 0.5)"
             echo "  --domain-filter DOM   Filter to specific domain (e.g., clear_day)"
+            echo "  --no-native-classes   Use Cityscapes 19 classes (default: use native classes)"
             echo "  --max-iters N         Maximum iterations (default: 80000)"
             echo "  --queue QUEUE         LSF queue (default: BatchGPU)"
             echo "  --gpu-mem SIZE        GPU memory (default: 24G)"
@@ -114,6 +117,10 @@ if [ -n "$MAX_ITERS" ]; then
     TRAIN_CMD="${TRAIN_CMD} --max-iters ${MAX_ITERS}"
 fi
 
+if [ "$NO_NATIVE_CLASSES" = true ]; then
+    TRAIN_CMD="${TRAIN_CMD} --no-native-classes"
+fi
+
 # Full command with environment setup
 FULL_CMD="source ~/.bashrc && conda activate prove && ${TRAIN_CMD}"
 
@@ -125,6 +132,7 @@ echo "Model:       ${MODEL}"
 echo "Strategy:    ${STRATEGY}"
 [ -n "$STD_STRATEGY" ] && echo "Std Strategy: ${STD_STRATEGY}"
 [ -n "$DOMAIN_FILTER" ] && echo "Domain:      ${DOMAIN_FILTER}"
+[ "$NO_NATIVE_CLASSES" = true ] && echo "Native Classes: No (Cityscapes 19)"
 [[ "$STRATEGY" == gen_* ]] && echo "Ratio:       ${RATIO}"
 [ -n "$MAX_ITERS" ] && echo "Max Iters:   ${MAX_ITERS}"
 echo "Queue:       ${QUEUE}"

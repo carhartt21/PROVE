@@ -26,11 +26,8 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = SCRIPT_DIR.parent
 
 # Configuration
-# Stage 1 (clear_day only): WEIGHTS
-# Stage 2 (all domains): WEIGHTS_STAGE_2
 WEIGHTS_ROOT = Path(os.environ.get('PROVE_WEIGHTS_ROOT', '/scratch/aaa_exchange/AWARE/WEIGHTS'))
-WEIGHTS_ROOT_STAGE2 = Path(os.environ.get('PROVE_WEIGHTS_ROOT_STAGE2', '/scratch/aaa_exchange/AWARE/WEIGHTS_STAGE_2'))
-TRACKER_PATH = PROJECT_ROOT / 'docs' / 'TRAINING_TRACKER.md'
+TRACKER_PATH = PROJECT_ROOT / 'docs' / 'RETRAINING_TRACKER.md'
 DATASETS = ['bdd10k', 'idd-aw', 'mapillaryvistas', 'outside15k']
 
 # Models - now using new structure: dataset_cd/model_ratio
@@ -42,12 +39,9 @@ MODELS = {
         'baseline': 'deeplabv3plus_r50',
     },
     'all_domains': {
-        # Stage 2 uses all 3 models: DeepLabV3+, PSPNet, and SegFormer
-        # Generative strategies use _ratio0p50 suffix (trained with 0.5 real/gen ratio)
-        # Standard strategies use base model names (no ratio suffix)
-        'gen': ['deeplabv3plus_r50_ratio0p50', 'pspnet_r50_ratio0p50', 'segformer_mit-b5_ratio0p50'],
-        'std': ['deeplabv3plus_r50', 'pspnet_r50', 'segformer_mit-b5'],
-        'baseline': ['deeplabv3plus_r50', 'pspnet_r50', 'segformer_mit-b5'],
+        'gen': 'deeplabv3plus_r50_ratio0p50',
+        'std': 'deeplabv3plus_r50',
+        'baseline': 'deeplabv3plus_r50',
     }
 }
 
@@ -80,7 +74,7 @@ GENERATIVE_STRATEGIES = [
 STANDARD_STRATEGIES = [
     'baseline',
     'photometric_distort',
-    # 'std_minimal',  # REMOVED: Not useful as a strategy
+    'std_minimal',  # Minimal augmentation baseline (RandomCrop, RandomFlip, 1x PhotoMetricDistortion)
     'std_autoaugment',
     'std_cutmix',
     'std_mixup',
@@ -113,141 +107,90 @@ MODEL_DISPLAY = {
 }
 
 
-def get_status_emoji(status, model_info=None):
-    """Convert status to emoji. For partial completion, show count."""
-    base_emoji = {
+def get_status_emoji(status):
+    """Convert status to emoji."""
+    return {
         'complete': '✅',
-        'partial': '🔶',  # Partial completion
         'running': '🔄',
         'pending': '⏳',
         'missing': '⚠️',
         'failed': '❌',
         'skip': '➖',
     }.get(status, '❓')
-    
-    # For partial status, append completion count
-    if status == 'partial' and model_info:
-        return f"{model_info['complete_count']}/{model_info['total_count']}"
-    
-    return base_emoji
 
 
 def check_weight_status(strategy, dataset, domain_filter='clear_day'):
-    """Check if weights exist and are valid. Also checks for training lock files and detailed results.
-    
-    For all_domains (Stage 2), returns aggregated status across all required models.
-    Also returns model-level details for partial completion tracking.
-    
-    Returns:
-        tuple: (status, path, model_details)
-            - status: 'complete', 'partial', 'running', 'failed', or 'pending'
-            - path: Path to first model directory
-            - model_details: dict with complete_count, total_count, and per-model statuses
-    """
+    """Check if weights exist and are valid. Also checks for training lock files and detailed results."""
     # Determine model directory based on strategy type
     if strategy == 'baseline':
-        model_dirs = MODELS[domain_filter]['baseline']
+        model_dir = MODELS[domain_filter]['baseline']
     elif strategy.startswith('gen_'):
-        model_dirs = MODELS[domain_filter]['gen']
+        model_dir = MODELS[domain_filter]['gen']
     else:
-        model_dirs = MODELS[domain_filter]['std']
-    
-    # Ensure model_dirs is always a list
-    if isinstance(model_dirs, str):
-        model_dirs = [model_dirs]
+        model_dir = MODELS[domain_filter]['std']
     
     # Check if this is a skip combo
     if (strategy, dataset) in SKIP_COMBOS:
-        return 'skip', None, {'complete_count': 0, 'total_count': 0, 'models': {}}
+        return 'skip', False, None
     
-    # Determine the appropriate weights root based on domain_filter
-    # Stage 1 (clear_day): WEIGHTS_ROOT
-    # Stage 2 (all_domains): WEIGHTS_ROOT_STAGE2
-    if domain_filter == 'all_domains':
-        weights_root = WEIGHTS_ROOT_STAGE2
-    else:
-        weights_root = WEIGHTS_ROOT
+    # Build dataset directory with domain suffix
+    domain_abbrev = {'clear_day': 'cd', 'clear_night': 'cn', 'rainy_day': 'rd', 'rainy_night': 'rn', 'fog': 'fg', 'snow': 'sn'}
+    domain_suffix = f'_{domain_abbrev.get(domain_filter, domain_filter[:2])}' if domain_filter else ''
+    dataset_dir = f'{dataset}{domain_suffix}'
     
-    # Dataset directory - no more _cd or _ad suffix
-    dataset_dir = dataset
+    # Try alternate name for idd-aw
     dirs_to_try = [dataset_dir]
+    if dataset == 'idd-aw':
+        dirs_to_try.append(f'iddaw{domain_suffix}')
     
-    # Track per-model status for Stage 2 partial completion
-    model_statuses = []
-    best_paths = []
-    model_details = {}
+    best_status = 'pending'
+    best_path = None
+    has_detailed = False
     
-    for model_dir in model_dirs:
-        best_status = 'pending'
-        best_path = None
+    for d in dirs_to_try:
+        weights_path = WEIGHTS_ROOT / strategy / d / model_dir
+        checkpoint = weights_path / "iter_80000.pth"
+        lock_file = weights_path / ".training_lock"
         
-        for d in dirs_to_try:
-            weights_path = weights_root / strategy / d / model_dir
-            checkpoint = weights_path / "iter_80000.pth"
-            lock_file = weights_path / ".training_lock"
-            
-            status = 'pending'
+        current_has_detailed = False
+        detailed_dir = weights_path / "test_results_detailed"
+        if detailed_dir.exists():
+            for sub in detailed_dir.iterdir():
+                if sub.is_dir() and (sub / "results.json").exists():
+                    current_has_detailed = True
+                    break
+        
+        has_detailed = has_detailed or current_has_detailed
+        
+        status = 'pending'
+        try:
+            if lock_file.exists():
+                status = 'running'
+            elif checkpoint.exists():
+                if checkpoint.stat().st_size > 1000:
+                    status = 'complete'
+                else:
+                    status = 'failed'
+        except PermissionError:
             try:
-                if lock_file.exists():
-                    status = 'running'
-                elif checkpoint.exists():
-                    if checkpoint.stat().st_size > 1000:
-                        status = 'complete'
-                    else:
-                        status = 'failed'
-            except PermissionError:
-                try:
-                    if weights_path.exists():
-                        files = os.listdir(weights_path)
-                        if ".training_lock" in files: status = 'running'
-                        elif "iter_80000.pth" in files: status = 'complete'
-                except: pass
-                
-            if status == 'complete':
-                best_status = 'complete'
-                best_path = weights_path
-                break
-            if status == 'running':
-                best_status = 'running'
-                best_path = weights_path
-            elif status == 'failed' and best_status == 'pending':
-                best_status = 'failed'
-                best_path = weights_path
-            elif best_path is None:
-                best_path = weights_path
-        
-        model_statuses.append(best_status)
-        best_paths.append(best_path)
-        model_details[model_dir] = best_status
-    
-    # Build model_info dict
-    complete_count = sum(1 for s in model_statuses if s == 'complete')
-    total_count = len(model_dirs)
-    model_info = {
-        'complete_count': complete_count,
-        'total_count': total_count,
-        'models': model_details
-    }
-    
-    # For Stage 2 (multiple models), aggregate status:
-    # - complete if ALL models are complete
-    # - partial if SOME (but not all) models are complete
-    # - running if any is running
-    # - failed if any failed and none running
-    # - pending otherwise
-    if len(model_dirs) > 1:
-        if all(s == 'complete' for s in model_statuses):
-            return 'complete', best_paths[0], model_info
-        elif any(s == 'running' for s in model_statuses):
-            return 'running', best_paths[0], model_info
-        elif any(s == 'failed' for s in model_statuses) and not any(s == 'running' for s in model_statuses):
-            return 'failed', best_paths[0], model_info
-        elif any(s == 'complete' for s in model_statuses):
-            return 'partial', best_paths[0], model_info
-        else:
-            return 'pending', best_paths[0], model_info
-    else:
-        return model_statuses[0], best_paths[0], model_info
+                if weights_path.exists():
+                    files = os.listdir(weights_path)
+                    if ".training_lock" in files: status = 'running'
+                    elif "iter_80000.pth" in files: status = 'complete'
+            except: pass
+            
+        if status == 'complete':
+            return 'complete', has_detailed, weights_path
+        if status == 'running':
+            best_status = 'running'
+            best_path = weights_path
+        elif status == 'failed' and best_status == 'pending':
+            best_status = 'failed'
+            best_path = weights_path
+        elif best_path is None:
+            best_path = weights_path
+            
+    return best_status, has_detailed, best_path
 
 
 def get_running_jobs():
@@ -269,7 +212,7 @@ def get_running_jobs():
     users_to_check = ['-u mima2416', '-u chge7185']  # '' means current user
     
     # Job name prefixes to check for Stage 1
-    job_prefixes = ['retrain_', 'train_', 'fix_', 'rt3_', 'rt4_', 'rt5_']
+    job_prefixes = ['retrain_', 'train_', 'fix_', 'rt3_', 'rt4_']
     # Skip prefixes for other job types
     skip_prefixes = ['s2_', 'ratio_', 'retest_']
     
@@ -285,11 +228,6 @@ def get_running_jobs():
         'mixup': 'std_mixup',
         'photom': 'photometric_distort',
         'randaug': 'std_randaugment',
-        'minimal': 'std_minimal',
-        'WEG': 'gen_Weather_Effect_Generator',
-        'gen_WEG': 'gen_Weather_Effect_Generator',
-        'step1x_new': 'gen_step1x_new',
-        'step1x_v1p2': 'gen_step1x_v1p2',
     }
     
     for user_flag in users_to_check:
@@ -374,7 +312,7 @@ def get_running_jobs():
                     
                     # Handle rt3_/rt4_ job format: <abbrev>_iddaw_<model>
                     # Example: rt4_randaug_iddaw_psp -> std_randaugment / idd-aw
-                    if any(job_name.startswith(p) for p in ['rt3_', 'rt4_', 'rt5_']):
+                    if any(job_name.startswith(p) for p in ['rt3_', 'rt4_']):
                         parts = job_part.split('_')
                         if len(parts) >= 2:
                             abbrev = parts[0]
@@ -394,31 +332,27 @@ def get_running_jobs():
                         continue
 
                     # If still not found, try fuzzy/truncated matching for rt_ jobs
-                    ds_trunc_map = [
-                        ('iddaw', 'idd-aw'),
-                        ('mapillary', 'mapillaryvistas'),
-                        ('mapill', 'mapillaryvistas'),
-                        ('outsid', 'outside15k'),
-                        ('bdd10k', 'bdd10k'),
-                    ]
-                    for trunc_ds, full_ds in ds_trunc_map:
-                        patterns_to_check = [f'_{trunc_ds}_', f'_{trunc_ds}']
-                        for pattern in patterns_to_check:
-                            if pattern in job_part:
-                                idx = job_part.find(pattern)
-                                end_idx = idx + len(pattern)
-                                if pattern.endswith('_') or end_idx == len(job_part) or job_part[end_idx] == '_':
-                                    dataset = full_ds
-                                    strategy_part = job_part[:idx]
-                                    
-                                    # Find matching full strategy
-                                    for full_s in ALL_STRATEGIES:
-                                        if full_s == strategy_part or \
-                                           (len(strategy_part) >= 10 and (full_s.startswith(strategy_part) or strategy_part.startswith(full_s[:15]))):
-                                            strategy = full_s
-                                            break
+                    ds_trunc_map = {'bdd10k': 'bdd10k', 'iddaw_': 'idd-aw', 'mapill': 'mapillaryvistas', 'outsid': 'outside15k'}
+                    for trunc_ds, full_ds in ds_trunc_map.items():
+                        if f'_{trunc_ds}_' in job_part or job_part.endswith(f'_{trunc_ds}') or f'_{trunc_ds}_' in job_name:
+                            dataset = full_ds
+                            if f'_{trunc_ds}_' in job_part:
+                                strategy_part = job_part.split(f'_{trunc_ds}_')[0]
+                            elif job_part.endswith(f'_{trunc_ds}'):
+                                strategy_part = job_part[:-len(f'_{trunc_ds}')]
+                            else: # Found in job_name but maybe not clearly in job_part
+                                idx = job_part.find(trunc_ds)
+                                strategy_part = job_part[:idx].rstrip('_')
+                            
+                            # Find matching full strategy
+                            for full_s in ALL_STRATEGIES:
+                                if (len(strategy_part) >= 10 and full_s.startswith(strategy_part)) or \
+                                   (len(strategy_part) >= 10 and strategy_part.startswith(full_s[:15])):
+                                    strategy = full_s
                                     break
-                        if dataset:
+                            
+                            if dataset and strategy:
+                                print(f"DEBUG Match (jobs): {job_name} -> {strategy} / {dataset}")
                             break
                     
                     if dataset and strategy:
@@ -449,21 +383,20 @@ def collect_status(domain_filter='clear_day', verbose=False):
         'pending': 0,
         'failed': 0,
         'skip': 0,
-        'partial': 0,  # New status for partial completion
     }
     
     for strategy in ALL_STRATEGIES:
         status_matrix[strategy] = {}
         
         for dataset in DATASETS:
-            status, path, model_info = check_weight_status(strategy, dataset, domain_filter)
+            status, has_detailed, path = check_weight_status(strategy, dataset, domain_filter)
             
             # Use LSF status to refine the status - but ONLY if checkpoint doesn't exist
             # Jobs that train multiple models will skip existing checkpoints via pre-flight checks
             job_status = running_jobs.get((strategy, dataset))
             
-            if status not in ('complete', 'partial'):
-                # Only consider job status if not all checkpoints exist
+            if status != 'complete':
+                # Only consider job status if checkpoint doesn't exist
                 if job_status == 'RUN':
                     status = 'running'
                 elif job_status == 'PEND':
@@ -476,34 +409,33 @@ def collect_status(domain_filter='clear_day', verbose=False):
             
             status_matrix[strategy][dataset] = {
                 'status': status,
+                'has_detailed': has_detailed,
                 'path': str(path) if path else None,
-                'emoji': get_status_emoji(status, model_info),
-                'model_info': model_info,  # Store for display
+                'emoji': get_status_emoji(status),
             }
             
             summary[status] += 1
             
             if verbose:
-                emoji = get_status_emoji(status, model_info)
-                print(f"{emoji} {strategy}/{dataset}")
+                print(f"{get_status_emoji(status)} {strategy}/{dataset} (Detailed: {has_detailed})")
     
     return status_matrix, summary
 
 
 def check_model_weight_status(strategy, dataset, model, domain_filter='clear_day'):
     """Check weight status for a specific model variant."""
-    # Determine the appropriate weights root based on domain_filter
-    if domain_filter == 'all_domains':
-        weights_root = WEIGHTS_ROOT_STAGE2
-    else:
-        weights_root = WEIGHTS_ROOT
+    # Build dataset directory with domain suffix
+    domain_abbrev = {'clear_day': 'cd', 'clear_night': 'cn', 'rainy_day': 'rd', 'rainy_night': 'rn', 'fog': 'fg', 'snow': 'sn'}
+    domain_suffix = f'_{domain_abbrev.get(domain_filter, domain_filter[:2])}' if domain_filter else ''
+    dataset_dir = f'{dataset}{domain_suffix}'
     
-    # Dataset directory - no more suffix
-    dataset_dir = dataset
+    # Try alternate name for idd-aw (iddaw)
     dirs_to_try = [dataset_dir]
+    if dataset == 'idd-aw':
+        dirs_to_try.append(f'iddaw{domain_suffix}')
         
     for d in dirs_to_try:
-        weights_path = weights_root / strategy / d / model
+        weights_path = WEIGHTS_ROOT / strategy / d / model
         checkpoint = weights_path / "iter_80000.pth"
         lock_file = weights_path / ".training_lock"
         
@@ -549,30 +481,11 @@ def get_running_jobs_detailed(verbose=False):
     }
     
     known_datasets = ['bdd10k', 'idd-aw', 'mapillaryvistas', 'outside15k']
-    known_datasets_cd = ['bdd10k_cd', 'idd-aw_cd', 'mapillaryvistas_cd', 'outside15k_cd']
+    known_datasets_cd = ['bdd10k_cd', 'iddaw_cd', 'mapillaryvistas_cd', 'outside15k_cd']
     # Only match Stage 1 job prefixes (not s2_ or ratio ablation jobs)
-    job_prefixes = ['retrain_', 'train_', 'fix_', 'rt3_', 'rt4_', 'rt5_']
+    job_prefixes = ['rt_', 'retrain_', 'train_', 'fix_']
     # Skip prefixes for other job types
     skip_prefixes = ['s2_', 'ratio_', 'retest_']
-    
-    # Mapping from abbreviated job names to full strategy names (for rt3_/rt4_ jobs)
-    abbrev_to_strategy = {
-        'AttrHall': 'gen_Attribute_Hallucination',
-        'baseline': 'baseline',
-        'CNetSeg': 'gen_CNetSeg',
-        'CUT': 'gen_CUT',
-        'IP2P': 'gen_IP2P',
-        'autoaug': 'std_autoaugment',
-        'cutmix': 'std_cutmix',
-        'mixup': 'std_mixup',
-        'photom': 'photometric_distort',
-        'randaug': 'std_randaugment',
-        'minimal': 'std_minimal',
-        'WEG': 'gen_Weather_Effect_Generator',
-        'gen_WEG': 'gen_Weather_Effect_Generator',
-        'step1x_new': 'gen_step1x_new',
-        'step1x_v1p2': 'gen_step1x_v1p2',
-    }
     
     users_to_check = ['', '-u chge7185']
     
@@ -613,44 +526,28 @@ def get_running_jobs_detailed(verbose=False):
                     model_type = None
                     remaining = ''
                     
-                    # 1. Fuzzy/truncated matching for jobs (check for truncated dataset names)
-                    # Order matters: check more specific patterns first
-                    ds_trunc_map = [
-                        ('iddaw', 'idd-aw'),  # iddaw -> idd-aw
-                        ('mapillary', 'mapillaryvistas'),  # mapillary -> mapillaryvistas  
-                        ('mapill', 'mapillaryvistas'),  # mapill -> mapillaryvistas
-                        ('outsid', 'outside15k'),  # outsid -> outside15k
-                        ('bdd10k', 'bdd10k'),  # exact match
-                    ]
-                    for trunc_ds, full_ds in ds_trunc_map:
-                        # Check for the truncated dataset name with underscores around it
-                        patterns_to_check = [
-                            f'_{trunc_ds}_',  # middle position
-                            f'_{trunc_ds}',   # at end (but not followed by more chars)
-                        ]
-                        for pattern in patterns_to_check:
-                            if pattern in job_part:
-                                idx = job_part.find(pattern)
-                                # Make sure it's not a partial match (e.g., "mapillary" in "mapillaryvistas")
-                                end_idx = idx + len(pattern)
-                                if pattern.endswith('_') or end_idx == len(job_part) or job_part[end_idx] == '_':
-                                    dataset = full_ds
-                                    strategy_part = job_part[:idx]
-                                    remaining = job_part[end_idx:].lstrip('_') if end_idx < len(job_part) else ''
-                                    
-                                    # Find matching full strategy
-                                    # First check abbreviation mapping
-                                    if strategy_part in abbrev_to_strategy:
-                                        strategy = abbrev_to_strategy[strategy_part]
-                                    else:
-                                        # Try exact or fuzzy match
-                                        for full_s in ALL_STRATEGIES:
-                                            if full_s == strategy_part or \
-                                               (len(strategy_part) >= 10 and (full_s.startswith(strategy_part) or strategy_part.startswith(full_s[:15]))):
-                                                strategy = full_s
-                                                break
+                    # 1. Fuzzy/truncated matching for rt_ jobs (highest priority for short names)
+                    ds_trunc_map = {'bdd10k': 'bdd10k', 'iddaw_': 'idd-aw', 'mapill': 'mapillaryvistas', 'outsid': 'outside15k'}
+                    for trunc_ds, full_ds in ds_trunc_map.items():
+                        if f'_{trunc_ds}_' in job_part or job_part.endswith(f'_{trunc_ds}') or f'_{trunc_ds}_' in job_name:
+                            dataset = full_ds
+                            if f'_{trunc_ds}_' in job_part:
+                                strategy_part = job_part.split(f'_{trunc_ds}_')[0]
+                                remaining = job_part.split(f'_{trunc_ds}_')[1]
+                            elif job_part.endswith(f'_{trunc_ds}'):
+                                strategy_part = job_part[:-len(f'_{trunc_ds}')]
+                                remaining = ''
+                            else:
+                                idx = job_part.find(trunc_ds)
+                                strategy_part = job_part[:idx].rstrip('_')
+                                remaining = job_part[idx + len(trunc_ds):]
+                            
+                            # Find matching full strategy
+                            for full_s in ALL_STRATEGIES:
+                                if full_s == strategy_part or \
+                                   (len(strategy_part) >= 10 and (full_s.startswith(strategy_part) or strategy_part.startswith(full_s[:15]))):
+                                    strategy = full_s
                                     break
-                        if dataset:
                             break
                     
                     # 2. Match _cd suffix datasets (train_gen_xxx_dataset_cd format)
@@ -700,34 +597,10 @@ def get_running_jobs_detailed(verbose=False):
                     
                         # Use ALL_STRATEGIES to validate strategy
                     if strategy and strategy not in ALL_STRATEGIES:
-                        # First check abbreviation mapping
-                        if strategy in abbrev_to_strategy:
-                            strategy = abbrev_to_strategy[strategy]
-                        else:
-                            # Try fuzzy matching
-                            for full_s in ALL_STRATEGIES:
-                                if (len(strategy) >= 10 and (full_s.startswith(strategy) or strategy.startswith(full_s[:15]))):
-                                    strategy = full_s
-                                    break
-                    
-                    # 5. Handle rt3_/rt4_ job format: <abbrev>_iddaw_<model>
-                    # Example: rt4_randaug_iddaw_psp -> std_randaugment / idd-aw / pspnet
-                    if dataset is None and any(job_name.startswith(p) for p in ['rt3_', 'rt4_', 'rt5_']):
-                        parts_list = job_part.split('_')
-                        if len(parts_list) >= 2:
-                            abbrev = parts_list[0]
-                            # Check for iddaw in second position
-                            if len(parts_list) >= 3 and parts_list[1] == 'iddaw':
-                                dataset = 'idd-aw'
-                                if abbrev in abbrev_to_strategy:
-                                    strategy = abbrev_to_strategy[abbrev]
-                                # Check for model in third position
-                                if len(parts_list) >= 3:
-                                    model_suffix = parts_list[2] if len(parts_list) > 2 else ''
-                                    for pattern, model_name in model_patterns.items():
-                                        if model_suffix == pattern or model_suffix.lower() == pattern.lower():
-                                            model_type = model_name
-                                            break
+                        for full_s in ALL_STRATEGIES:
+                            if (len(strategy) >= 10 and (full_s.startswith(strategy) or strategy.startswith(full_s[:15]))):
+                                strategy = full_s
+                                break
 
                     if dataset and strategy:
                         # Try to extract model type from remaining part
@@ -944,8 +817,10 @@ def format_status_row(strategy, status_dict, datasets):
     cells = [strategy]
     
     for dataset in datasets:
-        data = status_dict.get(dataset, {'emoji': '❓'})
+        data = status_dict.get(dataset, {'emoji': '❓', 'has_detailed': False})
         cell_content = data['emoji']
+        if data.get('has_detailed'):
+            cell_content += ' 🎯'
         cells.append(cell_content)
     
     # Add notes based on strategy
@@ -958,40 +833,11 @@ def format_status_row(strategy, status_dict, datasets):
     return '| ' + ' | '.join(cells) + ' |'
 
 
-def update_tracker(status_matrix, summary, domain_filter='clear_day', tracker_path=None):
+def update_tracker(status_matrix, summary, domain_filter='clear_day'):
     """Update the tracker markdown file."""
-    if tracker_path is None:
-        tracker_path = TRACKER_PATH
-    
-    # Read current tracker (or create new one if doesn't exist)
-    try:
-        with open(tracker_path, 'r') as f:
-            content = f.read()
-    except FileNotFoundError:
-        # Create a basic template if file doesn't exist
-        stage_name = "Stage 1 (Clear Day)" if domain_filter == 'clear_day' else "Stage 2 (All Domains)"
-        content = f"""# Training Tracker - {stage_name}
-
-**Last Updated:** {datetime.now().strftime('%Y-%m-%d %H:%M')}
-
-## Progress Summary
-
-| Category | Total | Complete | Partial | Running | Pending | Failed |
-|----------|-------|----------|---------|---------|---------|--------|
-| **Generative (gen_*)** | 0 | 0 | 0 | 0 | 0 | 0 |
-| **Standard (std_*)** | 0 | 0 | 0 | 0 | 0 | 0 |
-| **TOTAL** | 0 | 0 | 0 | 0 | 0 | 0 |
-
-### Generative Image Augmentation Strategies
-
-| Strategy | BDD10k | IDD-AW | MapillaryVistas | OUTSIDE15k | Notes |
-|----------|--------|--------|-----------------|------------|-------|
-
-### Standard Augmentation Strategies
-
-| Strategy | BDD10k | IDD-AW | MapillaryVistas | OUTSIDE15k | Notes |
-|----------|--------|--------|-----------------|------------|-------|
-"""
+    # Read current tracker
+    with open(TRACKER_PATH, 'r') as f:
+        content = f.read()
     
     # Update timestamp
     now = datetime.now().strftime('%Y-%m-%d %H:%M')
@@ -1015,13 +861,13 @@ def update_tracker(status_matrix, summary, domain_filter='clear_day', tracker_pa
         std_rows.append(format_status_row(strategy, status_matrix[strategy], DATASETS))
     std_table = '\n'.join(std_rows)
     
-    # Update generative table - handle both empty and filled tables
-    gen_pattern = r'### Generative Image Augmentation Strategies\n\n\|[^\n]+\n\|[-|\s]+\n(?:\|[^\n]+\n)*'
+    # Update generative table
+    gen_pattern = r'### Generative Image Augmentation Strategies\n\n\|[^\n]+\n\|[-|\s]+\n(?:\|[^\n]+\n)+'
     gen_replacement = f'### Generative Image Augmentation Strategies\n\n{gen_table}\n'
     content = re.sub(gen_pattern, gen_replacement, content)
     
-    # Update standard table - handle both empty and filled tables
-    std_pattern = r'### Standard Augmentation Strategies\n\n\|[^\n]+\n\|[-|\s]+\n(?:\|[^\n]+\n)*'
+    # Update standard table
+    std_pattern = r'### Standard Augmentation Strategies\n\n\|[^\n]+\n\|[-|\s]+\n(?:\|[^\n]+\n)+'
     std_replacement = f'### Standard Augmentation Strategies\n\n{std_table}\n'
     content = re.sub(std_pattern, std_replacement, content)
     
@@ -1029,9 +875,6 @@ def update_tracker(status_matrix, summary, domain_filter='clear_day', tracker_pa
     gen_complete = sum(1 for s in GENERATIVE_STRATEGIES 
                        for d in DATASETS 
                        if status_matrix[s][d]['status'] == 'complete')
-    gen_partial = sum(1 for s in GENERATIVE_STRATEGIES 
-                      for d in DATASETS 
-                      if status_matrix[s][d]['status'] == 'partial')
     gen_running = sum(1 for s in GENERATIVE_STRATEGIES 
                       for d in DATASETS 
                       if status_matrix[s][d]['status'] == 'running')
@@ -1046,9 +889,6 @@ def update_tracker(status_matrix, summary, domain_filter='clear_day', tracker_pa
     std_complete = sum(1 for s in STANDARD_STRATEGIES 
                        for d in DATASETS 
                        if status_matrix[s][d]['status'] == 'complete')
-    std_partial = sum(1 for s in STANDARD_STRATEGIES 
-                      for d in DATASETS 
-                      if status_matrix[s][d]['status'] == 'partial')
     std_running = sum(1 for s in STANDARD_STRATEGIES 
                       for d in DATASETS 
                       if status_matrix[s][d]['status'] == 'running')
@@ -1061,32 +901,31 @@ def update_tracker(status_matrix, summary, domain_filter='clear_day', tracker_pa
     std_total = len(STANDARD_STRATEGIES) * len(DATASETS)
     
     total_complete = gen_complete + std_complete
-    total_partial = gen_partial + std_partial
     total_running = gen_running + std_running
     total_pending = gen_pending + std_pending
     total_failed = gen_failed + std_failed
     total = gen_total + std_total
     
-    progress_table = f"""| Category | Total | Complete | Partial | Running | Pending | Failed |
-|----------|-------|----------|---------|---------|---------|--------|
-| **Generative (gen_*)** | {gen_total} | {gen_complete} | {gen_partial} | {gen_running} | {gen_pending} | {gen_failed} |
-| **Standard (std_*)** | {std_total} | {std_complete} | {std_partial} | {std_running} | {std_pending} | {std_failed} |
-| **TOTAL** | {total} | {total_complete} | {total_partial} | {total_running} | {total_pending} | {total_failed} |"""
+    progress_table = f"""| Category | Total | Complete | Running | Pending | Failed |
+|----------|-------|----------|---------|---------|--------|
+| **Generative (gen_*)** | {gen_total} | {gen_complete} | {gen_running} | {gen_pending} | {gen_failed} |
+| **Standard (std_*)** | {std_total} | {std_complete} | {std_running} | {std_pending} | {std_failed} |
+| **TOTAL** | {total} | {total_complete} | {total_running} | {total_pending} | {total_failed} |"""
     
-    progress_pattern = r'\| Category \| Total \| Complete \|[^\n]+\n\|[-|\s]+\n(?:\|[^\n]+\n)+'
+    progress_pattern = r'\| Category \| Total \| Complete \| Running \| Pending \| Failed \|\n\|[-|\s]+\n(?:\|[^\n]+\n)+'
     content = re.sub(progress_pattern, progress_table + '\n', content)
     
     # Write updated tracker
-    with open(tracker_path, 'w') as f:
+    with open(TRACKER_PATH, 'w') as f:
         f.write(content)
     
     return {
-        'gen': {'total': gen_total, 'complete': gen_complete, 'partial': gen_partial,
-                'running': gen_running, 'pending': gen_pending, 'failed': gen_failed},
-        'std': {'total': std_total, 'complete': std_complete, 'partial': std_partial,
-                'running': std_running, 'pending': std_pending, 'failed': std_failed},
-        'total': {'total': total, 'complete': total_complete, 'partial': total_partial,
-                  'running': total_running, 'pending': total_pending, 'failed': total_failed},
+        'gen': {'total': gen_total, 'complete': gen_complete, 'running': gen_running, 
+                'pending': gen_pending, 'failed': gen_failed},
+        'std': {'total': std_total, 'complete': std_complete, 'running': std_running,
+                'pending': std_pending, 'failed': std_failed},
+        'total': {'total': total, 'complete': total_complete, 'running': total_running,
+                  'pending': total_pending, 'failed': total_failed},
     }
 
 
@@ -1099,10 +938,8 @@ def print_summary(stats):
     for category, data in stats.items():
         name = {'gen': 'Generative', 'std': 'Standard', 'total': 'TOTAL'}[category]
         pct = (data['complete'] / data['total'] * 100) if data['total'] > 0 else 0
-        partial_pct = ((data['complete'] + data['partial']) / data['total'] * 100) if data['total'] > 0 else 0
         print(f"\n{name} Strategies:")
         print(f"  Complete: {data['complete']}/{data['total']} ({pct:.1f}%)")
-        print(f"  Partial:  {data['partial']} (total {data['complete'] + data['partial']}/{data['total']} = {partial_pct:.1f}%)")
         print(f"  Running:  {data['running']}")
         print(f"  Pending:  {data['pending']}")
         print(f"  Failed:   {data['failed']}")
@@ -1119,7 +956,7 @@ def main():
     parser.add_argument('--coverage-report', '-c', action='store_true',
                         help='Generate detailed coverage report showing each (strategy, dataset, model)')
     parser.add_argument('--output', '-o', type=str, default=None,
-                        help='Output file for coverage report (default: docs/TRAINING_COVERAGE_STAGE1.md or STAGE2.md)')
+                        help='Output file for coverage report (default: prints to stdout or saves to docs/TRAINING_COVERAGE.md)')
     args = parser.parse_args()
     
     domain_filter = 'clear_day' if args.stage == 1 else 'all_domains'
@@ -1131,9 +968,7 @@ def main():
         
         output_file = args.output
         if output_file is None:
-            # Use stage-specific filenames
-            stage_suffix = "STAGE1" if args.stage == 1 else "STAGE2"
-            output_file = PROJECT_ROOT / 'docs' / f'TRAINING_COVERAGE_{stage_suffix}.md'
+            output_file = PROJECT_ROOT / 'docs' / 'TRAINING_COVERAGE.md'
         
         report = generate_coverage_report(coverage, summary, output_file)
         
@@ -1153,15 +988,11 @@ def main():
     print(f"Checking Stage {args.stage} ({domain_filter}) status...")
     status_matrix, summary = collect_status(domain_filter, args.verbose)
     
-    # Use stage-specific tracker file
-    stage_suffix = "STAGE1" if args.stage == 1 else "STAGE2"
-    tracker_path = PROJECT_ROOT / 'docs' / f'TRAINING_TRACKER_{stage_suffix}.md'
-    
     if not args.no_update:
-        print(f"\nUpdating tracker: {tracker_path}")
-        stats = update_tracker(status_matrix, summary, domain_filter, tracker_path)
+        print(f"\nUpdating tracker: {TRACKER_PATH}")
+        stats = update_tracker(status_matrix, summary, domain_filter)
         print_summary(stats)
-        print(f"\nTracker updated: {tracker_path}")
+        print(f"\nTracker updated: {TRACKER_PATH}")
     else:
         print("\nStatus collected (no update mode)")
         print(f"  Complete: {summary['complete']}")
