@@ -114,7 +114,7 @@ class UnifiedTrainer:
         max_iters: Optional[int] = None,
         gpu_ids: List[int] = None,
         distributed: bool = False,
-        use_native_classes: bool = False,
+        use_native_classes: bool = True,
     ):
         self.dataset = dataset
         self.model = model
