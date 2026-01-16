@@ -1,0 +1,232 @@
+% ============================================================================
+% IEEE Publication Tables - Baseline Analysis
+% Generated: January 8, 2026
+% Requires: booktabs, multirow, siunitx packages
+% ============================================================================
+
+% Add to preamble:
+% \usepackage{booktabs}
+% \usepackage{multirow}
+% \usepackage{siunitx}
+% \sisetup{detect-weight=true, detect-family=true}
+
+% ============================================================================
+% Table I: Overall Model Performance Comparison
+% ============================================================================
+
+\begin{table}[t]
+\centering
+\caption{Overall Performance Comparison of Semantic Segmentation Models Across Datasets. Best results per dataset in \textbf{bold}.}
+\label{tab:model_comparison}
+\begin{tabular}{@{}llccc@{}}
+\toprule
+\textbf{Dataset} & \textbf{Model} & \textbf{mIoU (\%)} & \textbf{Normal} & \textbf{Adverse} \\
+\midrule
+\multirow{3}{*}{BDD10K} 
+  & DeepLabV3+ & 45.7 & 50.6 & 43.2 \\
+  & PSPNet     & 54.5 & 59.2 & 52.2 \\
+  & SegFormer  & \textbf{61.0} & \textbf{65.6} & \textbf{58.8} \\
+\midrule
+\multirow{3}{*}{IDD-AW}
+  & DeepLabV3+ & 68.3 & 73.7 & 64.3 \\
+  & PSPNet     & 71.4 & 76.5 & 67.0 \\
+  & SegFormer  & \textbf{81.0} & \textbf{82.1} & \textbf{78.0} \\
+\midrule
+\multirow{3}{*}{Mapillary}
+  & DeepLabV3+ & 37.9 & 38.4 & 37.6 \\
+  & PSPNet     & 31.9 & 29.0 & 33.8 \\
+  & SegFormer  & \textbf{63.9} & \textbf{66.6} & \textbf{62.2} \\
+\midrule
+\multirow{3}{*}{Outside15K}
+  & DeepLabV3+ & 45.9 & 56.5 & 40.5 \\
+  & PSPNet     & 56.0 & 64.9 & 51.5 \\
+  & SegFormer  & \textbf{69.8} & \textbf{76.0} & \textbf{66.7} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+% ============================================================================
+% Table II: Domain Gap Analysis
+% ============================================================================
+
+\begin{table}[t]
+\centering
+\caption{Domain Gap (Normal $-$ Adverse mIoU) Across Model-Dataset Configurations. Lower values indicate better robustness to adverse conditions.}
+\label{tab:domain_gap}
+\begin{tabular}{@{}lccc@{}}
+\toprule
+\textbf{Dataset} & \textbf{DeepLabV3+} & \textbf{PSPNet} & \textbf{SegFormer} \\
+\midrule
+BDD10K      & +7.3\% & +7.0\% & \textbf{+6.8\%} \\
+IDD-AW      & +9.5\% & +9.5\% & \textbf{+4.1\%} \\
+Mapillary   & \textbf{+0.8\%} & $-$4.8\% & +4.4\% \\
+Outside15K  & +16.0\% & +13.3\% & \textbf{+9.2\%} \\
+\midrule
+\textbf{Average} & +8.4\% & +6.2\% & \textbf{+6.1\%} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+% ============================================================================
+% Table III: Per-Domain Performance (Full Baseline)
+% ============================================================================
+
+\begin{table}[t]
+\centering
+\caption{Mean Intersection over Union (mIoU, \%) Across Weather Domains. Results averaged across all datasets. Best per domain in \textbf{bold}.}
+\label{tab:domain_performance}
+\begin{tabular}{@{}lcccccc@{}}
+\toprule
+\textbf{Model} & \textbf{Clear} & \textbf{Cloudy} & \textbf{Dawn} & \textbf{Night} & \textbf{Rain} & \textbf{Snow} \\
+\midrule
+DeepLabV3+ & 53.7 & 55.9 & 42.2 & 41.9 & 50.0 & 49.8 \\
+PSPNet     & 56.8 & 58.0 & 48.3 & 49.3 & 52.3 & 53.6 \\
+SegFormer  & \textbf{72.1} & \textbf{73.0} & \textbf{61.3} & \textbf{62.4} & \textbf{68.5} & \textbf{70.2} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+% ============================================================================
+% Table IV: Training Strategy Comparison (Full vs Clear Day)
+% ============================================================================
+
+\begin{table}[t]
+\centering
+\caption{Impact of Training Data Diversity on Model Performance. Full training includes all weather conditions; Clear Day training uses only clear weather images.}
+\label{tab:training_comparison}
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+\textbf{Training} & \textbf{Overall} & \textbf{Normal} & \textbf{Adverse} & \textbf{Gap} \\
+\textbf{Strategy} & \textbf{mIoU (\%)} & \textbf{mIoU (\%)} & \textbf{mIoU (\%)} & \textbf{(\%)} \\
+\midrule
+Full Baseline     & \textbf{58.5} & \textbf{61.6} & \textbf{55.3} & \textbf{+6.2} \\
+Clear Day Only    & 55.2 & 60.7 & 51.5 & +9.2 \\
+\midrule
+\textbf{Improvement} & +3.3 & +0.9 & +3.8 & $-$3.0 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+% ============================================================================
+% Table V: Model Architecture Summary
+% ============================================================================
+
+\begin{table}[t]
+\centering
+\caption{Model Architecture Ranking by Overall Performance. Standard deviation computed across datasets.}
+\label{tab:model_ranking}
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+\textbf{Model} & \textbf{Backbone} & \textbf{mIoU (\%)} & \textbf{Std} & \textbf{Rank} \\
+\midrule
+SegFormer  & MiT-B5  & \textbf{69.7} & $\pm$7.3  & 1 \\
+PSPNet     & ResNet-50 & 55.1 & $\pm$16.5 & 2 \\
+DeepLabV3+ & ResNet-50 & 50.7 & $\pm$13.2 & 3 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+% ============================================================================
+% Table VI: Dataset Characteristics and Performance
+% ============================================================================
+
+\begin{table}[t]
+\centering
+\caption{Dataset Characteristics with Normal and Adverse Weather Performance.}
+\label{tab:dataset_summary}
+\begin{tabular}{@{}lccccc@{}}
+\toprule
+\textbf{Dataset} & \textbf{Images} & \textbf{Overall} & \textbf{Normal} & \textbf{Adverse} & \textbf{Gap} \\
+ & & \textbf{(\%)} & \textbf{(\%)} & \textbf{(\%)} & \textbf{(\%)} \\
+\midrule
+IDD-AW      & 2,928 & \textbf{73.6} & 77.4 & 69.8 & +7.7 \\
+Outside15K  & 2,505 & 57.2 & 65.8 & 52.9 & +12.9 \\
+BDD10K      & 1,857 & 53.7 & 58.4 & 51.4 & +7.0 \\
+Mapillary   & 4,949 & 44.6 & 44.7 & 44.5 & +0.1 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+% ============================================================================
+% Table VII: Detailed Per-Domain Results (Comprehensive)
+% ============================================================================
+
+\begin{table*}[t]
+\centering
+\caption{Comprehensive Per-Domain Performance (mIoU, \%) for Each Model-Dataset Configuration. Domains with fewer than 50 test images are excluded. Best per configuration in \textbf{bold}.}
+\label{tab:comprehensive_results}
+\begin{tabular}{@{}llcccccc|c@{}}
+\toprule
+\textbf{Dataset} & \textbf{Model} & \textbf{Clear} & \textbf{Cloudy} & \textbf{Dawn} & \textbf{Night} & \textbf{Rain} & \textbf{Snow} & \textbf{Avg} \\
+\midrule
+\multirow{3}{*}{BDD10K}
+  & DeepLabV3+ & 49.0 & 52.1 & 40.0 & 33.9 & 46.3 & 52.8 & 45.7 \\
+  & PSPNet     & 55.0 & 63.3 & 51.4 & 42.7 & 48.0 & 66.8 & 54.5 \\
+  & SegFormer  & \textbf{63.2} & \textbf{67.9} & \textbf{54.2} & \textbf{51.8} & \textbf{55.6} & \textbf{73.3} & \textbf{61.0} \\
+\midrule
+\multirow{3}{*}{IDD-AW}
+  & DeepLabV3+ & 73.0 & 74.5 & 66.3 & 66.6 & 65.7 & 58.5 & 68.3 \\
+  & PSPNet     & 76.9 & 76.0 & 70.1 & 73.3 & 66.4 & 58.1 & 71.4 \\
+  & SegFormer  & \textbf{81.8} & \textbf{82.4} & \textbf{72.5} & \textbf{80.9} & \textbf{77.9} & \textbf{80.7} & \textbf{81.0} \\
+\midrule
+\multirow{3}{*}{Mapillary}
+  & DeepLabV3+ & 34.8 & 41.9 & 31.2 & 35.9 & 41.9 & 35.1 & 37.9 \\
+  & PSPNet     & 29.4 & 28.5 & 29.8 & 38.0 & 37.7 & 25.6 & 31.9 \\
+  & SegFormer  & \textbf{66.9} & \textbf{66.3} & \textbf{49.6} & \textbf{57.6} & \textbf{69.2} & \textbf{59.7} & \textbf{63.9} \\
+\midrule
+\multirow{3}{*}{Outside15K}
+  & DeepLabV3+ & 57.8 & 55.2 & 31.3 & 31.3 & 46.1 & 53.5 & 45.9 \\
+  & PSPNet     & 66.0 & 63.7 & 42.1 & 43.3 & 56.9 & 63.7 & 56.0 \\
+  & SegFormer  & \textbf{76.4} & \textbf{75.6} & \textbf{68.9} & \textbf{59.2} & \textbf{71.2} & \textbf{67.7} & \textbf{69.8} \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+
+% ============================================================================
+% Table VIII: Performance Drop from Clear Day (Domain Shift Analysis)
+% ============================================================================
+
+\begin{table}[t]
+\centering
+\caption{Performance Drop from Clear Day to Adverse Domains (percentage points). Higher values indicate larger domain shift impact.}
+\label{tab:domain_shift}
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+\textbf{Model} & \textbf{Dawn/Dusk} & \textbf{Night} & \textbf{Rainy} & \textbf{Snowy} \\
+\midrule
+DeepLabV3+ & +11.5 & +11.8 & +3.7 & +3.9 \\
+PSPNet     & +8.5 & +7.5 & +4.5 & +3.2 \\
+SegFormer  & \textbf{+10.8} & \textbf{+9.7} & \textbf{+3.6} & \textbf{+1.9} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+% ============================================================================
+% USAGE NOTES
+% ============================================================================
+%
+% For IEEE Transactions format:
+% - Use single column tables with table environment
+% - Use double column tables with table* environment
+% - Caption should be above the table
+% - Use \label immediately after \caption
+%
+% Required packages in preamble:
+% \usepackage{booktabs}   % For \toprule, \midrule, \bottomrule
+% \usepackage{multirow}   % For \multirow
+% \usepackage{siunitx}    % Optional: for number alignment
+%
+% Color coding (if using color tables):
+% \usepackage{colortbl}
+% \definecolor{bestcell}{RGB}{200,230,200}  % Light green
+% \definecolor{worstcell}{RGB}{255,200,200} % Light red
+%
+% ============================================================================

@@ -1,0 +1,7 @@
+Strategy,Type,Overall mIoU,Gain vs Clear Day,Normal mIoU,Normal Gain,Adverse mIoU,Adverse Gain,Domain Gap (Δ),Gap Reduction vs Clear Day,Num Results
+baseline_clear_day,Baseline Clear Day,18.62,0.0,5.21,0.0,3.37,0.0,1.84,0.0,8
+std_cutmix,Standard Aug,30.94,12.32,31.87,26.66,24.91,21.54,6.96,-5.12,7
+std_mixup,Standard Aug,23.65,5.03,25.3,20.09,22.62,19.25,2.68,-0.84,4
+std_randaugment,Standard Aug,16.37,-2.26,16.55,11.34,13.5,10.12,3.06,-1.22,4
+photometric_distort,Augmentation,14.92,-3.71,0.99,-4.23,0.85,-2.52,0.14,1.7,4
+std_autoaugment,Standard Aug,10.05,-8.57,0.51,-4.7,0.43,-2.94,0.08,1.76,3
