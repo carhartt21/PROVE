@@ -964,9 +964,9 @@ Examples:
                        help='Filter training data to specific domain (e.g., clear_day)')
     parser.add_argument('--conditions', type=str, nargs='+',
                        help='Weather conditions to use')
-    parser.add_argument('--use-native-classes', action='store_true',
-                       help='Train with native class labels for MapillaryVistas (66 classes) '
-                            'or OUTSIDE15k (24 classes) instead of converting to Cityscapes 19 classes')
+    parser.add_argument('--no-native-classes', dest='use_native_classes', action='store_false', default=True,
+                       help='Use Cityscapes 19 classes instead of native classes for MapillaryVistas (66) '
+                            'or OUTSIDE15k (24). Default is to use native classes.')
     
     # Training options
     parser.add_argument('--work-dir', type=str, help='Output directory')

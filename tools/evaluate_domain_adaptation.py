@@ -63,7 +63,8 @@ OUTPUT_ROOT = WEIGHTS_ROOT / 'domain_adaptation_ablation'
 SOURCE_DATASETS = ['BDD10k', 'IDD-AW', 'MapillaryVistas']
 
 # Base models to evaluate
-BASE_MODELS = ['deeplabv3plus_r50', 'pspnet_r50', 'segformer_mit-b5']
+# DeepLabV3+ excluded per DOMAIN_ADAPTATION_ABLATION.md update
+BASE_MODELS = ['pspnet_r50', 'segformer_mit-b5']
 
 # Model variants (including clear_day trained baseline)
 MODELS = BASE_MODELS  # For backward compatibility

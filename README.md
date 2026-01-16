@@ -226,6 +226,31 @@ When using combined strategies, the work directory includes both strategy names:
 - `gen_cycleGAN+std_cutmix/acdc/deeplabv3plus_r50/`
 - `baseline+std_mixup/acdc/deeplabv3plus_r50/`
 
+**Batch Combination Training:**
+
+For systematic ablation studies combining top gen and std strategies, use the combination training script:
+
+```bash
+# List all combinations (top 3 gen × top 3 std × datasets × models)
+./scripts/submit_combination_training.sh --list
+
+# Preview bsub commands without submitting
+./scripts/submit_combination_training.sh --dry-run
+
+# Submit all combination training jobs
+./scripts/submit_combination_training.sh
+
+# Submit with limit
+./scripts/submit_combination_training.sh --limit 10
+```
+
+**Default Configuration:**
+- Gen strategies: gen_cyclediffusion, gen_TSIT, gen_cycleGAN
+- Std strategies: std_randaugment, std_mixup, std_cutmix
+- Datasets: MapillaryVistas, IDD-AW
+- Models: SegFormer, PSPNet
+- Total: 36 combinations (3 × 3 × 2 × 2)
+
 **Shell Script Usage:**
 ```bash
 # Using train_unified.sh

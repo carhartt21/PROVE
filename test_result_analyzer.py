@@ -743,21 +743,19 @@ class TestResultAnalyzer:
                         f"{stats['min']:>9.2f}% {stats['count']:>8}")
         
         # === BASELINE CALCULATION ===
-        # Use baseline strategy with clear_day training data as reference
-        # NEW: Uses dataset suffix (_cd) instead of model suffix (_clear_day)
-        CLEAR_DAY_DATASET_SUFFIX = '_cd'
-        baseline_clear_day_results = [
+        # Use baseline strategy as reference
+        # Note: Since directory restructuring, dataset names no longer have _cd suffix
+        # All models in WEIGHTS are Stage 1 (clear_day training)
+        baseline_results = [
             r for r in valid_results 
-            if r['strategy'] == 'baseline' and r['dataset'].endswith(CLEAR_DAY_DATASET_SUFFIX)
+            if r['strategy'] == 'baseline'
         ]
         
-        if baseline_clear_day_results:
-            baseline_avg = sum(r['mIoU'] for r in baseline_clear_day_results) / len(baseline_clear_day_results)
-            baseline_label = "Baseline (clear_day training)"
+        if baseline_results:
+            baseline_avg = sum(r['mIoU'] for r in baseline_results) / len(baseline_results)
+            baseline_label = "Baseline"
         else:
-            # Fall back to any baseline if no clear_day variants exist
-            baseline_results = [r for r in valid_results if r['strategy'] == 'baseline']
-            baseline_avg = sum(r['mIoU'] for r in baseline_results) / len(baseline_results) if baseline_results else 0
+            baseline_avg = 0
             baseline_label = "Baseline"
         
         # === PERFORMANCE GAINS VS BASELINE (clear_day) ===

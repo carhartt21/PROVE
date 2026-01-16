@@ -63,6 +63,7 @@ except ImportError:
 DEFAULT_DATA_ROOT = os.environ.get('PROVE_DATA_ROOT', '/scratch/aaa_exchange/AWARE/FINAL_SPLITS')
 DEFAULT_GEN_ROOT = os.environ.get('PROVE_GEN_ROOT', '/scratch/aaa_exchange/AWARE/GENERATED_IMAGES')
 DEFAULT_WEIGHTS_ROOT = os.environ.get('PROVE_WEIGHTS_ROOT', '/scratch/aaa_exchange/AWARE/WEIGHTS')
+DEFAULT_WEIGHTS_ROOT_STAGE2 = os.environ.get('PROVE_WEIGHTS_ROOT_STAGE2', '/scratch/aaa_exchange/AWARE/WEIGHTS_STAGE_2')
 DEFAULT_CONFIG_ROOT = os.environ.get('PROVE_CONFIG_ROOT', './multi_model_configs')
 
 # Adverse weather conditions
@@ -888,11 +889,13 @@ class UnifiedTrainingConfig:
         data_root: str = DEFAULT_DATA_ROOT,
         gen_root: str = DEFAULT_GEN_ROOT,
         weights_root: str = DEFAULT_WEIGHTS_ROOT,
+        weights_root_stage2: str = DEFAULT_WEIGHTS_ROOT_STAGE2,
         cache_dir: Optional[str] = None,
     ):
         self.data_root = data_root
         self.gen_root = gen_root
         self.weights_root = weights_root
+        self.weights_root_stage2 = weights_root_stage2
         self.cache_dir = cache_dir
     
     def build(
@@ -2252,6 +2255,8 @@ class UnifiedTrainingConfig:
             strategy: Augmentation strategy name
             real_gen_ratio: Ratio of real images (0.0-1.0)
             domain_filter: Optional domain filter (e.g., 'clear_day')
+                - If domain_filter is set (e.g., 'clear_day'): Use WEIGHTS (Stage 1)
+                - If domain_filter is None (all domains): Use WEIGHTS_STAGE_2 (Stage 2)
             std_strategy: Optional standard augmentation combined with strategy
         """
         
@@ -2261,20 +2266,13 @@ class UnifiedTrainingConfig:
         else:
             ratio_str = ''
         
-        # Include domain filter in dataset directory name if specified
-        # Format: dataset_cd for clear_day, dataset_ad for no filter (all domains)
-        domain_abbrev = {
-            'clear_day': 'cd',
-            'clear_night': 'cn',
-            'rainy_day': 'rd',
-            'rainy_night': 'rn',
-            'fog': 'fg',
-            'snow': 'sn',
-        }
+        # Determine the appropriate weights root based on domain_filter
+        # Stage 1 (clear_day only): WEIGHTS
+        # Stage 2 (all domains): WEIGHTS_STAGE_2
         if domain_filter:
-            domain_str = f'_{domain_abbrev.get(domain_filter, domain_filter[:2])}'
+            weights_base = self.weights_root  # Stage 1
         else:
-            domain_str = '_ad'  # All domains suffix when no filter
+            weights_base = self.weights_root_stage2  # Stage 2
         
         # Include std_strategy in directory name if combined
         if std_strategy:
@@ -2282,14 +2280,15 @@ class UnifiedTrainingConfig:
         else:
             std_str = ''
         
-        # Normalize dataset name for directory (remove hyphens for consistency)
-        dataset_dir = dataset.lower().replace('-', '')
+        # Normalize dataset name for directory (keep hyphen for IDD-AW consistency)
+        # No more _cd or _ad suffixes - the stage is determined by the root directory
+        dataset_dir = dataset.lower()
         
         config['work_dir'] = os.path.join(
-            self.weights_root,
+            weights_base,
             f'{strategy}{std_str}',
-            f'{dataset_dir}{domain_str}',  # Domain filter applied to dataset
-            f'{model}{ratio_str}',  # Model no longer has domain suffix
+            f'{dataset_dir}',  # No domain suffix - stage determined by directory
+            f'{model}{ratio_str}',
         )
         
         return config
