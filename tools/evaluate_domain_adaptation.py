@@ -629,6 +629,7 @@ def run_evaluation(source_dataset: str, model: str, checkpoint_path: str = None,
         'source_dataset': source_dataset,
         'model': model,
         'model_full': full_model_name,
+        'strategy': strategy if strategy else None,
         'variant': variant if variant else 'full_dataset',
         'checkpoint': str(checkpoint_path),
         'target_datasets': 'ACDC + Cityscapes',
@@ -642,8 +643,15 @@ def run_evaluation(source_dataset: str, model: str, checkpoint_path: str = None,
         'label_format': 'Cityscapes labelID (0-33) converted to trainID (0-18)'
     }
     
-    # Save results - use full model name for output path
-    output_dir = OUTPUT_ROOT / source_dataset.lower() / full_model_name
+    # Save results - use strategy path if specified, otherwise use full model name
+    if strategy:
+        # Check if checkpoint has _ratio0p50 suffix
+        if '_ratio0p50' in str(checkpoint_path):
+            output_dir = OUTPUT_ROOT / strategy / source_dataset.lower() / f"{model}_ratio0p50"
+        else:
+            output_dir = OUTPUT_ROOT / strategy / source_dataset.lower() / model
+    else:
+        output_dir = OUTPUT_ROOT / source_dataset.lower() / full_model_name
     output_dir.mkdir(parents=True, exist_ok=True)
     
     result_file = output_dir / 'domain_adaptation_evaluation.json'
