@@ -1,44 +1,59 @@
 # TODO - Upcoming Tasks
 
-*Last updated: 2026-01-15 (16:30)*
+*Last updated: 2026-01-16 (00:05)*
 
 ## Active Training/Testing Jobs
 
-### Stage 1 Training Coverage Status (Jan 15, 2026)
+### Stage 1 Training Coverage Status (Jan 16, 2026)
 
-**Status:** 🔄 88.1% Complete, 11.0% Pending, 0.9% Running
+**Status:** 🔄 94.6% Complete, 5.4% Pending/Running
 
 | Status | Count | Percentage |
 |--------|------:|----------:|
-| ✅ Complete | 296 | 88.1% |
-| 🔄 Running | 3 | 0.9% |
-| ⏳ Pending | 37 | 11.0% |
+| ✅ Complete | 318 | 94.6% |
+| 🔄 Running | 0 | 0.0% |
+| ⏳ Pending | 18 | 5.4% |
 | ⚠️ Missing | 0 | 0.0% |
 
-**All configurations are now covered** (either complete, running, or pending).
+**All configurations are now covered** (either complete or pending in queue).
 
 ### Stage 1 Testing
 
 - Finish when trainings are complete
 
-### IDD-AW Retraining Pipeline v4 (Jan 15, 2026)
+### IDD-AW Retraining Pipeline v5/v6 (Jan 15-16, 2026)
 
-**Status:** 🔄 In Progress (28 new jobs submitted + 1 running from v3)
+**Status:** 🔄 In Progress
 
-**Issue Fixed:** Original rt3_ jobs failed due to train_script.py having hardcoded `iddaw_cd` paths after directory consolidation. Fixed by using `unified_training.py` directly.
+**rt5_ Jobs (8 remaining):** Strategy name fixes
+- gen_CNetSeg (3 jobs): DeepLabV3+, PSPNet, SegFormer
+- gen_IP2P (2 jobs): PSPNet, SegFormer  
+- photometric_distort (3 jobs): DeepLabV3+, PSPNet, SegFormer
 
-**New Jobs (rt4_*):** 28 jobs with `-n 10` (multi-CPU)
-- Job IDs: 9564069-9564096
-- Each job: trains model → automatically runs fine_grained_test.py
+**rt6_ Jobs (9):** Missing Stage 1 configs
+- gen_step1x_new / IDD-AW / PSPNet
+- std_minimal (7 jobs): IDD-AW SegFormer, MapillaryVistas ×3, OUTSIDE15k ×3
+- std_randaugment / IDD-AW / SegFormer
 
-**Still Running (rt3_*):** 1 job
-- rt3_IP2P_iddaw_dlv3 (job 9561538) - uses gen_IP2P strategy
+**Test Jobs (20):** Testing existing checkpoints at `iddaw_cd/`
+- baseline, gen_Attribute_Hallucination, gen_CUT
+- std_autoaugment, std_cutmix, std_mixup, std_randaugment (DeepLabV3+, PSPNet)
+
+**Issues Fixed:**
+1. **rt4_ → rt5_:** Wrong strategy names (gen_ControlNet_seg2image → gen_CNetSeg, etc.)
+2. **rt4_ → killed:** 19 unnecessary resume jobs (checkpoints existed at iddaw_cd)
+3. **Missing configs → rt6_:** Fixed dataset case, removed invalid --stage argument
+
+**Scripts Created:**
+- [scripts/resubmit_rt5_failed.sh](../scripts/resubmit_rt5_failed.sh)
+- [scripts/submit_iddaw_tests_iddaw_cd.sh](../scripts/submit_iddaw_tests_iddaw_cd.sh)
+- [scripts/submit_missing_stage1_training.sh](../scripts/submit_missing_stage1_training.sh)
 
 **Strategies (10 total):**
 - baseline, gen_Attribute_Hallucination, gen_CNetSeg, gen_CUT, gen_IP2P
 - std_autoaugment, std_cutmix, std_mixup, photometric_distort, std_randaugment
 
-**Models:** DeepLabV3+, PSPNet, SegFormer (29 total jobs)
+**Models:** DeepLabV3+, PSPNet, SegFormer
 
 ### Ratio Ablation Study (Jan 15, 2026)
 
@@ -146,9 +161,17 @@
    - **Status:** ⏳ Ready to submit (8 jobs available, 4 pending training)
    - **Script:** `./scripts/submit_domain_adaptation_ablation.sh --all`
 
-4. **Augmentation Combination Training**
+4. **Augmentation Combination Training** ⭐ SCRIPT READY
    - Combine the Top-3 std and gen strategies using Segformer and PSPNet
-   - Decide which datasets to use (maybe not all to limit training time)
+   - **Script:** `./scripts/submit_combination_training.sh`
+   - **Datasets:** MapillaryVistas, IDD-AW (as requested)
+   - **Gen strategies:** gen_cyclediffusion, gen_TSIT, gen_cycleGAN
+   - **Std strategies:** std_randaugment, std_mixup, std_cutmix
+   - **Total jobs:** 36 (3×3×2×2)
+   - **Commands:**
+     - `./scripts/submit_combination_training.sh --list` - Preview all combinations
+     - `./scripts/submit_combination_training.sh --dry-run` - Preview bsub commands
+     - `./scripts/submit_combination_training.sh` - Submit all 36 jobs
 
 ### Medium Priority
 
@@ -214,6 +237,13 @@
   - Resubmitted 28 rt4_ jobs with `-n 10` (multi-CPU)
   - Job IDs: 9564069-9564096
   - 1 original rt3_ job (9561538) still running successfully
+- ✅ **IDD-AW rt4_ Jobs Fixed → rt5_:**
+  - rt4_ failed due to: (1) wrong strategy names, (2) incomplete training (wall time)
+  - Fixed strategy names: `gen_CNetSeg`, `gen_IP2P`, `photometric_distort`
+  - Added `--resume` for incomplete training + extended wall time
+  - Resubmitted 27 rt5_ jobs (9587175-9587201)
+  - All jobs moved to head of queue with `btop`
+  - Script: [scripts/resubmit_rt5_failed.sh](../scripts/resubmit_rt5_failed.sh)
 - ✅ **Mapillary Class Mapping Bug Fixed:**
   - Test reports were showing wrong class names (e.g., "road" for class 0 = Bird, "car" for class 13 = Road)
   - Added `MAPILLARY_CLASSES` (66 names) and `OUTSIDE15K_CLASSES` (24 names) to `fine_grained_test.py`
@@ -239,7 +269,12 @@
 - ✅ **Created Reusable Submission Templates:**
   - `scripts/submit_training.sh` - Training job template with all options
   - `scripts/submit_testing.sh` - Testing job template with auto-detection
-  - Both support --dry-run for previewing commands
+  - `scripts/submit_combination_training.sh` - Combination strategy training
+  - All support --dry-run for previewing commands
+- ✅ **README Updated:**
+  - Added `fine_grained_test.py` documentation
+  - Added important training modes for `unified_training.py`
+  - Added batch combination training section
 - ✅ **Extended Training Diminishing Returns Analysis:**
   - Analyzed 22 configurations at 320k iterations
   - Created report: [docs/EXTENDED_TRAINING_ANALYSIS.md](EXTENDED_TRAINING_ANALYSIS.md)

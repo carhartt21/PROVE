@@ -90,17 +90,51 @@ The script analyzes whether combinations provide **synergistic** (better than be
 
 ## How to Add New Combinations
 
+### Using the Combination Training Script (Recommended)
+
+For systematic combination ablation studies:
+
+```bash
+# List all combinations (top 3 gen × top 3 std × datasets × models)
+./scripts/submit_combination_training.sh --list
+
+# Preview bsub commands without submitting
+./scripts/submit_combination_training.sh --dry-run
+
+# Submit all combination training jobs
+./scripts/submit_combination_training.sh
+
+# Submit with limit
+./scripts/submit_combination_training.sh --limit 10
+```
+
+**Default Configuration:**
+- **Gen strategies:** gen_cyclediffusion, gen_TSIT, gen_cycleGAN
+- **Std strategies:** std_randaugment, std_mixup, std_cutmix
+- **Datasets:** MapillaryVistas, IDD-AW
+- **Models:** SegFormer, PSPNet
+- **Total:** 36 combinations (3 × 3 × 2 × 2)
+
+### Manual Single Job Submission
+
 1. **Train with combined strategy:**
    ```bash
-   python unified_training.py --strategy gen_XXX+std_YYY --dataset acdc --model deeplabv3plus_r50
+   python unified_training.py --strategy gen_XXX --std-strategy std_YYY \
+       --dataset acdc --model deeplabv3plus_r50
    ```
 
-2. **Move to combinations directory:**
+2. **Or use the generic template:**
+   ```bash
+   ./scripts/submit_training.sh --dataset BDD10k --model segformer_mit-b5 \
+       --strategy gen_cycleGAN --std-strategy std_mixup
+   ```
+
+3. **Move to combinations directory (optional):**
    ```bash
    mv /scratch/aaa_exchange/AWARE/WEIGHTS/gen_XXX+std_YYY /scratch/aaa_exchange/AWARE/WEIGHTS_COMBINATIONS/
    ```
 
-3. **Re-run analysis:**
+4. **Re-run analysis:**
    ```bash
    python analyze_combination_ablation.py
    ```

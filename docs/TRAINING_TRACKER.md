@@ -1,6 +1,6 @@
 # Retraining Progress Tracker
 
-**Last Updated:** 2026-01-15 13:26
+**Last Updated:** 2026-01-16 10:19
 
 This document tracks the progress of retraining models with the corrected native class labels.
 
@@ -145,16 +145,16 @@ Based on Stage 1 clear_day results (average mIoU):
 
 | Strategy | BDD10k | IDD-AW | MapillaryVistas | OUTSIDE15k | Notes |
 |----------|--------|--------|-----------------|------------|-------|
-| gen_Attribute_Hallucination | ✅ | ⏳ | ✅ | ✅ |  |
+| gen_Attribute_Hallucination | ✅ | ✅ | ✅ | ✅ |  |
 | gen_augmenters | ✅ | ✅ | ✅ | ✅ |  |
 | gen_automold | ✅ | ✅ | ✅ | ✅ |  |
-| gen_CNetSeg | ✅ | ⏳ | ✅ | ✅ |  |
-| gen_CUT | ✅ | ⏳ | ✅ | ✅ |  |
+| gen_CNetSeg | ✅ | ✅ | ✅ | ✅ |  |
+| gen_CUT | ✅ | ✅ | ✅ | ✅ |  |
 | gen_cyclediffusion | ✅ | ✅ | ✅ | ✅ |  |
 | gen_cycleGAN | ✅ | ✅ | ✅ | ✅ |  |
 | gen_flux_kontext | ✅ | ✅ | ✅ | ✅ |  |
 | gen_Img2Img | ✅ | ✅ | ✅ | ✅ |  |
-| gen_IP2P | ✅ | 🔄 | ✅ | ✅ |  |
+| gen_IP2P | ✅ | ❌ | ✅ | ✅ |  |
 | gen_LANIT | ✅ | ✅ | ✅ | ✅ |  |
 | gen_Qwen_Image_Edit | ✅ | ✅ | ✅ | ✅ | No BDD10k data |
 | gen_stargan_v2 | ✅ | ✅ | ✅ | ✅ |  |
@@ -171,13 +171,13 @@ Based on Stage 1 clear_day results (average mIoU):
 
 | Strategy | BDD10k | IDD-AW | MapillaryVistas | OUTSIDE15k | Notes |
 |----------|--------|--------|-----------------|------------|-------|
-| baseline | ✅ | ⏳ | ✅ | ✅ |  |
-| photometric_distort | ✅ | ⏳ | ✅ | ✅ |  |
-| std_minimal | ✅ | ✅ | ⏳ | ⏳ |  |
-| std_autoaugment | ✅ | ⏳ | ✅ | ✅ |  |
-| std_cutmix | ✅ | ⏳ | ✅ | ✅ |  |
-| std_mixup | ✅ | ⏳ | ✅ | ✅ |  |
-| std_randaugment | ✅ | ⏳ | ✅ | ✅ |  |
+| baseline | ✅ | ✅ | ✅ | ✅ |  |
+| photometric_distort | ✅ | ✅ | ✅ | ✅ |  |
+| std_minimal | ✅ | ✅ | ✅ | ✅ |  |
+| std_autoaugment | ✅ | ✅ | ✅ | ✅ |  |
+| std_cutmix | ✅ | ✅ | ✅ | ✅ |  |
+| std_mixup | ✅ | ✅ | ✅ | ✅ |  |
+| std_randaugment | ✅ | ✅ | ✅ | ✅ |  |
 
 ### Excluded Methods
 The following methods are excluded due to insufficient training data coverage:
@@ -232,9 +232,9 @@ python scripts/retrain_affected_models.py --generate-scripts
 
 | Category | Total | Complete | Running | Pending | Failed |
 |----------|-------|----------|---------|---------|--------|
-| **Generative (gen_*)** | 83 | 80 | 1 | 3 | 0 |
-| **Standard (std_*)** | 28 | 20 | 0 | 8 | 0 |
-| **TOTAL** | 111 | 100 | 1 | 11 | 0 |
+| **Generative (gen_*)** | 83 | 83 | 0 | 0 | 1 |
+| **Standard (std_*)** | 28 | 28 | 0 | 0 | 0 |
+| **TOTAL** | 111 | 111 | 0 | 0 | 1 |
 
 *Note: Stage 1 trains 3 models per strategy×dataset = 324 total configurations.*
 *Total = 28 strategies × 4 datasets × 3 models - 12 skipped configs = 324 configs*
