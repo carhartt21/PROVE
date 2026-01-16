@@ -578,8 +578,8 @@ def main():
     )
     parser.add_argument('--weights-root', type=str, default=DEFAULT_WEIGHTS_ROOT,
                        help=f'Weights root directory (default: {DEFAULT_WEIGHTS_ROOT})')
-    parser.add_argument('--output-dir', type=str, default='./figures/extended_training',
-                       help='Output directory for figures')
+    parser.add_argument('--output-dir', type=str, default='result_figures/extended_training',
+                       help='Output directory for figures (default: result_figures/extended_training)')
     parser.add_argument('--plots', type=str, nargs='+',
                        choices=['learning', 'improvement', 'convergence', 'strategy', 
                                'dataset', 'model', 'heatmap', 'diminishing', 'dashboard', 'all'],
