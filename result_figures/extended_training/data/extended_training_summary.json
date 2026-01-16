@@ -1,0 +1,773 @@
+{
+  "weights_root": "/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED",
+  "total_results": 66,
+  "results": [
+    {
+      "strategy": "gen_albumentations_weather",
+      "dataset": "bdd10k",
+      "model": "pspnet_r50_ratio0p50",
+      "iteration": 100000,
+      "miou": 46.0047412045853,
+      "pixel_acc": 90.42531349106218,
+      "result_file": "/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/gen_albumentations_weather/bdd10k/pspnet_r50_ratio0p50/test_results_iter_100000/20260116_114315/results.json"
+    },
+    {
+      "strategy": "gen_albumentations_weather",
+      "dataset": "bdd10k",
+      "model": "pspnet_r50_ratio0p50",
+      "iteration": 110000,
+      "miou": 46.067427356588006,
+      "pixel_acc": 90.43556041098502,
+      "result_file": "/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/gen_albumentations_weather/bdd10k/pspnet_r50_ratio0p50/test_results_iter_110000/20260116_114427/results.json"
+    },
+    {
+      "strategy": "gen_albumentations_weather",
+      "dataset": "bdd10k",
+      "model": "pspnet_r50_ratio0p50",
+      "iteration": 120000,
+      "miou": 46.1391589739375,
+      "pixel_acc": 90.50249733435905,
+      "result_file": "/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/gen_albumentations_weather/bdd10k/pspnet_r50_ratio0p50/test_results_iter_120000/20260116_114538/results.json"
+    },
+    {
+      "strategy": "gen_albumentations_weather",
+      "dataset": "bdd10k",
+      "model": "pspnet_r50_ratio0p50",
+      "iteration": 130000,
+      "miou": 46.19087610482529,
+      "pixel_acc": 90.52142744907117,
+      "result_file": "/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/gen_albumentations_weather/bdd10k/pspnet_r50_ratio0p50/test_results_iter_130000/20260116_114648/results.json"
+    },
+    {
+      "strategy": "gen_albumentations_weather",
+      "dataset": "bdd10k",
+      "model": "pspnet_r50_ratio0p50",
+      "iteration": 140000,
+      "miou": 45.964712055368146,
+      "pixel_acc": 90.47528166207788,
+      "result_file": "/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/gen_albumentations_weather/bdd10k/pspnet_r50_ratio0p50/test_results_iter_140000/20260116_114801/results.json"
+    },
+    {
+      "strategy": "gen_albumentations_weather",
+      "dataset": "bdd10k",
+      "model": "pspnet_r50_ratio0p50",
+      "iteration": 150000,
+      "miou": 46.00192021233809,
+      "pixel_acc": 90.53085102896578,
+      "result_file": "/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/gen_albumentations_weather/bdd10k/pspnet_r50_ratio0p50/test_results_iter_150000/20260116_114910/results.json"
+    },
+    {
+      "strategy": "gen_albumentations_weather",
+      "dataset": "bdd10k",
+      "model": "pspnet_r50_ratio0p50",
+      "iteration": 160000,
+      "miou": 46.325700407478884,
+      "pixel_acc": 90.55060249676187,
+      "result_file": "/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/gen_albumentations_weather/bdd10k/pspnet_r50_ratio0p50/test_results_iter_160000/20260116_115022/results.json"
+    },
+    {
+      "strategy": "gen_albumentations_weather",
+      "dataset": "bdd10k",
+      "model": "pspnet_r50_ratio0p50",
+      "iteration": 170000,
+      "miou": 46.06126181659643,
+      "pixel_acc": 90.61740828181466,
+      "result_file": "/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/gen_albumentations_weather/bdd10k/pspnet_r50_ratio0p50/test_results_iter_170000/20260116_115132/results.json"
+    },
+    {
+      "strategy": "gen_albumentations_weather",
+      "dataset": "bdd10k",
+      "model": "pspnet_r50_ratio0p50",
+      "iteration": 180000,
+      "miou": 46.00325968285983,
+      "pixel_acc": 90.58023007100805,
+      "result_file": "/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/gen_albumentations_weather/bdd10k/pspnet_r50_ratio0p50/test_results_iter_180000/20260116_115242/results.json"
+    },
+    {
+      "strategy": "gen_albumentations_weather",
+      "dataset": "bdd10k",
+      "model": "pspnet_r50_ratio0p50",
+      "iteration": 190000,
+      "miou": 45.632310575441835,
+      "pixel_acc": 90.4620694762133,
+      "result_file": "/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/gen_albumentations_weather/bdd10k/pspnet_r50_ratio0p50/test_results_iter_190000/20260116_115355/results.json"
+    },
+    {
+      "strategy": "gen_albumentations_weather",
+      "dataset": "bdd10k",
+      "model": "pspnet_r50_ratio0p50",
+      "iteration": 200000,
+      "miou": 46.26973935686512,
+      "pixel_acc": 90.59597859122199,
+      "result_file": "/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/gen_albumentations_weather/bdd10k/pspnet_r50_ratio0p50/test_results_iter_200000/20260116_115507/results.json"
+    },
+    {
+      "strategy": "gen_albumentations_weather",
+      "dataset": "bdd10k",
+      "model": "pspnet_r50_ratio0p50",
+      "iteration": 210000,
+      "miou": 46.05793867823541,
+      "pixel_acc": 90.60171340909577,
+      "result_file": "/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/gen_albumentations_weather/bdd10k/pspnet_r50_ratio0p50/test_results_iter_210000/20260116_115618/results.json"
+    },
+    {
+      "strategy": "gen_albumentations_weather",
+      "dataset": "bdd10k",
+      "model": "pspnet_r50_ratio0p50",
+      "iteration": 220000,
+      "miou": 46.28651183396595,
+      "pixel_acc": 90.62423989292058,
+      "result_file": "/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/gen_albumentations_weather/bdd10k/pspnet_r50_ratio0p50/test_results_iter_220000/20260116_115730/results.json"
+    },
+    {
+      "strategy": "gen_albumentations_weather",
+      "dataset": "bdd10k",
+      "model": "pspnet_r50_ratio0p50",
+      "iteration": 230000,
+      "miou": 46.29300470444123,
+      "pixel_acc": 90.63922045917761,
+      "result_file": "/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/gen_albumentations_weather/bdd10k/pspnet_r50_ratio0p50/test_results_iter_230000/20260116_115840/results.json"
+    },
+    {
+      "strategy": "gen_albumentations_weather",
+      "dataset": "bdd10k",
+      "model": "pspnet_r50_ratio0p50",
+      "iteration": 240000,
+      "miou": 46.37156878576866,
+      "pixel_acc": 90.6695655686701,
+      "result_file": "/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/gen_albumentations_weather/bdd10k/pspnet_r50_ratio0p50/test_results_iter_240000/20260116_115956/results.json"
+    },
+    {
+      "strategy": "gen_albumentations_weather",
+      "dataset": "bdd10k",
+      "model": "pspnet_r50_ratio0p50",
+      "iteration": 250000,
+      "miou": 46.211603092895295,
+      "pixel_acc": 90.63091254848563,
+      "result_file": "/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/gen_albumentations_weather/bdd10k/pspnet_r50_ratio0p50/test_results_iter_250000/20260116_120114/results.json"
+    },
+    {
+      "strategy": "gen_albumentations_weather",
+      "dataset": "bdd10k",
+      "model": "pspnet_r50_ratio0p50",
+      "iteration": 260000,
+      "miou": 46.071107546239624,
+      "pixel_acc": 90.64003734163697,
+      "result_file": "/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/gen_albumentations_weather/bdd10k/pspnet_r50_ratio0p50/test_results_iter_260000/20260116_120225/results.json"
+    },
+    {
+      "strategy": "gen_albumentations_weather",
+      "dataset": "bdd10k",
+      "model": "pspnet_r50_ratio0p50",
+      "iteration": 270000,
+      "miou": 46.17506275825397,
+      "pixel_acc": 90.68138515497563,
+      "result_file": "/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/gen_albumentations_weather/bdd10k/pspnet_r50_ratio0p50/test_results_iter_270000/20260116_120334/results.json"
+    },
+    {
+      "strategy": "gen_albumentations_weather",
+      "dataset": "bdd10k",
+      "model": "pspnet_r50_ratio0p50",
+      "iteration": 280000,
+      "miou": 46.39469875952742,
+      "pixel_acc": 90.64825832351751,
+      "result_file": "/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/gen_albumentations_weather/bdd10k/pspnet_r50_ratio0p50/test_results_iter_280000/20260116_120442/results.json"
+    },
+    {
+      "strategy": "gen_albumentations_weather",
+      "dataset": "bdd10k",
+      "model": "pspnet_r50_ratio0p50",
+      "iteration": 290000,
+      "miou": 46.2463721260724,
+      "pixel_acc": 90.56599088332848,
+      "result_file": "/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/gen_albumentations_weather/bdd10k/pspnet_r50_ratio0p50/test_results_iter_290000/20260116_120600/results.json"
+    },
+    {
+      "strategy": "gen_albumentations_weather",
+      "dataset": "bdd10k",
+      "model": "pspnet_r50_ratio0p50",
+      "iteration": 300000,
+      "miou": 46.34225287581057,
+      "pixel_acc": 90.703063710337,
+      "result_file": "/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/gen_albumentations_weather/bdd10k/pspnet_r50_ratio0p50/test_results_iter_300000/20260116_120713/results.json"
+    },
+    {
+      "strategy": "gen_albumentations_weather",
+      "dataset": "bdd10k",
+      "model": "pspnet_r50_ratio0p50",
+      "iteration": 310000,
+      "miou": 46.48838803686425,
+      "pixel_acc": 90.72085505761946,
+      "result_file": "/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/gen_albumentations_weather/bdd10k/pspnet_r50_ratio0p50/test_results_iter_310000/20260116_120824/results.json"
+    },
+    {
+      "strategy": "gen_albumentations_weather",
+      "dataset": "bdd10k",
+      "model": "pspnet_r50_ratio0p50",
+      "iteration": 320000,
+      "miou": 46.441067027585866,
+      "pixel_acc": 90.70964645667424,
+      "result_file": "/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/gen_albumentations_weather/bdd10k/pspnet_r50_ratio0p50/test_results_iter_320000/20260116_120934/results.json"
+    },
+    {
+      "strategy": "gen_albumentations_weather",
+      "dataset": "bdd10k",
+      "model": "pspnet_r50_ratio0p50",
+      "iteration": 90000,
+      "miou": 45.61524057622222,
+      "pixel_acc": 90.40165916800112,
+      "result_file": "/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/gen_albumentations_weather/bdd10k/pspnet_r50_ratio0p50/test_results_iter_90000/20260116_121045/results.json"
+    },
+    {
+      "strategy": "gen_albumentations_weather",
+      "dataset": "bdd10k",
+      "model": "segformer_mit-b5_ratio0p50",
+      "iteration": 100000,
+      "miou": 52.34409382063214,
+      "pixel_acc": 91.83414191409122,
+      "result_file": "/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/gen_albumentations_weather/bdd10k/segformer_mit-b5_ratio0p50/test_results_iter_100000/20260116_121157/results.json"
+    },
+    {
+      "strategy": "gen_albumentations_weather",
+      "dataset": "bdd10k",
+      "model": "segformer_mit-b5_ratio0p50",
+      "iteration": 110000,
+      "miou": 52.39945781733448,
+      "pixel_acc": 91.879903475738,
+      "result_file": "/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/gen_albumentations_weather/bdd10k/segformer_mit-b5_ratio0p50/test_results_iter_110000/20260116_121305/results.json"
+    },
+    {
+      "strategy": "gen_albumentations_weather",
+      "dataset": "bdd10k",
+      "model": "segformer_mit-b5_ratio0p50",
+      "iteration": 120000,
+      "miou": 52.49131050677329,
+      "pixel_acc": 91.9091249682508,
+      "result_file": "/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/gen_albumentations_weather/bdd10k/segformer_mit-b5_ratio0p50/test_results_iter_120000/20260116_121413/results.json"
+    },
+    {
+      "strategy": "gen_albumentations_weather",
+      "dataset": "bdd10k",
+      "model": "segformer_mit-b5_ratio0p50",
+      "iteration": 130000,
+      "miou": 52.460372373773154,
+      "pixel_acc": 91.91144075178718,
+      "result_file": "/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/gen_albumentations_weather/bdd10k/segformer_mit-b5_ratio0p50/test_results_iter_130000/20260116_121522/results.json"
+    },
+    {
+      "strategy": "gen_albumentations_weather",
+      "dataset": "bdd10k",
+      "model": "segformer_mit-b5_ratio0p50",
+      "iteration": 140000,
+      "miou": 52.556278184093266,
+      "pixel_acc": 91.95115231652677,
+      "result_file": "/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/gen_albumentations_weather/bdd10k/segformer_mit-b5_ratio0p50/test_results_iter_140000/20260116_121632/results.json"
+    },
+    {
+      "strategy": "gen_albumentations_weather",
+      "dataset": "bdd10k",
+      "model": "segformer_mit-b5_ratio0p50",
+      "iteration": 150000,
+      "miou": 52.64860025145974,
+      "pixel_acc": 91.95971753650058,
+      "result_file": "/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/gen_albumentations_weather/bdd10k/segformer_mit-b5_ratio0p50/test_results_iter_150000/20260116_121740/results.json"
+    },
+    {
+      "strategy": "gen_albumentations_weather",
+      "dataset": "bdd10k",
+      "model": "segformer_mit-b5_ratio0p50",
+      "iteration": 160000,
+      "miou": 52.54608751639282,
+      "pixel_acc": 91.94551287197754,
+      "result_file": "/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/gen_albumentations_weather/bdd10k/segformer_mit-b5_ratio0p50/test_results_iter_160000/20260116_121846/results.json"
+    },
+    {
+      "strategy": "gen_albumentations_weather",
+      "dataset": "bdd10k",
+      "model": "segformer_mit-b5_ratio0p50",
+      "iteration": 170000,
+      "miou": 52.67618109765056,
+      "pixel_acc": 91.98162508718805,
+      "result_file": "/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/gen_albumentations_weather/bdd10k/segformer_mit-b5_ratio0p50/test_results_iter_170000/20260116_121955/results.json"
+    },
+    {
+      "strategy": "gen_albumentations_weather",
+      "dataset": "bdd10k",
+      "model": "segformer_mit-b5_ratio0p50",
+      "iteration": 180000,
+      "miou": 52.68694305941736,
+      "pixel_acc": 91.95494117086479,
+      "result_file": "/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/gen_albumentations_weather/bdd10k/segformer_mit-b5_ratio0p50/test_results_iter_180000/20260116_122104/results.json"
+    },
+    {
+      "strategy": "gen_albumentations_weather",
+      "dataset": "bdd10k",
+      "model": "segformer_mit-b5_ratio0p50",
+      "iteration": 190000,
+      "miou": 52.79013780022043,
+      "pixel_acc": 91.98176044776584,
+      "result_file": "/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/gen_albumentations_weather/bdd10k/segformer_mit-b5_ratio0p50/test_results_iter_190000/20260116_122211/results.json"
+    },
+    {
+      "strategy": "gen_albumentations_weather",
+      "dataset": "bdd10k",
+      "model": "segformer_mit-b5_ratio0p50",
+      "iteration": 200000,
+      "miou": 52.80855555516567,
+      "pixel_acc": 91.99079856047379,
+      "result_file": "/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/gen_albumentations_weather/bdd10k/segformer_mit-b5_ratio0p50/test_results_iter_200000/20260116_122320/results.json"
+    },
+    {
+      "strategy": "gen_albumentations_weather",
+      "dataset": "bdd10k",
+      "model": "segformer_mit-b5_ratio0p50",
+      "iteration": 210000,
+      "miou": 52.790430125801,
+      "pixel_acc": 91.9873057608307,
+      "result_file": "/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/gen_albumentations_weather/bdd10k/segformer_mit-b5_ratio0p50/test_results_iter_210000/20260116_122427/results.json"
+    },
+    {
+      "strategy": "gen_albumentations_weather",
+      "dataset": "bdd10k",
+      "model": "segformer_mit-b5_ratio0p50",
+      "iteration": 220000,
+      "miou": 52.7649203594061,
+      "pixel_acc": 91.988989447724,
+      "result_file": "/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/gen_albumentations_weather/bdd10k/segformer_mit-b5_ratio0p50/test_results_iter_220000/20260116_122535/results.json"
+    },
+    {
+      "strategy": "gen_albumentations_weather",
+      "dataset": "bdd10k",
+      "model": "segformer_mit-b5_ratio0p50",
+      "iteration": 230000,
+      "miou": 52.85280262999507,
+      "pixel_acc": 92.00810161620406,
+      "result_file": "/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/gen_albumentations_weather/bdd10k/segformer_mit-b5_ratio0p50/test_results_iter_230000/20260116_122639/results.json"
+    },
+    {
+      "strategy": "gen_albumentations_weather",
+      "dataset": "bdd10k",
+      "model": "segformer_mit-b5_ratio0p50",
+      "iteration": 240000,
+      "miou": 52.80298499709451,
+      "pixel_acc": 92.00177915956505,
+      "result_file": "/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/gen_albumentations_weather/bdd10k/segformer_mit-b5_ratio0p50/test_results_iter_240000/20260116_122747/results.json"
+    },
+    {
+      "strategy": "gen_albumentations_weather",
+      "dataset": "bdd10k",
+      "model": "segformer_mit-b5_ratio0p50",
+      "iteration": 250000,
+      "miou": 52.80810932785046,
+      "pixel_acc": 91.99769002827558,
+      "result_file": "/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/gen_albumentations_weather/bdd10k/segformer_mit-b5_ratio0p50/test_results_iter_250000/20260116_122849/results.json"
+    },
+    {
+      "strategy": "gen_albumentations_weather",
+      "dataset": "bdd10k",
+      "model": "segformer_mit-b5_ratio0p50",
+      "iteration": 260000,
+      "miou": 52.95229448604043,
+      "pixel_acc": 92.01937454446974,
+      "result_file": "/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/gen_albumentations_weather/bdd10k/segformer_mit-b5_ratio0p50/test_results_iter_260000/20260116_122958/results.json"
+    },
+    {
+      "strategy": "gen_albumentations_weather",
+      "dataset": "bdd10k",
+      "model": "segformer_mit-b5_ratio0p50",
+      "iteration": 270000,
+      "miou": 52.89644973471667,
+      "pixel_acc": 92.01351479747555,
+      "result_file": "/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/gen_albumentations_weather/bdd10k/segformer_mit-b5_ratio0p50/test_results_iter_270000/20260116_123100/results.json"
+    },
+    {
+      "strategy": "gen_albumentations_weather",
+      "dataset": "bdd10k",
+      "model": "segformer_mit-b5_ratio0p50",
+      "iteration": 280000,
+      "miou": 52.94412955787777,
+      "pixel_acc": 92.0062249473494,
+      "result_file": "/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/gen_albumentations_weather/bdd10k/segformer_mit-b5_ratio0p50/test_results_iter_280000/20260116_123202/results.json"
+    },
+    {
+      "strategy": "gen_albumentations_weather",
+      "dataset": "bdd10k",
+      "model": "segformer_mit-b5_ratio0p50",
+      "iteration": 290000,
+      "miou": 52.84081941674735,
+      "pixel_acc": 92.0277964560887,
+      "result_file": "/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/gen_albumentations_weather/bdd10k/segformer_mit-b5_ratio0p50/test_results_iter_290000/20260116_123311/results.json"
+    },
+    {
+      "strategy": "gen_albumentations_weather",
+      "dataset": "bdd10k",
+      "model": "segformer_mit-b5_ratio0p50",
+      "iteration": 300000,
+      "miou": 52.77623197415346,
+      "pixel_acc": 91.98615979072807,
+      "result_file": "/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/gen_albumentations_weather/bdd10k/segformer_mit-b5_ratio0p50/test_results_iter_300000/20260116_123421/results.json"
+    },
+    {
+      "strategy": "gen_albumentations_weather",
+      "dataset": "bdd10k",
+      "model": "segformer_mit-b5_ratio0p50",
+      "iteration": 310000,
+      "miou": 52.926528502804175,
+      "pixel_acc": 92.00864181667507,
+      "result_file": "/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/gen_albumentations_weather/bdd10k/segformer_mit-b5_ratio0p50/test_results_iter_310000/20260116_123529/results.json"
+    },
+    {
+      "strategy": "gen_albumentations_weather",
+      "dataset": "bdd10k",
+      "model": "segformer_mit-b5_ratio0p50",
+      "iteration": 320000,
+      "miou": 52.86136036283761,
+      "pixel_acc": 92.02027785900448,
+      "result_file": "/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/gen_albumentations_weather/bdd10k/segformer_mit-b5_ratio0p50/test_results_iter_320000/20260116_123639/results.json"
+    },
+    {
+      "strategy": "gen_albumentations_weather",
+      "dataset": "bdd10k",
+      "model": "segformer_mit-b5_ratio0p50",
+      "iteration": 90000,
+      "miou": 52.076800354452004,
+      "pixel_acc": 91.77962612439778,
+      "result_file": "/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/gen_albumentations_weather/bdd10k/segformer_mit-b5_ratio0p50/test_results_iter_90000/20260116_123740/results.json"
+    },
+    {
+      "strategy": "gen_albumentations_weather",
+      "dataset": "idd-aw",
+      "model": "pspnet_r50_ratio0p50",
+      "iteration": 100000,
+      "miou": 40.12171883135272,
+      "pixel_acc": 85.24321479446216,
+      "result_file": "/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/gen_albumentations_weather/idd-aw/pspnet_r50_ratio0p50/test_results_iter_100000/20260116_123847/results.json"
+    },
+    {
+      "strategy": "gen_albumentations_weather",
+      "dataset": "idd-aw",
+      "model": "pspnet_r50_ratio0p50",
+      "iteration": 110000,
+      "miou": 40.19894112218193,
+      "pixel_acc": 85.34863634389625,
+      "result_file": "/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/gen_albumentations_weather/idd-aw/pspnet_r50_ratio0p50/test_results_iter_110000/20260116_124031/results.json"
+    },
+    {
+      "strategy": "gen_albumentations_weather",
+      "dataset": "idd-aw",
+      "model": "pspnet_r50_ratio0p50",
+      "iteration": 120000,
+      "miou": 40.62609439958263,
+      "pixel_acc": 85.5181046529506,
+      "result_file": "/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/gen_albumentations_weather/idd-aw/pspnet_r50_ratio0p50/test_results_iter_120000/20260116_124212/results.json"
+    },
+    {
+      "strategy": "gen_albumentations_weather",
+      "dataset": "idd-aw",
+      "model": "pspnet_r50_ratio0p50",
+      "iteration": 130000,
+      "miou": 40.765894379567655,
+      "pixel_acc": 85.55955563803029,
+      "result_file": "/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/gen_albumentations_weather/idd-aw/pspnet_r50_ratio0p50/test_results_iter_130000/20260116_124355/results.json"
+    },
+    {
+      "strategy": "gen_albumentations_weather",
+      "dataset": "idd-aw",
+      "model": "pspnet_r50_ratio0p50",
+      "iteration": 140000,
+      "miou": 40.57496572552228,
+      "pixel_acc": 85.44959522329597,
+      "result_file": "/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/gen_albumentations_weather/idd-aw/pspnet_r50_ratio0p50/test_results_iter_140000/20260116_124533/results.json"
+    },
+    {
+      "strategy": "gen_albumentations_weather",
+      "dataset": "idd-aw",
+      "model": "pspnet_r50_ratio0p50",
+      "iteration": 150000,
+      "miou": 40.762620624854954,
+      "pixel_acc": 85.5940723976543,
+      "result_file": "/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/gen_albumentations_weather/idd-aw/pspnet_r50_ratio0p50/test_results_iter_150000/20260116_124717/results.json"
+    },
+    {
+      "strategy": "gen_albumentations_weather",
+      "dataset": "idd-aw",
+      "model": "pspnet_r50_ratio0p50",
+      "iteration": 160000,
+      "miou": 40.85835630384956,
+      "pixel_acc": 85.56418697183686,
+      "result_file": "/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/gen_albumentations_weather/idd-aw/pspnet_r50_ratio0p50/test_results_iter_160000/20260116_124902/results.json"
+    },
+    {
+      "strategy": "gen_albumentations_weather",
+      "dataset": "idd-aw",
+      "model": "pspnet_r50_ratio0p50",
+      "iteration": 170000,
+      "miou": 41.084255411933526,
+      "pixel_acc": 85.70857760905689,
+      "result_file": "/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/gen_albumentations_weather/idd-aw/pspnet_r50_ratio0p50/test_results_iter_170000/20260116_125045/results.json"
+    },
+    {
+      "strategy": "gen_albumentations_weather",
+      "dataset": "idd-aw",
+      "model": "pspnet_r50_ratio0p50",
+      "iteration": 180000,
+      "miou": 41.03721097101993,
+      "pixel_acc": 85.63408981671336,
+      "result_file": "/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/gen_albumentations_weather/idd-aw/pspnet_r50_ratio0p50/test_results_iter_180000/20260116_125223/results.json"
+    },
+    {
+      "strategy": "gen_albumentations_weather",
+      "dataset": "idd-aw",
+      "model": "pspnet_r50_ratio0p50",
+      "iteration": 190000,
+      "miou": 40.99717092191397,
+      "pixel_acc": 85.67625332638532,
+      "result_file": "/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/gen_albumentations_weather/idd-aw/pspnet_r50_ratio0p50/test_results_iter_190000/20260116_125409/results.json"
+    },
+    {
+      "strategy": "gen_albumentations_weather",
+      "dataset": "idd-aw",
+      "model": "pspnet_r50_ratio0p50",
+      "iteration": 200000,
+      "miou": 41.31204391034969,
+      "pixel_acc": 85.79519489688214,
+      "result_file": "/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/gen_albumentations_weather/idd-aw/pspnet_r50_ratio0p50/test_results_iter_200000/20260116_125557/results.json"
+    },
+    {
+      "strategy": "gen_albumentations_weather",
+      "dataset": "idd-aw",
+      "model": "pspnet_r50_ratio0p50",
+      "iteration": 210000,
+      "miou": 41.24830688991697,
+      "pixel_acc": 85.77257174679693,
+      "result_file": "/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/gen_albumentations_weather/idd-aw/pspnet_r50_ratio0p50/test_results_iter_210000/20260116_125738/results.json"
+    },
+    {
+      "strategy": "gen_albumentations_weather",
+      "dataset": "idd-aw",
+      "model": "pspnet_r50_ratio0p50",
+      "iteration": 220000,
+      "miou": 41.34810679722653,
+      "pixel_acc": 85.80403065808535,
+      "result_file": "/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/gen_albumentations_weather/idd-aw/pspnet_r50_ratio0p50/test_results_iter_220000/20260116_125921/results.json"
+    },
+    {
+      "strategy": "gen_cyclediffusion",
+      "dataset": "bdd10k_ad",
+      "model": "pspnet_r50_ratio0p50",
+      "iteration": 100000,
+      "miou": 46.08305139582766,
+      "pixel_acc": 90.48623245700523,
+      "result_file": "/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/gen_cyclediffusion/bdd10k_ad/pspnet_r50_ratio0p50/test_results_iter_100000/20260116_113707/results.json"
+    },
+    {
+      "strategy": "gen_cyclediffusion",
+      "dataset": "bdd10k_ad",
+      "model": "pspnet_r50_ratio0p50",
+      "iteration": 110000,
+      "miou": 46.14470735277909,
+      "pixel_acc": 90.479292060701,
+      "result_file": "/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/gen_cyclediffusion/bdd10k_ad/pspnet_r50_ratio0p50/test_results_iter_110000/20260116_113825/results.json"
+    },
+    {
+      "strategy": "gen_cyclediffusion",
+      "dataset": "bdd10k_ad",
+      "model": "pspnet_r50_ratio0p50",
+      "iteration": 120000,
+      "miou": 46.32532090143759,
+      "pixel_acc": 90.51254854027215,
+      "result_file": "/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/gen_cyclediffusion/bdd10k_ad/pspnet_r50_ratio0p50/test_results_iter_120000/20260116_113943/results.json"
+    },
+    {
+      "strategy": "gen_cyclediffusion",
+      "dataset": "bdd10k_ad",
+      "model": "pspnet_r50_ratio0p50",
+      "iteration": 130000,
+      "miou": 46.53415816000786,
+      "pixel_acc": 90.54003965270152,
+      "result_file": "/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/gen_cyclediffusion/bdd10k_ad/pspnet_r50_ratio0p50/test_results_iter_130000/20260116_114050/results.json"
+    },
+    {
+      "strategy": "gen_cyclediffusion",
+      "dataset": "bdd10k_ad",
+      "model": "pspnet_r50_ratio0p50",
+      "iteration": 140000,
+      "miou": 46.46229333931019,
+      "pixel_acc": 90.58425959396968,
+      "result_file": "/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/gen_cyclediffusion/bdd10k_ad/pspnet_r50_ratio0p50/test_results_iter_140000/20260116_114203/results.json"
+    }
+  ],
+  "summary_by_iteration": {
+    "90000": {
+      "mIoU": 48.84602046533711,
+      "pixel_acc": 91.09064264619946,
+      "count": 2
+    },
+    "100000": {
+      "mIoU": 46.13840131309946,
+      "pixel_acc": 89.4972256641552,
+      "count": 4
+    },
+    "110000": {
+      "mIoU": 46.20263341222088,
+      "pixel_acc": 89.53584807283008,
+      "count": 4
+    },
+    "120000": {
+      "mIoU": 46.39547119543275,
+      "pixel_acc": 89.61056887395816,
+      "count": 4
+    },
+    "130000": {
+      "mIoU": 46.487825254543495,
+      "pixel_acc": 89.63311587289755,
+      "count": 4
+    },
+    "140000": {
+      "mIoU": 46.389562326073474,
+      "pixel_acc": 89.61507219896757,
+      "count": 4
+    },
+    "150000": {
+      "mIoU": 46.47104702955093,
+      "pixel_acc": 89.36154698770689,
+      "count": 3
+    },
+    "160000": {
+      "mIoU": 46.576714742573756,
+      "pixel_acc": 89.35343411352544,
+      "count": 3
+    },
+    "170000": {
+      "mIoU": 46.607232775393506,
+      "pixel_acc": 89.43587032601987,
+      "count": 3
+    },
+    "180000": {
+      "mIoU": 46.57580457109904,
+      "pixel_acc": 89.38975368619539,
+      "count": 3
+    },
+    "190000": {
+      "mIoU": 46.473206432525416,
+      "pixel_acc": 89.37336108345482,
+      "count": 3
+    },
+    "200000": {
+      "mIoU": 46.79677960746016,
+      "pixel_acc": 89.46065734952599,
+      "count": 3
+    },
+    "210000": {
+      "mIoU": 46.69889189798446,
+      "pixel_acc": 89.4538636389078,
+      "count": 3
+    },
+    "220000": {
+      "mIoU": 46.79984633019953,
+      "pixel_acc": 89.47241999957664,
+      "count": 3
+    },
+    "230000": {
+      "mIoU": 49.57290366721815,
+      "pixel_acc": 91.32366103769084,
+      "count": 2
+    },
+    "240000": {
+      "mIoU": 49.587276891431586,
+      "pixel_acc": 91.33567236411757,
+      "count": 2
+    },
+    "250000": {
+      "mIoU": 49.509856210372874,
+      "pixel_acc": 91.3143012883806,
+      "count": 2
+    },
+    "260000": {
+      "mIoU": 49.51170101614002,
+      "pixel_acc": 91.32970594305336,
+      "count": 2
+    },
+    "270000": {
+      "mIoU": 49.53575624648532,
+      "pixel_acc": 91.34744997622559,
+      "count": 2
+    },
+    "280000": {
+      "mIoU": 49.669414158702594,
+      "pixel_acc": 91.32724163543345,
+      "count": 2
+    },
+    "290000": {
+      "mIoU": 49.543595771409876,
+      "pixel_acc": 91.2968936697086,
+      "count": 2
+    },
+    "300000": {
+      "mIoU": 49.55924242498202,
+      "pixel_acc": 91.34461175053254,
+      "count": 2
+    },
+    "310000": {
+      "mIoU": 49.70745826983421,
+      "pixel_acc": 91.36474843714726,
+      "count": 2
+    },
+    "320000": {
+      "mIoU": 49.65121369521174,
+      "pixel_acc": 91.36496215783936,
+      "count": 2
+    }
+  },
+  "summary_by_strategy": {
+    "gen_albumentations_weather": {
+      "100000": 46.156851285523395,
+      "110000": 46.221942098701476,
+      "120000": 46.41885462676447,
+      "130000": 46.472380952722034,
+      "140000": 46.36531865499456,
+      "150000": 46.47104702955093,
+      "160000": 46.576714742573756,
+      "170000": 46.607232775393506,
+      "180000": 46.57580457109904,
+      "190000": 46.473206432525416,
+      "200000": 46.79677960746016,
+      "210000": 46.69889189798446,
+      "220000": 46.79984633019953,
+      "230000": 49.57290366721815,
+      "240000": 49.587276891431586,
+      "250000": 49.509856210372874,
+      "260000": 49.51170101614002,
+      "270000": 49.53575624648532,
+      "280000": 49.669414158702594,
+      "290000": 49.543595771409876,
+      "300000": 49.55924242498202,
+      "310000": 49.70745826983421,
+      "320000": 49.65121369521174,
+      "90000": 48.84602046533711
+    },
+    "gen_cyclediffusion": {
+      "100000": 46.08305139582766,
+      "110000": 46.14470735277909,
+      "120000": 46.32532090143759,
+      "130000": 46.53415816000786,
+      "140000": 46.46229333931019
+    }
+  },
+  "improvement_stats": {
+    "total_configs": 4,
+    "improved_configs": 4,
+    "improved_percentage": 100.0,
+    "mean_improvement": 0.8565340805711159,
+    "max_improvement": 1.2263879658738048,
+    "min_improvement": 0.4511067641802029,
+    "mean_rel_improvement": 1.907721246063263,
+    "most_common_best_iter": 310000,
+    "best_iter_distribution": {
+      "130000": 1,
+      "220000": 1,
+      "260000": 1,
+      "310000": 1
+    }
+  }
+}
