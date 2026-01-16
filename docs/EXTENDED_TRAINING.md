@@ -172,14 +172,81 @@ tail -f logs/ext_ACDC_deeplabv3plus_r50_gen_LANIT_160k_*.log
 
 ## Analysis
 
-After training completes, use `test_result_analyzer.py` to analyze results:
+After training completes, use the analysis scripts to evaluate results:
+
+### Testing Extended Training Checkpoints
+
+Use `submit_test_extended_training.sh` to submit evaluation jobs for all checkpoints:
 
 ```bash
-# Analyze extended training results
-python test_result_analyzer.py --root /scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED --comprehensive
+# List all available test jobs
+./scripts/submit_test_extended_training.sh --list
 
-# Compare with baseline results
-python test_result_analyzer.py --root /scratch/aaa_exchange/AWARE/WEIGHTS --comprehensive
+# Dry run to see commands
+./scripts/submit_test_extended_training.sh --dry-run
+
+# Submit all test jobs
+./scripts/submit_test_extended_training.sh
+
+# Submit tests for specific strategy
+./scripts/submit_test_extended_training.sh --strategy gen_cyclediffusion
+
+# Submit tests for specific iteration only
+./scripts/submit_test_extended_training.sh --iteration 160000
+
+# Skip already tested configurations
+./scripts/submit_test_extended_training.sh --skip-tested
+```
+
+The testing script uses `fine_grained_test.py` which provides:
+- Per-domain (weather condition) metrics
+- Per-class IoU breakdown
+- Timestamped output folders
+- Results saved to `test_results_iter_{N}/` directories
+
+### Analyzing Results
+
+```bash
+# Analyze extended training results (scans for results automatically)
+python analysis_scripts/analyze_extended_training.py --verbose
+
+# Export to CSV and JSON
+python analysis_scripts/analyze_extended_training.py --auto-export
+
+# Filter by strategy/dataset/model
+python analysis_scripts/analyze_extended_training.py --strategy gen_cyclediffusion --dataset BDD10k
+```
+
+### Generating Publication Figures
+
+```bash
+# Generate all IEEE-style figures
+python analysis_scripts/generate_ieee_figures_extended_training.py
+
+# Output structure:
+# result_figures/extended_training/
+# ├── ieee/           # PDF figures for publication
+# │   ├── fig_learning_curves.pdf
+# │   ├── fig_convergence_heatmap.pdf
+# │   ├── fig_improvement_distribution.pdf
+# │   ├── fig_best_iteration.pdf
+# │   ├── fig_strategy_comparison.pdf
+# │   ├── fig_model_dataset_comparison.pdf
+# │   └── fig_diminishing_returns.pdf
+# ├── preview/        # PNG previews
+# └── data/           # CSV and JSON data
+#     ├── extended_training_results.csv
+#     └── extended_training_summary.json
+```
+
+### Visualizing Results
+
+```bash
+# Generate all visualizations
+python analysis_scripts/visualize_extended_training.py
+
+# Generate specific plots
+python analysis_scripts/visualize_extended_training.py --plots learning convergence improvement
 ```
 
 ## Troubleshooting
