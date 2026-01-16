@@ -239,12 +239,37 @@ To evaluate the performance across the entire training trajectory, a new script 
 ./scripts/submit_all_tests.sh gen_LANIT
 ```
 
-## Preliminary Results (160k Iterations)
+## Results Analysis (320k Iterations)
 
-Initial analysis of the `gen_LANIT` strategy shows significant gains from extended training:
+A comprehensive analysis of 22 configurations trained to 320k iterations reveals **clear diminishing returns**:
 
-- **Baseline (80k)**: 55.71 mIoU
-- **Extended (160k)**: 61.25 mIoU
-- **Improvement**: **+5.54 mIoU**
+### Marginal Gains by Training Phase
 
-Approximately **86.7%** of configurations showed improvement when trained for 160k iterations compared to the 80k baseline.
+| Training Phase | Average Gain | % of Initial |
+|----------------|-------------|--------------|
+| 90k → 160k | **+0.75 mIoU** | 100% (baseline) |
+| 160k → 240k | **+0.39 mIoU** | 52% |
+| 240k → 320k | **+0.10 mIoU** | 13% |
+
+### Key Findings
+
+1. **First 80k of extended training** (90k→160k) captures ~60% of total improvement
+2. **Training beyond 240k** provides marginal gains (~0.1 mIoU average)
+3. **Peak performance** typically occurs around 190k-450k depending on configuration
+4. **gen_TSIT** saturates fastest (peak at 190k, zero gains after 160k)
+5. **IDD-AW configurations** benefit most from extended training
+
+### Recommendations
+
+| Use Case | Duration | Rationale |
+|----------|----------|-----------|
+| **Production** | 160k (2×) | 75% of gains at 50% compute |
+| **Research** | 240k (3×) | 92% of gains, good cost-benefit |
+| **Benchmarks** | 320k (4×) | Maximum performance |
+
+### Visualizations
+
+See the full analysis with figures at:
+- 📊 [EXTENDED_TRAINING_ANALYSIS.md](EXTENDED_TRAINING_ANALYSIS.md) - Detailed report
+- 📈 `result_figures/extended_training_analysis.png` - Main analysis plots
+- 📉 `result_figures/extended_training_by_strategy.png` - Per-strategy breakdown

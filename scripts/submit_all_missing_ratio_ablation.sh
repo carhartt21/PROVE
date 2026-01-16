@@ -27,8 +27,8 @@ GPU_MEM="24G"
 GPU_MODE="shared"
 NUM_CPUS=8
 
-# Strategies and ratios
-STRATEGIES=("gen_LANIT" "gen_step1x_new" "gen_automold" "gen_TSIT" "gen_NST")
+# Top 5 gen_* strategies by average mIoU (with 4/4 datasets complete)
+STRATEGIES=("gen_TSIT" "gen_albumentations_weather" "gen_cycleGAN" "gen_UniControl" "gen_automold")
 DATASETS=("ACDC" "BDD10k" "IDD-AW" "MapillaryVistas" "OUTSIDE15k")
 DATASETS_LOWER=("acdc" "bdd10k" "idd-aw" "mapillaryvistas" "outside15k")
 MODELS=("deeplabv3plus_r50" "pspnet_r50" "segformer_mit-b5")
