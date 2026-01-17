@@ -132,7 +132,6 @@ GENERATIVE_STRATEGIES = [
 STANDARD_STRATEGIES = [
     'baseline',
     'photometric_distort',
-    'std_minimal',  # Minimal augmentation baseline
     'std_autoaugment',
     'std_cutmix',
     'std_mixup',
@@ -819,7 +818,8 @@ def get_per_model_test_status():
     # Scan all model directories
     for strategy in ALL_STRATEGIES:
         for dataset in DATASETS:
-            dataset_dir = f"{dataset}_cd"
+            # No more _cd suffix per new directory structure
+            dataset_dir = dataset
             strategy_path = WEIGHTS_ROOT / strategy / dataset_dir
             
             if not safe_exists(strategy_path):
@@ -1011,12 +1011,21 @@ def generate_testing_coverage():
     lines.append("")
     lines.append("| Status | Count | Percentage |")
     lines.append("|--------|------:|----------:|")
-    lines.append(f"| ✅ Complete (valid mIoU) | {total_complete} | {100*total_complete/total:.1f}% |")
-    lines.append(f"| 🔄 Running | {total_running} | {100*total_running/total:.1f}% |")
-    lines.append(f"| ⏳ Pending (in queue) | {total_pending} | {100*total_pending/total:.1f}% |")
-    lines.append(f"| ⚠️ Buggy (mIoU < 5%) | {total_buggy} | {100*total_buggy/total:.1f}% |")
-    lines.append(f"| ❌ Missing (no results) | {total_missing} | {100*total_missing/total:.1f}% |")
-    lines.append(f"| **Total** | **{total}** | **100%** |")
+    if total > 0:
+        lines.append(f"| ✅ Complete (valid mIoU) | {total_complete} | {100*total_complete/total:.1f}% |")
+        lines.append(f"| 🔄 Running | {total_running} | {100*total_running/total:.1f}% |")
+        lines.append(f"| ⏳ Pending (in queue) | {total_pending} | {100*total_pending/total:.1f}% |")
+        lines.append(f"| ⚠️ Buggy (mIoU < 5%) | {total_buggy} | {100*total_buggy/total:.1f}% |")
+        lines.append(f"| ❌ Missing (no results) | {total_missing} | {100*total_missing/total:.1f}% |")
+        lines.append(f"| **Total** | **{total}** | **100%** |")
+    else:
+        lines.append(f"| ✅ Complete (valid mIoU) | {total_complete} | N/A |")
+        lines.append(f"| 🔄 Running | {total_running} | N/A |")
+        lines.append(f"| ⏳ Pending (in queue) | {total_pending} | N/A |")
+        lines.append(f"| ⚠️ Buggy (mIoU < 5%) | {total_buggy} | N/A |")
+        lines.append(f"| ❌ Missing (no results) | {total_missing} | N/A |")
+        lines.append(f"| ℹ️ No weights trained yet | {total_no_weights} | N/A |")
+        lines.append(f"| **Total** | **0** | **N/A** |")
     lines.append("")
     
     # Per-dataset breakdown
