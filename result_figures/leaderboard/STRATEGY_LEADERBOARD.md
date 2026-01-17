@@ -25,8 +25,13 @@ models that never saw adverse weather conditions during training.
 
 | Strategy | Type | Overall mIoU | Gain vs Clear Day | Normal mIoU | Normal Gain | Adverse mIoU | Adverse Gain | Domain Gap (Δ) | Gap Reduction vs Clear Day |
 |---|---|---|---|---|---|---|---|---|---|
-| baseline_clear_day | Baseline Clear Day | 18.6% | 0.0% | 5.2% | 0.0% | 3.4% | 0.0% | +1.8% | 0.0% |
-| baseline | Baseline Full | 44.5% | +25.9% | - | - | - | - | - | - |
+| baseline_clear_day | Baseline Clear Day | - | - | - | - | - | - | - | - |
+| baseline | Baseline Full | 41.6% | - | 42.2% | - | 36.1% | - | +6.1% | - |
+| std_autoaugment | Standard Aug | 45.5% | - | 46.1% | - | 40.4% | - | +5.8% | - |
+| std_randaugment | Standard Aug | 44.1% | - | 44.6% | - | 38.7% | - | +5.9% | - |
+| photometric_distort | Augmentation | 43.7% | - | 44.3% | - | 38.5% | - | +5.7% | - |
+| std_mixup | Standard Aug | 42.9% | - | 43.5% | - | 37.4% | - | +6.2% | - |
+| std_cutmix | Standard Aug | 42.6% | - | 43.3% | - | 37.1% | - | +6.2% | - |
 
 
 
@@ -57,9 +62,4 @@ models that never saw adverse weather conditions during training.
 
 | Strategy | Type | Overall mIoU | Gain vs Clear Day | Normal mIoU | Normal Gain | Adverse mIoU | Adverse Gain | Domain Gap (Δ) | Gap Reduction vs Clear Day |
 |---|---|---|---|---|---|---|---|---|---|
-| baseline_clear_day | Baseline Clear Day | 18.6% | 0.0% | 5.2% | 0.0% | 3.4% | 0.0% | +1.8% | 0.0% |
-| std_cutmix | Standard Aug | 30.9% | +12.3% | 31.9% | +26.7% | 24.9% | +21.5% | +7.0% | -5.1% |
-| std_mixup | Standard Aug | 23.6% | +5.0% | 25.3% | +20.1% | 22.6% | +19.2% | +2.7% | -0.8% |
-| std_randaugment | Standard Aug | 16.4% | -2.3% | 16.6% | +11.3% | 13.5% | +10.1% | +3.1% | -1.2% |
-| photometric_distort | Augmentation | 14.9% | -3.7% | 1.0% | -4.2% | 0.8% | -2.5% | +0.1% | +1.7% |
-| std_autoaugment | Standard Aug | 10.1% | -8.6% | 0.5% | -4.7% | 0.4% | -2.9% | +0.1% | +1.8% |
+| baseline_clear_day | Baseline Clear Day | - | - | - | - | - | - | - | - |
