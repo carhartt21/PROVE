@@ -510,7 +510,7 @@ def evaluate_model_on_acdc(
 # Main Entry Point
 # ============================================================================
 
-def get_checkpoint_path(source_dataset: str, model: str, variant: str = '') -> Optional[Path]:
+def get_checkpoint_path(source_dataset: str, model: str, variant: str = '', strategy: str = None) -> Optional[Path]:
     """
     Get checkpoint path for a source dataset and model.
     
@@ -518,49 +518,80 @@ def get_checkpoint_path(source_dataset: str, model: str, variant: str = '') -> O
         source_dataset: Source dataset name (e.g., 'BDD10k')
         model: Base model name (e.g., 'deeplabv3plus_r50')
         variant: Model variant suffix (e.g., '' or '_clear_day')
+        strategy: Augmentation strategy name (e.g., 'gen_cyclediffusion')
     
     Returns:
         Path to checkpoint or None if not found
     """
-    # Build model directory name (e.g., 'deeplabv3plus_r50' or 'deeplabv3plus_r50_clear_day')
-    model_dir_name = model + variant
-    checkpoint_dir = WEIGHTS_ROOT / 'baseline' / source_dataset.lower() / model_dir_name
-    
-    # Try different checkpoint names
-    candidates = [
-        checkpoint_dir / 'iter_80000.pth',
-        checkpoint_dir / 'latest.pth',
-    ]
-    
-    # Also try best checkpoint
-    for f in checkpoint_dir.glob('best_*.pth'):
-        candidates.insert(0, f)
-    
-    for path in candidates:
-        if path.exists():
-            return path
-    
-    return None
+    if strategy:
+        # Strategy checkpoint paths
+        # Generative strategies: WEIGHTS/{strategy}/{dataset}/{model}_ratio0p50/
+        # Standard strategies: WEIGHTS/{strategy}/{dataset}/{model}/
+        candidates_dirs = [
+            WEIGHTS_ROOT / strategy / source_dataset.lower() / f"{model}_ratio0p50",
+            WEIGHTS_ROOT / strategy / source_dataset.lower() / model,
+        ]
+        
+        for checkpoint_dir in candidates_dirs:
+            candidates = [
+                checkpoint_dir / 'iter_80000.pth',
+                checkpoint_dir / 'latest.pth',
+            ]
+            for f in checkpoint_dir.glob('best_*.pth'):
+                candidates.insert(0, f)
+            for path in candidates:
+                if path.exists():
+                    return path
+        return None
+    else:
+        # Baseline checkpoint paths
+        # Build model directory name (e.g., 'deeplabv3plus_r50' or 'deeplabv3plus_r50_clear_day')
+        model_dir_name = model + variant
+        checkpoint_dir = WEIGHTS_ROOT / 'baseline' / source_dataset.lower() / model_dir_name
+        
+        # Try different checkpoint names
+        candidates = [
+            checkpoint_dir / 'iter_80000.pth',
+            checkpoint_dir / 'latest.pth',
+        ]
+        
+        # Also try best checkpoint
+        for f in checkpoint_dir.glob('best_*.pth'):
+            candidates.insert(0, f)
+        
+        for path in candidates:
+            if path.exists():
+                return path
+        
+        return None
 
 
-def run_evaluation(source_dataset: str, model: str, checkpoint_path: str = None, device: str = 'cuda', variant: str = ''):
+def run_evaluation(source_dataset: str, model: str, checkpoint_path: str = None, device: str = 'cuda', variant: str = '', strategy: str = None):
     """Run domain adaptation evaluation for a single configuration."""
     
-    # Build full model name
-    full_model_name = model + variant
+    # Build full model name (includes strategy if specified)
+    if strategy:
+        full_model_name = f"{strategy}/{model}"
+        display_name = f"{strategy} + {model}"
+    else:
+        full_model_name = model + variant
+        display_name = full_model_name
     
     print(f"\n{'='*70}")
     print(f"Domain Adaptation Evaluation")
     print(f"  Source Dataset: {source_dataset}")
-    print(f"  Model: {full_model_name}")
-    print(f"  Variant: {variant if variant else 'full_dataset (default)'}")
+    print(f"  Model: {display_name}")
+    if strategy:
+        print(f"  Strategy: {strategy}")
+    else:
+        print(f"  Variant: {variant if variant else 'full_dataset (default)'}")
     print(f"{'='*70}")
     
     # Get checkpoint path if not provided
     if checkpoint_path is None:
-        checkpoint_path = get_checkpoint_path(source_dataset, model, variant)
+        checkpoint_path = get_checkpoint_path(source_dataset, model, variant, strategy)
         if checkpoint_path is None:
-            print(f"ERROR: No checkpoint found for {source_dataset}/{full_model_name}")
+            print(f"ERROR: No checkpoint found for {source_dataset}/{display_name}")
             return None
     
     checkpoint_path = Path(checkpoint_path)
@@ -599,6 +630,7 @@ def run_evaluation(source_dataset: str, model: str, checkpoint_path: str = None,
         'source_dataset': source_dataset,
         'model': model,
         'model_full': full_model_name,
+        'strategy': strategy if strategy else None,
         'variant': variant if variant else 'full_dataset',
         'checkpoint': str(checkpoint_path),
         'target_datasets': 'ACDC + Cityscapes',
@@ -612,8 +644,15 @@ def run_evaluation(source_dataset: str, model: str, checkpoint_path: str = None,
         'label_format': 'Cityscapes labelID (0-33) converted to trainID (0-18)'
     }
     
-    # Save results - use full model name for output path
-    output_dir = OUTPUT_ROOT / source_dataset.lower() / full_model_name
+    # Save results - use strategy path if specified, otherwise use full model name
+    if strategy:
+        # Check if checkpoint has _ratio0p50 suffix
+        if '_ratio0p50' in str(checkpoint_path):
+            output_dir = OUTPUT_ROOT / strategy / source_dataset.lower() / f"{model}_ratio0p50"
+        else:
+            output_dir = OUTPUT_ROOT / strategy / source_dataset.lower() / model
+    else:
+        output_dir = OUTPUT_ROOT / source_dataset.lower() / full_model_name
     output_dir.mkdir(parents=True, exist_ok=True)
     
     result_file = output_dir / 'domain_adaptation_evaluation.json'

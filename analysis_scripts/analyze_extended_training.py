@@ -208,6 +208,32 @@ class ExtendedTrainingAnalyzer:
                         self.results.append(result)
                         count += 1
         
+        # Pattern 5: test_results_iter_{N}/TIMESTAMP/results.json (fine_grained_test.py with per-iteration output)
+        # This is the new structure used by submit_test_extended_training.sh
+        for iter_dir in model_dir.glob("test_results_iter_*"):
+            if not iter_dir.is_dir():
+                continue
+            
+            # Extract iteration from directory name
+            match = re.search(r"test_results_iter_(\d+)", iter_dir.name)
+            if not match:
+                continue
+            iteration = int(match.group(1))
+            
+            # Look for TIMESTAMP/results.json inside
+            for ts_dir in iter_dir.iterdir():
+                if not ts_dir.is_dir():
+                    continue
+                
+                result_file = ts_dir / "results.json"
+                if result_file.exists():
+                    result = self._parse_fine_grained_result_file(
+                        result_file, strategy, dataset, model, iteration
+                    )
+                    if result:
+                        self.results.append(result)
+                        count += 1
+        
         return count
 
     def _extract_iteration_from_fine_grained_results(self, result_file: Path) -> Optional[int]:
@@ -624,6 +650,8 @@ def main():
     )
     parser.add_argument('--weights-root', type=str, default=DEFAULT_WEIGHTS_ROOT,
                        help=f'Weights root directory (default: {DEFAULT_WEIGHTS_ROOT})')
+    parser.add_argument('--output-dir', type=str, default='result_figures/extended_training',
+                       help='Output directory for analysis results (default: result_figures/extended_training)')
     parser.add_argument('--strategy', type=str,
                        help='Filter by specific strategy')
     parser.add_argument('--dataset', type=str,
@@ -631,13 +659,19 @@ def main():
     parser.add_argument('--model', type=str,
                        help='Filter by specific model')
     parser.add_argument('--export-csv', type=str,
-                       help='Export results to CSV file')
+                       help='Export results to CSV file (if not specified, uses output-dir)')
     parser.add_argument('--export-json', type=str,
-                       help='Export results to JSON file')
+                       help='Export results to JSON file (if not specified, uses output-dir)')
     parser.add_argument('--verbose', action='store_true',
                        help='Verbose output during scanning')
+    parser.add_argument('--auto-export', action='store_true',
+                       help='Automatically export CSV and JSON to output directory')
     
     args = parser.parse_args()
+    
+    # Create output directory
+    output_dir = Path(args.output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
     
     # Create analyzer and scan
     analyzer = ExtendedTrainingAnalyzer(args.weights_root)
@@ -665,6 +699,14 @@ def main():
     
     if args.export_json:
         analyzer.export_json(args.export_json)
+    
+    # Auto-export to output directory
+    if args.auto_export:
+        csv_path = output_dir / 'extended_training_results.csv'
+        json_path = output_dir / 'extended_training_results.json'
+        analyzer.export_csv(str(csv_path))
+        analyzer.export_json(str(json_path))
+        print(f"\nResults saved to: {output_dir}")
     
     return 0
 
