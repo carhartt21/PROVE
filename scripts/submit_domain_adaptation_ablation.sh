@@ -45,7 +45,8 @@ set +e
 SOURCE_DATASETS=("BDD10k" "IDD-AW" "MapillaryVistas")
 
 # Models to evaluate (base models)
-MODELS=("deeplabv3plus_r50" "pspnet_r50" "segformer_mit-b5")
+# DeepLabV3+ excluded per DOMAIN_ADAPTATION_ABLATION.md update
+MODELS=("pspnet_r50" "segformer_mit-b5")
 
 # Model variants
 # "" = full dataset training, "_clear_day" = clear_day only training
@@ -85,9 +86,9 @@ print_usage() {
     echo "Usage: $0 [options]"
     echo ""
     echo "Options:"
-    echo "  --all               Submit jobs for all source/model combinations (18 jobs: 9 full + 9 clear_day)"
-    echo "  --all-clear-day     Submit jobs only for _clear_day variants (9 jobs)"
-    echo "  --all-full          Submit jobs only for full dataset models (9 jobs, no _clear_day)"
+    echo "  --all               Submit jobs for all source/model combinations (12 jobs: 6 full + 6 clear_day)"
+    echo "  --all-clear-day     Submit jobs only for _clear_day variants (6 jobs)"
+    echo "  --all-full          Submit jobs only for full dataset models (6 jobs, no _clear_day)"
     echo "  --source-dataset <name>"
     echo "                      Specific source dataset: ${SOURCE_DATASETS[*]}"
     echo "  --model <name>      Specific model: ${MODELS[*]}"
@@ -122,13 +123,30 @@ print_usage() {
 }
 
 # Check if checkpoint exists
+# Handles both full dataset (_ad) and clear_day (_cd) variants
 check_checkpoint() {
     local source_dataset="$1"
-    local model="$2"
+    local model="$2"  # e.g., pspnet_r50 or pspnet_r50_clear_day
     
-    local checkpoint_dir="${WEIGHTS_ROOT}/baseline/${source_dataset,,}/${model}"
+    # Convert dataset name to directory format (e.g., BDD10k -> bdd10k)
+    local dataset_lower="${source_dataset,,}"
     
-    # Try common checkpoint names
+    # Handle special case: IDD-AW -> idd-aw
+    if [ "$source_dataset" = "IDD-AW" ]; then
+        dataset_lower="idd-aw"
+    fi
+    
+    # Determine which directory suffix to use based on model variant
+    local dir_suffix="_ad"  # default: full dataset (all domains)
+    local base_model="$model"
+    
+    if [[ "$model" == *"_clear_day" ]]; then
+        dir_suffix="_cd"  # clear_day only training
+        base_model="${model%_clear_day}"  # remove _clear_day suffix from model
+    fi
+    
+    local checkpoint_dir="${WEIGHTS_ROOT}/baseline/${dataset_lower}${dir_suffix}/${base_model}"
+    
     if [ -f "${checkpoint_dir}/iter_80000.pth" ]; then
         echo "${checkpoint_dir}/iter_80000.pth"
         return 0
@@ -137,7 +155,7 @@ check_checkpoint() {
         return 0
     fi
     
-    # Try to find any checkpoint
+    # Try to find any best checkpoint
     local best_ckpt=$(find "$checkpoint_dir" -name "best_*.pth" 2>/dev/null | head -n 1)
     if [ -n "$best_ckpt" ]; then
         echo "$best_ckpt"

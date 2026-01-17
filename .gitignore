@@ -124,25 +124,10 @@ ehthumbs.db
 *~
 logs/
 tasksync/
-result*
-figures/extended_training/convergence_analysis.pdf
-figures/extended_training/convergence_analysis.png
-figures/extended_training/diminishing_returns.pdf
-figures/extended_training/diminishing_returns.png
-figures/extended_training/extended_training_dashboard.pdf
-figures/extended_training/extended_training_dashboard.png
-figures/extended_training/heatmap_strategy_iteration.pdf
-figures/extended_training/heatmap_strategy_iteration.png
-figures/extended_training/improvement_by_strategy.pdf
-figures/extended_training/improvement_by_strategy.png
-figures/extended_training/improvement_histogram.pdf
-figures/extended_training/improvement_histogram.png
-figures/extended_training/learning_curves_by_dataset.pdf
-figures/extended_training/learning_curves_by_dataset.png
-figures/extended_training/learning_curves_by_model.pdf
-figures/extended_training/learning_curves_by_model.png
-figures/extended_training/learning_curves_by_strategy.pdf
-figures/extended_training/learning_curves_by_strategy.png
+results/
+figures/
+scripts/*jobs*
+generated_manifests/
+scripts/retrain_jobs/
+archived_scripts_*
 
-# Auto-generated retraining job scripts (user-specific paths)
-scripts/*jobs/

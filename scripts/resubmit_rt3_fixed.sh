@@ -74,10 +74,10 @@ submit_job "gen_Attribute_Hallucination" "pspnet_r50" "rt4_AttrHall_iddaw_psp" "
 submit_job "gen_Attribute_Hallucination" "segformer_mit-b5" "rt4_AttrHall_iddaw_segf" "20000" "24G" "26:00" "--real-gen-ratio 0.5"
 
 echo ""
-echo "=== gen_ControlNet_seg2image ==="
-submit_job "gen_ControlNet_seg2image" "deeplabv3plus_r50" "rt4_CNetSeg_iddaw_dlv3" "16000" "16G" "18:00" "--real-gen-ratio 0.5"
-submit_job "gen_ControlNet_seg2image" "pspnet_r50" "rt4_CNetSeg_iddaw_psp" "16000" "16G" "18:00" "--real-gen-ratio 0.5"
-submit_job "gen_ControlNet_seg2image" "segformer_mit-b5" "rt4_CNetSeg_iddaw_segf" "20000" "24G" "26:00" "--real-gen-ratio 0.5"
+echo "=== gen_CNetSeg ==="
+submit_job "gen_CNetSeg" "deeplabv3plus_r50" "rt4_CNetSeg_iddaw_dlv3" "16000" "16G" "18:00" "--real-gen-ratio 0.5"
+submit_job "gen_CNetSeg" "pspnet_r50" "rt4_CNetSeg_iddaw_psp" "16000" "16G" "18:00" "--real-gen-ratio 0.5"
+submit_job "gen_CNetSeg" "segformer_mit-b5" "rt4_CNetSeg_iddaw_segf" "20000" "24G" "26:00" "--real-gen-ratio 0.5"
 
 echo ""
 echo "=== gen_CUT ==="
@@ -86,11 +86,11 @@ submit_job "gen_CUT" "pspnet_r50" "rt4_CUT_iddaw_psp" "16000" "16G" "18:00" "--r
 submit_job "gen_CUT" "segformer_mit-b5" "rt4_CUT_iddaw_segf" "20000" "24G" "26:00" "--real-gen-ratio 0.5"
 
 echo ""
-echo "=== gen_InstructPix2Pix ==="
+echo "=== gen_IP2P ==="
 # Note: rt3_IP2P_iddaw_dlv3 (job 9561538) is still running - skip it
-# submit_job "gen_InstructPix2Pix" "deeplabv3plus_r50" "rt4_IP2P_iddaw_dlv3" "16000" "16G" "18:00" "--real-gen-ratio 0.5"
-submit_job "gen_InstructPix2Pix" "pspnet_r50" "rt4_IP2P_iddaw_psp" "16000" "16G" "18:00" "--real-gen-ratio 0.5"
-submit_job "gen_InstructPix2Pix" "segformer_mit-b5" "rt4_IP2P_iddaw_segf" "20000" "24G" "26:00" "--real-gen-ratio 0.5"
+# submit_job "gen_IP2P" "deeplabv3plus_r50" "rt4_IP2P_iddaw_dlv3" "16000" "16G" "18:00" "--real-gen-ratio 0.5"
+submit_job "gen_IP2P" "pspnet_r50" "rt4_IP2P_iddaw_psp" "16000" "16G" "18:00" "--real-gen-ratio 0.5"
+submit_job "gen_IP2P" "segformer_mit-b5" "rt4_IP2P_iddaw_segf" "20000" "24G" "26:00" "--real-gen-ratio 0.5"
 
 # ===============================
 # STD_* STRATEGIES (no ratio) - 14 jobs
@@ -114,10 +114,10 @@ submit_job "std_mixup" "pspnet_r50" "rt4_mixup_iddaw_psp" "16000" "16G" "18:00" 
 submit_job "std_mixup" "segformer_mit-b5" "rt4_mixup_iddaw_segf" "20000" "24G" "26:00" ""
 
 echo ""
-echo "=== std_photometric_distort ==="
-submit_job "std_photometric_distort" "deeplabv3plus_r50" "rt4_photom_iddaw_dlv3" "16000" "16G" "18:00" ""
-submit_job "std_photometric_distort" "pspnet_r50" "rt4_photom_iddaw_psp" "16000" "16G" "18:00" ""
-submit_job "std_photometric_distort" "segformer_mit-b5" "rt4_photom_iddaw_segf" "20000" "24G" "26:00" ""
+echo "=== photometric_distort ==="
+submit_job "photometric_distort" "deeplabv3plus_r50" "rt4_photom_iddaw_dlv3" "16000" "16G" "18:00" ""
+submit_job "photometric_distort" "pspnet_r50" "rt4_photom_iddaw_psp" "16000" "16G" "18:00" ""
+submit_job "photometric_distort" "segformer_mit-b5" "rt4_photom_iddaw_segf" "20000" "24G" "26:00" ""
 
 echo ""
 echo "=== std_randaugment ==="

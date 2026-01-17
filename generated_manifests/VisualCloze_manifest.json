@@ -2,19 +2,17 @@
   "method": "VisualCloze",
   "generated_dir": "/scratch/aaa_exchange/AWARE/GENERATED_IMAGES/VisualCloze",
   "original_dir": "/scratch/aaa_exchange/AWARE/FINAL_SPLITS/train/images",
-  "target_dir": "/scratch/aaa_exchange/AWARE/AWACS/train",
   "manifest_path": "/scratch/aaa_exchange/AWARE/GENERATED_IMAGES/VisualCloze/manifest.csv",
-  "structure_type": "mixed",
+  "structure_type": "dataset_domain",
   "task_type": "generation",
-  "total_generated": 103559,
-  "total_matched": 103559,
+  "total_generated": 108032,
+  "total_matched": 108032,
   "total_unmatched": 0,
   "overall_match_rate": 100.0,
-  "generated_at": "2026-01-08T21:36:20.355379",
   "domains": {
     "cloudy": {
-      "total": 17259,
-      "matched": 17259,
+      "total": 18004,
+      "matched": 18004,
       "unmatched": 0,
       "match_rate": 100.0,
       "is_restoration": false,
@@ -26,9 +24,9 @@
           "total": 701
         },
         "BDD100k": {
-          "matched": 5381,
+          "matched": 6126,
           "unmatched": 0,
-          "total": 5381
+          "total": 6126
         },
         "BDD10k": {
           "matched": 2370,
@@ -53,8 +51,8 @@
       }
     },
     "dawn_dusk": {
-      "total": 17260,
-      "matched": 17260,
+      "total": 18006,
+      "matched": 18006,
       "unmatched": 0,
       "match_rate": 100.0,
       "is_restoration": false,
@@ -66,9 +64,9 @@
           "total": 701
         },
         "BDD100k": {
-          "matched": 5381,
+          "matched": 6127,
           "unmatched": 0,
-          "total": 5381
+          "total": 6127
         },
         "BDD10k": {
           "matched": 2370,
@@ -93,8 +91,8 @@
       }
     },
     "foggy": {
-      "total": 17261,
-      "matched": 17261,
+      "total": 18006,
+      "matched": 18006,
       "unmatched": 0,
       "match_rate": 100.0,
       "is_restoration": false,
@@ -106,9 +104,9 @@
           "total": 701
         },
         "BDD100k": {
-          "matched": 5382,
+          "matched": 6127,
           "unmatched": 0,
-          "total": 5382
+          "total": 6127
         },
         "BDD10k": {
           "matched": 2370,
@@ -133,8 +131,8 @@
       }
     },
     "night": {
-      "total": 17259,
-      "matched": 17259,
+      "total": 18004,
+      "matched": 18004,
       "unmatched": 0,
       "match_rate": 100.0,
       "is_restoration": false,
@@ -146,9 +144,9 @@
           "total": 701
         },
         "BDD100k": {
-          "matched": 5381,
+          "matched": 6126,
           "unmatched": 0,
-          "total": 5381
+          "total": 6126
         },
         "BDD10k": {
           "matched": 2370,
@@ -173,8 +171,8 @@
       }
     },
     "rainy": {
-      "total": 17260,
-      "matched": 17260,
+      "total": 18006,
+      "matched": 18006,
       "unmatched": 0,
       "match_rate": 100.0,
       "is_restoration": false,
@@ -186,9 +184,9 @@
           "total": 701
         },
         "BDD100k": {
-          "matched": 5381,
+          "matched": 6127,
           "unmatched": 0,
-          "total": 5381
+          "total": 6127
         },
         "BDD10k": {
           "matched": 2370,
@@ -213,8 +211,8 @@
       }
     },
     "snowy": {
-      "total": 17260,
-      "matched": 17260,
+      "total": 18006,
+      "matched": 18006,
       "unmatched": 0,
       "match_rate": 100.0,
       "is_restoration": false,
@@ -226,9 +224,9 @@
           "total": 701
         },
         "BDD100k": {
-          "matched": 5381,
+          "matched": 6127,
           "unmatched": 0,
-          "total": 5381
+          "total": 6127
         },
         "BDD10k": {
           "matched": 2370,
@@ -251,6 +249,38 @@
           "total": 4123
         }
       }
+    }
+  },
+  "datasets_aggregate": {
+    "ACDC": {
+      "matched": 4206,
+      "unmatched": 0,
+      "total": 4206
+    },
+    "BDD100k": {
+      "matched": 36760,
+      "unmatched": 0,
+      "total": 36760
+    },
+    "BDD10k": {
+      "matched": 14220,
+      "unmatched": 0,
+      "total": 14220
+    },
+    "IDD-AW": {
+      "matched": 23082,
+      "unmatched": 0,
+      "total": 23082
+    },
+    "MapillaryVistas": {
+      "matched": 5026,
+      "unmatched": 0,
+      "total": 5026
+    },
+    "OUTSIDE15k": {
+      "matched": 24738,
+      "unmatched": 0,
+      "total": 24738
     }
   }
 }
