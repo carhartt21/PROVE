@@ -169,8 +169,7 @@ def load_per_model_results():
     try:
         df = pd.read_csv(csv_path)
         
-        # Filter to clear_day and fixed results
-        df = df[df['dataset'].str.endswith('_cd')]
+        # Filter to detailed_fixed test results
         df = df[df['test_type'] == 'test_results_detailed_fixed']
         df = df.dropna(subset=['mIoU'])
         
@@ -179,8 +178,7 @@ def load_per_model_results():
         
         results = {}
         for ds in DATASETS:
-            ds_cd = f"{ds}_cd"
-            ds_data = df[df['dataset'] == ds_cd]
+            ds_data = df[df['dataset'] == ds]
             
             results[ds] = {}
             for model in BASE_MODELS:
@@ -214,7 +212,8 @@ def load_miou_results():
     # Scan all strategies
     for strategy in ALL_STRATEGIES:
         for dataset in DATASETS:
-            dataset_dir = f"{dataset}_cd"  # Add _cd suffix for directory
+            # No more _cd suffix per new directory structure
+            dataset_dir = dataset
             strategy_path = WEIGHTS_ROOT / strategy / dataset_dir
             
             if not safe_exists(strategy_path):
@@ -297,13 +296,13 @@ def get_retest_jobs():
                 job_name = parts[1]
                 stat = parts[2]
                 if 'retest' in job_name:
-                    # Parse job name: retest_<strategy>_<dataset>_cd_<model>
+                    # Parse job name: retest_<strategy>_<dataset>_<model>
                     # Find dataset
                     dataset = None
                     strategy = None
                     
                     for ds in DATASETS:
-                        ds_pattern = f'_{ds}_cd' if ds != 'idd-aw' else '_idd-aw_cd'
+                        ds_pattern = f'_{ds}' if ds != 'idd-aw' else '_idd-aw'
                         if ds_pattern in job_name:
                             dataset = ds
                             # Extract strategy
@@ -337,8 +336,8 @@ def check_test_results(strategy, dataset, test_dir='test_results_detailed'):
     Checks test_results_detailed first, then falls back to test_results_detailed_fixed
     for backward compatibility with the 32 IDD-AW cases that couldn't be renamed.
     """
-    # Dataset directory pattern (with _cd suffix)
-    dataset_dir = f"{dataset}_cd"
+    # No more _cd suffix per new directory structure
+    dataset_dir = dataset
     
     # Check for any model's test results
     strategy_path = WEIGHTS_ROOT / strategy / dataset_dir
