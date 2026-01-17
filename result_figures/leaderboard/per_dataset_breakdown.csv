@@ -1,0 +1,29 @@
+Strategy,Type,bdd10k,bdd10k_gain,idd-aw,idd-aw_gain,mapillaryvistas,mapillaryvistas_gain,outside15k,outside15k_gain
+std_randaugment,Standard Aug,46.20,+2.11,48.10,+10.03,48.16,+1.16,42.23,+5.33
+gen_step1x_new,Generative,46.32,+2.23,39.30,+1.23,48.62,+1.62,48.87,+11.97
+photometric_distort,Augmentation,45.75,+1.66,47.95,+9.88,48.26,+1.26,40.75,+3.85
+std_autoaugment,Standard Aug,46.33,+2.24,39.84,+1.77,47.46,+0.46,48.56,+11.66
+gen_step1x_v1p2,Generative,46.07,+1.98,39.69,+1.62,47.98,+0.98,47.94,+11.04
+gen_Qwen_Image_Edit,Generative,45.90,+1.81,39.81,+1.74,51.97,+4.97,43.39,+6.49
+gen_stargan_v2,Generative,46.15,+2.06,39.54,+1.47,48.12,+1.13,43.02,+6.12
+gen_cyclediffusion,Generative,46.28,+2.19,39.84,+1.77,51.52,+4.52,37.36,+0.46
+gen_Attribute_Hallucination,Generative,46.49,+2.40,40.80,+2.73,48.18,+1.19,38.02,+1.12
+gen_Weather_Effect_Generator,Generative,46.19,+2.11,39.52,+1.46,49.09,+2.09,37.44,+0.54
+gen_CNetSeg,Generative,45.98,+1.89,40.58,+2.51,48.39,+1.39,37.11,+0.21
+gen_cycleGAN,Generative,46.03,+1.94,40.03,+1.96,48.03,+1.04,37.86,+0.96
+gen_IP2P,Generative,46.33,+2.25,40.57,+2.50,48.16,+1.16,36.75,-0.15
+gen_flux_kontext,Generative,46.14,+2.05,39.30,+1.23,48.06,+1.06,38.19,+1.29
+gen_automold,Generative,46.37,+2.28,39.64,+1.57,48.17,+1.18,37.17,+0.27
+std_mixup,Standard Aug,46.04,+1.95,39.74,+1.67,47.89,+0.90,37.62,+0.72
+gen_albumentations_weather,Generative,46.29,+2.20,39.80,+1.73,48.11,+1.11,36.86,-0.04
+gen_SUSTechGAN,Generative,46.25,+2.16,39.55,+1.48,47.71,+0.71,37.28,+0.38
+std_cutmix,Standard Aug,46.51,+2.42,40.07,+2.00,47.75,+0.75,36.36,-0.54
+gen_CUT,Generative,45.91,+1.82,39.52,+1.45,48.07,+1.08,37.15,+0.25
+gen_Img2Img,Generative,46.32,+2.23,39.90,+1.83,47.02,+0.02,37.31,+0.41
+gen_TSIT,Generative,45.81,+1.72,39.38,+1.31,48.29,+1.30,36.74,-0.16
+gen_VisualCloze,Generative,45.88,+1.80,39.55,+1.48,47.09,+0.09,37.65,+0.75
+gen_UniControl,Generative,46.03,+1.94,39.29,+1.22,47.56,+0.57,37.09,+0.20
+gen_LANIT,Generative,45.54,+1.45,39.39,+1.32,47.25,+0.25,37.10,+0.20
+gen_augmenters,Generative,45.88,+1.79,39.95,+1.88,46.15,-0.85,37.12,+0.22
+baseline,Baseline,44.09,-,38.07,-,47.00,-,36.90,-
+gen_EDICT,Generative,41.03,-3.05,-,-,-,-,-,-
