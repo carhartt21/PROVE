@@ -1,6 +1,6 @@
 # TODO - Upcoming Tasks
 
-*Last updated: 2026-01-16 (16:00)*
+*Last updated: 2026-01-16 (16:20)*
 
 ## Current Job Status Summary
 
@@ -15,10 +15,11 @@
 ### Stage 2 (All Domains - Adverse Weather) - WEIGHTS_STAGE_2 directory
 | Category | Running | Pending | Done | Partial | Total |
 |----------|--------:|--------:|-----:|--------:|------:|
-| Training | 0 | 57 | 6 | 48 | 111 |
+| Training | 0 | 77 | 4 | 26 | 107 |
 | Testing | - | - | - | - | - |
 
 **Note:** Stage 2 uses all 3 models (DeepLabV3+, PSPNet, SegFormer).
+Totals reduced to 107 after removing std_minimal.
 Partial indicates configurations where 1/3 or 2/3 models are complete.
 
 ### Ablation Studies
@@ -48,6 +49,25 @@ Partial indicates configurations where 1/3 or 2/3 models are complete.
 
 **Native Classes Default:** `unified_training.py` now uses native classes by default.
 Use `--no-native-classes` to force Cityscapes 19 classes.
+
+---
+
+## 🔄 Stage 2 Retraining (MapillaryVistas/OUTSIDE15k)
+
+**Issue:** All Stage 2 checkpoints for MapillaryVistas/OUTSIDE15k were trained with 19 classes.
+
+**Actions Taken:**
+- Deleted all Stage 2 MapillaryVistas and OUTSIDE15k checkpoints
+- Removed `std_minimal` from Stage 2
+- Submitted full retraining set for MapillaryVistas + OUTSIDE15k across all Stage 2 strategies (except `gen_EDICT`)
+
+**Jobs Submitted:** 114 total (19 strategies × 2 datasets × 3 models)
+
+**Status:** PENDING (BatchGPU queue)
+
+**Validation Note (Stage 2 tests):**
+- BDD10k classwise IoU looks normal; only rare classes (train/rider/motorcycle/bicycle) hit 0–0.01 IoU in some runs
+- IDD-AW Stage 2 tests not available yet (no results.json to scan)
 
 ---
 
