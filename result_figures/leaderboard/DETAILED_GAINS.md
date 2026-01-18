@@ -31,7 +31,6 @@
 | gen_cyclediffusion | Generative | 46.3 | +2.2 | 39.8 | +1.8 | 51.5 | +4.5 | 37.4 | +0.5 | +2.23 |
 | std_cutmix | Standard Aug | 46.5 | +2.4 | 40.1 | +2.0 | 47.7 | +0.7 | 36.4 | -0.5 | +1.16 |
 | baseline | Baseline | 44.1 | +0.0 | 38.1 | +0.0 | 47.0 | +0.0 | 36.9 | +0.0 | +0.00 |
-| gen_EDICT | Generative | 41.0 | -3.1 | - | - | - | - | - | - | -3.05 |
 
 ## Per-Domain mIoU by Strategy
 
