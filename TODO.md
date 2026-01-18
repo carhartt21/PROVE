@@ -101,7 +101,7 @@
 - Domain adaptation results: `{WEIGHTS}/domain_adaptation_ablation/`
 # TODO - Upcoming Tasks
 
-*Last updated: 2026-01-17 (21:25)*
+*Last updated: 2026-01-18 (01:20)*
 
 ## Current Job Status Summary
 
@@ -109,30 +109,57 @@
 | Category | Running | Pending | Done | Total |
 |----------|--------:|--------:|-----:|------:|
 | Training | 0 | 0 | 107 | 107 |
-| Testing | 2 | 0 | 320 | 324 |
+| Testing | 0 | 0 | 346 | 346 |
 
-*Stage 1 training 100% complete!*
+*Stage 1 training and testing 100% complete!*
+*Leaderboard generated: 28 strategies evaluated*
 
-### Stage 2 (All Domains - Adverse Weather) - WEIGHTS_STAGE_2 directory
-| Category | Running | Pending | Done | Partial | Total |
-|----------|--------:|--------:|-----:|--------:|------:|
-| Training | 11 | 42 | 35 | 31 | 107 |
-| Testing | 0 | ~180 | 17 | - | ~200 |
+### Stage 2 (All Domains) - WEIGHTS_STAGE_2 directory
+| Category | Running | Pending | Done | Total |
+|----------|--------:|--------:|-----:|------:|
+| Training | 15 | 65 | 211+ | ~280 |
+| Testing | 0 | ~60 | 150 | ~211 |
 
 **Stage 2 Progress:**
-- **Checkpoints:** 200 complete (excludes running jobs)
-- **By Dataset:** BDD10k: 42, IDD-AW: 43, MapillaryVistas: 63, OUTSIDE15k: 52
-- **Testing:** Only 17/200 (8.5%) tested - all BDD10k
-- **Running:** 11 OUTSIDE15k training jobs (submitted Jan 16)
-
-**Note:** Stage 2 uses all 3 models (DeepLabV3+, PSPNet, SegFormer).
-Partial indicates configurations where 1/3 or 2/3 models are complete.
+- **Checkpoints:** 211 complete models
+- **Testing:** 150 valid tests (71% coverage)
+- **Running:** Top 5 strategies training (gen_step1x_new, std_autoaugment, std_randaugment, photometric_distort, gen_Qwen_Image_Edit)
 
 ### Ablation Studies
-| Study | Owner | Running | Pending | Total |
-|-------|-------|--------:|--------:|------:|
-| Ratio Ablation | mima2416 | 13 | 54 | 112 |
-| Extended Training | chge7185 | 6 | 454 | 460 |
+| Study | Running | Pending | Done | Total |
+|-------|--------:|--------:|-----:|------:|
+| Ratio Ablation | 0 | 0 | 153+ | 153+ |
+| Extended Training | TBD | TBD | TBD | 504 |
+
+---
+
+## ✅ Recently Completed (Jan 18, 2026)
+
+### Leaderboard Generation
+- ✅ Created `generate_stage1_leaderboard.py` for Stage 1 analysis
+- ✅ Created `generate_stage2_leaderboard.py` for Stage 2 analysis
+- ✅ Stage 1: 346 test results, 28 strategies evaluated
+- ✅ Stage 2: 150 test results, 19 strategies evaluated
+
+**Stage 1 Top Performers (Clear Day Training):**
+1. std_randaugment: 46.74% mIoU (+5.49 vs baseline)
+2. photometric_distort: 46.35% mIoU (+5.10 vs baseline)
+3. gen_step1x_new: 45.78% mIoU (+4.53 vs baseline)
+
+**Stage 2 Top Performers (All Domain Training):**
+1. gen_Weather_Effect_Generator: 50.78% mIoU (+7.03 vs baseline)
+2. gen_VisualCloze: 45.68% mIoU (+1.93 vs baseline)
+3. gen_CUT: 44.47% mIoU (+0.73 vs baseline)
+
+### Job Submissions
+- ✅ Submitted 155 Stage 2 test jobs
+- ✅ Submitted 79 ratio ablation test jobs
+- ✅ Submitted 80 Stage 2 training jobs (top 10 strategies)
+
+### Bug Fixes
+- ✅ Fixed empty DataFrame handling in generate_strategy_leaderboard.py
+- ✅ Fixed per-domain metric extraction (nested summary structure)
+- ✅ Filter tests pointing to wrong stage checkpoints
 
 ---
 
