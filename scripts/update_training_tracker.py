@@ -89,6 +89,13 @@ STANDARD_STRATEGIES = [
 
 ALL_STRATEGIES = GENERATIVE_STRATEGIES + STANDARD_STRATEGIES
 
+# Stage 2 excludes these strategies (not part of Stage 2 training plan)
+STAGE2_EXCLUDED_STRATEGIES = {
+    'std_cutmix',
+    'std_mixup',
+    'gen_cyclediffusion',
+}
+
 # Skip combinations - UPDATED: All strategies now have full 4/4 coverage after manifest regeneration
 SKIP_COMBOS = set()  # No more skip combos needed
 
@@ -766,7 +773,12 @@ def collect_detailed_coverage(domain_filter='clear_day', verbose=False):
     coverage = []  # List of dicts with strategy, dataset, model, status info
     summary = {'complete': 0, 'running': 0, 'pending': 0, 'missing': 0, 'failed': 0}
     
-    for strategy in ALL_STRATEGIES:
+    # For Stage 2 (all_domains), exclude certain strategies not in Stage 2 plan
+    strategies_to_check = ALL_STRATEGIES
+    if domain_filter == 'all_domains':
+        strategies_to_check = [s for s in ALL_STRATEGIES if s not in STAGE2_EXCLUDED_STRATEGIES]
+    
+    for strategy in strategies_to_check:
         # Determine which models to check based on strategy type
         if strategy.startswith('gen_'):
             models_to_check = ['deeplabv3plus_r50_ratio0p50', 'pspnet_r50_ratio0p50', 'segformer_mit-b5_ratio0p50']
