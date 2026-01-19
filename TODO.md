@@ -1,8 +1,42 @@
 # PROVE Project TODO List
 
-**Last Updated:** 2026-01-17
+**Last Updated:** 2026-01-19 (15:30)
+
+## ⚠️ Known Issues
+
+### Standard Augmentation Implementation (FIXED)
+~~The `std_*` strategies (std_randaugment, std_autoaugment, std_cutmix, std_mixup) may not be properly applying their respective augmentation transforms during training.~~
+
+**Status:** ✅ FIXED (2026-01-19)
+**Root Cause:** The `standard_augmentation` config was written to the training config file but never consumed by the training loop. MMEngine's Runner did not know about our custom field.
+**Solution:** Created `StandardAugmentationHook` (`tools/standard_augmentation_hook.py`) that intercepts batches in `before_train_iter` and applies batch-level augmentations. The hook is now automatically added to `custom_hooks` when std_* strategies are used.
+
+**Files Modified:**
+- `tools/standard_augmentation_hook.py` - New MMEngine Hook implementing batch-level augmentation
+- `unified_training_config.py` - Added `_add_standard_augmentation_hook()` method
+- `unified_training.py` - Added hook import in all training script paths
+
+**Impact:** All existing std_* trained models used only PhotoMetricDistortion. Retraining needed for proper std_* results.
+
+### OUTSIDE15k Wrong num_classes (Retraining)
+4 models were trained with 19 classes instead of 24 native classes:
+- photometric_distort/outside15k/segformer_mit-b5 (deleted, retraining - Job 9660083)
+- std_autoaugment/outside15k/pspnet_r50 (deleted, retraining - Job 9660084)
+- std_autoaugment/outside15k/segformer_mit-b5 (deleted, retraining - Job 9660085)
+- std_randaugment/outside15k/segformer_mit-b5 (deleted, retraining - Job 9660086)
+
+**Status:** Retraining in progress
+**Next Step:** Run `scripts/test_retrained_outside15k.sh` after training completes
 
 ## In Progress
+
+### Stage 2 Training & Testing (Active)
+- [x] Removed gen_EDICT strategy from WEIGHTS and WEIGHTS_STAGE_2
+- [x] Moved 26 ratio ablation models from WEIGHTS_STAGE_2/gen_step1x_v1p2 to WEIGHTS_RATIO_ABLATION
+- [x] Submitted 29 missing training jobs (Job IDs: 9649534-9649568)
+- [x] Submitted 97 testing jobs (Job IDs: 9649591-9649699)
+- [ ] Wait for training and testing jobs to complete
+- [ ] Update tracker documents when jobs finish
 
 ### Extended Training Testing
 - [x] Modified `submit_test_extended_training.sh` to use `fine_grained_test.py`
@@ -117,13 +151,14 @@
 ### Stage 2 (All Domains) - WEIGHTS_STAGE_2 directory
 | Category | Running | Pending | Done | Total |
 |----------|--------:|--------:|-----:|------:|
-| Training | 15 | 65 | 211+ | ~280 |
-| Testing | 0 | ~60 | 150 | ~211 |
+| Training | ~10 | ~25 | 264 | ~293 |
+| Testing | ~5 | ~90 | 167 | ~264 |
 
-**Stage 2 Progress:**
-- **Checkpoints:** 211 complete models
-- **Testing:** 150 valid tests (71% coverage)
-- **Running:** Top 5 strategies training (gen_step1x_new, std_autoaugment, std_randaugment, photometric_distort, gen_Qwen_Image_Edit)
+**Stage 2 Progress (as of 2026-01-19):**
+- **Checkpoints:** 264 trained models
+- **Testing:** 167 valid tests (submitted 97 more tests)
+- **Training:** 29 missing jobs submitted (gen_augmenters, gen_automold, gen_cycleGAN, etc.)
+- **Removed:** gen_EDICT strategy completely removed
 
 ### Ablation Studies
 | Study | Running | Pending | Done | Total |
@@ -133,7 +168,24 @@
 
 ---
 
-## ✅ Recently Completed (Jan 18, 2026)
+## ✅ Recently Completed (Jan 19, 2026)
+
+### Stage 2 Cleanup and Job Submission
+- ✅ **Removed gen_EDICT** from WEIGHTS and WEIGHTS_STAGE_2 (incomplete strategy)
+- ✅ **Reorganized gen_step1x_v1p2** - moved 26 ratio ablation models to WEIGHTS_RATIO_ABLATION
+- ✅ **Submitted 29 training jobs** for missing configurations:
+  - gen_augmenters, gen_automold, gen_cycleGAN (BDD10k/IDD-AW segformer)
+  - gen_flux_kontext, gen_Img2Img, gen_IP2P (various BDD10k/IDD-AW)
+  - gen_SUSTechGAN, gen_TSIT, gen_UniControl (BDD10k/IDD-AW)
+  - gen_VisualCloze, gen_Weather_Effect_Generator (BDD10k/IDD-AW)
+- ✅ **Submitted 97 testing jobs** for models without test results
+  - Covered: gen_stargan_v2, gen_step1x_new, gen_step1x_v1p2
+  - Covered: photometric_distort, std_autoaugment, std_randaugment
+- ✅ Job IDs: Training 9649534-9649568, Testing 9649591-9649699
+
+---
+
+## ✅ Previously Completed (Jan 18, 2026)
 
 ### Leaderboard Generation
 - ✅ Created `generate_stage1_leaderboard.py` for Stage 1 analysis
