@@ -169,16 +169,20 @@ python scripts/update_training_tracker.py --stage 2 --coverage-report
 
 **Location:** `/scratch/aaa_exchange/AWARE/WEIGHTS_RATIO_ABLATION/`
 
-| Strategy | Configurations | Total Checkpoints |
-|----------|----------------|-------------------|
-| gen_TSIT | 63 | - |
-| gen_step1x_new | 56 | - |
-| gen_step1x_v1p2 | 52 | - |
-| **Total** | **171** | **1,329** |
+**Ratios Tested:** 0.00, 0.12, 0.25, 0.38, 0.50 (standard), 0.62, 0.75, 0.88
 
-**Ratios Tested:** 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9
+| Strategy | Datasets | Models | Checkpoints |
+|----------|----------|--------|-------------|
+| gen_TSIT | BDD10k, IDD-AW, MapillaryVistas, OUTSIDE15k | PSPNet, SegFormer | 465 |
+| gen_step1x_new | BDD10k, IDD-AW, MapillaryVistas, OUTSIDE15k | PSPNet, SegFormer | 448 |
+| gen_step1x_v1p2 | BDD10k, IDD-AW, MapillaryVistas, OUTSIDE15k | PSPNet, SegFormer | 416 |
+| gen_cycleGAN | BDD10k, IDD-AW, MapillaryVistas, OUTSIDE15k | DeepLabV3+, PSPNet, SegFormer | 336 |
+| gen_stargan_v2 | BDD10k, IDD-AW, MapillaryVistas, OUTSIDE15k | DeepLabV3+, PSPNet, SegFormer | 118 |
+| gen_flux_kontext | BDD10k, IDD-AW, MapillaryVistas, OUTSIDE15k | DeepLabV3+, PSPNet, SegFormer | 112 |
+| gen_cyclediffusion | BDD10k, IDD-AW, MapillaryVistas, OUTSIDE15k | DeepLabV3+, PSPNet, SegFormer | 81 |
+| **Total** | **4 datasets** | **2-3 models** | **1,976** |
 
-**Key Finding:** Optimal ratio is typically around 0.5 (50% real, 50% generated).
+**Key Finding:** Optimal ratio is typically around 0.50 (50% real, 50% generated).
 
 ---
 
@@ -186,46 +190,53 @@ python scripts/update_training_tracker.py --stage 2 --coverage-report
 
 **Status: ✅ Complete**
 
-**Purpose:** Evaluate the effect of training for longer (160k iterations vs standard 80k).
+**Purpose:** Evaluate the effect of training for longer (up to 320k iterations vs standard 80k).
 
 **Location:** `/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/`
 
-| Strategy | Status |
-|----------|--------|
-| gen_TSIT | ✅ |
-| gen_UniControl | ✅ |
-| gen_albumentations_weather | ✅ |
-| gen_automold | ✅ |
-| gen_cycleGAN | ✅ |
-| gen_cyclediffusion | ✅ |
-| gen_flux_kontext | ✅ |
-| gen_step1x_new | ✅ |
-| std_randaugment | ✅ |
+**Iterations Tested:** 90k, 100k, 110k, ... 320k (in 10k increments)
 
-**Total Checkpoints:** 959
+| Strategy | Datasets | Models | Checkpoints |
+|----------|----------|--------|-------------|
+| gen_cyclediffusion | BDD10k, IDD-AW, MapillaryVistas, OUTSIDE15k | PSPNet, SegFormer | 192 |
+| gen_step1x_new | BDD10k, IDD-AW, MapillaryVistas, OUTSIDE15k | PSPNet, SegFormer | 120 |
+| gen_TSIT | BDD10k, IDD-AW, MapillaryVistas, OUTSIDE15k | PSPNet, SegFormer | 96 |
+| gen_UniControl | BDD10k, IDD-AW, MapillaryVistas, OUTSIDE15k | PSPNet, SegFormer | 96 |
+| gen_albumentations_weather | BDD10k, IDD-AW, MapillaryVistas, OUTSIDE15k | PSPNet, SegFormer | 96 |
+| gen_automold | BDD10k, IDD-AW, MapillaryVistas, OUTSIDE15k | PSPNet, SegFormer | 95 |
+| gen_cycleGAN | BDD10k, IDD-AW, MapillaryVistas, OUTSIDE15k | PSPNet, SegFormer | 96 |
+| gen_flux_kontext | BDD10k, IDD-AW, MapillaryVistas, OUTSIDE15k | PSPNet, SegFormer | 96 |
+| std_randaugment | BDD10k, IDD-AW, MapillaryVistas, OUTSIDE15k | PSPNet, SegFormer | 72 |
+| **Total** | **4 datasets** | **2 models** | **959** |
 
-**Key Finding:** Extended training provides marginal improvements (~1-2% mIoU) at 2x computational cost.
+**Key Finding:** Extended training provides marginal improvements (~1-2% mIoU) at 2-4x computational cost.
 
 ---
 
 ### 3. Strategy Combinations Study
 
-**Status: ✅ Complete**
+**Status: 🔶 Partial (by chge7185)**
 
 **Purpose:** Test combining generative augmentation with standard augmentation methods.
 
-**Location:** `/scratch/aaa_exchange/AWARE/WEIGHTS_COMBINATIONS/`
+**Location:** `/scratch/aaa_exchange/AWARE/WEIGHTS_COMBINATIONS_chge7185/`
 
-| Combination | Status | Checkpoints |
-|-------------|--------|-------------|
-| gen_CUT + std_mixup | ✅ | - |
-| gen_CUT + std_randaugment | ✅ | - |
-| gen_cycleGAN + std_mixup | ✅ | - |
-| gen_cycleGAN + std_randaugment | ✅ | - |
+| Combination | Datasets | Models | Checkpoints |
+|-------------|----------|--------|-------------|
+| gen_step1x_new + photometric_distort | MapillaryVistas | PSPNet, SegFormer | 33 |
+| gen_Attribute_Hallucination + photometric_distort | MapillaryVistas | PSPNet, SegFormer | 32 |
+| gen_flux_kontext + photometric_distort | MapillaryVistas | PSPNet, SegFormer | 32 |
+| gen_Qwen_Image_Edit + photometric_distort | MapillaryVistas | PSPNet, SegFormer | 32 |
+| gen_stargan_v2 + photometric_distort | MapillaryVistas | PSPNet, SegFormer | 32 |
+| std_autoaugment + photometric_distort | MapillaryVistas | PSPNet, SegFormer | 32 |
+| std_cutmix + photometric_distort | MapillaryVistas | PSPNet, SegFormer | 32 |
+| std_mixup + photometric_distort | MapillaryVistas | PSPNet, SegFormer | 32 |
+| std_randaugment + photometric_distort | MapillaryVistas | PSPNet, SegFormer | 32 |
+| gen_step1x_new + std_mixup | MapillaryVistas | PSPNet, SegFormer | 1 |
+| gen_step1x_new + std_randaugment | MapillaryVistas | PSPNet, SegFormer | 3 |
+| **Total** | **1 dataset** | **2 models** | **293** |
 
-**Total Checkpoints:** 706
-
-**Key Finding:** Combining generative with standard augmentation shows mixed results; not always beneficial.
+**Note:** Limited to MapillaryVistas dataset only. Some combinations still in progress.
 
 ---
 
@@ -238,3 +249,4 @@ python scripts/update_training_tracker.py --stage 2 --coverage-report
 **Location:** `/scratch/aaa_exchange/AWARE/WEIGHTS/domain_adaptation_ablation/`
 
 **Note:** Directory structure created but training not yet started.
+
