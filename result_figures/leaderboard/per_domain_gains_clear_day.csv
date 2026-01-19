@@ -1,7 +1,0 @@
-Strategy,Type,clear_day,cloudy,dawn_dusk,foggy,night,rainy,snowy,Normal Gain,Adverse Gain,Overall Avg
-baseline,Baseline Full,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0
-std_cutmix,Standard Aug,27.52,25.79,21.88,25.61,15.51,21.68,23.33,26.66,21.54,23.05
-std_mixup,Standard Aug,18.4,21.78,16.46,24.29,9.1,18.75,24.86,20.09,19.25,19.09
-std_randaugment,Standard Aug,11.78,10.9,4.77,13.59,7.75,10.56,8.6,11.34,10.12,9.71
-photometric_distort,Augmentation,-4.96,-3.49,-2.94,-2.83,-1.85,-2.57,-2.84,-4.23,-2.52,-3.07
-std_autoaugment,Standard Aug,-5.31,-4.09,-3.21,-3.28,-2.53,-3.0,-2.95,-4.7,-2.94,-3.48

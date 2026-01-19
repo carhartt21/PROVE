@@ -1572,6 +1572,38 @@ class UnifiedTrainingConfig:
         
         return model_def
     
+    def _add_standard_augmentation_hook(
+        self,
+        config: Dict[str, Any],
+        method: str,
+        p_aug: float = 0.5,
+    ) -> None:
+        """Add StandardAugmentationHook to custom_hooks configuration.
+        
+        This hook applies batch-level standard augmentations (CutMix, MixUp,
+        AutoAugment, RandAugment) during training.
+        
+        Args:
+            config: Configuration dictionary to update
+            method: Augmentation method ('cutmix', 'mixup', 'autoaugment', 'randaugment')
+            p_aug: Probability of applying augmentation
+        """
+        # Ensure custom_hooks exists
+        if 'custom_hooks' not in config:
+            config['custom_hooks'] = []
+        
+        # Add the StandardAugmentationHook
+        hook_config = dict(
+            type='StandardAugmentationHook',
+            method=method,
+            p_aug=p_aug,
+        )
+        
+        # Insert at the beginning so it runs before other hooks
+        config['custom_hooks'].insert(0, hook_config)
+        
+        print(f"[UnifiedTrainingConfig] Added StandardAugmentationHook (method={method}, p_aug={p_aug})")
+    
     def _build_custom_hooks(
         self,
         dataset_cfg: 'DatasetConfig',
@@ -2139,6 +2171,8 @@ class UnifiedTrainingConfig:
                     'p_aug': std_aug.p_aug,
                     'combined_with_gen': True,  # Flag indicating combined usage
                 }
+                # Add StandardAugmentationHook to custom_hooks
+                self._add_standard_augmentation_hook(config, std_aug.standard_method, std_aug.p_aug)
         
         elif aug_strategy.type == 'standard' and aug_strategy.standard_method:
             # Standard augmentation (CutMix, MixUp, AutoAugment, RandAugment)
@@ -2148,6 +2182,8 @@ class UnifiedTrainingConfig:
                 'p_aug': aug_strategy.p_aug,
                 'combined_with_gen': False,
             }
+            # Add StandardAugmentationHook to custom_hooks
+            self._add_standard_augmentation_hook(config, aug_strategy.standard_method, aug_strategy.p_aug)
         
         # Handle std_strategy combined with non-generated strategies (e.g., baseline + std_cutmix)
         elif std_strategy is not None:
@@ -2158,6 +2194,8 @@ class UnifiedTrainingConfig:
                 'p_aug': std_aug.p_aug,
                 'combined_with_gen': False,  # Not combined with generated images
             }
+            # Add StandardAugmentationHook to custom_hooks
+            self._add_standard_augmentation_hook(config, std_aug.standard_method, std_aug.p_aug)
         
         return config
     

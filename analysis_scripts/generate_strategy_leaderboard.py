@@ -784,11 +784,12 @@ def generate_per_dataset_gains_table(weights_root: Path, scope: str = 'full') ->
     
     # Get baseline_clear_day per-dataset mIoU (always use clear_day scope for baseline)
     baseline_df = compute_per_dataset_miou(weights_root, 'clear_day')
-    baseline_df = baseline_df[baseline_df['Strategy'] == BASELINE_FULL]
     
     baseline_miou_by_dataset = {}
-    for _, row in baseline_df.iterrows():
-        baseline_miou_by_dataset[row['Dataset']] = row['mIoU']
+    if not baseline_df.empty and 'Strategy' in baseline_df.columns:
+        baseline_df = baseline_df[baseline_df['Strategy'] == BASELINE_FULL]
+        for _, row in baseline_df.iterrows():
+            baseline_miou_by_dataset[row['Dataset']] = row['mIoU']
     
     # Get per-domain gains for Normal/Adverse summaries
     per_domain_gains = generate_per_domain_gains_table(weights_root, scope)
@@ -878,11 +879,12 @@ def generate_per_domain_gains_table(weights_root: Path, scope: str = 'full') -> 
     
     # Get baseline_clear_day per-domain mIoU (always use clear_day scope for baseline)
     baseline_df = compute_per_domain_miou(weights_root, 'clear_day')
-    baseline_df = baseline_df[baseline_df['Strategy'] == BASELINE_FULL]
     
     baseline_miou_by_domain = {}
-    for _, row in baseline_df.iterrows():
-        baseline_miou_by_domain[row['Domain']] = row['mIoU']
+    if not baseline_df.empty and 'Strategy' in baseline_df.columns:
+        baseline_df = baseline_df[baseline_df['Strategy'] == BASELINE_FULL]
+        for _, row in baseline_df.iterrows():
+            baseline_miou_by_domain[row['Domain']] = row['mIoU']
     
     # Use canonical domain order
     domain_order = NORMAL_DOMAINS + TRANSITION_DOMAINS + ADVERSE_DOMAINS

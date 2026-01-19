@@ -1,29 +1,42 @@
 # PROVE Project TODO List
 
-**Last Updated:** 2026-01-18
+**Last Updated:** 2026-01-19 (15:30)
+
+## ⚠️ Known Issues
+
+### Standard Augmentation Implementation (FIXED)
+~~The `std_*` strategies (std_randaugment, std_autoaugment, std_cutmix, std_mixup) may not be properly applying their respective augmentation transforms during training.~~
+
+**Status:** ✅ FIXED (2026-01-19)
+**Root Cause:** The `standard_augmentation` config was written to the training config file but never consumed by the training loop. MMEngine's Runner did not know about our custom field.
+**Solution:** Created `StandardAugmentationHook` (`tools/standard_augmentation_hook.py`) that intercepts batches in `before_train_iter` and applies batch-level augmentations. The hook is now automatically added to `custom_hooks` when std_* strategies are used.
+
+**Files Modified:**
+- `tools/standard_augmentation_hook.py` - New MMEngine Hook implementing batch-level augmentation
+- `unified_training_config.py` - Added `_add_standard_augmentation_hook()` method
+- `unified_training.py` - Added hook import in all training script paths
+
+**Impact:** All existing std_* trained models used only PhotoMetricDistortion. Retraining needed for proper std_* results.
+
+### OUTSIDE15k Wrong num_classes (Retraining)
+4 models were trained with 19 classes instead of 24 native classes:
+- photometric_distort/outside15k/segformer_mit-b5 (deleted, retraining - Job 9660083)
+- std_autoaugment/outside15k/pspnet_r50 (deleted, retraining - Job 9660084)
+- std_autoaugment/outside15k/segformer_mit-b5 (deleted, retraining - Job 9660085)
+- std_randaugment/outside15k/segformer_mit-b5 (deleted, retraining - Job 9660086)
+
+**Status:** Retraining in progress
+**Next Step:** Run `scripts/test_retrained_outside15k.sh` after training completes
 
 ## In Progress
 
-### Combination Ablation Study (RUNNING)
-- [x] Created `scripts/submit_combination_training.sh`
-- [x] Expanded strategy configuration (2026-01-18)
-  - Added gen_stargan_v2, gen_Attribute_Hallucination, photometric_distort
-  - 5 generative × 5 standard = 25 gen+std combinations (100 jobs)
-  - C(5,2) = 10 std+std combinations (40 jobs)
-  - Total: 140 jobs across 2 datasets × 2 models
-- [x] Submitted all 140 combination jobs
-  - Gen+std: 47 complete, 53 submitted
-  - Std+std: 40 submitted
-  - Jobs: 9625286, 9635126-9635319 (duplicates removed)
-- [x] Fixed testing tracker (_cd suffix bugs)
-  - Now correctly displays 183 completed test results
-- [x] Ran preliminary analysis on 47 gen+std results
-  - Mean mIoU: 47.20-47.88
-  - Top: gen_Qwen_Image_Edit+std_randaugment (47.88)
-- [ ] Wait for remaining 93 jobs to complete (~40-48 hours)
-- [ ] Run comprehensive analysis: `python analysis_scripts/analyze_combination_ablation.py`
-- [ ] Compare gen+std vs std+std effectiveness
-- [ ] Generate final report and figures
+### Stage 2 Training & Testing (Active)
+- [x] Removed gen_EDICT strategy from WEIGHTS and WEIGHTS_STAGE_2
+- [x] Moved 26 ratio ablation models from WEIGHTS_STAGE_2/gen_step1x_v1p2 to WEIGHTS_RATIO_ABLATION
+- [x] Submitted 29 missing training jobs (Job IDs: 9649534-9649568)
+- [x] Submitted 97 testing jobs (Job IDs: 9649591-9649699)
+- [ ] Wait for training and testing jobs to complete
+- [ ] Update tracker documents when jobs finish
 
 ### Extended Training Testing
 - [x] Modified `submit_test_extended_training.sh` to use `fine_grained_test.py`
@@ -58,46 +71,11 @@
 - [ ] Prepare tables for publication
 
 ### Job Monitoring
-- [ ] Monitor combination ablation jobs: `bjobs | grep combo_`
 - [ ] Monitor extended training test jobs: `bjobs | grep test_ext`
 - [ ] Check for failed jobs and resubmit if needed
 - [ ] Document any strategies that fail consistently
 
 ## Completed
-
-### Testing Tracker Fix (2026-01-18)
-- [x] **Fixed update_testing_tracker.py `_cd` suffix bugs**
-  - Removed `_cd` suffix from 4 locations causing directory mismatches
-  - Line 217: `load_miou_results()` function
-  - Line 342: `check_test_results()` function
-  - Lines 173, 182-183: `load_existing_results()` function
-  - Line 307: `parse_running_jobs()` function
-  - Result: Now correctly displays 183 completed test results with actual mIoU values
-
-### Combination Ablation Infrastructure (2026-01-18)
-- [x] **Expanded combination ablation study to 140 total jobs**
-  - Added gen_stargan_v2, gen_Attribute_Hallucination strategies
-  - Added photometric_distort standard strategy
-  - Updated script configuration (5 gen × 5 std = 25 combinations)
-  - Added 4 new std+std pairs with photometric_distort
-  - Total: 100 gen+std + 40 std+std jobs
-- [x] **Submitted and cleaned queue**
-  - Submitted 93 new jobs (47 already complete)
-  - Identified and removed 25 duplicate jobs
-  - Final queue: 93 unique jobs (6 running, 87 pending)
-- [x] **Updated analysis script**
-  - Changed path to WEIGHTS_COMBINATIONS_chge7185
-  - Added new strategies to COMPONENT_FAMILIES
-  - Added permission error handling for restricted directories
-  - Successfully analyzed 47 gen+std results
-
-### Combination Ablation Infrastructure (2026-01-16)
-- [x] Created `scripts/submit_combination_training.sh`
-- [x] Script supports gen+std and std+std combinations
-- [x] Automatic testing integrated with `fine_grained_test.py`
-- [x] Explicit work directory setting for WEIGHTS_COMBINATIONS
-- [x] Skip logic for already completed models
-- [x] Updated `docs/COMBINATION_ABLATION.md` with new configuration
 
 ### Domain Adaptation Infrastructure (2026-01-23)
 - [x] Script updated to use WEIGHTS_STAGE_2 for full dataset models
@@ -157,32 +135,83 @@
 - Domain adaptation results: `{WEIGHTS}/domain_adaptation_ablation/`
 # TODO - Upcoming Tasks
 
-*Last updated: 2026-01-16 (16:00)*
+*Last updated: 2026-01-18 (01:20)*
 
 ## Current Job Status Summary
 
 ### Stage 1 (Clear Day Domain) - WEIGHTS directory
 | Category | Running | Pending | Done | Total |
 |----------|--------:|--------:|-----:|------:|
-| Training | 21 | 0 | 101 | 107* |
-| Testing | 2 | 5 | 328 | 335 |
+| Training | 0 | 0 | 107 | 107 |
+| Testing | 0 | 0 | 346 | 346 |
 
-*Note: Reduced from 111 to 107 strategies after removing std_minimal (not useful)
+*Stage 1 training and testing 100% complete!*
+*Leaderboard generated: 28 strategies evaluated*
 
-### Stage 2 (All Domains - Adverse Weather) - WEIGHTS_STAGE_2 directory
-| Category | Running | Pending | Done | Partial | Total |
-|----------|--------:|--------:|-----:|--------:|------:|
-| Training | 0 | 57 | 6 | 48 | 111 |
-| Testing | - | - | - | - | - |
+### Stage 2 (All Domains) - WEIGHTS_STAGE_2 directory
+| Category | Running | Pending | Done | Total |
+|----------|--------:|--------:|-----:|------:|
+| Training | ~10 | ~25 | 264 | ~293 |
+| Testing | ~5 | ~90 | 167 | ~264 |
 
-**Note:** Stage 2 uses all 3 models (DeepLabV3+, PSPNet, SegFormer).
-Partial indicates configurations where 1/3 or 2/3 models are complete.
+**Stage 2 Progress (as of 2026-01-19):**
+- **Checkpoints:** 264 trained models
+- **Testing:** 167 valid tests (submitted 97 more tests)
+- **Training:** 29 missing jobs submitted (gen_augmenters, gen_automold, gen_cycleGAN, etc.)
+- **Removed:** gen_EDICT strategy completely removed
 
 ### Ablation Studies
-| Study | Owner | Running | Pending | Total |
-|-------|-------|--------:|--------:|------:|
-| Ratio Ablation | mima2416 | 13 | 54 | 112 |
-| Extended Training | chge7185 | 6 | 454 | 460 |
+| Study | Running | Pending | Done | Total |
+|-------|--------:|--------:|-----:|------:|
+| Ratio Ablation | 0 | 0 | 153+ | 153+ |
+| Extended Training | TBD | TBD | TBD | 504 |
+
+---
+
+## ✅ Recently Completed (Jan 19, 2026)
+
+### Stage 2 Cleanup and Job Submission
+- ✅ **Removed gen_EDICT** from WEIGHTS and WEIGHTS_STAGE_2 (incomplete strategy)
+- ✅ **Reorganized gen_step1x_v1p2** - moved 26 ratio ablation models to WEIGHTS_RATIO_ABLATION
+- ✅ **Submitted 29 training jobs** for missing configurations:
+  - gen_augmenters, gen_automold, gen_cycleGAN (BDD10k/IDD-AW segformer)
+  - gen_flux_kontext, gen_Img2Img, gen_IP2P (various BDD10k/IDD-AW)
+  - gen_SUSTechGAN, gen_TSIT, gen_UniControl (BDD10k/IDD-AW)
+  - gen_VisualCloze, gen_Weather_Effect_Generator (BDD10k/IDD-AW)
+- ✅ **Submitted 97 testing jobs** for models without test results
+  - Covered: gen_stargan_v2, gen_step1x_new, gen_step1x_v1p2
+  - Covered: photometric_distort, std_autoaugment, std_randaugment
+- ✅ Job IDs: Training 9649534-9649568, Testing 9649591-9649699
+
+---
+
+## ✅ Previously Completed (Jan 18, 2026)
+
+### Leaderboard Generation
+- ✅ Created `generate_stage1_leaderboard.py` for Stage 1 analysis
+- ✅ Created `generate_stage2_leaderboard.py` for Stage 2 analysis
+- ✅ Stage 1: 346 test results, 28 strategies evaluated
+- ✅ Stage 2: 150 test results, 19 strategies evaluated
+
+**Stage 1 Top Performers (Clear Day Training):**
+1. std_randaugment: 46.74% mIoU (+5.49 vs baseline)
+2. photometric_distort: 46.35% mIoU (+5.10 vs baseline)
+3. gen_step1x_new: 45.78% mIoU (+4.53 vs baseline)
+
+**Stage 2 Top Performers (All Domain Training):**
+1. gen_Weather_Effect_Generator: 50.78% mIoU (+7.03 vs baseline)
+2. gen_VisualCloze: 45.68% mIoU (+1.93 vs baseline)
+3. gen_CUT: 44.47% mIoU (+0.73 vs baseline)
+
+### Job Submissions
+- ✅ Submitted 155 Stage 2 test jobs
+- ✅ Submitted 79 ratio ablation test jobs
+- ✅ Submitted 80 Stage 2 training jobs (top 10 strategies)
+
+### Bug Fixes
+- ✅ Fixed empty DataFrame handling in generate_strategy_leaderboard.py
+- ✅ Fixed per-domain metric extraction (nested summary structure)
+- ✅ Filter tests pointing to wrong stage checkpoints
 
 ---
 
@@ -205,6 +234,25 @@ Partial indicates configurations where 1/3 or 2/3 models are complete.
 
 **Native Classes Default:** `unified_training.py` now uses native classes by default.
 Use `--no-native-classes` to force Cityscapes 19 classes.
+
+---
+
+## 🔄 Stage 2 Retraining (MapillaryVistas/OUTSIDE15k)
+
+**Issue:** All Stage 2 checkpoints for MapillaryVistas/OUTSIDE15k were trained with 19 classes.
+
+**Actions Taken:**
+- Deleted all Stage 2 MapillaryVistas and OUTSIDE15k checkpoints
+- Removed `std_minimal` from Stage 2
+- Submitted full retraining set for MapillaryVistas + OUTSIDE15k across all Stage 2 strategies (except `gen_EDICT`)
+
+**Jobs Submitted:** 114 total (19 strategies × 2 datasets × 3 models)
+
+**Status:** PENDING (BatchGPU queue)
+
+**Validation Note (Stage 2 tests):**
+- BDD10k classwise IoU looks normal; only rare classes (train/rider/motorcycle/bicycle) hit 0–0.01 IoU in some runs
+- IDD-AW Stage 2 tests not available yet (no results.json to scan)
 
 ---
 

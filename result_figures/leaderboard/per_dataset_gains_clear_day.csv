@@ -1,7 +1,0 @@
-Strategy,Type,bdd10k_cd,idd-aw_cd,outside15k_cd,Avg Gain,Normal Gain,Adverse Gain
-baseline,Baseline Full,0.0,0.0,0.0,0.0,0.0,0.0
-std_cutmix,Standard Aug,2.91,27.89,-6.14,8.22,26.66,21.54
-std_mixup,Standard Aug,2.03,,-5.91,-1.94,20.09,19.25
-std_randaugment,Standard Aug,-40.96,,22.51,-9.22,11.34,10.12
-photometric_distort,Augmentation,-40.87,,19.52,-10.67,-4.23,-2.52
-std_autoaugment,Standard Aug,-40.97,,19.35,-10.81,-4.7,-2.94

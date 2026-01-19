@@ -322,32 +322,8 @@ for job in "${JOBS[@]}"; do
     ratio_pct=$(echo "$ratio * 100" | bc | cut -d. -f1)
     job_name="ratio_${dataset}_${model}_${strategy}_r${ratio_pct}"
     
-    # Map dataset to folder name for paths
-    dataset_lower=$(echo "$dataset" | tr '[:upper:]' '[:lower:]')
-    case "$dataset_lower" in
-        "bdd10k") dataset_folder="bdd10k_cd" ;;
-        "idd-aw") dataset_folder="idd-aw_cd" ;;
-        "mapillaryvistas") dataset_folder="mapillaryvistas_cd" ;;
-        "outside15k") dataset_folder="outside15k_cd" ;;
-        *) dataset_folder="${dataset_lower}_cd" ;;
-    esac
-    
-    # Build model path with ratio suffix (e.g., pspnet_r50_ratio0p12)
-    ratio_suffix=$(echo "$ratio" | sed 's/0\./0p/;s/\.//g')
-    model_path="${model}_ratio${ratio_suffix}"
-    
-    # Full paths for checkpoints and results
-    weights_path="${WEIGHTS_ROOT}/${strategy}/${dataset_folder}/${model_path}"
-    results_path="${PROJECT_ROOT}/results_ratio_ablation/${strategy}/${dataset_folder}/${model_path}"
-    
-    # Build training command
-    train_cmd="PROVE_WEIGHTS_ROOT='${WEIGHTS_ROOT}' python unified_training.py --dataset $dataset --model $model --strategy $strategy --real-gen-ratio $ratio --no-early-stop --max-iters 80000"
-    
-    # Build test command (runs after training completes)
-    test_cmd="python fine_grained_test.py --config \$(ls ${weights_path}/configs/*.py 2>/dev/null | head -1) --checkpoint ${weights_path}/iter_80000.pth --dataset $dataset --output-dir ${results_path}"
-    
-    # Combined command: train then test
-    full_cmd="source ~/.bashrc && conda activate prove && cd ${PROJECT_ROOT} && ${train_cmd} && echo 'Training complete, starting test...' && ${test_cmd}"
+    # Build training command with custom weights root via environment variable
+    train_cmd="PROVE_WEIGHTS_ROOT='${WEIGHTS_ROOT}' $SCRIPT_DIR/train_unified.sh single --dataset $dataset --model $model --strategy $strategy --ratio $ratio"
     
     # Build bsub command
     bsub_cmd="bsub -gpu \"num=1:mode=${GPU_MODE}:gmem=${GPU_MEM}\" \
@@ -358,7 +334,7 @@ for job in "${JOBS[@]}"; do
         -eo \"logs/${job_name}_%J.err\" \
         -L /bin/bash \
         -J \"${job_name}\" \
-        \"${full_cmd}\""
+        \"${train_cmd}\""
     
     if [ "$DRY_RUN" = true ]; then
         echo "[DRY-RUN] $job_name"
@@ -366,8 +342,7 @@ for job in "${JOBS[@]}"; do
         echo "  Ratio:    $ratio"
         echo "  Dataset:  $dataset"
         echo "  Model:    $model"
-        echo "  Train:    $train_cmd"
-        echo "  Test:     $test_cmd"
+        echo "  Command:  $train_cmd"
         echo ""
         SUBMITTED=$((SUBMITTED + 1))
     else

@@ -9,9 +9,10 @@ from pathlib import Path
 
 def main():
     df = pd.read_csv('/home/mima2416/repositories/PROVE/downstream_results.csv')
+    total_results = len(df)
 
     print("=" * 80)
-    print("PRELIMINARY STRATEGY LEADERBOARD (181 valid results)")
+    print(f"PRELIMINARY STRATEGY LEADERBOARD ({total_results} valid results)")
     print("=" * 80)
 
     # Group by strategy and calculate mean mIoU
@@ -30,7 +31,8 @@ def main():
     print("-" * 60)
 
     print("\n\n## Per-Dataset Breakdown")
-    for dataset in ['bdd10k_cd', 'outside15k_cd', 'idd-aw_cd', 'bdd10k']:
+    datasets = sorted(df['dataset'].unique())
+    for dataset in datasets:
         df_ds = df[df['dataset'] == dataset]
         if len(df_ds) == 0:
             continue
@@ -47,23 +49,27 @@ def main():
     
     with open(output_path, 'w') as f:
         f.write("# PRELIMINARY STRATEGY LEADERBOARD\n\n")
-        f.write(f"**Total Valid Results: {len(df)}**\n\n")
+        f.write(f"**Total Valid Results: {total_results}**\n\n")
         f.write("## Overall Strategy Performance (mIoU %)\n\n")
         f.write("| Strategy | Mean mIoU | Std | Count |\n")
         f.write("|----------|-----------|-----|-------|\n")
         for strategy, row in strategy_stats.iterrows():
             f.write(f"| {strategy} | {row['Mean_mIoU']:.2f} | {row['Std']:.2f} | {int(row['Count'])} |\n")
         
-        f.write("\n## Notes\n\n")
-        f.write("- 115 retest jobs submitted (will update these results)\n")
-        f.write("- 81 MapillaryVistas retraining jobs submitted\n")
-        f.write("- MapillaryVistas models not included (were trained incorrectly)\n")
+        f.write("\n## Per-Dataset Breakdown\n\n")
+        for dataset in datasets:
+            df_ds = df[df['dataset'] == dataset]
+            if len(df_ds) == 0:
+                continue
+            f.write(f"### {dataset} ({len(df_ds)} results)\n\n")
+            f.write("| Rank | Strategy | mIoU |\n")
+            f.write("|------|----------|------|\n")
+            ds_stats = df_ds.groupby('strategy').agg({'mIoU': 'mean'}).sort_values('mIoU', ascending=False)
+            for i, (strat, row) in enumerate(ds_stats.iterrows()):
+                f.write(f"| {i+1} | {strat} | {row['mIoU']:.2f}% |\n")
+            f.write("\n")
     
     print(f"\n\nLeaderboard saved to: {output_path}")
-    print("\n## Notes:")
-    print("- 115 retest jobs submitted (will update these results)")
-    print("- 81 MapillaryVistas retraining jobs submitted")
-    print("- MapillaryVistas models not included (were trained incorrectly)")
 
 
 if __name__ == '__main__':

@@ -251,6 +251,13 @@ class UnifiedTrainer:
             import custom_transforms
             import unified_datasets
             
+            # Import StandardAugmentationHook to register it with MMEngine
+            try:
+                from tools.standard_augmentation_hook import StandardAugmentationHook
+                print("[Training] StandardAugmentationHook registered")
+            except ImportError as e:
+                print(f"Warning: StandardAugmentationHook not available: {e}")
+            
             # Import mmsegmentation to register all components
             import mmseg.models
             import mmseg.datasets  
@@ -290,6 +297,13 @@ sys.path.insert(0, "{Path(__file__).parent}")
 # Import custom transforms and datasets to register them BEFORE loading config
 import custom_transforms  # Registers ReduceToSingleChannel transform
 import unified_datasets   # Registers MapillaryLabelTransform, CityscapesLabelTransform
+
+# Import StandardAugmentationHook to register it with MMEngine
+try:
+    from tools.standard_augmentation_hook import StandardAugmentationHook
+    print("[Training] StandardAugmentationHook registered")
+except ImportError as e:
+    print(f"Warning: StandardAugmentationHook not available: {{e}}")
 
 # Import mmsegmentation components carefully to avoid mmcv._ext issues
 try:
@@ -592,6 +606,13 @@ sys.path.insert(0, "{Path(__file__).parent}")
 # Import custom transforms and datasets to register them BEFORE loading config
 import custom_transforms
 import unified_datasets
+
+# Import StandardAugmentationHook to register it with MMEngine
+try:
+    from tools.standard_augmentation_hook import StandardAugmentationHook
+    print("[Training] StandardAugmentationHook registered")
+except ImportError as e:
+    print(f"Warning: StandardAugmentationHook not available: {{e}}")
 
 try:
     import mmseg.datasets  
