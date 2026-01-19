@@ -102,13 +102,14 @@ def get_strategy_type(strategy: str) -> str:
 
 def parse_per_domain_metrics(row) -> Dict[str, float]:
     """Parse per-domain metrics from a row."""
-    if pd.isna(row.get('per_domain_metrics')):
+    if pd.isna(row.get('per_domain_metrics')) or row.get('per_domain_metrics') == '':
         return {}
     
     try:
         metrics = row['per_domain_metrics']
         if isinstance(metrics, str):
-            metrics = eval(metrics)  # Convert string dict to dict
+            import json
+            metrics = json.loads(metrics)  # Convert JSON string to dict
         
         result = {}
         for domain, data in metrics.items():

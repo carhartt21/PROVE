@@ -1,7 +1,3 @@
 Strategy,Type,bdd10k,idd-aw,mapillaryvistas,outside15k,Avg Gain,Normal Gain,Adverse Gain
 baseline,Baseline Full,,,,,,,
 photometric_distort,Augmentation,,,,,,,
-std_autoaugment,Standard Aug,,,,,,,
-std_cutmix,Standard Aug,,,,,,,
-std_mixup,Standard Aug,,,,,,,
-std_randaugment,Standard Aug,,,,,,,

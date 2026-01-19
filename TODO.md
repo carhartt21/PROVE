@@ -1,6 +1,6 @@
 # PROVE Project TODO List
 
-**Last Updated:** 2026-01-19 (16:45)
+**Last Updated:** 2026-01-19 (17:30)
 
 ## ⚠️ Known Issues
 
@@ -19,12 +19,12 @@
 **Stage 1 Retraining Status:**
 - Old models backed up to `/scratch/aaa_exchange/AWARE/WEIGHTS_STD_OLD/`
 - 48 retraining jobs submitted (Job IDs: 9660252-9660299)
-- Status: 18 RUN, 30 PEND (as of 2026-01-19 16:30)
+- Status: 21 RUN, 27 PEND (as of 2026-01-19 17:30)
 - Strategies: std_cutmix, std_mixup, std_autoaugment, std_randaugment
 - Datasets: BDD10k, IDD-AW, MapillaryVistas, OUTSIDE15k
 - Models: deeplabv3plus_r50, pspnet_r50, segformer_mit-b5
 - Monitor: `bjobs -w | grep tr_std`
-- Estimated completion: ~15 hours
+- Estimated completion: ~12 hours remaining
 
 **Stage 2 Impact Assessment:**
 The same bug affects Stage 2 training:
@@ -53,7 +53,7 @@ The same bug affects Stage 2 training:
 - [x] Tested fix with 3-iteration training run
 - [x] Moved old std_* models to `WEIGHTS_STD_OLD/`
 - [x] Submitted 48 retraining jobs (Job IDs: 9660252-9660299)
-- [ ] Wait for Stage 1 retraining to complete (~15 hours)
+- [ ] Wait for Stage 1 retraining to complete (~12 hours remaining)
 - [ ] Submit Stage 1 testing jobs for retrained models
 - [ ] Update Stage 1 leaderboard with corrected results
 
@@ -63,6 +63,27 @@ The same bug affects Stage 2 training:
 - [ ] Submit training jobs for missing strategies (24 jobs: std_cutmix, std_mixup)
 - [ ] Submit testing jobs after training completes
 - [ ] Update Stage 2 leaderboard
+
+### Stage 1 Data Quality Cleanup (2026-01-19) ✅
+- [x] Cleaned up ratio ablation models mixed in WEIGHTS (moved to WEIGHTS_RATIO_ABLATION)
+  - gen_cycleGAN: 40 directories moved
+  - gen_stargan_v2: 14 directories moved
+  - gen_flux_kontext: 12 directories moved
+  - gen_cyclediffusion: 9 directories moved
+- [x] Removed duplicate test_results_detailed directories (kept _fixed versions)
+- [x] Cleaned up multiple test runs (kept only latest timestamp)
+- [x] Fixed CSV export to include per_domain_metrics column
+- [x] Fixed leaderboard generator to parse per-domain JSON data
+- [x] Regenerated downstream_results.csv (272 results, down from 391)
+- [x] Submitted missing gen_cyclediffusion tests (Jobs 9660496-9660497)
+
+**Results after cleanup:**
+| Strategy | Old Tests | New Tests | Old mIoU | New mIoU |
+|----------|-----------|-----------|----------|----------|
+| gen_cycleGAN | 52 | 12 | 43.52% | 42.99% |
+| gen_stargan_v2 | 25 | 12 | 42.84% | 44.21% |
+| gen_flux_kontext | 24 | 12 | 46.31% | 42.92% |
+| gen_cyclediffusion | 19 | 10 | 40.83% | 42.19% |
 
 ### Stage 2 Training & Testing (Active)
 - [x] Removed gen_EDICT strategy from WEIGHTS and WEIGHTS_STAGE_2
