@@ -797,7 +797,7 @@ AUGMENTATION_STRATEGIES = {
     ),
     'photometric_distort': AugmentationStrategy(
         name='photometric_distort',
-        type='transform',
+        type='standard',  # Changed from 'transform' to allow use as std_strategy in combinations
         transforms=[dict(type='PhotoMetricDistortion')],
     ),
     'std_minimal': AugmentationStrategy(

@@ -1,8 +1,29 @@
 # PROVE Project TODO List
 
-**Last Updated:** 2026-01-23
+**Last Updated:** 2026-01-18
 
 ## In Progress
+
+### Combination Ablation Study (RUNNING)
+- [x] Created `scripts/submit_combination_training.sh`
+- [x] Expanded strategy configuration (2026-01-18)
+  - Added gen_stargan_v2, gen_Attribute_Hallucination, photometric_distort
+  - 5 generative × 5 standard = 25 gen+std combinations (100 jobs)
+  - C(5,2) = 10 std+std combinations (40 jobs)
+  - Total: 140 jobs across 2 datasets × 2 models
+- [x] Submitted all 140 combination jobs
+  - Gen+std: 47 complete, 53 submitted
+  - Std+std: 40 submitted
+  - Jobs: 9625286, 9635126-9635319 (duplicates removed)
+- [x] Fixed testing tracker (_cd suffix bugs)
+  - Now correctly displays 183 completed test results
+- [x] Ran preliminary analysis on 47 gen+std results
+  - Mean mIoU: 47.20-47.88
+  - Top: gen_Qwen_Image_Edit+std_randaugment (47.88)
+- [ ] Wait for remaining 93 jobs to complete (~40-48 hours)
+- [ ] Run comprehensive analysis: `python analysis_scripts/analyze_combination_ablation.py`
+- [ ] Compare gen+std vs std+std effectiveness
+- [ ] Generate final report and figures
 
 ### Extended Training Testing
 - [x] Modified `submit_test_extended_training.sh` to use `fine_grained_test.py`
@@ -37,11 +58,46 @@
 - [ ] Prepare tables for publication
 
 ### Job Monitoring
+- [ ] Monitor combination ablation jobs: `bjobs | grep combo_`
 - [ ] Monitor extended training test jobs: `bjobs | grep test_ext`
 - [ ] Check for failed jobs and resubmit if needed
 - [ ] Document any strategies that fail consistently
 
 ## Completed
+
+### Testing Tracker Fix (2026-01-18)
+- [x] **Fixed update_testing_tracker.py `_cd` suffix bugs**
+  - Removed `_cd` suffix from 4 locations causing directory mismatches
+  - Line 217: `load_miou_results()` function
+  - Line 342: `check_test_results()` function
+  - Lines 173, 182-183: `load_existing_results()` function
+  - Line 307: `parse_running_jobs()` function
+  - Result: Now correctly displays 183 completed test results with actual mIoU values
+
+### Combination Ablation Infrastructure (2026-01-18)
+- [x] **Expanded combination ablation study to 140 total jobs**
+  - Added gen_stargan_v2, gen_Attribute_Hallucination strategies
+  - Added photometric_distort standard strategy
+  - Updated script configuration (5 gen × 5 std = 25 combinations)
+  - Added 4 new std+std pairs with photometric_distort
+  - Total: 100 gen+std + 40 std+std jobs
+- [x] **Submitted and cleaned queue**
+  - Submitted 93 new jobs (47 already complete)
+  - Identified and removed 25 duplicate jobs
+  - Final queue: 93 unique jobs (6 running, 87 pending)
+- [x] **Updated analysis script**
+  - Changed path to WEIGHTS_COMBINATIONS_chge7185
+  - Added new strategies to COMPONENT_FAMILIES
+  - Added permission error handling for restricted directories
+  - Successfully analyzed 47 gen+std results
+
+### Combination Ablation Infrastructure (2026-01-16)
+- [x] Created `scripts/submit_combination_training.sh`
+- [x] Script supports gen+std and std+std combinations
+- [x] Automatic testing integrated with `fine_grained_test.py`
+- [x] Explicit work directory setting for WEIGHTS_COMBINATIONS
+- [x] Skip logic for already completed models
+- [x] Updated `docs/COMBINATION_ABLATION.md` with new configuration
 
 ### Domain Adaptation Infrastructure (2026-01-23)
 - [x] Script updated to use WEIGHTS_STAGE_2 for full dataset models
