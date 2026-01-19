@@ -1,13 +1,13 @@
 # PROVE Project TODO List
 
-**Last Updated:** 2026-01-19 (15:30)
+**Last Updated:** 2026-01-19 (16:30)
 
 ## ⚠️ Known Issues
 
-### Standard Augmentation Implementation (FIXED)
+### Standard Augmentation Implementation (FIXED + RETRAINING)
 ~~The `std_*` strategies (std_randaugment, std_autoaugment, std_cutmix, std_mixup) may not be properly applying their respective augmentation transforms during training.~~
 
-**Status:** ✅ FIXED (2026-01-19)
+**Status:** ✅ FIXED (2026-01-19), 🔄 RETRAINING IN PROGRESS
 **Root Cause:** The `standard_augmentation` config was written to the training config file but never consumed by the training loop. MMEngine's Runner did not know about our custom field.
 **Solution:** Created `StandardAugmentationHook` (`tools/standard_augmentation_hook.py`) that intercepts batches in `before_train_iter` and applies batch-level augmentations. The hook is now automatically added to `custom_hooks` when std_* strategies are used.
 
@@ -15,6 +15,14 @@
 - `tools/standard_augmentation_hook.py` - New MMEngine Hook implementing batch-level augmentation
 - `unified_training_config.py` - Added `_add_standard_augmentation_hook()` method
 - `unified_training.py` - Added hook import in all training script paths
+
+**Retraining Status:**
+- Old models backed up to `/scratch/aaa_exchange/AWARE/WEIGHTS_STD_OLD/`
+- 48 retraining jobs submitted (Job IDs: 9660252-9660299)
+- Strategies: std_cutmix, std_mixup, std_autoaugment, std_randaugment
+- Datasets: BDD10k, IDD-AW, MapillaryVistas, OUTSIDE15k
+- Models: deeplabv3plus_r50, pspnet_r50, segformer_mit-b5
+- Monitor: `bjobs -w | grep tr_std`
 
 **Impact:** All existing std_* trained models used only PhotoMetricDistortion. Retraining needed for proper std_* results.
 
