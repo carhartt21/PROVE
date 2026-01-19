@@ -1,6 +1,6 @@
 # PROVE Project TODO List
 
-**Last Updated:** 2026-01-19 (16:30)
+**Last Updated:** 2026-01-19 (16:45)
 
 ## ⚠️ Known Issues
 
@@ -16,13 +16,22 @@
 - `unified_training_config.py` - Added `_add_standard_augmentation_hook()` method
 - `unified_training.py` - Added hook import in all training script paths
 
-**Retraining Status:**
+**Stage 1 Retraining Status:**
 - Old models backed up to `/scratch/aaa_exchange/AWARE/WEIGHTS_STD_OLD/`
 - 48 retraining jobs submitted (Job IDs: 9660252-9660299)
+- Status: 18 RUN, 30 PEND (as of 2026-01-19 16:30)
 - Strategies: std_cutmix, std_mixup, std_autoaugment, std_randaugment
 - Datasets: BDD10k, IDD-AW, MapillaryVistas, OUTSIDE15k
 - Models: deeplabv3plus_r50, pspnet_r50, segformer_mit-b5
 - Monitor: `bjobs -w | grep tr_std`
+- Estimated completion: ~15 hours
+
+**Stage 2 Impact Assessment:**
+The same bug affects Stage 2 training:
+- **Affected:** 24 models (std_autoaugment: 12, std_randaugment: 12)
+- **Missing:** 24 models (std_cutmix: 12, std_mixup: 12)
+- **Total Stage 2 work needed:** 48 models (after Stage 1 completes)
+- Test results for affected models will need regeneration after retraining
 
 **Impact:** All existing std_* trained models used only PhotoMetricDistortion. Retraining needed for proper std_* results.
 
@@ -37,6 +46,23 @@
 **Next Step:** Run `scripts/test_retrained_outside15k.sh` after training completes
 
 ## In Progress
+
+### Stage 1 Standard Augmentation Retraining (Active)
+- [x] Created StandardAugmentationHook fix (`tools/standard_augmentation_hook.py`)
+- [x] Integrated hook into `unified_training_config.py` and `unified_training.py`
+- [x] Tested fix with 3-iteration training run
+- [x] Moved old std_* models to `WEIGHTS_STD_OLD/`
+- [x] Submitted 48 retraining jobs (Job IDs: 9660252-9660299)
+- [ ] Wait for Stage 1 retraining to complete (~15 hours)
+- [ ] Submit Stage 1 testing jobs for retrained models
+- [ ] Update Stage 1 leaderboard with corrected results
+
+### Stage 2 Standard Augmentation (PENDING - after Stage 1)
+- [ ] Backup affected Stage 2 models (24 models: std_autoaugment, std_randaugment)
+- [ ] Submit retraining jobs for affected models (24 jobs)
+- [ ] Submit training jobs for missing strategies (24 jobs: std_cutmix, std_mixup)
+- [ ] Submit testing jobs after training completes
+- [ ] Update Stage 2 leaderboard
 
 ### Stage 2 Training & Testing (Active)
 - [x] Removed gen_EDICT strategy from WEIGHTS and WEIGHTS_STAGE_2
