@@ -1,7 +1,8 @@
 # Testing Progress Tracker
 
-**Last Updated:** 2026-01-19 00:20
+**Last Updated:** 2026-01-20 15:15
 
+> ⚠️ **Data Quality Notice (2026-01-20):** 7 Stage 1 models were found to have incorrect class configurations (19 classes instead of native 66/24), causing inflated mIoU scores. These models are being retrained. Affected strategies: gen_step1x_new, gen_step1x_v1p2, gen_stargan_v2, gen_Qwen_Image_Edit on OUTSIDE15k/MapillaryVistas with PSPNet/SegFormer. See TODO.md for details.
 
 This document tracks the progress of fine-grained testing for trained models.
 
@@ -53,15 +54,15 @@ This document tracks the progress of fine-grained testing for trained models.
 | Rank | Strategy | Avg mIoU | Best Dataset | Best mIoU | Datasets |
 |------|----------|----------|--------------|-----------|----------|
 | 🥇 | gen_step1x_new | 52.8 | OUTSIDE15k | 64.1 | 4/4 |
-| 🥈 | std_autoaugment | 52.5 | OUTSIDE15k | 63.8 | 4/4 |
-| 🥉 | gen_step1x_v1p2 | 52.5 | OUTSIDE15k | 64.0 | 4/4 |
-| 4. | std_randaugment | 52.5 | OUTSIDE15k | 63.8 | 4/4 |
-| 5. | photometric_distort | 52.5 | OUTSIDE15k | 64.0 | 4/4 |
-| 6. | gen_stargan_v2 | 52.4 | OUTSIDE15k | 63.9 | 4/4 |
-| 7. | gen_Qwen_Image_Edit | 51.5 | MapillaryVistas | 58.6 | 4/4 |
-| 8. | gen_LANIT | 48.9 | MapillaryVistas | 52.3 | 4/4 |
-| 9. | gen_Attribute_Hallucination | 48.9 | MapillaryVistas | 52.5 | 4/4 |
-| 10. | gen_flux_kontext | 48.8 | MapillaryVistas | 52.3 | 4/4 |
+| 🥈 | gen_step1x_v1p2 | 52.5 | OUTSIDE15k | 64.0 | 4/4 |
+| 🥉 | gen_stargan_v2 | 52.4 | OUTSIDE15k | 63.9 | 4/4 |
+| 4. | gen_Qwen_Image_Edit | 51.5 | MapillaryVistas | 58.6 | 4/4 |
+| 5. | gen_LANIT | 48.9 | MapillaryVistas | 52.3 | 4/4 |
+| 6. | gen_Attribute_Hallucination | 48.9 | MapillaryVistas | 52.5 | 4/4 |
+| 7. | gen_albumentations_weather | 48.8 | MapillaryVistas | 52.1 | 4/4 |
+| 8. | gen_TSIT | 48.8 | MapillaryVistas | 52.0 | 4/4 |
+| 9. | gen_flux_kontext | 48.7 | MapillaryVistas | 52.0 | 4/4 |
+| 10. | std_cutmix | 48.7 | MapillaryVistas | 51.9 | 4/4 |
 
 
 ### Generative Image Augmentation Strategies
@@ -73,14 +74,14 @@ This document tracks the progress of fine-grained testing for trained models.
 | gen_automold | 51.2 | 43.1 | 51.7 | 48.5 | 48.6 |
 | gen_CNetSeg | 50.0 | 43.2 | 52.6 | 48.4 | 48.6 |
 | gen_CUT | 50.9 | 43.2 | 51.8 | 48.3 | 48.5 |
-| gen_cyclediffusion | 50.9 | 43.3 | 51.5 | 48.5 | 48.6 |
-| gen_cycleGAN | 50.0 | 43.3 | 52.5 | 48.7 | 48.6 |
-| gen_flux_kontext | 50.8 | 43.1 | 52.3 | 49.0 | 48.8 |
+| gen_cyclediffusion | 50.9 | 43.2 | 51.5 | 48.5 | 48.5 |
+| gen_cycleGAN | 50.0 | 43.3 | 52.1 | 48.7 | 48.5 |
+| gen_flux_kontext | 50.8 | 43.1 | 52.0 | 49.0 | 48.7 |
 | gen_Img2Img | 50.5 | 43.2 | 52.1 | 48.4 | 48.5 |
 | gen_IP2P | 50.8 | 43.0 | 51.9 | 48.2 | 48.5 |
 | gen_LANIT | 51.4 | 43.3 | 52.3 | 48.6 | 48.9 |
 | gen_Qwen_Image_Edit | 50.7 | 43.3 | 58.6 | 53.2 | 51.5 |
-| gen_stargan_v2 | 50.7 | 43.2 | 51.8 | 63.9 | 52.4 |
+| gen_stargan_v2 | 50.7 | 43.1 | 51.8 | 63.9 | 52.4 |
 | gen_step1x_new | 51.1 | 43.3 | 52.6 | 64.1 | 52.8 |
 | gen_step1x_v1p2 | 51.1 | 43.2 | 51.9 | 64.0 | 52.5 |
 | gen_SUSTechGAN | 51.0 | 43.0 | 52.1 | 48.3 | 48.6 |
@@ -95,11 +96,11 @@ This document tracks the progress of fine-grained testing for trained models.
 | Strategy | BDD10k | IDD-AW | MapillaryVistas | OUTSIDE15k | Avg |
 |----------|-------:|-------:|-------:|-------:|-------:|
 | baseline | 49.2 | 42.0 | 51.0 | 48.8 | 47.7 |
-| photometric_distort | 51.0 | 43.2 | 51.7 | 64.0 | 52.5 |
-| std_autoaugment | 50.9 | 43.3 | 52.1 | 63.8 | 52.5 |
-| std_cutmix | 50.6 | 43.3 | 52.0 | 48.4 | 48.6 |
-| std_mixup | 50.9 | 43.2 | 51.7 | 48.1 | 48.5 |
-| std_randaugment | 50.8 | 43.2 | 52.3 | 63.8 | 52.5 |
+| photometric_distort | 51.0 | 43.2 | 51.7 | 29.9 | 43.9 |
+| std_autoaugment | 50.6 | 43.3 | 51.8 | 30.0 | 43.9 |
+| std_cutmix | 50.6 | 43.3 | 51.9 | 49.0 | 48.7 |
+| std_mixup | 51.3 | 43.0 | ⏳ | 48.3 | 47.5 |
+| std_randaugment | 51.0 | 43.4 | 51.8 | 48.6 | 48.7 |
 
 ---
 
@@ -149,7 +150,7 @@ This document tracks the progress of fine-grained testing for trained models.
 | photometric_distort | ✅ | ✅ | ✅ | ✅ |
 | std_autoaugment | ✅ | ✅ | ✅ | ✅ |
 | std_cutmix | ✅ | ✅ | ✅ | ✅ |
-| std_mixup | ✅ | ✅ | ✅ | ✅ |
+| std_mixup | ✅ | ✅ | ⏳ | ✅ |
 | std_randaugment | ✅ | ✅ | ✅ | ✅ |
 
 ---
@@ -161,7 +162,7 @@ This document tracks the progress of fine-grained testing for trained models.
 |---------|----------|---------|---------|------|
 | BDD10k | 27 | 0 | 0 | 0 |
 | IDD-AW | 27 | 0 | 0 | 0 |
-| MapillaryVistas | 27 | 0 | 0 | 0 |
+| MapillaryVistas | 26 | 0 | 1 | 0 |
 | OUTSIDE15k | 27 | 0 | 0 | 0 |
 
 ---

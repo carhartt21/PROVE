@@ -1,4 +1,0 @@
-Strategy,Type,Overall mIoU,Gain vs Clear Day,Normal mIoU,Normal Gain,Adverse mIoU,Adverse Gain,Domain Gap (Δ),Gap Reduction vs Clear Day,Num Results
-baseline_clear_day,Baseline Clear Day,,,,,,,,,0
-baseline,Baseline Full,41.64,,42.22,,36.08,,6.14,,12
-photometric_distort,Augmentation,41.83,,42.65,,36.72,,5.93,,11

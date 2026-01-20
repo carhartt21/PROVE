@@ -1,3 +1,0 @@
-Strategy,Type,clear_day,cloudy,dawn_dusk,foggy,night,rainy,snowy,Normal Gain,Adverse Gain,Overall Avg
-baseline,Baseline Full,,,,,,,,,,
-photometric_distort,Augmentation,,,,,,,,,,

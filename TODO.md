@@ -1,91 +1,103 @@
 # PROVE Project TODO List
 
-**Last Updated:** 2026-01-19 (17:30)
-
-## ⚠️ Known Issues
-
-### Standard Augmentation Implementation (FIXED + RETRAINING)
-~~The `std_*` strategies (std_randaugment, std_autoaugment, std_cutmix, std_mixup) may not be properly applying their respective augmentation transforms during training.~~
-
-**Status:** ✅ FIXED (2026-01-19), 🔄 RETRAINING IN PROGRESS
-**Root Cause:** The `standard_augmentation` config was written to the training config file but never consumed by the training loop. MMEngine's Runner did not know about our custom field.
-**Solution:** Created `StandardAugmentationHook` (`tools/standard_augmentation_hook.py`) that intercepts batches in `before_train_iter` and applies batch-level augmentations. The hook is now automatically added to `custom_hooks` when std_* strategies are used.
-
-**Files Modified:**
-- `tools/standard_augmentation_hook.py` - New MMEngine Hook implementing batch-level augmentation
-- `unified_training_config.py` - Added `_add_standard_augmentation_hook()` method
-- `unified_training.py` - Added hook import in all training script paths
-
-**Stage 1 Retraining Status:**
-- Old models backed up to `/scratch/aaa_exchange/AWARE/WEIGHTS_STD_OLD/`
-- 48 retraining jobs submitted (Job IDs: 9660252-9660299)
-- Status: 21 RUN, 27 PEND (as of 2026-01-19 17:30)
-- Strategies: std_cutmix, std_mixup, std_autoaugment, std_randaugment
-- Datasets: BDD10k, IDD-AW, MapillaryVistas, OUTSIDE15k
-- Models: deeplabv3plus_r50, pspnet_r50, segformer_mit-b5
-- Monitor: `bjobs -w | grep tr_std`
-- Estimated completion: ~12 hours remaining
-
-**Stage 2 Impact Assessment:**
-The same bug affects Stage 2 training:
-- **Affected:** 24 models (std_autoaugment: 12, std_randaugment: 12)
-- **Missing:** 24 models (std_cutmix: 12, std_mixup: 12)
-- **Total Stage 2 work needed:** 48 models (after Stage 1 completes)
-- Test results for affected models will need regeneration after retraining
-
-**Impact:** All existing std_* trained models used only PhotoMetricDistortion. Retraining needed for proper std_* results.
-
-### OUTSIDE15k Wrong num_classes (Retraining)
-4 models were trained with 19 classes instead of 24 native classes:
-- photometric_distort/outside15k/segformer_mit-b5 (deleted, retraining - Job 9660083)
-- std_autoaugment/outside15k/pspnet_r50 (deleted, retraining - Job 9660084)
-- std_autoaugment/outside15k/segformer_mit-b5 (deleted, retraining - Job 9660085)
-- std_randaugment/outside15k/segformer_mit-b5 (deleted, retraining - Job 9660086)
-
-**Status:** Retraining in progress
-**Next Step:** Run `scripts/test_retrained_outside15k.sh` after training completes
+**Last Updated:** 2026-01-20 (15:10)
 
 ## In Progress
 
-### Stage 1 Standard Augmentation Retraining (Active)
-- [x] Created StandardAugmentationHook fix (`tools/standard_augmentation_hook.py`)
-- [x] Integrated hook into `unified_training_config.py` and `unified_training.py`
-- [x] Tested fix with 3-iteration training run
-- [x] Moved old std_* models to `WEIGHTS_STD_OLD/`
-- [x] Submitted 48 retraining jobs (Job IDs: 9660252-9660299)
-- [ ] Wait for Stage 1 retraining to complete (~12 hours remaining)
-- [ ] Submit Stage 1 testing jobs for retrained models
-- [ ] Update Stage 1 leaderboard with corrected results
+### OUTSIDE15k & MapillaryVistas Class Mismatch Fix (NEW - 2026-01-20)
+**Root Cause Found:** 7 Stage 1 models were incorrectly trained with 19 Cityscapes classes instead of native classes, causing artificially inflated mIoU scores.
 
-### Stage 2 Standard Augmentation (PENDING - after Stage 1)
-- [ ] Backup affected Stage 2 models (24 models: std_autoaugment, std_randaugment)
-- [ ] Submit retraining jobs for affected models (24 jobs)
-- [ ] Submit training jobs for missing strategies (24 jobs: std_cutmix, std_mixup)
-- [ ] Submit testing jobs after training completes
-- [ ] Update Stage 2 leaderboard
+**Affected Models (all Stage 1):**
+| Dataset | Strategy | Model | Wrong Classes | Inflated mIoU | Expected ~mIoU |
+|---------|----------|-------|---------------|---------------|----------------|
+| MapillaryVistas | gen_Qwen_Image_Edit | pspnet_r50 | 19 (need 66) | 58.6% | ~40% |
+| OUTSIDE15k | gen_Qwen_Image_Edit | pspnet_r50 | 19 (need 24) | 53.2% | ~35% |
+| OUTSIDE15k | gen_stargan_v2 | segformer_mit-b5 | 19 (need 24) | 63.9% | ~50% |
+| OUTSIDE15k | gen_step1x_new | pspnet_r50 | 19 (need 24) | 53.7% | ~36% |
+| OUTSIDE15k | gen_step1x_new | segformer_mit-b5 | 19 (need 24) | 64.1% | ~50% |
+| OUTSIDE15k | gen_step1x_v1p2 | pspnet_r50 | 19 (need 24) | 52.0% | ~36% |
+| OUTSIDE15k | gen_step1x_v1p2 | segformer_mit-b5 | 19 (need 24) | 64.0% | ~50% |
 
-### Stage 1 Data Quality Cleanup (2026-01-19) ✅
-- [x] Cleaned up ratio ablation models mixed in WEIGHTS (moved to WEIGHTS_RATIO_ABLATION)
-  - gen_cycleGAN: 40 directories moved
-  - gen_stargan_v2: 14 directories moved
-  - gen_flux_kontext: 12 directories moved
-  - gen_cyclediffusion: 9 directories moved
-- [x] Removed duplicate test_results_detailed directories (kept _fixed versions)
-- [x] Cleaned up multiple test runs (kept only latest timestamp)
-- [x] Fixed CSV export to include per_domain_metrics column
-- [x] Fixed leaderboard generator to parse per-domain JSON data
-- [x] Regenerated downstream_results.csv (272 results, down from 391)
-- [x] Submitted missing gen_cyclediffusion tests (Jobs 9660496-9660497)
+**Impact:** This explains the apparent "Stage 1 → Stage 2 performance drops" for these strategies. The Stage 2 models were correctly trained with native classes.
 
-**Results after cleanup:**
-| Strategy | Old Tests | New Tests | Old mIoU | New mIoU |
-|----------|-----------|-----------|----------|----------|
-| gen_cycleGAN | 52 | 12 | 43.52% | 42.99% |
-| gen_stargan_v2 | 25 | 12 | 42.84% | 44.21% |
-| gen_flux_kontext | 24 | 12 | 46.31% | 42.92% |
-| gen_cyclediffusion | 19 | 10 | 40.83% | 42.19% |
+**Full Class Configuration Audit (2026-01-20):**
+| Stage | Dataset | Wrong | Correct | Status |
+|-------|---------|-------|---------|--------|
+| Stage 1 | MapillaryVistas | 1 | 72 | 🔧 Fixing |
+| Stage 1 | OUTSIDE15k | 6 | 73 | 🔧 Fixing |
+| Stage 1 | BDD10k | 0 | 78 | ✅ |
+| Stage 1 | IDD-AW | 0 | 80 | ✅ |
+| Stage 2 | MapillaryVistas | 0 | 66 | ✅ |
+| Stage 2 | OUTSIDE15k | 0 | 72 | ✅ |
+| Stage 2 | BDD10k | 0 | 76 | ✅ |
+| Stage 2 | IDD-AW | 0 | 75 | ✅ |
 
-### Stage 2 Training & Testing (Active)
+**Status:**
+- [x] Root cause identified: models trained by user `chge7185` without `--use-native-classes`
+- [x] 6 OUTSIDE15k retraining jobs submitted (Job IDs: 9669526, 9669528-9669532)
+- [x] 1 MapillaryVistas retraining job submitted (Job ID: 9669538)
+- [ ] Wait for retraining to complete (~24h)
+- [ ] Run test script: `./scripts/test_retrained_outside15k.sh`
+- [ ] Submit MapillaryVistas test manually after training
+- [ ] Regenerate downstream_results.csv after tests complete
+- [ ] Update leaderboards with corrected data
+
+### Standard Augmentation Retraining (NEARLY COMPLETE)
+Bug fix retraining for all std_* strategies completed. Tests submitted and results moved to WEIGHTS directories.
+
+**Stage 1 (clear_day) - WEIGHTS:**
+| Strategy | Checkpoints | Tests |
+|----------|:-----------:|:-----:|
+| std_autoaugment | 11/12 ⏳ | 43/48 ✅ |
+| std_cutmix | 12/12 ✅ | 12/12 ✅ |
+| std_mixup | 12/12 ✅ | 12/12 ✅ |
+| std_randaugment | 12/12 ✅ | 12/12 ✅ |
+
+- [x] Retrained std_cutmix (12/12 complete)
+- [x] Retrained std_mixup (12/12 complete)
+- [x] Retrained std_randaugment (12/12 complete)
+- [x] Retrained std_autoaugment (11/12 complete)
+- [x] Fixed `submit_testing.sh` default `--test-split` from `val` to `test`
+- [x] Submitted 71 test jobs with corrected test-split=test
+- [x] Moved 44 Stage 1 + 24 Stage 2 = 68 test results to WEIGHTS directories
+- [ ] **RUNNING:** std_autoaugment/outside15k/segformer_mit-b5 (Job 9668399, ~25% complete, ETA ~2.5 hrs)
+- [ ] Submit test for std_autoaugment/outside15k/segformer when training completes
+
+**Stage 2 (all_domains) - WEIGHTS_STAGE_2:**
+| Strategy | Checkpoints | Tests |
+|----------|:-----------:|:-----:|
+| std_autoaugment | 12/12 ✅ | 12/12 ✅ |
+| std_randaugment | 12/12 ✅ | 12/12 ✅ |
+
+- [x] std_autoaugment Stage 2 training complete
+- [x] std_randaugment Stage 2 training complete
+- [x] All Stage 2 tests complete (24/24)
+- [ ] **RUNNING:** 8 MapillaryVistas test jobs (Stage 2 missing tests)
+
+### Leaderboards & Comparison Analysis (2026-01-20)
+- [x] Generated Stage 1 Leaderboard (`result_figures/leaderboard/STRATEGY_LEADERBOARD.md`)
+- [x] Generated Stage 2 Leaderboard (`result_figures/leaderboard/STRATEGY_LEADERBOARD_STAGE2.md`)
+- [x] Created Stage 1 vs Stage 2 comparison figure (`result_figures/stage1_vs_stage2_comparison.png`)
+- [x] Created per-dataset comparison figure (`result_figures/per_dataset_comparison.png`)
+- [x] Analyzed declining strategy patterns (see notes below)
+- [x] Submitted 16 missing Stage 2 test jobs
+
+**Key Findings from Stage 1 vs Stage 2 Comparison:**
+| Metric | Stage 1 | Stage 2 | Change |
+|--------|---------|---------|--------|
+| Baseline mIoU | 41.64% | 43.74% | **+2.10%** |
+| Best Strategy | gen_step1x_new (45.78%) | gen_IP2P (45.08%) | -0.70% |
+| Avg Domain Gap | 5.5-6.3 | 0.8-1.5 | **~4-5 pts lower** |
+
+**Declining Strategies Analysis:**
+- 4 strategies declined from Stage 1 to Stage 2
+- Root cause: **OUTSIDE15k dataset** performance dropped significantly
+- gen_step1x_new: 48.9% → 39.4% on OUTSIDE15k (-9.46%)
+- gen_step1x_v1p2: 47.9% → 39.0% on OUTSIDE15k (-8.96%)
+- gen_Qwen_Image_Edit: 43.4% → 37.8% on OUTSIDE15k (-5.55%)
+- All other datasets IMPROVED for these strategies
+
+### Stage 2 Training & Testing
 - [x] Removed gen_EDICT strategy from WEIGHTS and WEIGHTS_STAGE_2
 - [x] Moved 26 ratio ablation models from WEIGHTS_STAGE_2/gen_step1x_v1p2 to WEIGHTS_RATIO_ABLATION
 - [x] Submitted 29 missing training jobs (Job IDs: 9649534-9649568)

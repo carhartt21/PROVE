@@ -1,26 +1,26 @@
 # Testing Coverage Report
 
-**Generated:** 2026-01-19 00:20
+**Generated:** 2026-01-20 14:13
 
 ## Summary
 
 | Status | Count | Percentage |
 |--------|------:|----------:|
-| ✅ Complete (valid mIoU) | 321 | 99.1% |
+| ✅ Complete (valid mIoU) | 312 | 96.9% |
 | 🔄 Running | 0 | 0.0% |
 | ⏳ Pending (in queue) | 0 | 0.0% |
 | ⚠️ Buggy (mIoU < 5%) | 0 | 0.0% |
-| ❌ Missing (no results) | 3 | 0.9% |
-| **Total** | **324** | **100%** |
+| ❌ Missing (no results) | 10 | 3.1% |
+| **Total** | **322** | **100%** |
 
 ## Per-Dataset Breakdown
 
 ### BDD10k
-- Complete: 81/82 (98.8%)
+- Complete: 80/82 (97.6%)
 - Running: 0
-- Pending (in queue): 1
+- Pending (in queue): 0
 - Buggy (mIoU < 5%): 0
-- Missing (no results): 10
+- Missing (no results): 1
 
 ### IDD-AW
 - Complete: 81/81 (100.0%)
@@ -30,18 +30,18 @@
 - Missing (no results): 0
 
 ### MapillaryVistas
-- Complete: 78/81 (96.3%)
+- Complete: 73/81 (90.1%)
 - Running: 0
 - Pending (in queue): 0
 - Buggy (mIoU < 5%): 0
-- Missing (no results): 3
+- Missing (no results): 8
 
 ### OUTSIDE15k
-- Complete: 81/81 (100.0%)
+- Complete: 78/80 (97.5%)
 - Running: 0
-- Pending (in queue): 1
+- Pending (in queue): 0
 - Buggy (mIoU < 5%): 0
-- Missing (no results): 52
+- Missing (no results): 1
 
 ## Running Configurations
 
@@ -49,13 +49,7 @@
 
 ## Pending Configurations (in queue)
 
-| Strategy | Dataset | Model |
-|----------|---------|-------|
-| gen_Qwen_Image_Edit | mapillaryvistas | PSPNet |
-| gen_Qwen_Image_Edit | outside15k | PSPNet |
-| gen_UniControl | bdd10k | DeepLabV3+ |
-| gen_Weather_Effect_Generator | mapillaryvistas | PSPNet |
-| gen_albumentations_weather | mapillaryvistas | DeepLabV3+ |
+*No configurations pending in queue.*
 
 ## Buggy Configurations (need retesting)
 
@@ -66,8 +60,15 @@
 | Strategy | Dataset | Model | Issue |
 |----------|---------|-------|-------|
 | gen_Weather_Effect_Generator | mapillaryvistas | PSPNet | missing |
-| gen_cyclediffusion | mapillaryvistas | DeepLabV3+ | missing |
-| gen_cyclediffusion | mapillaryvistas | PSPNet | missing |
+| std_autoaugment | mapillaryvistas | DeepLabV3+ | empty |
+| std_autoaugment | outside15k | PSPNet | empty |
+| std_cutmix | bdd10k | PSPNet | empty |
+| std_cutmix | mapillaryvistas | DeepLabV3+ | empty |
+| std_mixup | mapillaryvistas | DeepLabV3+ | empty |
+| std_mixup | mapillaryvistas | PSPNet | empty |
+| std_mixup | mapillaryvistas | SegFormer | empty |
+| std_randaugment | mapillaryvistas | DeepLabV3+ | empty |
+| std_randaugment | mapillaryvistas | PSPNet | empty |
 
 ## Complete Configurations
 
@@ -78,7 +79,7 @@
 | gen_automold | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF |
 | gen_CNetSeg | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF |
 | gen_CUT | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF |
-| gen_cyclediffusion | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF | ✅ SF | ✅ DLV3+, PSP, SF |
+| gen_cyclediffusion | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF |
 | gen_cycleGAN | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF |
 | gen_flux_kontext | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF |
 | gen_Img2Img | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF |
@@ -95,8 +96,8 @@
 | gen_Weather_Effect_Generator | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF | ✅ DLV3+, SF | ✅ DLV3+, PSP, SF |
 | gen_albumentations_weather | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF |
 | baseline | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF |
-| photometric_distort | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF |
-| std_autoaugment | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF |
-| std_cutmix | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF |
-| std_mixup | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF |
-| std_randaugment | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF |
+| photometric_distort | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP |
+| std_autoaugment | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF | ✅ PSP, SF | ✅ DLV3+ |
+| std_cutmix | ✅ DLV3+, SF | ✅ DLV3+, PSP, SF | ✅ PSP, SF | ✅ DLV3+, PSP, SF |
+| std_mixup | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF | ⏳ | ✅ DLV3+, PSP, SF |
+| std_randaugment | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF | ✅ SF | ✅ DLV3+, PSP, SF |

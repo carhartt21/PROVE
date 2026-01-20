@@ -1,14 +1,14 @@
 # Training Tracker - Stage 2 (All Domains)
 
-**Last Updated:** 2026-01-19 09:25
+**Last Updated:** 2026-01-20 08:20
 
 ## Progress Summary
 
 | Category | Total | Complete | Partial | Running | Pending | Failed |
 |----------|-------|----------|---------|---------|---------|--------|
-| **Generative (gen_*)** | 83 | 76 | 4 | 0 | 4 | 0 |
-| **Standard (std_*)** | 24 | 15 | 1 | 0 | 8 | 0 |
-| **TOTAL** | 107 | 91 | 5 | 0 | 12 | 0 |
+| **Generative (gen_*)** | 83 | 80 | 0 | 0 | 4 | 0 |
+| **Standard (std_*)** | 24 | 16 | 0 | 0 | 8 | 0 |
+| **TOTAL** | 107 | 96 | 0 | 0 | 12 | 0 |
 
 ### Generative Image Augmentation Strategies
 
@@ -17,11 +17,11 @@
 | gen_Attribute_Hallucination | ✅ | ✅ | ✅ | ✅ |  |
 | gen_augmenters | ✅ | ✅ | ✅ | ✅ |  |
 | gen_automold | ✅ | ✅ | ✅ | ✅ |  |
-| gen_CNetSeg | 2/3 | 2/3 | ✅ | ✅ |  |
+| gen_CNetSeg | ✅ | ✅ | ✅ | ✅ |  |
 | gen_CUT | ✅ | ✅ | ✅ | ✅ |  |
 | gen_cyclediffusion | ⏳ | ⏳ | ⏳ | ⏳ |  |
 | gen_cycleGAN | ✅ | ✅ | ✅ | ✅ |  |
-| gen_flux_kontext | 1/3 | 1/3 | ✅ | ✅ |  |
+| gen_flux_kontext | ✅ | ✅ | ✅ | ✅ |  |
 | gen_Img2Img | ✅ | ✅ | ✅ | ✅ |  |
 | gen_IP2P | ✅ | ✅ | ✅ | ✅ |  |
 | gen_LANIT | ✅ | ✅ | ✅ | ✅ |  |
@@ -39,7 +39,7 @@
 
 | Strategy | BDD10k | IDD-AW | MapillaryVistas | OUTSIDE15k | Notes |
 |----------|--------|--------|-----------------|------------|-------|
-| baseline | 2/3 | ✅ | ✅ | ✅ |  |
+| baseline | ✅ | ✅ | ✅ | ✅ |  |
 | photometric_distort | ✅ | ✅ | ✅ | ✅ |  |
 | std_autoaugment | ✅ | ✅ | ✅ | ✅ |  |
 | std_cutmix | ⏳ | ⏳ | ⏳ | ⏳ |  |

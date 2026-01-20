@@ -2,7 +2,9 @@
 
 **Stage 1**: All models trained with `clear_day` domain filter only.
 
-**Total Results**: 272 test results from 23 strategies
+**Total Results**: 316 test results from 27 strategies
+
+> ⚠️ **Data Quality Notice (2026-01-20):** 7 models have been identified with incorrect class configurations (trained with 19 Cityscapes classes instead of native 66/24 for MapillaryVistas/OUTSIDE15k). This affects: gen_step1x_new, gen_step1x_v1p2, gen_stargan_v2, gen_Qwen_Image_Edit (PSPNet/SegFormer on OUTSIDE15k/MapillaryVistas). Rankings for these strategies may change after retraining completes. See TODO.md for details.
 
 ---
 
@@ -19,6 +21,7 @@ Sorted by mIoU. Gain = improvement over baseline. Domain Gap = Normal mIoU - Adv
 | gen_Attribute_Hallucination | Generative | 43.17 | 6.67 | 1.53 | 43.94 | 37.7 | 6.25 | 12 |
 | gen_cycleGAN | Generative | 42.99 | 6.53 | 1.35 | 43.62 | 37.4 | 6.22 | 12 |
 | gen_flux_kontext | Generative | 42.92 | 6.63 | 1.28 | 43.65 | 37.39 | 6.25 | 12 |
+| gen_cyclediffusion | Generative | 42.88 | 6.77 | 1.24 | 43.61 | 37.44 | 6.17 | 12 |
 | gen_automold | Generative | 42.84 | 6.99 | 1.2 | 43.58 | 37.29 | 6.29 | 12 |
 | gen_CNetSeg | Generative | 42.78 | 7.05 | 1.14 | 43.58 | 37.62 | 5.95 | 12 |
 | gen_albumentations_weather | Generative | 42.77 | 7.1 | 1.12 | 43.5 | 37.45 | 6.06 | 12 |
@@ -32,8 +35,11 @@ Sorted by mIoU. Gain = improvement over baseline. Domain Gap = Normal mIoU - Adv
 | gen_UniControl | Generative | 42.49 | 6.92 | 0.85 | 43.16 | 37.57 | 5.6 | 12 |
 | gen_LANIT | Generative | 42.32 | 7.06 | 0.68 | 43.02 | 36.52 | 6.5 | 12 |
 | gen_augmenters | Generative | 42.27 | 6.73 | 0.63 | 43.15 | 36.91 | 6.24 | 12 |
-| gen_cyclediffusion | Generative | 42.19 | 7.26 | 0.55 | 43.06 | 35.95 | 7.1 | 10 |
+| std_autoaugment | Standard Aug | 42.11 | 7.0 | 0.47 | 42.84 | 36.87 | 5.98 | 10 |
+| std_cutmix | Standard Aug | 41.91 | 6.97 | 0.27 | 42.86 | 36.89 | 5.97 | 12 |
+| std_randaugment | Standard Aug | 41.84 | 7.34 | 0.19 | 42.6 | 36.14 | 6.47 | 10 |
 | photometric_distort | Augmentation | 41.83 | 7.67 | 0.19 | 42.65 | 36.72 | 5.93 | 11 |
+| std_mixup | Standard Aug | 41.76 | 7.42 | 0.11 | 42.6 | 35.21 | 7.38 | 10 |
 | baseline | Baseline | 41.64 | 6.98 | - | 42.22 | 36.08 | 6.14 | 12 |
 ---
 
@@ -47,11 +53,13 @@ mIoU performance on each dataset.
 | gen_step1x_v1p2 | Generative | 46.07 | +1.98 | 39.69 | +1.12 | 47.98 | +0.98 | 47.94 | +11.04 |
 | gen_Qwen_Image_Edit | Generative | 45.90 | +1.81 | 39.81 | +1.23 | 51.97 | +4.97 | 43.39 | +6.49 |
 | gen_stargan_v2 | Generative | 46.15 | +2.06 | 39.54 | +0.97 | 48.12 | +1.13 | 43.02 | +6.12 |
-| gen_cyclediffusion | Generative | 46.28 | +2.19 | 39.84 | +1.26 | 51.52 | +4.52 | 37.36 | +0.46 |
+| std_randaugment | Standard Aug | 45.25 | +1.17 | 39.55 | +0.97 | 51.83 | +4.83 | 37.38 | +0.48 |
+| std_mixup | Standard Aug | 45.56 | +1.47 | 38.63 | +0.06 | 51.97 | +4.97 | 37.67 | +0.77 |
 | gen_Attribute_Hallucination | Generative | 46.49 | +2.40 | 40.00 | +1.42 | 48.18 | +1.19 | 38.02 | +1.12 |
 | gen_Weather_Effect_Generator | Generative | 46.19 | +2.11 | 39.52 | +0.95 | 49.09 | +2.09 | 37.44 | +0.54 |
 | gen_cycleGAN | Generative | 46.03 | +1.94 | 40.03 | +1.45 | 48.03 | +1.04 | 37.86 | +0.96 |
 | gen_flux_kontext | Generative | 46.14 | +2.05 | 39.30 | +0.72 | 48.06 | +1.06 | 38.19 | +1.29 |
+| gen_cyclediffusion | Generative | 46.28 | +2.19 | 39.84 | +1.26 | 48.06 | +1.06 | 37.36 | +0.46 |
 | gen_automold | Generative | 46.37 | +2.28 | 39.64 | +1.07 | 48.17 | +1.18 | 37.17 | +0.27 |
 | gen_CNetSeg | Generative | 45.98 | +1.89 | 39.66 | +1.09 | 48.39 | +1.39 | 37.11 | +0.21 |
 | gen_albumentations_weather | Generative | 46.29 | +2.20 | 39.80 | +1.23 | 48.11 | +1.11 | 36.86 | -0.04 |
@@ -64,7 +72,9 @@ mIoU performance on each dataset.
 | gen_UniControl | Generative | 46.03 | +1.94 | 39.29 | +0.71 | 47.56 | +0.57 | 37.09 | +0.20 |
 | gen_LANIT | Generative | 45.54 | +1.45 | 39.39 | +0.81 | 47.25 | +0.25 | 37.10 | +0.20 |
 | gen_augmenters | Generative | 45.88 | +1.79 | 39.95 | +1.38 | 46.15 | -0.85 | 37.12 | +0.22 |
-| baseline | Baseline | 44.09 | -0.00 | 38.58 | - | 47.00 | - | 36.90 | - |
+| std_cutmix | Standard Aug | 44.50 | +0.41 | 39.33 | +0.75 | 46.90 | -0.10 | 36.91 | +0.01 |
+| std_autoaugment | Standard Aug | 46.09 | +2.00 | 39.80 | +1.22 | 49.46 | +2.46 | 32.26 | -4.64 |
+| baseline | Baseline | 44.09 | - | 38.58 | - | 47.00 | - | 36.90 | - |
 | photometric_distort | Augmentation | 45.75 | +1.66 | 39.92 | +1.35 | 48.26 | +1.26 | 29.15 | -7.75 |
 ---
 
@@ -91,9 +101,13 @@ mIoU performance on each weather domain. Normal = clear_day, cloudy. Adverse = f
 | gen_augmenters | Generative | 44.92 | 41.38 | 34.70 | 43.42 | 30.43 | 37.01 | 36.76 | 43.15 | 36.91 | 6.24 |
 | gen_automold | Generative | 45.32 | 41.84 | 34.85 | 43.22 | 30.79 | 37.92 | 37.24 | 43.58 | 37.29 | 6.29 |
 | gen_cycleGAN | Generative | 45.70 | 41.54 | 35.60 | 43.58 | 30.88 | 37.71 | 37.42 | 43.62 | 37.40 | 6.22 |
-| gen_cyclediffusion | Generative | 45.17 | 40.94 | 33.37 | 41.98 | 28.48 | 37.09 | 36.28 | 43.06 | 35.95 | 7.10 |
+| gen_cyclediffusion | Generative | 45.56 | 41.66 | 35.11 | 43.87 | 30.47 | 38.23 | 37.18 | 43.61 | 37.44 | 6.17 |
 | gen_flux_kontext | Generative | 45.52 | 41.77 | 35.11 | 43.60 | 30.78 | 37.76 | 37.44 | 43.65 | 37.39 | 6.25 |
 | gen_stargan_v2 | Generative | 46.67 | 43.21 | 37.33 | 45.30 | 32.30 | 39.17 | 39.40 | 44.94 | 39.04 | 5.90 |
 | gen_step1x_new | Generative | 47.99 | 44.58 | 37.29 | 46.72 | 33.29 | 40.43 | 41.58 | 46.28 | 40.51 | 5.78 |
 | gen_step1x_v1p2 | Generative | 47.58 | 44.20 | 37.80 | 46.23 | 33.08 | 40.29 | 41.15 | 45.89 | 40.19 | 5.70 |
 | photometric_distort | Augmentation | 44.36 | 40.94 | 34.14 | 43.46 | 30.33 | 36.74 | 36.34 | 42.65 | 36.72 | 5.93 |
+| std_autoaugment | Standard Aug | 44.75 | 40.94 | 35.25 | 43.79 | 30.70 | 36.44 | 36.54 | 42.84 | 36.87 | 5.98 |
+| std_cutmix | Standard Aug | 44.61 | 41.11 | 34.01 | 44.12 | 30.12 | 36.60 | 36.74 | 42.86 | 36.89 | 5.97 |
+| std_mixup | Standard Aug | 44.89 | 40.30 | 32.49 | 41.43 | 27.41 | 36.01 | 35.99 | 42.60 | 35.21 | 7.38 |
+| std_randaugment | Standard Aug | 44.58 | 40.62 | 33.67 | 42.03 | 29.79 | 36.30 | 36.43 | 42.60 | 36.14 | 6.47 |
