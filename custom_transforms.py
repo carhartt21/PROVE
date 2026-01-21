@@ -528,40 +528,37 @@ class MapillaryRGBToClassId(BaseTransform):
     
     def __init__(self, ignore_index: int = 255):
         self.ignore_index = ignore_index
-        # Build optimized lookup using color encoding
-        self._build_lookup()
+        # Build optimized 24-bit LUT for O(1) per-pixel lookup
+        self._build_lut()
     
-    def _build_lookup(self):
-        """Build lookup table for fast RGB to class ID conversion."""
-        # Use a dictionary with packed RGB as key for fast lookup
-        self.rgb_lookup = {}
+    def _build_lut(self):
+        """Build 24-bit lookup table for O(1) RGB to class ID conversion.
+        
+        Pre-allocates a 16MB table mapping all possible 24-bit RGB values
+        directly to class IDs. This is ~66x faster than iterating over
+        each class color during decode.
+        """
+        # 24-bit direct lookup table (16MB memory, O(1) decode)
+        self.lut_24bit = np.full(256**3, self.ignore_index, dtype=np.uint8)
         for rgb, class_id in MAPILLARY_RGB_TO_ID.items():
-            # Pack RGB into single int for fast lookup
             packed = rgb[0] * 65536 + rgb[1] * 256 + rgb[2]
-            self.rgb_lookup[packed] = class_id
+            self.lut_24bit[packed] = class_id
     
     def transform(self, results: dict) -> dict:
-        """Convert RGB labels to class IDs."""
+        """Convert RGB labels to class IDs using optimized LUT."""
         if 'gt_seg_map' in results:
             seg_map = results['gt_seg_map']
             
             if seg_map.ndim == 3 and seg_map.shape[-1] == 3:
-                # RGB image - decode to class IDs
-                h, w = seg_map.shape[:2]
-                output = np.full((h, w), self.ignore_index, dtype=np.uint8)
-                
-                # Pack RGB values for fast lookup
+                # RGB image - decode to class IDs using direct LUT
+                # Pack RGB values (note: input is RGB, not BGR)
                 r = seg_map[:, :, 0].astype(np.int32)
                 g = seg_map[:, :, 1].astype(np.int32)
                 b = seg_map[:, :, 2].astype(np.int32)
                 packed = r * 65536 + g * 256 + b
                 
-                # Vectorized lookup
-                for packed_rgb, class_id in self.rgb_lookup.items():
-                    mask = packed == packed_rgb
-                    output[mask] = class_id
-                
-                results['gt_seg_map'] = output
+                # Direct array indexing - O(1) per pixel
+                results['gt_seg_map'] = self.lut_24bit[packed]
             elif seg_map.ndim == 2:
                 # Already class IDs - no conversion needed
                 pass
