@@ -1,17 +1,18 @@
 #!/usr/bin/env python3
 """
-Auto-submit fine-grained test jobs for completed training checkpoints.
+Auto-submit fine-grained test jobs for completed Stage 2 training checkpoints.
 
-Scans the weights directory for models with iter_80000.pth that need testing
-and submits test jobs for them.
+Scans the Stage 2 weights directory (WEIGHTS_STAGE_2) for models with iter_80000.pth
+that need testing and submits test jobs for them.
+
+Stage 2 models are trained on all domains (no domain filter).
 
 Usage:
-    python scripts/auto_submit_tests.py                    # Submit all missing tests
-    python scripts/auto_submit_tests.py --main-only        # Only main datasets  
-    python scripts/auto_submit_tests.py --dry-run          # Show what would be submitted
-    python scripts/auto_submit_tests.py --limit 10         # Submit max 10 jobs
-    python scripts/auto_submit_tests.py --stage testing    # Filter by stage
-    python scripts/auto_submit_tests.py --shared-gpu       # Use shared GPU mode
+    python scripts/auto_submit_tests_stage2.py                    # Submit all missing tests
+    python scripts/auto_submit_tests_stage2.py --main-only        # Only main datasets  
+    python scripts/auto_submit_tests_stage2.py --dry-run          # Show what would be submitted
+    python scripts/auto_submit_tests_stage2.py --limit 10         # Submit max 10 jobs
+    python scripts/auto_submit_tests_stage2.py --shared-gpu       # Use shared GPU mode
 """
 
 import os
@@ -25,7 +26,6 @@ from datetime import datetime
 # Configuration
 SCRIPT_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = SCRIPT_DIR.parent
-WEIGHTS_ROOT = Path(os.environ.get('PROVE_WEIGHTS_ROOT', '/scratch/aaa_exchange/AWARE/WEIGHTS'))
 WEIGHTS_ROOT_STAGE2 = Path(os.environ.get('PROVE_WEIGHTS_ROOT_STAGE2', '/scratch/aaa_exchange/AWARE/WEIGHTS_STAGE_2'))
 LOG_DIR = PROJECT_ROOT / 'logs'
 
@@ -82,10 +82,9 @@ def get_running_test_jobs():
     """Get list of currently running/pending test jobs.
     
     Returns:
-        set: Set of (strategy_prefix, dataset_prefix, model_prefix) tuples for jobs that are RUN or PEND
+        set: Set of job names (lowercase) for jobs that are RUN or PEND
     """
     running_jobs = set()
-    job_names = []
     
     try:
         # Use bjobs -w for full job names, filter by RUN and PEND only
@@ -106,9 +105,8 @@ def get_running_test_jobs():
                 if stat not in ('RUN', 'PEND'):
                     continue
                 
-                # Check for fine-grained test jobs (fg_ prefix)
-                if job_name.startswith('fg_'):
-                    job_names.append(job_name.lower())
+                # Check for Stage 2 fine-grained test jobs (fg2_ prefix)
+                if job_name.startswith('fg2_'):
                     running_jobs.add(job_name.lower())
     except subprocess.TimeoutExpired:
         print("Warning: bjobs timed out, assuming no running jobs")
@@ -118,15 +116,14 @@ def get_running_test_jobs():
     return running_jobs
 
 
-def find_configs_needing_tests(main_only=False, stage=None):
-    """Find all configurations that have checkpoints but need testing.
+def find_configs_needing_tests(main_only=False):
+    """Find all Stage 2 configurations that have checkpoints but need testing.
     
     Args:
         main_only: Only consider main datasets (BDD10k, MapillaryVistas)
-        stage: Filter by training stage ('training', 'testing', None for all)
     
     Returns:
-        list: List of (strategy, dataset, model, weights_dir) tuples needing tests
+        list: List of dicts with strategy, dataset, model, weights_dir, etc.
     """
     configs_needing_tests = []
     
@@ -134,12 +131,12 @@ def find_configs_needing_tests(main_only=False, stage=None):
     seen_configs = set()  # Track to avoid duplicates
     
     for strategy in ALL_STRATEGIES:
-        strategy_path = WEIGHTS_ROOT / strategy
+        strategy_path = WEIGHTS_ROOT_STAGE2 / strategy
         if not strategy_path.exists():
             continue
         
         for dataset in datasets_to_check:
-            # Directory name is just the dataset (no _cd suffix anymore)
+            # Directory name is just the dataset (no _ad suffix anymore)
             ds_dir_candidates = [dataset]
             # Add alternate naming for idd-aw -> iddaw
             if '-' in dataset:
@@ -216,7 +213,7 @@ def find_configs_needing_tests(main_only=False, stage=None):
 
 
 def submit_test_job(config, dry_run=False, shared_gpu=True):
-    """Submit a fine-grained test job for a configuration.
+    """Submit a fine-grained test job for a Stage 2 configuration.
     
     Args:
         config: Dict with strategy, dataset, model, weights_dir, etc.
@@ -236,11 +233,11 @@ def submit_test_job(config, dry_run=False, shared_gpu=True):
     # Get display name for dataset
     dataset_display = DATASET_DISPLAY.get(dataset, dataset)
     
-    # Create short job name
+    # Create short job name with fg2_ prefix for Stage 2
     short_strategy = strategy.replace('gen_', 'g').replace('std_', 's')[:10]
     short_dataset = dataset[:4]
     short_model = model[:3]
-    job_name = f"fg_{short_strategy}_{short_dataset}_{short_model}"
+    job_name = f"fg2_{short_strategy}_{short_dataset}_{short_model}"
     
     output_dir = weights_dir / 'test_results_detailed'
     
@@ -251,7 +248,7 @@ def submit_test_job(config, dry_run=False, shared_gpu=True):
         'bsub',
         '-J', job_name,
         '-q', 'BatchGPU',
-        '-n', '10',  # 2 CPU cores for I/O parallelism
+        '-n', '10',  # 10 CPU cores for I/O parallelism
         '-gpu', gpu_spec,
         '-W', '0:30',  # 30 minutes walltime (optimized batch inference)
         '-o', f'{LOG_DIR}/{job_name}_%J.out',
@@ -285,15 +282,13 @@ def submit_test_job(config, dry_run=False, shared_gpu=True):
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Auto-submit test jobs for completed training')
+    parser = argparse.ArgumentParser(description='Auto-submit Stage 2 test jobs for completed training')
     parser.add_argument('--main-only', action='store_true',
                        help='Only process main datasets (BDD10k, MapillaryVistas)')
     parser.add_argument('--dry-run', action='store_true',
                        help='Show what would be submitted without actually submitting')
     parser.add_argument('--limit', type=int, default=None,
                        help='Maximum number of jobs to submit')
-    parser.add_argument('--stage', type=str, choices=['training', 'testing'],
-                       help='Filter by stage')
     parser.add_argument('--shared-gpu', action='store_true', default=True,
                        help='Use shared GPU mode (default: True)')
     parser.add_argument('--no-shared-gpu', dest='shared_gpu', action='store_false',
@@ -304,9 +299,10 @@ def main():
     args = parser.parse_args()
     
     print("=" * 60)
-    print("Auto-Submit Fine-Grained Test Jobs")
+    print("Auto-Submit Stage 2 Fine-Grained Test Jobs")
     print("=" * 60)
     print(f"Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"Weights root: {WEIGHTS_ROOT_STAGE2}")
     print(f"Main datasets only: {args.main_only}")
     print(f"Dry run: {args.dry_run}")
     print(f"Shared GPU: {args.shared_gpu}")
@@ -317,12 +313,12 @@ def main():
     # Get currently running jobs
     print("Checking for running jobs...")
     running_jobs = get_running_test_jobs()
-    print(f"Found {len(running_jobs)} running/pending test jobs")
+    print(f"Found {len(running_jobs)} running/pending Stage 2 test jobs")
     print()
     
     # Find configs needing tests
     print("Scanning for configurations needing tests...")
-    configs = find_configs_needing_tests(main_only=args.main_only, stage=args.stage)
+    configs = find_configs_needing_tests(main_only=args.main_only)
     print(f"Found {len(configs)} configurations needing tests")
     print()
     
@@ -347,7 +343,7 @@ def main():
         model = config['model']
         
         # Generate normalized key for matching
-        # Jobs have pattern: fg_<strat_prefix>_<dataset_prefix>_<model_prefix>
+        # Jobs have pattern: fg2_<strat_prefix>_<dataset_prefix>_<model_prefix>
         strat_key = strategy.replace('gen_', 'g').replace('std_', 's').lower()[:8]
         dataset_key = dataset[:4].lower()
         model_key = model[:3].lower()

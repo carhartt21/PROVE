@@ -1461,17 +1461,18 @@ class TestResultAnalyzer:
     def export_csv(self, output_path: str):
         """Export data to CSV file with strategy type information."""
         import csv
+        import json
         
         if not self.test_results:
             print("No data to export")
             return
         
-        # Define CSV columns (including strategy type info)
+        # Define CSV columns (including strategy type info and per-domain metrics)
         columns = [
             'strategy', 'strategy_type', 'gen_component', 'std_component',
             'dataset', 'model', 'test_type', 'result_type',
             'mIoU', 'mAcc', 'aAcc', 'fwIoU', 
-            'has_per_domain', 'has_per_class', 'timestamp'
+            'has_per_domain', 'has_per_class', 'per_domain_metrics', 'timestamp'
         ]
         
         # Enrich results with strategy parsing info
@@ -1482,6 +1483,11 @@ class TestResultAnalyzer:
             item['strategy_type'] = parsed['type']
             item['gen_component'] = parsed['gen_component'] or ''
             item['std_component'] = parsed['std_component'] or ''
+            # Serialize per_domain_metrics to JSON string for CSV
+            if 'per_domain_metrics' in item and item['per_domain_metrics']:
+                item['per_domain_metrics'] = json.dumps(item['per_domain_metrics'])
+            else:
+                item['per_domain_metrics'] = ''
             enriched_results.append(item)
         
         with open(output_path, 'w', newline='') as f:

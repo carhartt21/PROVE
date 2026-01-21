@@ -1,6 +1,6 @@
 # Testing Progress Tracker
 
-**Last Updated:** 2026-01-21 10:14
+**Last Updated:** 2026-01-21 11:50
 
 
 This document tracks the progress of fine-grained testing for trained models.
@@ -52,54 +52,54 @@ This document tracks the progress of fine-grained testing for trained models.
 
 | Rank | Strategy | Avg mIoU | Best Dataset | Best mIoU | Datasets |
 |------|----------|----------|--------------|-----------|----------|
-| 🥇 | gen_Qwen_Image_Edit | 50.4 | MapillaryVistas | 58.6 | 4/4 |
-| 🥈 | gen_step1x_new | 48.9 | MapillaryVistas | 52.6 | 4/4 |
-| 🥉 | gen_LANIT | 48.9 | MapillaryVistas | 52.3 | 4/4 |
-| 4. | gen_Attribute_Hallucination | 48.9 | MapillaryVistas | 52.5 | 4/4 |
-| 5. | gen_albumentations_weather | 48.8 | MapillaryVistas | 52.1 | 4/4 |
-| 6. | gen_TSIT | 48.8 | MapillaryVistas | 52.0 | 4/4 |
-| 7. | gen_flux_kontext | 48.7 | MapillaryVistas | 52.0 | 4/4 |
-| 8. | std_cutmix | 48.7 | MapillaryVistas | 51.9 | 4/4 |
-| 9. | std_randaugment | 48.7 | MapillaryVistas | 51.8 | 4/4 |
-| 10. | gen_Weather_Effect_Generator | 48.7 | MapillaryVistas | 52.1 | 4/4 |
+| 🥇 | gen_step1x_v1p2 | 50.9 | MapillaryVistas | 53.2 | 4/4 |
+| 🥈 | gen_VisualCloze | 50.8 | MapillaryVistas | 53.2 | 4/4 |
+| 🥉 | gen_cycleGAN | 50.8 | MapillaryVistas | 53.1 | 4/4 |
+| 4. | gen_albumentations_weather | 50.8 | MapillaryVistas | 53.1 | 4/4 |
+| 5. | gen_TSIT | 50.7 | MapillaryVistas | 53.2 | 4/4 |
+| 6. | std_cutmix | 50.7 | MapillaryVistas | 53.6 | 4/4 |
+| 7. | gen_Attribute_Hallucination | 50.7 | MapillaryVistas | 52.8 | 4/4 |
+| 8. | gen_Qwen_Image_Edit | 50.7 | MapillaryVistas | 52.9 | 4/4 |
+| 9. | photometric_distort | 50.7 | MapillaryVistas | 53.0 | 4/4 |
+| 10. | gen_step1x_new | 50.7 | MapillaryVistas | 53.1 | 4/4 |
 
 
 ### Generative Image Augmentation Strategies
 
 | Strategy | BDD10k | IDD-AW | MapillaryVistas | OUTSIDE15k | Avg |
 |----------|-------:|-------:|-------:|-------:|-------:|
-| gen_Attribute_Hallucination | 51.3 | 43.1 | 52.5 | 48.7 | 48.9 |
-| gen_augmenters | 50.5 | 43.2 | 51.8 | 48.6 | 48.5 |
-| gen_automold | 51.2 | 43.1 | 51.7 | 48.5 | 48.6 |
-| gen_CNetSeg | 50.0 | 43.2 | 52.6 | 48.4 | 48.6 |
-| gen_CUT | 50.9 | 43.2 | 51.8 | 48.3 | 48.5 |
-| gen_cyclediffusion | 50.9 | 43.2 | 51.5 | 48.5 | 48.5 |
-| gen_cycleGAN | 50.0 | 43.3 | 52.1 | 48.7 | 48.5 |
-| gen_flux_kontext | 50.8 | 43.1 | 52.0 | 49.0 | 48.7 |
-| gen_Img2Img | 50.5 | 43.2 | 52.1 | 48.4 | 48.5 |
-| gen_IP2P | 50.8 | 43.0 | 51.9 | 48.2 | 48.5 |
-| gen_LANIT | 51.4 | 43.3 | 52.3 | 48.6 | 48.9 |
-| gen_Qwen_Image_Edit | 50.7 | 43.3 | 58.6 | 49.1 | 50.4 |
-| gen_stargan_v2 | 50.7 | 43.1 | 51.8 | 48.1 | 48.4 |
-| gen_step1x_new | 51.1 | 43.3 | 52.6 | 48.6 | 48.9 |
-| gen_step1x_v1p2 | 51.1 | 43.2 | 51.9 | 48.4 | 48.6 |
-| gen_SUSTechGAN | 51.0 | 43.0 | 52.1 | 48.3 | 48.6 |
-| gen_TSIT | 51.2 | 43.3 | 52.0 | 48.5 | 48.8 |
-| gen_UniControl | 50.3 | 43.2 | 52.0 | 48.3 | 48.5 |
-| gen_VisualCloze | 50.4 | 43.3 | 51.7 | 48.6 | 48.5 |
-| gen_Weather_Effect_Generator | 50.9 | 43.1 | 52.1 | 48.5 | 48.7 |
-| gen_albumentations_weather | 51.3 | 43.0 | 52.1 | 48.7 | 48.8 |
+| gen_Attribute_Hallucination | 52.1 | 47.0 | 52.8 | 51.0 | 50.7 |
+| gen_augmenters | 51.8 | 46.8 | 53.0 | 50.4 | 50.5 |
+| gen_automold | 52.0 | 46.8 | 53.1 | 50.6 | 50.6 |
+| gen_CNetSeg | 51.8 | 46.8 | 52.6 | 50.8 | 50.5 |
+| gen_CUT | 51.5 | 46.9 | 53.3 | 50.7 | 50.6 |
+| gen_cyclediffusion | 51.8 | 46.9 | 53.1 | 50.7 | 50.6 |
+| gen_cycleGAN | 52.2 | 47.0 | 53.1 | 50.9 | 50.8 |
+| gen_flux_kontext | 51.2 | 46.9 | 53.2 | 50.9 | 50.5 |
+| gen_Img2Img | 51.5 | 46.9 | 53.0 | 51.0 | 50.6 |
+| gen_IP2P | 51.7 | 46.9 | 53.0 | 50.7 | 50.6 |
+| gen_LANIT | 51.8 | 47.0 | 53.0 | 50.6 | 50.6 |
+| gen_Qwen_Image_Edit | 52.1 | 46.9 | 52.9 | 50.9 | 50.7 |
+| gen_stargan_v2 | 51.1 | 46.9 | 53.4 | 51.0 | 50.6 |
+| gen_step1x_new | 52.1 | 47.0 | 53.1 | 50.7 | 50.7 |
+| gen_step1x_v1p2 | 52.2 | 47.0 | 53.2 | 51.0 | 50.9 |
+| gen_SUSTechGAN | 51.3 | 46.8 | 53.1 | 50.9 | 50.5 |
+| gen_TSIT | 52.2 | 47.0 | 53.2 | 50.6 | 50.7 |
+| gen_UniControl | 51.5 | 46.9 | 53.0 | 50.4 | 50.4 |
+| gen_VisualCloze | 52.3 | 47.0 | 53.2 | 50.8 | 50.8 |
+| gen_Weather_Effect_Generator | 51.9 | 46.8 | 53.0 | 50.7 | 50.6 |
+| gen_albumentations_weather | 52.1 | 46.9 | 53.1 | 50.9 | 50.8 |
 
 ### Standard Augmentation Strategies
 
 | Strategy | BDD10k | IDD-AW | MapillaryVistas | OUTSIDE15k | Avg |
 |----------|-------:|-------:|-------:|-------:|-------:|
-| baseline | 49.2 | 42.0 | 51.0 | 48.8 | 47.7 |
-| photometric_distort | 51.0 | 43.2 | 51.7 | 48.4 | 48.6 |
-| std_autoaugment | 50.6 | 43.3 | 51.8 | 48.3 | 48.5 |
-| std_cutmix | 50.6 | 43.3 | 51.9 | 49.0 | 48.7 |
-| std_mixup | 51.3 | 43.0 | 52.0 | 48.3 | 48.6 |
-| std_randaugment | 51.0 | 43.4 | 51.8 | 48.6 | 48.7 |
+| baseline | 50.6 | 46.8 | 53.0 | 51.2 | 50.4 |
+| photometric_distort | 52.3 | 46.9 | 53.0 | 50.6 | 50.7 |
+| std_autoaugment | 52.0 | 46.9 | 52.5 | 50.8 | 50.6 |
+| std_cutmix | 51.9 | 46.9 | 53.6 | 50.5 | 50.7 |
+| std_mixup | 51.4 | 46.4 | 53.0 | 50.2 | 50.2 |
+| std_randaugment | 51.3 | 46.8 | 53.3 | 51.1 | 50.6 |
 
 ---
 

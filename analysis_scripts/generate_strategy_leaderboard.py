@@ -1295,6 +1295,8 @@ def main():
                        help='Override WEIGHTS directory path')
     parser.add_argument('--verbose', action='store_true',
                        help='Verbose output during extraction')
+    parser.add_argument('--stage1', action='store_true',
+                       help='Stage 1 mode: All models are clear_day trained, use baseline as reference')
     
     args = parser.parse_args()
     

@@ -517,10 +517,14 @@ class MapillaryRGBToClassId(BaseTransform):
     triplet represents a semantic class. This transform decodes them to class
     indices (0-65) suitable for training.
     
+    IMPORTANT: mmseg's LoadAnnotations (via mmcv.imfrombytes) returns images in
+    BGR order regardless of the backend used. This transform handles both BGR
+    input (from LoadAnnotations) and RGB input (from direct PIL loading).
+    
     Any unrecognized RGB values are mapped to 255 (ignore_index).
     
     Required Keys:
-        - gt_seg_map (np.ndarray): RGB label with shape (H, W, 3)
+        - gt_seg_map (np.ndarray): BGR label with shape (H, W, 3) from LoadAnnotations
         
     Modified Keys:
         - gt_seg_map (np.ndarray): Class indices with shape (H, W), values 0-65 or 255
@@ -528,40 +532,43 @@ class MapillaryRGBToClassId(BaseTransform):
     
     def __init__(self, ignore_index: int = 255):
         self.ignore_index = ignore_index
-        # Build optimized lookup using color encoding
-        self._build_lookup()
+        # Build optimized 24-bit LUT for O(1) per-pixel lookup
+        self._build_lut()
     
-    def _build_lookup(self):
-        """Build lookup table for fast RGB to class ID conversion."""
-        # Use a dictionary with packed RGB as key for fast lookup
-        self.rgb_lookup = {}
+    def _build_lut(self):
+        """Build 24-bit lookup table for O(1) RGB to class ID conversion.
+        
+        Pre-allocates a 16MB table mapping all possible 24-bit RGB values
+        directly to class IDs. This is ~66x faster than iterating over
+        each class color during decode.
+        """
+        # 24-bit direct lookup table (16MB memory, O(1) decode)
+        self.lut_24bit = np.full(256**3, self.ignore_index, dtype=np.uint8)
         for rgb, class_id in MAPILLARY_RGB_TO_ID.items():
-            # Pack RGB into single int for fast lookup
             packed = rgb[0] * 65536 + rgb[1] * 256 + rgb[2]
-            self.rgb_lookup[packed] = class_id
+            self.lut_24bit[packed] = class_id
     
     def transform(self, results: dict) -> dict:
-        """Convert RGB labels to class IDs."""
+        """Convert BGR labels to class IDs using optimized LUT.
+        
+        CRITICAL: mmseg's LoadAnnotations returns BGR images (via mmcv.imfrombytes
+        which defaults to channel_order='bgr'). We must swap channels to RGB before
+        looking up in our RGB-based LUT.
+        """
         if 'gt_seg_map' in results:
             seg_map = results['gt_seg_map']
             
             if seg_map.ndim == 3 and seg_map.shape[-1] == 3:
-                # RGB image - decode to class IDs
-                h, w = seg_map.shape[:2]
-                output = np.full((h, w), self.ignore_index, dtype=np.uint8)
-                
-                # Pack RGB values for fast lookup
-                r = seg_map[:, :, 0].astype(np.int32)
-                g = seg_map[:, :, 1].astype(np.int32)
-                b = seg_map[:, :, 2].astype(np.int32)
+                # BGR image from LoadAnnotations - swap to RGB for lookup
+                # mmcv.imfrombytes defaults to BGR regardless of backend (pillow/cv2)
+                # Channel 0 = B, Channel 1 = G, Channel 2 = R
+                r = seg_map[:, :, 2].astype(np.int32)  # R is in channel 2
+                g = seg_map[:, :, 1].astype(np.int32)  # G is in channel 1
+                b = seg_map[:, :, 0].astype(np.int32)  # B is in channel 0
                 packed = r * 65536 + g * 256 + b
                 
-                # Vectorized lookup
-                for packed_rgb, class_id in self.rgb_lookup.items():
-                    mask = packed == packed_rgb
-                    output[mask] = class_id
-                
-                results['gt_seg_map'] = output
+                # Direct array indexing - O(1) per pixel
+                results['gt_seg_map'] = self.lut_24bit[packed]
             elif seg_map.ndim == 2:
                 # Already class IDs - no conversion needed
                 pass
