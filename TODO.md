@@ -1,526 +1,249 @@
 # PROVE Project TODO List
 
-**Last Updated:** 2026-01-20 (15:10)
-
-## In Progress
-
-### OUTSIDE15k & MapillaryVistas Class Mismatch Fix (NEW - 2026-01-20)
-**Root Cause Found:** 7 Stage 1 models were incorrectly trained with 19 Cityscapes classes instead of native classes, causing artificially inflated mIoU scores.
-
-**Affected Models (all Stage 1):**
-| Dataset | Strategy | Model | Wrong Classes | Inflated mIoU | Expected ~mIoU |
-|---------|----------|-------|---------------|---------------|----------------|
-| MapillaryVistas | gen_Qwen_Image_Edit | pspnet_r50 | 19 (need 66) | 58.6% | ~40% |
-| OUTSIDE15k | gen_Qwen_Image_Edit | pspnet_r50 | 19 (need 24) | 53.2% | ~35% |
-| OUTSIDE15k | gen_stargan_v2 | segformer_mit-b5 | 19 (need 24) | 63.9% | ~50% |
-| OUTSIDE15k | gen_step1x_new | pspnet_r50 | 19 (need 24) | 53.7% | ~36% |
-| OUTSIDE15k | gen_step1x_new | segformer_mit-b5 | 19 (need 24) | 64.1% | ~50% |
-| OUTSIDE15k | gen_step1x_v1p2 | pspnet_r50 | 19 (need 24) | 52.0% | ~36% |
-| OUTSIDE15k | gen_step1x_v1p2 | segformer_mit-b5 | 19 (need 24) | 64.0% | ~50% |
-
-**Impact:** This explains the apparent "Stage 1 → Stage 2 performance drops" for these strategies. The Stage 2 models were correctly trained with native classes.
-
-**Full Class Configuration Audit (2026-01-20):**
-| Stage | Dataset | Wrong | Correct | Status |
-|-------|---------|-------|---------|--------|
-| Stage 1 | MapillaryVistas | 1 | 72 | 🔧 Fixing |
-| Stage 1 | OUTSIDE15k | 6 | 73 | 🔧 Fixing |
-| Stage 1 | BDD10k | 0 | 78 | ✅ |
-| Stage 1 | IDD-AW | 0 | 80 | ✅ |
-| Stage 2 | MapillaryVistas | 0 | 66 | ✅ |
-| Stage 2 | OUTSIDE15k | 0 | 72 | ✅ |
-| Stage 2 | BDD10k | 0 | 76 | ✅ |
-| Stage 2 | IDD-AW | 0 | 75 | ✅ |
-
-**Status:**
-- [x] Root cause identified: models trained by user `chge7185` without `--use-native-classes`
-- [x] 6 OUTSIDE15k retraining jobs submitted (Job IDs: 9669526, 9669528-9669532)
-- [x] 1 MapillaryVistas retraining job submitted (Job ID: 9669538)
-- [ ] Wait for retraining to complete (~24h)
-- [ ] Run test script: `./scripts/test_retrained_outside15k.sh`
-- [ ] Submit MapillaryVistas test manually after training
-- [ ] Regenerate downstream_results.csv after tests complete
-- [ ] Update leaderboards with corrected data
-
-### Standard Augmentation Retraining (NEARLY COMPLETE)
-Bug fix retraining for all std_* strategies completed. Tests submitted and results moved to WEIGHTS directories.
-
-**Stage 1 (clear_day) - WEIGHTS:**
-| Strategy | Checkpoints | Tests |
-|----------|:-----------:|:-----:|
-| std_autoaugment | 11/12 ⏳ | 43/48 ✅ |
-| std_cutmix | 12/12 ✅ | 12/12 ✅ |
-| std_mixup | 12/12 ✅ | 12/12 ✅ |
-| std_randaugment | 12/12 ✅ | 12/12 ✅ |
-
-- [x] Retrained std_cutmix (12/12 complete)
-- [x] Retrained std_mixup (12/12 complete)
-- [x] Retrained std_randaugment (12/12 complete)
-- [x] Retrained std_autoaugment (11/12 complete)
-- [x] Fixed `submit_testing.sh` default `--test-split` from `val` to `test`
-- [x] Submitted 71 test jobs with corrected test-split=test
-- [x] Moved 44 Stage 1 + 24 Stage 2 = 68 test results to WEIGHTS directories
-- [ ] **RUNNING:** std_autoaugment/outside15k/segformer_mit-b5 (Job 9668399, ~25% complete, ETA ~2.5 hrs)
-- [ ] Submit test for std_autoaugment/outside15k/segformer when training completes
-
-**Stage 2 (all_domains) - WEIGHTS_STAGE_2:**
-| Strategy | Checkpoints | Tests |
-|----------|:-----------:|:-----:|
-| std_autoaugment | 12/12 ✅ | 12/12 ✅ |
-| std_randaugment | 12/12 ✅ | 12/12 ✅ |
-
-- [x] std_autoaugment Stage 2 training complete
-- [x] std_randaugment Stage 2 training complete
-- [x] All Stage 2 tests complete (24/24)
-- [ ] **RUNNING:** 8 MapillaryVistas test jobs (Stage 2 missing tests)
-
-### Leaderboards & Comparison Analysis (2026-01-20)
-- [x] Generated Stage 1 Leaderboard (`result_figures/leaderboard/STRATEGY_LEADERBOARD.md`)
-- [x] Generated Stage 2 Leaderboard (`result_figures/leaderboard/STRATEGY_LEADERBOARD_STAGE2.md`)
-- [x] Created Stage 1 vs Stage 2 comparison figure (`result_figures/stage1_vs_stage2_comparison.png`)
-- [x] Created per-dataset comparison figure (`result_figures/per_dataset_comparison.png`)
-- [x] Analyzed declining strategy patterns (see notes below)
-- [x] Submitted 16 missing Stage 2 test jobs
-
-**Key Findings from Stage 1 vs Stage 2 Comparison:**
-| Metric | Stage 1 | Stage 2 | Change |
-|--------|---------|---------|--------|
-| Baseline mIoU | 41.64% | 43.74% | **+2.10%** |
-| Best Strategy | gen_step1x_new (45.78%) | gen_IP2P (45.08%) | -0.70% |
-| Avg Domain Gap | 5.5-6.3 | 0.8-1.5 | **~4-5 pts lower** |
-
-**Declining Strategies Analysis:**
-- 4 strategies declined from Stage 1 to Stage 2
-- Root cause: **OUTSIDE15k dataset** performance dropped significantly
-- gen_step1x_new: 48.9% → 39.4% on OUTSIDE15k (-9.46%)
-- gen_step1x_v1p2: 47.9% → 39.0% on OUTSIDE15k (-8.96%)
-- gen_Qwen_Image_Edit: 43.4% → 37.8% on OUTSIDE15k (-5.55%)
-- All other datasets IMPROVED for these strategies
-
-### Stage 2 Training & Testing
-- [x] Removed gen_EDICT strategy from WEIGHTS and WEIGHTS_STAGE_2
-- [x] Moved 26 ratio ablation models from WEIGHTS_STAGE_2/gen_step1x_v1p2 to WEIGHTS_RATIO_ABLATION
-- [x] Submitted 29 missing training jobs (Job IDs: 9649534-9649568)
-- [x] Submitted 97 testing jobs (Job IDs: 9649591-9649699)
-- [ ] Wait for training and testing jobs to complete
-- [ ] Update tracker documents when jobs finish
-
-### Extended Training Testing
-- [x] Modified `submit_test_extended_training.sh` to use `fine_grained_test.py`
-- [x] Added `find_dataset_dir()` function to handle directory naming variations
-- [x] Submitted 504 test jobs (9 strategies × 4 datasets × 2 models × 7 iterations)
-- [ ] Wait for all extended training test jobs to complete
-- [ ] Analyze complete results with `analyze_extended_training.py`
-- [ ] Generate final IEEE figures with full dataset
-
-### Domain Adaptation Ablation (READY)
-- [x] Updated `submit_domain_adaptation_ablation.sh` for correct weights paths
-- [x] Fixed `conda activate` → `mamba activate`
-- [x] Script now uses WEIGHTS_STAGE_2 for full dataset, WEIGHTS for clear_day
-- [x] Added support for Top 15 augmentation strategies
-- [x] Updated documentation with strategy tables
-- [ ] Submit baseline jobs (8 available): `./scripts/submit_domain_adaptation_ablation.sh --all-full`
-- [ ] Submit strategy jobs (76 available): `./scripts/submit_domain_adaptation_ablation.sh --all-strategies`
-- [ ] Analyze results with `analyze_domain_adaptation_ablation.py`
-
-### Analysis Scripts
-- [x] Updated `analyze_extended_training.py` with Pattern 5 for new output format
-- [x] Created `generate_ieee_figures_extended_training.py` for publication figures
-- [x] Updated documentation in `docs/EXTENDED_TRAINING.md`
-- [x] Updated `docs/TESTING_TRACKER.md` with extended training section
-- [x] Updated `docs/DOMAIN_ADAPTATION_ABLATION.md` with correct paths
-
-## Pending
-
-### Publication
-- [ ] Finalize extended training analysis figures
-- [ ] Run statistical significance tests on extended training results
-- [ ] Prepare tables for publication
-
-### Job Monitoring
-- [ ] Monitor extended training test jobs: `bjobs | grep test_ext`
-- [ ] Check for failed jobs and resubmit if needed
-- [ ] Document any strategies that fail consistently
-
-## Completed
-
-### Domain Adaptation Infrastructure (2026-01-23)
-- [x] Script updated to use WEIGHTS_STAGE_2 for full dataset models
-- [x] Script updated to use WEIGHTS for clear_day models
-- [x] Documentation updated with checkpoint availability table
-- [x] 8 jobs available: 5 full dataset + 3 clear_day
-
-### Extended Training Infrastructure (2026-01-23)
-- [x] All 9 strategies have complete checkpoints (40k-160k iterations)
-- [x] Test command uses `fine_grained_test.py` for per-domain metrics
-- [x] Directory naming variations handled (`bdd10k_ad`, `iddaw_ad`, etc.)
-- [x] Test output stored in `test_results_iter_{N}/{timestamp}/results.json`
-- [x] Analysis scripts support new output format
-- [x] IEEE figure generation working with partial results (66 results)
-
-### Documentation Updates (2026-01-23)
-- [x] EXTENDED_TRAINING.md - Added testing and analysis sections
-- [x] TESTING_TRACKER.md - Added extended training section
-- [x] DOMAIN_ADAPTATION_ABLATION.md - Updated checkpoint paths
-
-## Notes
-
-### Domain Adaptation Checkpoint Availability
-
-**Baseline Models:** 8 / 12 available
-**Strategy Models:** 76 / 90 available  
-**Total:** 84 configurations ready for evaluation
-
-| Dataset | Model | Full (WEIGHTS_STAGE_2) | Clear_day (WEIGHTS) |
-|---------|-------|:----------------------:|:-------------------:|
-| BDD10k | pspnet_r50 | ✅ | ✅ |
-| BDD10k | segformer_mit-b5 | ❌ | ✅ |
-| IDD-AW | pspnet_r50 | ✅ | ❌ |
-| IDD-AW | segformer_mit-b5 | ✅ | ❌ |
-| MapillaryVistas | pspnet_r50 | ✅ | ✅ |
-| MapillaryVistas | segformer_mit-b5 | ❌ | ✅ |
-
-**Top 15 Strategies:** gen_cyclediffusion, gen_flux_kontext, gen_step1x_new, gen_step1x_v1p2, gen_stargan_v2, gen_cycleGAN, gen_automold, gen_albumentations_weather, gen_TSIT, gen_UniControl, std_randaugment, std_autoaugment, std_cutmix, std_mixup, photometric_distort
-
-### Extended Training Test Configuration
-- **Strategies:** gen_albumentations_weather, gen_automold, gen_cyclediffusion, gen_cycleGAN, gen_flux_kontext, gen_step1x_new, gen_TSIT, gen_UniControl, std_randaugment
-- **Datasets:** BDD10k, IDD-AW, MapillaryVistas, OUTSIDE15k
-- **Models:** segformer_mit-b5, pspnet_r50
-- **Iterations:** 40000, 60000, 80000, 100000, 120000, 140000, 160000
-- **Total Jobs:** 504
-
-### Key Scripts
-- `scripts/submit_test_extended_training.sh` - Submit extended training test jobs
-- `scripts/submit_domain_adaptation_ablation.sh` - Submit domain adaptation jobs
-- `analysis_scripts/analyze_extended_training.py` - Analyze extended training results
-- `analysis_scripts/generate_ieee_figures_extended_training.py` - Generate IEEE figures
-- `fine_grained_test.py` - Per-domain, per-class testing
-
-### Output Directories
-- Extended training tests: `{WEIGHTS_EXTENDED}/{strategy}/{dataset}/{model}_ratio0p50/test_results_iter_{N}/`
-- Extended training figures: `result_figures/extended_training/{ieee/,preview/,data/}`
-- Domain adaptation results: `{WEIGHTS}/domain_adaptation_ablation/`
-# TODO - Upcoming Tasks
-
-*Last updated: 2026-01-18 (01:20)*
+**Last Updated:** 2026-01-21 (10:00)
 
 ## Current Job Status Summary
 
 ### Stage 1 (Clear Day Domain) - WEIGHTS directory
-| Category | Running | Pending | Done | Total |
-|----------|--------:|--------:|-----:|------:|
+| Category | Running | Pending | Complete | Total |
+|----------|--------:|--------:|---------:|------:|
 | Training | 0 | 0 | 107 | 107 |
-| Testing | 0 | 0 | 346 | 346 |
+| Testing | 0 | 0 | ~346 | 346 |
 
-*Stage 1 training and testing 100% complete!*
-*Leaderboard generated: 28 strategies evaluated*
+✅ **Stage 1 training 100% complete**
+✅ **Stage 1 testing complete**
 
 ### Stage 2 (All Domains) - WEIGHTS_STAGE_2 directory
-| Category | Running | Pending | Done | Total |
-|----------|--------:|--------:|-----:|------:|
-| Training | ~10 | ~25 | 264 | ~293 |
-| Testing | ~5 | ~90 | 167 | ~264 |
+| Category | Running | Pending | Complete | Total |
+|----------|--------:|--------:|---------:|------:|
+| Training | 36 | 0 | 96 | 132 |
+| Testing | 3 | 0 | 289 | 292 |
 
-**Stage 2 Progress (as of 2026-01-19):**
-- **Checkpoints:** 264 trained models
-- **Testing:** 167 valid tests (submitted 97 more tests)
-- **Training:** 29 missing jobs submitted (gen_augmenters, gen_automold, gen_cycleGAN, etc.)
-- **Removed:** gen_EDICT strategy completely removed
-
-### Ablation Studies
-| Study | Running | Pending | Done | Total |
-|-------|--------:|--------:|-----:|------:|
-| Ratio Ablation | 0 | 0 | 153+ | 153+ |
-| Extended Training | TBD | TBD | TBD | 504 |
+**Stage 2 Status (as of 2026-01-21 10:00):**
+- **Training:** 96/132 complete (73%) - 36 jobs running (gen_cyclediffusion, std_cutmix, std_mixup)
+- **Testing:** 292 tests collected, 3 tests just submitted for missing MapillaryVistas models
+- **Leaderboard Analysis:** See Stage 2 Leaderboard Analysis section below
 
 ---
 
-## ✅ Recently Completed (Jan 19, 2026)
+## 🔄 Active Jobs (Jan 21, 2026)
 
-### Stage 2 Cleanup and Job Submission
-- ✅ **Removed gen_EDICT** from WEIGHTS and WEIGHTS_STAGE_2 (incomplete strategy)
-- ✅ **Reorganized gen_step1x_v1p2** - moved 26 ratio ablation models to WEIGHTS_RATIO_ABLATION
-- ✅ **Submitted 29 training jobs** for missing configurations:
-  - gen_augmenters, gen_automold, gen_cycleGAN (BDD10k/IDD-AW segformer)
-  - gen_flux_kontext, gen_Img2Img, gen_IP2P (various BDD10k/IDD-AW)
-  - gen_SUSTechGAN, gen_TSIT, gen_UniControl (BDD10k/IDD-AW)
-  - gen_VisualCloze, gen_Weather_Effect_Generator (BDD10k/IDD-AW)
-- ✅ **Submitted 97 testing jobs** for models without test results
-  - Covered: gen_stargan_v2, gen_step1x_new, gen_step1x_v1p2
-  - Covered: photometric_distort, std_autoaugment, std_randaugment
-- ✅ Job IDs: Training 9649534-9649568, Testing 9649591-9649699
+### Stage 2 Training (36 jobs) - Running
+Submitted via `submit_stage2_pending.sh` (Jan 20):
+| Strategy | Jobs | IDs |
+|----------|------|-----|
+| gen_cyclediffusion | 12 | 9670343-9670354 |
+| std_cutmix | 12 | 9670355-9670366 |
+| std_mixup | 12 | 9670367-9670378 |
 
----
-
-## ✅ Previously Completed (Jan 18, 2026)
-
-### Leaderboard Generation
-- ✅ Created `generate_stage1_leaderboard.py` for Stage 1 analysis
-- ✅ Created `generate_stage2_leaderboard.py` for Stage 2 analysis
-- ✅ Stage 1: 346 test results, 28 strategies evaluated
-- ✅ Stage 2: 150 test results, 19 strategies evaluated
-
-**Stage 1 Top Performers (Clear Day Training):**
-1. std_randaugment: 46.74% mIoU (+5.49 vs baseline)
-2. photometric_distort: 46.35% mIoU (+5.10 vs baseline)
-3. gen_step1x_new: 45.78% mIoU (+4.53 vs baseline)
-
-**Stage 2 Top Performers (All Domain Training):**
-1. gen_Weather_Effect_Generator: 50.78% mIoU (+7.03 vs baseline)
-2. gen_VisualCloze: 45.68% mIoU (+1.93 vs baseline)
-3. gen_CUT: 44.47% mIoU (+0.73 vs baseline)
-
-### Job Submissions
-- ✅ Submitted 155 Stage 2 test jobs
-- ✅ Submitted 79 ratio ablation test jobs
-- ✅ Submitted 80 Stage 2 training jobs (top 10 strategies)
-
-### Bug Fixes
-- ✅ Fixed empty DataFrame handling in generate_strategy_leaderboard.py
-- ✅ Fixed per-domain metric extraction (nested summary structure)
-- ✅ Filter tests pointing to wrong stage checkpoints
+### Stage 2 Testing (3 jobs) - Pending
+Submitted 2026-01-21 to fill missing MapillaryVistas tests:
+| Strategy | Dataset | Model | Job ID |
+|----------|---------|-------|--------|
+| gen_stargan_v2 | MapillaryVistas | deeplabv3plus_r50_ratio0p50 | 9670915 |
+| gen_Weather_Effect_Generator | MapillaryVistas | pspnet_r50_ratio0p50 | 9670916 |
+| gen_step1x_new | MapillaryVistas | pspnet_r50_ratio0p50 | 9670917 |
 
 ---
 
-## ✅ RESOLVED: Wrong num_classes Models (Jan 16)
+## Stage 2 Leaderboard Analysis (Jan 21, 2026)
 
-**Issue:** Some models were trained with wrong number of classes.
-**Resolution:** Removed incorrect checkpoints and submitted 21 retraining jobs.
+### Anomalous Model Counts Investigation
 
-| Dataset | Expected Classes | Actions Taken |
-|---------|------------------|---------------|
-| MapillaryVistas | 66 | Removed wrong models, retraining 6 jobs |
-| OUTSIDE15k | 24 | Removed wrong models, retraining 15 jobs |
+Expected: 12 models per strategy (4 datasets × 3 models)
 
-**Strategies Removed (permanently):**
-- `std_minimal` - Not useful, removed from all datasets
+#### Strategies with MISSING models (11 instead of 12)
+| Strategy | Missing | Status | Job ID |
+|----------|---------|--------|--------|
+| gen_stargan_v2 | mapillaryvistas/deeplabv3plus_r50_ratio0p50 | 🔄 Submitted | 9670915 |
+| gen_Weather_Effect_Generator | mapillaryvistas/pspnet_r50_ratio0p50 | 🔄 Submitted | 9670916 |
+| gen_step1x_new | mapillaryvistas/pspnet_r50_ratio0p50 | 🔄 Submitted | 9670917 |
 
-**Strategies Retraining (21 jobs, IDs 9611966-9611986):**
-- MapillaryVistas: gen_cyclediffusion (×3), gen_TSIT (×3)
-- OUTSIDE15k: std_cutmix (×3), std_mixup (×3), gen_cyclediffusion (×3), gen_flux_kontext (×3), gen_TSIT (×3)
+**Root Cause:** Tests were not submitted for these MapillaryVistas models.
 
-**Native Classes Default:** `unified_training.py` now uses native classes by default.
-Use `--no-native-classes` to force Cityscapes 19 classes.
+#### Strategies with EXTRA models (>12 in CSV)
+| Strategy | Count | Issue |
+|----------|-------|-------|
+| gen_flux_kontext | 16 | Stale CSV entries (4 extra) |
+| gen_Qwen_Image_Edit | 15 | Stale CSV entries (3 extra) |
 
----
+**Root Cause:** `downstream_results_stage2.csv` contains both:
+- Old entries: `deeplabv3plus_r50`, `pspnet_r50` (without ratio suffix)
+- New entries: `deeplabv3plus_r50_ratio0p50`, `pspnet_r50_ratio0p50`, `segformer_mit-b5_ratio0p50`
 
-## 🔄 Stage 2 Retraining (MapillaryVistas/OUTSIDE15k)
-
-**Issue:** All Stage 2 checkpoints for MapillaryVistas/OUTSIDE15k were trained with 19 classes.
-
-**Actions Taken:**
-- Deleted all Stage 2 MapillaryVistas and OUTSIDE15k checkpoints
-- Removed `std_minimal` from Stage 2
-- Submitted full retraining set for MapillaryVistas + OUTSIDE15k across all Stage 2 strategies (except `gen_EDICT`)
-
-**Jobs Submitted:** 114 total (19 strategies × 2 datasets × 3 models)
-
-**Status:** PENDING (BatchGPU queue)
-
-**Validation Note (Stage 2 tests):**
-- BDD10k classwise IoU looks normal; only rare classes (train/rider/motorcycle/bicycle) hit 0–0.01 IoU in some runs
-- IDD-AW Stage 2 tests not available yet (no results.json to scan)
+**Fix:** Regenerate CSV after pending tests complete to clean stale entries.
 
 ---
 
-## Directory Structure Changes (Jan 16, 2026)
+## Stage 1 Leaderboard (Top 15)
 
-### ⚠️ IMPORTANT: WEIGHTS Directory Restructuring
+| Rank | Strategy | mIoU | Gain vs Baseline |
+|------|----------|------|------------------|
+| 1 | gen_Qwen_Image_Edit | 43.61% | +1.97 |
+| 2 | gen_Attribute_Hallucination | 43.17% | +1.53 |
+| 3 | gen_cycleGAN | 42.99% | +1.35 |
+| 4 | gen_flux_kontext | 42.92% | +1.28 |
+| 5 | gen_step1x_new | 42.92% | +1.28 |
+| 6 | gen_stargan_v2 | 42.89% | +1.25 |
+| 7 | gen_cyclediffusion | 42.88% | +1.24 |
+| 8 | gen_automold | 42.84% | +1.20 |
+| 9 | gen_CNetSeg | 42.78% | +1.14 |
+| 10 | gen_albumentations_weather | 42.77% | +1.12 |
+| 11 | gen_Weather_Effect_Generator | 42.73% | +1.09 |
+| 12 | gen_IP2P | 42.72% | +1.08 |
+| 13 | gen_SUSTechGAN | 42.70% | +1.06 |
+| 14 | std_autoaugment | 42.67% | +1.03 |
+| 15 | gen_CUT | 42.66% | +1.02 |
+| ... | baseline | 41.64% | - |
 
-The WEIGHTS directory structure has been reorganized:
-
-**Before:**
-```
-WEIGHTS/
-├── baseline/
-│   ├── bdd10k_cd/          # _cd = clear_day (Stage 1)
-│   ├── bdd10k_ad/          # _ad = all_domains (Stage 2)
-│   └── ...
-```
-
-**After:**
-```
-WEIGHTS/                     # Stage 1 (clear_day only)
-├── baseline/
-│   ├── bdd10k/             # No suffix
-│   ├── idd-aw/
-│   └── ...
-
-WEIGHTS_STAGE_2/             # Stage 2 (all domains)
-├── baseline/
-│   ├── bdd10k/             # No suffix
-│   ├── idd-aw/
-│   └── ...
-```
-
-**Key Changes:**
-- `_cd` and `_ad` suffixes removed from dataset directories
-- Stage 1 models → `WEIGHTS/`
-- Stage 2 models → `WEIGHTS_STAGE_2/`
-- Scripts updated: `unified_training_config.py`, `update_training_tracker.py`, `auto_submit_tests.py`, `test_result_analyzer.py`
-- Nested `_cd` directories cleaned up (gen_Qwen_Image_Edit, gen_UniControl)
+**Note:** gen_cyclediffusion (#7) is missing from Stage 2 - training running.
 
 ---
 
-## Active Tasks
+## Stage 2 Coverage Analysis
 
-### 🔄 Stage 1 Retraining (21 jobs running)
+### Top 15 Strategies Coverage
+| Strategy | Training | Testing | Notes |
+|----------|:--------:|:-------:|-------|
+| gen_Qwen_Image_Edit | ✅ 12/12 | ✅ 12/12 | CSV has 15 (stale entries) |
+| gen_Attribute_Hallucination | ✅ 12/12 | ✅ 12/12 | |
+| gen_cycleGAN | ✅ 12/12 | ✅ 12/12 | |
+| gen_flux_kontext | ✅ 12/12 | ✅ 12/12 | CSV has 16 (stale entries) |
+| gen_step1x_new | ✅ 12/12 | 🔄 11/12 | mapillary/pspnet test submitted (9670917) |
+| gen_stargan_v2 | ✅ 12/12 | 🔄 11/12 | mapillary/deeplabv3plus test submitted (9670915) |
+| **gen_cyclediffusion** | 🔄 0/12 | ⏳ 0/12 | **Training running** |
+| gen_automold | ✅ 12/12 | ✅ 12/12 | |
+| gen_CNetSeg | ✅ 12/12 | ✅ 12/12 | |
+| gen_albumentations_weather | ✅ 12/12 | ✅ 12/12 | |
+| gen_Weather_Effect_Generator | ✅ 12/12 | 🔄 11/12 | mapillary/pspnet test submitted (9670916) |
+| gen_IP2P | ✅ 12/12 | ✅ 12/12 | |
+| gen_SUSTechGAN | ✅ 12/12 | ✅ 12/12 | |
+| std_autoaugment | ✅ 12/12 | ✅ 12/12 | |
+| gen_CUT | ✅ 12/12 | ✅ 12/12 | |
 
-**Job IDs:** 9611966-9611986 (moved to top of queue)
-
-| Strategy | MapillaryVistas | OUTSIDE15k |
-|----------|-----------------|------------|
-| gen_cyclediffusion | 🔄 3 jobs | 🔄 3 jobs |
-| gen_flux_kontext | ✅ | 🔄 3 jobs |
-| gen_TSIT | 🔄 3 jobs | 🔄 3 jobs |
-| std_cutmix | ✅ | 🔄 3 jobs |
-| std_mixup | ✅ | 🔄 3 jobs |
-
-- Once complete, Stage 1 will be 107/107 (100%)
-
-### Stage 1 Testing Coverage (93.4%)
-
-**Status:** 312/334 complete, 22 jobs pending
-
-| Category | Pending Jobs |
-|----------|-------------|
-| Generative strategies | 14 jobs (gen_CNetSeg, gen_IP2P, gen_Weather_Effect, etc.) |
-| Standard strategies | 8 jobs (photometric_distort, std_minimal, std_randaugment) |
-
-**Note:** Some tests depend on training completion (gen_IP2P, gen_step1x_new tests).
-
-### Stage 2 Training (5.4%)
-
-**Status:** 6/111 strategy-dataset combinations complete
-
-- **Models:** PSPNet, SegFormer only (DeepLabV3+ excluded)
-- **Datasets:** BDD10k, IDD-AW, MapillaryVistas, OUTSIDE15k (adverse conditions)
-- **Training not yet prioritized** - focus is on completing Stage 1 first
-
-### Ratio Ablation Study (mima2416)
-
-**Status:** 🔄 13 jobs running, 54 pending
-
-- Strategies: gen_step1x_new, gen_step1x_v1p2
-- Models: PSPNet, SegFormer  
-- Datasets: BDD10k, IDD-AW, MapillaryVistas, OUTSIDE15k
-- Ratios: 0.0, 0.125, 0.25, 0.375, 0.625, 0.75, 0.875
-
-### Extended Training Ablation (chge7185)
-
-**Status:** 🔄 6 jobs running, 454 pending
-
-- **Owner:** User chge7185
-- **Duration:** 320k iterations (4× standard 80k) + finer iteration checkpoints (110k, 120k, ..., 320k)
-- **Strategies:** gen_automold, gen_flux_kontext, gen_step1x_new, std_randaugment, etc.
-- **Models:** PSPNet, SegFormer
-- **Datasets:** BDD10k, IDD-AW, MapillaryVistas, OUTSIDE15k
-
-**Previous Analysis (Jan 15):**
-- Report: [docs/EXTENDED_TRAINING_ANALYSIS.md](docs/EXTENDED_TRAINING_ANALYSIS.md)
-- Key finding: 160k captures 75% of gains at 50% compute cost
-- Diminishing returns: 90k→160k (+0.75 mIoU), 160k→240k (+0.39), 240k→320k (+0.10)
+### Standard Augmentation Strategies (Stage 2)
+| Strategy | Training | Testing |
+|----------|:--------:|:-------:|
+| baseline | ✅ 12/12 | ✅ 12/12 |
+| photometric_distort | ✅ 12/12 | ✅ 12/12 |
+| std_autoaugment | ✅ 12/12 | ✅ 12/12 |
+| std_randaugment | ✅ 12/12 | ✅ 12/12 |
+| **std_cutmix** | 🔄 0/12 | ⏳ 0/12 | **Training running** |
+| **std_mixup** | 🔄 0/12 | ⏳ 0/12 | **Training running** |
 
 ---
 
 ## Pending Tasks
 
 ### High Priority
+1. **Monitor submitted jobs**
+   - 36 Stage 2 training jobs (gen_cyclediffusion, std_cutmix, std_mixup)
+   - 26 Stage 1 test jobs
+   - 7 Stage 2 test jobs
+   
+2. **After Stage 2 training completes:**
+   - Run \`python scripts/auto_submit_tests_stage2.py\` to submit tests
+   - Update training tracker: \`python scripts/update_training_tracker.py --stage 2\`
 
-1. **Monitor Stage 1 Training/Testing Completion**
-   - Run \`python scripts/update_training_tracker.py\` periodically
-   - Run \`python scripts/update_testing_tracker.py\` after tests complete
-
-2. **Ratio Ablation Analysis** (when jobs complete)
-   - Generate ratio ablation figures
-   - Analyze optimal mixing ratios per strategy
-
-3. **Extended Training Analysis Follow-up** (when chge7185 jobs complete)
-   - Analyze finer iteration granularity (110k, 120k, ..., 320k)
-   - Update convergence curves
+3. **After all tests complete:**
+   - Regenerate leaderboards
+   - Update downstream_results.csv
 
 ### Medium Priority
+4. **Extended Training Testing**
+   - 504 test jobs submitted for extended training analysis
+   - Analyze results with \`analyze_extended_training.py\`
 
-4. **Stage 2 Training Submission**
-   - After Stage 1 is 100% complete
-   - Submit PSPNet and SegFormer models for all strategies
-   - Script: \`./scripts/generate_stage2_training_jobs.py\`
-
-5. **Generate Final Stage 1 Leaderboard**
-   - After all 334 tests complete
-   - Update strategy rankings
+5. **Domain Adaptation Ablation**
+   - 84 configurations ready
+   - Script: \`./scripts/submit_domain_adaptation_ablation.sh --all-strategies\`
 
 ### Low Priority
-
-6. **Domain Adaptation Ablation Study** (optional)
-   - Cross-dataset generalization evaluation
-   - Script ready: \`./scripts/submit_domain_adaptation_ablation.sh --all\`
-
-7. **Augmentation Combination Training** (optional)
-   - Combine top std and gen strategies
-   - Script ready: \`./scripts/submit_combination_training.sh\`
+6. **Publication preparation**
+   - Finalize figures for IEEE paper
+   - Run statistical significance tests
 
 ---
 
-## Recently Completed (Jan 16, 2026)
+## Key Scripts
 
-### Directory Restructuring (Afternoon)
-- ✅ **Created WEIGHTS_STAGE_2 directory** for Stage 2 (all_domains) training
-- ✅ **Moved all _ad directories** from WEIGHTS to WEIGHTS_STAGE_2 (62 directories)
-- ✅ **Removed _cd and _ad suffixes** from all dataset directories
-- ✅ **Updated scripts** for new directory structure:
-  - `unified_training_config.py` - Uses WEIGHTS for Stage 1, WEIGHTS_STAGE_2 for Stage 2
-  - `update_training_tracker.py` - Checks both directories
-  - `auto_submit_tests.py` - Removed _cd suffix lookups
-  - `test_result_analyzer.py` - Updated baseline calculation
-- ✅ **Created separate tracker files**:
-  - `docs/TRAINING_TRACKER_STAGE1.md`
-  - `docs/TRAINING_TRACKER_STAGE2.md`
-
-### Bug Fixes (Morning)
-- ✅ **Fixed path naming issue** in `unified_training_config.py`
-  - Changed `dataset.lower().replace('-', '')` to `dataset.lower()` 
-  - Keeps hyphen in "idd-aw" for consistent folder naming
-
-### Data Migration (Earlier)
-- ✅ **Merged iddaw_cd folders** into idd-aw_cd
-  - 31 models moved/replaced across 11 strategies
-  - All iddaw_cd folders removed
-
-- ✅ **Moved test results** to correct location
-  - 28 test results moved from `results/` to `WEIGHTS/.../test_results_detailed/`
-  - Testing coverage jumped from 288 → 312 complete
-
-### Code Cleanup
-- ✅ **Updated tracker scripts**
-  - Removed iddaw fallback logic from `update_training_tracker.py`
-  - Updated Stage 2 to track all 3 models (DeepLabV3+, PSPNet, SegFormer)
-
-### Training
-- ✅ **gen_IP2P / IDD-AW / DeepLabV3+** - Job 9602408 (DONE)
-
----
-
-## Monitoring Commands
-
+### Job Submission
 \`\`\`bash
-# Check all running/pending jobs
-bjobs -w
+# Stage 1 test submission
+python scripts/auto_submit_tests.py --dry-run
+python scripts/auto_submit_tests.py
 
-# Check specific job types
-bjobs -w | grep ratio_  # Ratio ablation jobs
-bjobs -w | grep fg_     # Test jobs
-bjobs -u chge7185       # Extended training jobs
+# Stage 2 test submission  
+python scripts/auto_submit_tests_stage2.py --dry-run
+python scripts/auto_submit_tests_stage2.py
+
+# Stage 2 pending training (one-time)
+./scripts/submit_stage2_pending.sh --dry-run
+./scripts/submit_stage2_pending.sh
+\`\`\`
+
+### Monitoring
+\`\`\`bash
+# Check all jobs
+bjobs -u mima2416 -w
+
+# Check specific types
+bjobs -w | grep fg_    # Stage 1 tests
+bjobs -w | grep fg2_   # Stage 2 tests
+bjobs -w | grep tr_    # Training jobs
 
 # Update trackers
-cd scripts && python update_training_tracker.py          # Stage 1
-cd scripts && python update_training_tracker.py --stage 2  # Stage 2
-cd scripts && python update_testing_tracker.py
+python scripts/update_training_tracker.py --stage 1
+python scripts/update_training_tracker.py --stage 2
+python scripts/update_testing_tracker.py
+\`\`\`
 
-# Submit missing tests (auto-detection)
-cd scripts && python auto_submit_tests.py --dry-run   # Preview
-cd scripts && python auto_submit_tests.py --limit 20  # Submit up to 20
+### Analysis
+\`\`\`bash
+# Regenerate leaderboards
+python analysis_scripts/generate_stage1_leaderboard.py
+python analysis_scripts/generate_stage2_leaderboard.py
 
-# View job history
-bhist -n 20
+# Analyze test results
+python test_result_analyzer.py --root /scratch/aaa_exchange/AWARE/WEIGHTS --comprehensive
+\`\`\`
+
+---
+
+## Recently Completed (Jan 20, 2026)
+
+### Stage 2 Gap Analysis
+- ✅ Analyzed top 15 strategies coverage in Stage 2
+- ✅ Identified gen_cyclediffusion, std_cutmix, std_mixup as missing
+- ✅ Submitted 36 training jobs for missing strategies
+
+### New Scripts Created
+- ✅ \`scripts/auto_submit_tests_stage2.py\` - Auto-submit Stage 2 test jobs
+- ✅ \`scripts/submit_stage2_pending.sh\` - Submit pending Stage 2 training
+
+### Bug Fixes
+- ✅ Fixed \`conda activate\` → \`mamba activate\` in auto_submit_tests.py
+- ✅ Fixed batch-size parameter (was 1, now 8-10)
+
+---
+
+## Directory Structure
+
+\`\`\`
+WEIGHTS/                     # Stage 1 (clear_day training)
+├── baseline/
+│   ├── bdd10k/
+│   ├── idd-aw/
+│   ├── mapillaryvistas/
+│   └── outside15k/
+├── gen_*/                   # Generative strategies
+└── std_*/                   # Standard augmentation
+
+WEIGHTS_STAGE_2/             # Stage 2 (all domains training)
+├── baseline/
+├── gen_*/
+└── std_*/
+
+WEIGHTS_RATIO_ABLATION/      # Ratio ablation study
+WEIGHTS_EXTENDED/            # Extended training study
 \`\`\`

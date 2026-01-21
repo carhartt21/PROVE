@@ -1,26 +1,27 @@
 # Testing Coverage Report
 
-**Generated:** 2026-01-20 14:13
+**Generated:** 2026-01-21 10:14
 
 ## Summary
 
 | Status | Count | Percentage |
 |--------|------:|----------:|
-| ✅ Complete (valid mIoU) | 312 | 96.9% |
+| ✅ Complete (valid mIoU) | 324 | 100.0% |
 | 🔄 Running | 0 | 0.0% |
 | ⏳ Pending (in queue) | 0 | 0.0% |
 | ⚠️ Buggy (mIoU < 5%) | 0 | 0.0% |
-| ❌ Missing (no results) | 10 | 3.1% |
-| **Total** | **322** | **100%** |
+| 🔃 Stale (wrong checkpoint) | 0 | 0.0% |
+| ❌ Missing (no results) | 0 | 0.0% |
+| **Total** | **324** | **100%** |
 
 ## Per-Dataset Breakdown
 
 ### BDD10k
-- Complete: 80/82 (97.6%)
+- Complete: 81/82 (98.8%)
 - Running: 0
 - Pending (in queue): 0
 - Buggy (mIoU < 5%): 0
-- Missing (no results): 1
+- Missing (no results): 0
 
 ### IDD-AW
 - Complete: 81/81 (100.0%)
@@ -30,18 +31,18 @@
 - Missing (no results): 0
 
 ### MapillaryVistas
-- Complete: 73/81 (90.1%)
+- Complete: 81/81 (100.0%)
 - Running: 0
 - Pending (in queue): 0
 - Buggy (mIoU < 5%): 0
-- Missing (no results): 8
+- Missing (no results): 0
 
 ### OUTSIDE15k
-- Complete: 78/80 (97.5%)
+- Complete: 81/81 (100.0%)
 - Running: 0
 - Pending (in queue): 0
 - Buggy (mIoU < 5%): 0
-- Missing (no results): 1
+- Missing (no results): 0
 
 ## Running Configurations
 
@@ -55,20 +56,13 @@
 
 *No buggy configurations - all tests have valid mIoU.*
 
+## Stale Configurations (need retesting)
+
+*No stale configurations - all tests use correct checkpoints.*
+
 ## Missing Configurations (no test results)
 
-| Strategy | Dataset | Model | Issue |
-|----------|---------|-------|-------|
-| gen_Weather_Effect_Generator | mapillaryvistas | PSPNet | missing |
-| std_autoaugment | mapillaryvistas | DeepLabV3+ | empty |
-| std_autoaugment | outside15k | PSPNet | empty |
-| std_cutmix | bdd10k | PSPNet | empty |
-| std_cutmix | mapillaryvistas | DeepLabV3+ | empty |
-| std_mixup | mapillaryvistas | DeepLabV3+ | empty |
-| std_mixup | mapillaryvistas | PSPNet | empty |
-| std_mixup | mapillaryvistas | SegFormer | empty |
-| std_randaugment | mapillaryvistas | DeepLabV3+ | empty |
-| std_randaugment | mapillaryvistas | PSPNet | empty |
+*No missing configurations.*
 
 ## Complete Configurations
 
@@ -93,11 +87,11 @@
 | gen_TSIT | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF |
 | gen_UniControl | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF |
 | gen_VisualCloze | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF |
-| gen_Weather_Effect_Generator | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF | ✅ DLV3+, SF | ✅ DLV3+, PSP, SF |
+| gen_Weather_Effect_Generator | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF |
 | gen_albumentations_weather | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF |
 | baseline | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF |
-| photometric_distort | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP |
-| std_autoaugment | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF | ✅ PSP, SF | ✅ DLV3+ |
-| std_cutmix | ✅ DLV3+, SF | ✅ DLV3+, PSP, SF | ✅ PSP, SF | ✅ DLV3+, PSP, SF |
-| std_mixup | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF | ⏳ | ✅ DLV3+, PSP, SF |
-| std_randaugment | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF | ✅ SF | ✅ DLV3+, PSP, SF |
+| photometric_distort | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF |
+| std_autoaugment | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF |
+| std_cutmix | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF |
+| std_mixup | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF |
+| std_randaugment | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF |
