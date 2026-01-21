@@ -41,7 +41,56 @@
 
 ---
 
-## 🔄 Active Jobs (Jan 21, 2026 - 14:10)
+## � Performance Investigation: MapillaryVistas 16x Slowdown (Jan 21)
+
+**Observation:** MapillaryVistas tests take ~3.15s/image vs BDD10k ~0.2s/image (16x slower).
+
+### Investigation Summary
+
+| Component | Time/Image | % of Total | Conclusion |
+|-----------|------------|------------|------------|
+| Model Inference | ~30ms | 1% | ✅ Identical for both datasets |
+| Per-class IoU | ~20ms | 0.6% | ✅ Negligible |
+| RGB Label Decode | ~5ms | 0.2% | ✅ Negligible |
+| **Unknown Overhead** | ~3000ms | ~98% | ❓ Not identified |
+
+### Key Findings
+
+1. **Model Inference is NOT the bottleneck:**
+   - BDD10k model (19 classes): ~30.3ms/image
+   - MapillaryVistas model (66 classes): ~30.4ms/image
+   - Difference: 1.00x (identical)
+
+2. **Per-class IoU computation is NOT the bottleneck:**
+   - 66 classes adds only ~0.6% overhead vs 19 classes
+
+3. **Batch size experiments (A100 40GB):**
+   | Batch Size | Time/Image | Notes |
+   |------------|------------|-------|
+   | 10 | ~3.15s | Current default |
+   | 32 | ~3.10s | No improvement |
+   | 64 | ~3.08s | No improvement |
+   | 128 | OOM | Out of memory |
+
+4. **Mystery overhead (~3000ms/image) not yet identified:**
+   - Not in model forward pass
+   - Not in metric computation
+   - Not in label decoding
+   - Possibly in data loading, image preprocessing, or evaluation loop
+
+### Practical Impact
+- MapillaryVistas: 4949 images × 3.15s = ~4.3 hours per test
+- BDD10k: 1857 images × 0.2s = ~6 minutes per test
+- Total 162 MapillaryVistas retests will take significant queue time
+
+### Future Investigation (Low Priority)
+- Profile fine_grained_test.py with detailed timing
+- Check mmseg evaluation pipeline
+- Investigate image loading and preprocessing
+
+---
+
+## �🔄 Active Jobs (Jan 21, 2026 - 14:10)
 
 ### Stage 2 Training (1 job) - Running
 Resume training for incomplete std_cutmix model:

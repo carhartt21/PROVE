@@ -25,6 +25,23 @@
 
 **Expected Completion:** ~4-5 hours per job (4949 images × 7 domains)
 
+## 📊 Performance Issue: MapillaryVistas 16x Slowdown
+
+**Observation:** MapillaryVistas tests take ~3.15s/image vs BDD10k ~0.2s/image.
+
+### Investigation Results (Jan 21)
+
+| Component | Time/Image | Status |
+|-----------|------------|--------|
+| Model Inference | ~30ms | ✅ Identical for both datasets |
+| Per-class IoU | ~20ms | ✅ Negligible overhead |
+| RGB Label Decode | ~5ms | ✅ Negligible overhead |
+| **Unknown Overhead** | ~3000ms | ❓ Not identified |
+
+**Key Finding:** Model inference is NOT the bottleneck. Both 19-class and 66-class models run at identical speed (~30ms/image). The ~3000ms mystery overhead is elsewhere in the test pipeline.
+
+**Practical Impact:** Each MapillaryVistas test takes ~4-5 hours (4949 images × 3.15s).
+
 ---
 
 ## Stage 1: Clear-Day Domain Training
