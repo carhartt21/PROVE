@@ -1,43 +1,97 @@
 # PROVE Project TODO List
 
-**Last Updated:** 2026-01-21 (14:10)
+**Last Updated:** 2026-01-21 (18:10)
 
 ## Current Job Status Summary
 
 ### Stage 1 (Clear Day Domain) - WEIGHTS directory
 | Category | Running | Pending | Complete | Total |
 |----------|--------:|--------:|---------:|------:|
-| Training | 0 | 0 | 107 | 107 |
-| Testing | 81 | ~70 | 0 | 81 |
+| Training | 4 | 77 | 80 | 161 |
+| Testing | 0 | 0 | ~80 | ~80 |
 
-✅ **Stage 1 training 100% complete**
-🔄 **Stage 1 MapillaryVistas retest running (BGR→RGB fix)**
+⚠️ **Stage 1 MapillaryVistas RETRAINING (162 jobs total, 81 per stage)**
+- All MapillaryVistas models invalidated due to BGR/RGB bug in training
 
 ### Stage 2 (All Domains) - WEIGHTS_STAGE_2 directory
 | Category | Running | Pending | Complete | Total |
 |----------|--------:|--------:|---------:|------:|
-| Training | 1 | 0 | 324 | 325 |
-| Testing | 81 | ~70 | 0 | 81 |
+| Training | 4 | 77 | 78 | 159 |
+| Testing | 0 | 0 | ~78 | ~78 |
 
-**Stage 2 Status (as of 2026-01-21 14:10):**
-- **Training:** 324/325 complete (99.7%) - 1 std_cutmix job still running (OUTSIDE15k)
-- **Testing:** MapillaryVistas retest submitted (162 jobs total, 81 per stage)
-- **Key Finding:** BGR→RGB bug fix in fine_grained_test.py - all MapillaryVistas results invalid
+**Stage 2 Status (as of 2026-01-21 18:10):**
+- **Training:** 78/159 complete - MapillaryVistas models retraining
+- **Testing:** On hold until MapillaryVistas retraining completes
 
 ---
 
-## � Critical Bug Fix: BGR→RGB in MapillaryVistas Labels (Jan 21)
+## 🚨 CRITICAL: MapillaryRGBToClassId TRAINING Bug (Jan 21)
 
-**Issue:** MapillaryVistas label decoding used BGR channel order (cv2.imread default) instead of RGB.
+### The Bug
 
-**Impact:** All MapillaryVistas test results were INVALID - colors decoded incorrectly.
+**Root Cause:** `mmcv.imfrombytes()` returns BGR by default, but `MapillaryRGBToClassId` transform was treating input as RGB.
 
-**Fix Applied:** Commit 9313a5e - Changed `r = gt_seg_map[:, :, 0]` to `r = gt_seg_map[:, :, 2]` in fine_grained_test.py.
+**Code Location:** `custom_transforms.py` line ~117
 
-**Retest Status:** 
-- ✅ Submitted 162 retest jobs (81 Stage 1 + 81 Stage 2)
-- 🔄 11 running, ~152 pending
-- Expected completion: ~4-5 hours per job
+**Wrong (before fix):**
+```python
+# Treated BGR input as RGB (WRONG!)
+r = seg_map[:, :, 0]  # Actually B channel
+g = seg_map[:, :, 1]  # G channel (OK)
+b = seg_map[:, :, 2]  # Actually R channel
+```
+
+**Fixed:**
+```python
+# Correct BGR channel indexing
+r = seg_map[:, :, 2]  # R is channel 2 in BGR
+g = seg_map[:, :, 1]  # G is channel 1
+b = seg_map[:, :, 0]  # B is channel 0
+```
+
+### Impact
+
+**Training Impact:** ALL 162 MapillaryVistas models learned WRONG class mappings:
+- Sky RGB (70,130,180) → was decoded as class 42 (Phone Booth) instead of class 27 (Sky)
+- Vegetation RGB (107,142,35) → was decoded as class 25 (Mountain) instead of class 30 (Vegetation)
+- Car RGB (0,0,142) → was decoded as class 54 (Car Mount) instead of class 55 (Car)
+
+**Evidence:** Training logs showed `nan` for Sky and Vegetation IoU from iteration 0
+
+### Fix Applied
+
+**Commit:** d7b2b99 - "fix(training): Fix BGR/RGB channel order in MapillaryRGBToClassId"
+
+**Files Modified:**
+- `custom_transforms.py`: Fixed channel indexing for BGR input
+
+### Retraining Status
+
+| Stage | Jobs Submitted | Running | Pending | Job IDs |
+|-------|---------------|---------|---------|---------|
+| Stage 1 | 81 | ~4 | ~77 | 9739253-9739333 |
+| Stage 2 | 81 | ~4 | ~77 | 9739334-9739414 |
+| **Total** | **162** | **~8** | **~154** | 9739253-9739414 |
+
+**Backup Location:** `/scratch/aaa_exchange/AWARE/WEIGHTS_BACKUP_BUGGY_MAPILLARY/`
+
+**Monitor Progress:**
+```bash
+bjobs -u mima2416 -w | grep "rt_map" | wc -l  # Total jobs
+bjobs -u mima2416 -w | grep "rt_map" | grep " RUN "  # Running jobs
+```
+
+---
+
+## ⚠️ Testing Pipeline SEPARATE Bug (Already Fixed)
+
+**Note:** There was also a BGR/RGB bug in `fine_grained_test.py` for test-time label loading.
+That was fixed in commit 9313a5e (Jan 21).
+
+**However**, the TRAINING bug in `custom_transforms.py` means all MapillaryVistas models 
+learned wrong classes, so even correct test evaluation would show garbage results.
+
+The training bug fix (d7b2b99) is the critical one that requires full retraining.
 
 ---
 
