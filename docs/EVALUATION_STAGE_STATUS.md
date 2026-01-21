@@ -1,13 +1,29 @@
 # Evaluation Stage Status
 
-**Last Updated:** 2026-01-21 (12:35)
+**Last Updated:** 2026-01-21 (14:10)
 
 ## Overview
 
 | Stage | Training | Testing | Status |
 |-------|----------|---------|--------|
-| **Stage 1** | 107/107 (100%) | 346/346 (100%) | ✅ Complete |
-| **Stage 2** | 323/325 (99.4%) | 333/~340 (98%) | 🔄 Training (2 resume), 🔄 Testing (6 running) |
+| **Stage 1** | 107/107 (100%) | 🔄 MapillaryVistas Retest | ✅ Training | 🔄 Retesting (BGR fix) |
+| **Stage 2** | 324/325 (99.7%) | 🔄 MapillaryVistas Retest | 🔄 Training (1 resume) | 🔄 Retesting (BGR fix) |
+
+## 🔧 Critical Bug Fix: BGR→RGB in MapillaryVistas Labels
+
+**Issue Discovered:** MapillaryVistas RGB label decoding used BGR channel order (cv2.imread default).
+
+**Impact:** ALL MapillaryVistas test results were INVALID.
+
+**Fix:** Commit 9313a5e - Changed `r = gt_seg_map[:, :, 0]` to `r = gt_seg_map[:, :, 2]`.
+
+**Retest Status:**
+| Stage | Jobs Submitted | Running | Pending | Job ID Range |
+|-------|----------------|---------|---------|--------------|
+| Stage 1 | 81 | ~6 | ~75 | 9681356-9681666 |
+| Stage 2 | 81 | ~5 | ~76 | 9681687-9681938 |
+
+**Expected Completion:** ~4-5 hours per job (4949 images × 7 domains)
 
 ---
 
@@ -24,8 +40,10 @@
 | Metric | Count | Percentage |
 |--------|-------|------------|
 | Training Complete | 107/107 | 100% |
-| Testing Complete | 346/346 | 100% |
-| Testing Pending | 0 | - |
+| Testing Complete (non-MV) | 265/265 | 100% |
+| MapillaryVistas Retest | 🔄 81 jobs | Running |
+
+**Note:** MapillaryVistas tests invalidated by BGR→RGB bug. Retesting in progress.
 
 ### Strategies (27)
 | Category | Count | Strategies |
@@ -71,10 +89,16 @@
 ### Coverage
 | Metric | Count | Percentage |
 |--------|-------|------------|
-| Training Complete | 323/325 | 99.4% |
-| Training Running | 2 | std_cutmix resume |
-| Testing Complete | 333/~340 | 98% |
-| Testing Running | 6 | MapillaryVistas tests |
+| Training Complete | 324/325 | 99.7% |
+| Training Running | 1 | std_cutmix resume |
+| Testing Complete (non-MV) | 252/252 | 100% |
+| MapillaryVistas Retest | 🔄 81 jobs | Running |
+
+**Note:** MapillaryVistas tests invalidated by BGR→RGB bug. Retesting in progress.
+
+### 🔧 BGR→RGB Bug Fix Impact
+
+All MapillaryVistas test results are being regenerated. See summary at top of document.
 
 ### 🔍 Critical Finding: std_cutmix Artifact
 
@@ -97,21 +121,17 @@
 
 **Fix Status:** Resume training submitted (jobs 9675468, 9675473)
 
-### Active Training Jobs (2) - Resuming
+### Active Training Jobs (1) - Resuming
 | Strategy | Dataset | Model | Progress | Job ID |
 |----------|---------|-------|----------|--------|
-| std_cutmix | BDD10k | pspnet_r50 | 50000→80000 | 9675468 |
 | std_cutmix | OUTSIDE15k | deeplabv3plus_r50 | 40000→80000 | 9675473 |
 
-### Active Test Jobs (6) - Running
-| Strategy | Dataset | Model | Job ID |
-|----------|---------|-------|--------|
-| gen_cycleGAN | MapillaryVistas | pspnet_r50 | 9672242 |
-| gen_stargan_v2 | MapillaryVistas | deeplabv3plus_r50 | 9672788 |
-| gen_Weather_Effect_Generator | MapillaryVistas | pspnet_r50 | 9672789 |
-| gen_step1x_new | MapillaryVistas | pspnet_r50 | 9672790 |
-| std_mixup | MapillaryVistas | deeplabv3plus_r50 | 9673188 |
-| std_mixup | MapillaryVistas | pspnet_r50 | 9673189 |
+### MapillaryVistas Retest Jobs (81) - Running
+All MapillaryVistas Stage 2 tests resubmitted after BGR→RGB fix.
+| Status | Count | Job ID Range |
+|--------|-------|--------------|
+| Running | ~5 | 9681687-9681938 |
+| Pending | ~76 | 9681687-9681938 |
 
 ### Strategies Coverage (All 27)
 | Strategy | Training | Testing | Notes |
@@ -155,10 +175,13 @@
 |--------|---------|---------|
 | Training Domain | Clear-day only | All domains |
 | Total Strategies | 27 | 27 |
-| Training Complete | 107/107 (100%) | 96/132 (73%) |
-| Testing Complete | 346/346 (100%) | 289/292 (99%) |
+| Training Complete | 107/107 (100%) | 324/325 (99.7%) |
+| Testing Complete (non-MV) | 265/265 (100%) | 252/252 (100%) |
+| MapillaryVistas Retest | 🔄 81 jobs running | 🔄 81 jobs running |
 | Baseline mIoU | 41.64% | 44.48% |
-| Best Strategy | gen_Qwen_Image_Edit (43.61%) | gen_UniControl (45.00%) |
+| Best Strategy | gen_Qwen_Image_Edit (43.61%) | TBD (after retest) |
+
+**Note:** MapillaryVistas results pending after BGR→RGB fix.
 
 ---
 
@@ -238,16 +261,20 @@ python analysis_scripts/generate_stage2_leaderboard.py
 
 ## Next Steps
 
-1. **Monitor Active Jobs**
-   - 36 Stage 2 training jobs (~8-12 hours each)
-   - 26 Stage 1 test jobs (~30 min each)
-   - 7 Stage 2 test jobs (~30 min each)
+1. **Monitor MapillaryVistas Retest Jobs**
+   - 162 test jobs (81 Stage 1 + 81 Stage 2)
+   - ~4-5 hours per job
+   - Job IDs: 9681356-9681938
 
-2. **After Training Completes**
-   - Run \`python scripts/auto_submit_tests_stage2.py\` for new tests
-   - Update trackers
+2. **Monitor std_cutmix Training Resume**
+   - Job 9675473: OUTSIDE15k/deeplabv3plus_r50 (40000→80000)
+   - After completion, submit test job
 
-3. **After Testing Completes**
-   - Regenerate \`downstream_results.csv\`
-   - Update Stage 2 leaderboard
-   - Finalize publication figures
+3. **After MapillaryVistas Retests Complete**
+   - Regenerate leaderboards with correct MapillaryVistas results
+   - Update `downstream_results.csv`
+   - Verify leaderboard rankings
+
+4. **Publication Preparation**
+   - Finalize figures with corrected MapillaryVistas data
+   - Run statistical significance tests

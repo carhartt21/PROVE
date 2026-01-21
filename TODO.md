@@ -1,6 +1,6 @@
 # PROVE Project TODO List
 
-**Last Updated:** 2026-01-21 (12:35)
+**Last Updated:** 2026-01-21 (14:10)
 
 ## Current Job Status Summary
 
@@ -8,43 +8,53 @@
 | Category | Running | Pending | Complete | Total |
 |----------|--------:|--------:|---------:|------:|
 | Training | 0 | 0 | 107 | 107 |
-| Testing | 0 | 0 | ~346 | 346 |
+| Testing | 81 | ~70 | 0 | 81 |
 
 ✅ **Stage 1 training 100% complete**
-✅ **Stage 1 testing complete**
+🔄 **Stage 1 MapillaryVistas retest running (BGR→RGB fix)**
 
 ### Stage 2 (All Domains) - WEIGHTS_STAGE_2 directory
 | Category | Running | Pending | Complete | Total |
 |----------|--------:|--------:|---------:|------:|
-| Training | 2 | 0 | 323 | 325 |
-| Testing | 6 | 0 | 333 | ~340 |
+| Training | 1 | 0 | 324 | 325 |
+| Testing | 81 | ~70 | 0 | 81 |
 
-**Stage 2 Status (as of 2026-01-21 12:35):**
-- **Training:** 323/325 complete (99.4%) - 2 std_cutmix jobs running (resume)
-- **Testing:** 333 tests complete, 6 MapillaryVistas tests running
-- **Key Finding:** std_cutmix's +1.45 lead is artifact of missing configs (see below)
+**Stage 2 Status (as of 2026-01-21 14:10):**
+- **Training:** 324/325 complete (99.7%) - 1 std_cutmix job still running (OUTSIDE15k)
+- **Testing:** MapillaryVistas retest submitted (162 jobs total, 81 per stage)
+- **Key Finding:** BGR→RGB bug fix in fine_grained_test.py - all MapillaryVistas results invalid
 
 ---
 
-## 🔄 Active Jobs (Jan 21, 2026 - 12:35)
+## � Critical Bug Fix: BGR→RGB in MapillaryVistas Labels (Jan 21)
 
-### Stage 2 Training (2 jobs) - Running
-Resume training for incomplete std_cutmix models:
+**Issue:** MapillaryVistas label decoding used BGR channel order (cv2.imread default) instead of RGB.
+
+**Impact:** All MapillaryVistas test results were INVALID - colors decoded incorrectly.
+
+**Fix Applied:** Commit 9313a5e - Changed `r = gt_seg_map[:, :, 0]` to `r = gt_seg_map[:, :, 2]` in fine_grained_test.py.
+
+**Retest Status:** 
+- ✅ Submitted 162 retest jobs (81 Stage 1 + 81 Stage 2)
+- 🔄 11 running, ~152 pending
+- Expected completion: ~4-5 hours per job
+
+---
+
+## 🔄 Active Jobs (Jan 21, 2026 - 14:10)
+
+### Stage 2 Training (1 job) - Running
+Resume training for incomplete std_cutmix model:
 | Strategy | Dataset | Model | Progress | Job ID |
 |----------|---------|-------|----------|--------|
-| std_cutmix | BDD10k | pspnet_r50 | 50000→80000 | 9675468 |
 | std_cutmix | OUTSIDE15k | deeplabv3plus_r50 | 40000→80000 | 9675473 |
 
-### Stage 2 Testing (6 jobs) - Running
-MapillaryVistas tests for various strategies:
-| Strategy | Model | Job ID |
-|----------|-------|--------|
-| gen_cycleGAN | pspnet_r50 | 9672242 |
-| gen_stargan_v2 | deeplabv3plus_r50 | 9672788 |
-| gen_Weather_Effect_Generator | pspnet_r50 | 9672789 |
-| gen_step1x_new | pspnet_r50 | 9672790 |
-| std_mixup | deeplabv3plus_r50 | 9673188 |
-| std_mixup | pspnet_r50 | 9673189 |
+### MapillaryVistas Retest (162 jobs) - Running
+All MapillaryVistas tests resubmitted after BGR→RGB fix:
+| Stage | Running | Pending | Job ID Range |
+|-------|---------|---------|--------------|
+| Stage 1 | ~6 | ~75 | 9681356-9681666 |
+| Stage 2 | ~5 | ~76 | 9681687-9681938 |
 
 ---
 
