@@ -517,10 +517,14 @@ class MapillaryRGBToClassId(BaseTransform):
     triplet represents a semantic class. This transform decodes them to class
     indices (0-65) suitable for training.
     
+    IMPORTANT: mmseg's LoadAnnotations (via mmcv.imfrombytes) returns images in
+    BGR order regardless of the backend used. This transform handles both BGR
+    input (from LoadAnnotations) and RGB input (from direct PIL loading).
+    
     Any unrecognized RGB values are mapped to 255 (ignore_index).
     
     Required Keys:
-        - gt_seg_map (np.ndarray): RGB label with shape (H, W, 3)
+        - gt_seg_map (np.ndarray): BGR label with shape (H, W, 3) from LoadAnnotations
         
     Modified Keys:
         - gt_seg_map (np.ndarray): Class indices with shape (H, W), values 0-65 or 255
@@ -545,16 +549,22 @@ class MapillaryRGBToClassId(BaseTransform):
             self.lut_24bit[packed] = class_id
     
     def transform(self, results: dict) -> dict:
-        """Convert RGB labels to class IDs using optimized LUT."""
+        """Convert BGR labels to class IDs using optimized LUT.
+        
+        CRITICAL: mmseg's LoadAnnotations returns BGR images (via mmcv.imfrombytes
+        which defaults to channel_order='bgr'). We must swap channels to RGB before
+        looking up in our RGB-based LUT.
+        """
         if 'gt_seg_map' in results:
             seg_map = results['gt_seg_map']
             
             if seg_map.ndim == 3 and seg_map.shape[-1] == 3:
-                # RGB image - decode to class IDs using direct LUT
-                # Pack RGB values (note: input is RGB, not BGR)
-                r = seg_map[:, :, 0].astype(np.int32)
-                g = seg_map[:, :, 1].astype(np.int32)
-                b = seg_map[:, :, 2].astype(np.int32)
+                # BGR image from LoadAnnotations - swap to RGB for lookup
+                # mmcv.imfrombytes defaults to BGR regardless of backend (pillow/cv2)
+                # Channel 0 = B, Channel 1 = G, Channel 2 = R
+                r = seg_map[:, :, 2].astype(np.int32)  # R is in channel 2
+                g = seg_map[:, :, 1].astype(np.int32)  # G is in channel 1
+                b = seg_map[:, :, 0].astype(np.int32)  # B is in channel 0
                 packed = r * 65536 + g * 256 + b
                 
                 # Direct array indexing - O(1) per pixel
