@@ -43,69 +43,64 @@
 
 ## ✅ OPTIMIZED: MapillaryVistas Testing Pipeline (Jan 21)
 
-### Original Investigation
+### Root Cause Identified
 
-**Original claim:** MapillaryVistas tests took ~3.15s/image vs BDD10k ~0.2s/image (16x slower).
+**Problem:** For 66-class models, transferring full logits (66 × H × W float32) from GPU to CPU then doing argmax on CPU was very slow.
 
-**Actual measurements from job logs:**
-- MapillaryVistas: **106 ms/image** (526s for 4949 images, job 9674640)
-- BDD10k: **180 ms/image** (334s for 1857 images, job 9670470)
+| Component | Before | After | Speedup |
+|-----------|--------|-------|---------|
+| GPU→CPU transfer | 33.59 ms | 0.84 ms | **40x** |
+| Argmax (CPU→GPU) | 44.75 ms | 0.00 ms | **∞** |
+| **Total per image** | 105.54 ms | **35.06 ms** | **3x** |
 
-⚠️ The 3.15s/image figure was incorrect - likely from cold-cache single-image tests.
+**Solution:** Do argmax on GPU before transferring to CPU. Reduces data transfer from 66MB to 1MB per batch.
 
-### Optimizations Applied Anyway (Future-proofing)
+### All Optimizations Applied
 
-#### 1. RGB Label Decoding (O(66 × pixels) → O(pixels))
+#### 1. GPU Argmax Before Transfer (NEW - Biggest Impact!)
 
-The old code iterated 66 times over each image:
+The old code transferred all 66 channels then did argmax on CPU:
 ```python
-# OLD - O(66 * pixels)
-for packed_rgb, class_id in rgb_lookup.items():  # 66 iterations!
-    mask = packed == packed_rgb
-    native_labels[mask] = class_id
+# OLD - transfers 66 channels (66MB per batch)
+pred_seg_map = results[i].cpu().numpy()  
+if pred_seg_map.ndim == 3:
+    pred_seg_map = pred_seg_map.argmax(axis=0)  # Slow CPU argmax
 ```
 
-**Fix:** 24-bit direct lookup table (LUT)
+**Fix:** Argmax on GPU, then transfer single-channel result:
 ```python
-# NEW - O(pixels) 
-native_labels = lut_24bit[packed]  # Single array indexing
+# NEW - transfers 1 channel (1MB per batch)
+if result_tensor.ndim == 3:
+    pred_seg_map = result_tensor.argmax(dim=0).cpu().numpy()
 ```
 
-- Memory: 16MB LUT (built once, reused)
-- Speedup: ~3x on head node
+- Speedup: **3x** total throughput (9.5 → 28.5 images/sec)
 
-#### 2. IoU Metric Computation (O(num_classes × pixels) → O(pixels))
+#### 2. RGB Label Decoding (O(66 × pixels) → O(pixels))
 
-The old code iterated over each class:
-```python
-# OLD - O(66 * pixels)
-for cls in range(num_classes):  # 66 iterations!
-    pred_cls = (pred == cls)
-    ...
-```
+24-bit direct lookup table (LUT) instead of 66 iterations.
+- Speedup: ~3x for label decoding
 
-**Fix:** Vectorized using `np.bincount`
-```python
-# NEW - O(pixels)
-area_pred = np.bincount(pred, minlength=num_classes)
-area_intersect = np.bincount(pred[pred == label], minlength=num_classes)
-```
+#### 3. IoU Metric Computation (O(num_classes × pixels) → O(pixels))
 
-- Speedup: **19x** (35ms → 1.9ms per image for 66 classes)
+Vectorized using `np.bincount` instead of per-class iteration.
+- Speedup: **19x** (35ms → 1.9ms per image)
+
+### Final Performance Comparison
+
+| Dataset | Classes | Before All Opts | After All Opts | Speedup |
+|---------|---------|-----------------|----------------|---------|
+| MapillaryVistas | 66 | ~106 ms/img | **35 ms/img** | **3x** |
+| BDD10k | 19 | ~48 ms/img | **25 ms/img** | **1.9x** |
 
 ### Files Modified
-- `fine_grained_test.py`: Both optimizations
+- `fine_grained_test.py`: All three optimizations
 - `custom_transforms.py`: RGB decoding LUT
 
 ### Verification
 ```bash
-python tools/verify_rgb_decode_simple.py  # Tests RGB decoding
+python tools/profile_full_inference.py --checkpoint <path> --dataset MapillaryVistas
 ```
-
-### Note on Current Retests
-The 162 MapillaryVistas retests submitted before this fix will use the old slow code.
-Future tests will benefit from the optimization.
-
 
 ### Note on Current Retests
 

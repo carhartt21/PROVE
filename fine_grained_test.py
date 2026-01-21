@@ -638,18 +638,29 @@ def process_batch(model, batch_tensors: List[torch.Tensor],
     batch_area_label = np.zeros(eval_num_classes, dtype=np.float64)
     
     # Process each result
+    # OPTIMIZATION: Do argmax on GPU before transferring to CPU
+    # For 66 classes: reduces transfer from 66MB to 1MB per batch
     for i in range(batch_size):
-        # Extract prediction
+        # Extract prediction - apply argmax on GPU before transfer
         if isinstance(results, torch.Tensor):
-            pred_seg_map = results[i].cpu().numpy()
+            result_tensor = results[i]
+            # If logits (3D), do argmax on GPU
+            if result_tensor.ndim == 3:
+                pred_seg_map = result_tensor.argmax(dim=0).cpu().numpy()
+            else:
+                pred_seg_map = result_tensor.cpu().numpy()
         elif isinstance(results, list) and hasattr(results[i], 'pred_sem_seg'):
-            pred_seg_map = results[i].pred_sem_seg.data.cpu().numpy().squeeze()
+            result_tensor = results[i].pred_sem_seg.data.squeeze()
+            if result_tensor.ndim == 3:
+                pred_seg_map = result_tensor.argmax(dim=0).cpu().numpy()
+            else:
+                pred_seg_map = result_tensor.cpu().numpy()
         else:
-            pred_seg_map = results[i].cpu().numpy().squeeze() if isinstance(results[i], torch.Tensor) else results[i]
-        
-        # Take argmax if needed (logits case)
-        if pred_seg_map.ndim == 3:
-            pred_seg_map = pred_seg_map.argmax(axis=0)
+            result_tensor = results[i] if isinstance(results[i], torch.Tensor) else torch.tensor(results[i])
+            if result_tensor.ndim == 3:
+                pred_seg_map = result_tensor.argmax(dim=0).cpu().numpy()
+            else:
+                pred_seg_map = result_tensor.cpu().numpy().squeeze()
         
         gt_seg_map = batch_gt_maps[i]
         
