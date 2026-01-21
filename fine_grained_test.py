@@ -301,10 +301,12 @@ def process_label_for_dataset(gt_seg_map: np.ndarray, dataset_name: str,
             h, w = gt_seg_map.shape[:2]
             native_labels = np.full((h, w), 255, dtype=np.uint8)
             
-            # Pack RGB values for fast lookup
-            r = gt_seg_map[:, :, 0].astype(np.int32)
-            g = gt_seg_map[:, :, 1].astype(np.int32)
-            b = gt_seg_map[:, :, 2].astype(np.int32)
+            # IMPORTANT: cv2.imread loads as BGR, but our lookup uses RGB
+            # Convert BGR to RGB for correct color matching
+            # Channel 0 in cv2 is B, Channel 2 is R
+            r = gt_seg_map[:, :, 2].astype(np.int32)  # OpenCV channel 2 = R
+            g = gt_seg_map[:, :, 1].astype(np.int32)  # OpenCV channel 1 = G  
+            b = gt_seg_map[:, :, 0].astype(np.int32)  # OpenCV channel 0 = B
             packed = r * 65536 + g * 256 + b
             
             # Lookup RGB -> native class ID
