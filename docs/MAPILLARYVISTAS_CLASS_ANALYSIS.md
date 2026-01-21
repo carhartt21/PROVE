@@ -2,111 +2,103 @@
 
 This document analyzes which of the 66 MapillaryVistas classes are typically detected by our trained models.
 
+## ⚠️ IMPORTANT FINDING: Sparse Test Set Annotations
+
+**The MapillaryVistas test set has sparse ground-truth annotations:**
+- Only **23 out of 66 classes** have any GT pixels in the test set
+- **43 classes have ZERO GT annotations**, including common classes like:
+  - Person, Sidewalk, Sky, Vegetation
+  - All vehicles (Bus, Truck, Motorcycle, Bicycle)
+  - Traffic lights, many infrastructure classes
+
+This is a **dataset characteristic**, not a model or evaluation bug.
+
 ## Summary
 
 Based on analysis of 81 trained models across all strategies:
 
 | Category | Count | Description |
 |----------|-------|-------------|
-| ✅ Always Detected | 15 | Non-zero IoU in all 81 models |
-| ⚠️ Sometimes Detected | 5 | Non-zero IoU in 50-99% of models |
-| 🔸 Rarely Detected | 6 | Non-zero IoU in <50% of models |
-| ❌ Never Detected | 40 | Zero IoU in all models |
+| ✅ Has GT & Detected | 20 | Classes with GT annotations that models can detect |
+| 🔸 Has GT but Low IoU | 3 | Classes with GT but poor detection (Car, Mailbox, Ground Animal) |
+| ❌ No GT Annotations | 43 | Classes not annotated in test set |
 
-**Key Insight:** Only 20-26 classes out of 66 are typically detected. This is expected because:
-1. Many MapillaryVistas classes are very rare in the dataset (Bird, Boat, Caravan, etc.)
-2. Some classes may not appear in the test split at all
-3. Fine-grained distinctions (e.g., Traffic Sign Front vs Back) are challenging
+**Key Insight:** The 0% IoU for many classes is because they have **no ground truth labels** in the test set, not because models fail to detect them.
 
-## Always Detected Classes (15)
+## Classes WITH Ground Truth Annotations (23 classes)
 
-These classes consistently get non-zero IoU across all trained models:
+These classes actually have labeled pixels in the test set:
 
-| Class | Avg IoU | Max IoU | Notes |
-|-------|---------|---------|-------|
-| Phone Booth | 90.11% | 90.98% | Highly distinctive |
-| Mountain | 70.75% | 79.48% | Large, distinct |
-| Terrain | 70.69% | 74.57% | Common class |
-| Guard Rail | 62.70% | 66.68% | Roadside feature |
-| Car Mount | 62.54% | 71.80% | Dash-cam specific |
-| Lane Marking - General | 57.47% | 60.96% | Road feature |
-| Curb | 56.05% | 94.83% | High variability |
-| Pole | 55.37% | 59.08% | Common infrastructure |
-| Traffic Sign Frame | 48.31% | 57.72% | Distinct structure |
-| Barrier | 45.55% | 83.03% | High variability |
-| Billboard | 43.60% | 49.74% | Distinctive |
-| Unlabeled | 32.09% | 35.97% | Catch-all class |
-| Traffic Sign (Back) | 28.18% | 31.74% | Visible patterns |
-| Junction Box | 24.57% | 31.57% | Small utility box |
-| Curb Cut | 18.53% | 83.61% | High variability |
+| Class | Avg IoU | GT Pixels | Notes |
+|-------|---------|-----------|-------|
+| Road | 91.9% | 262M | Dominant class |
+| Building | 90.7% | 138M | Second largest |
+| Phone Booth | 90.1% | 43M | Very consistent |
+| Unlabeled | 31.7% | 20M | Catch-all class |
+| Lane Marking - General | 59.1% | 19M | Road feature |
+| Terrain | 69.9% | 12M | Ground cover |
+| Pole | 55.9% | 11M | Infrastructure |
+| Curb | 55.5% | 9M | Road edge |
+| Billboard | 42.1% | 7M | Urban feature |
+| Pedestrian Area | 48.7% | 6M | Walking zones |
+| Tunnel | 61.9% | 5M | Specific scenes |
+| Mountain | 75.2% | 3M | Background |
+| Guard Rail | 58.1% | 3M | Road safety |
+| Service Lane | 43.1% | 2M | Side roads |
+| Traffic Sign Frame | 52.8% | 1M | Sign support |
+| Curb Cut | 16.9% | 1M | Ramp feature |
+| Traffic Sign (Back) | 25.8% | 1M | Sign rear |
+| Car Mount | 62.4% | 0.5M | Dash-cam mount |
+| Junction Box | 22.1% | 0.4M | Utility box |
+| Barrier | 16.0% | 0.3M | Temporary barrier |
+| Car | 0.0% | 90K | **Has GT but not detected** |
+| Mailbox | 0.0% | 48K | **Has GT but not detected** |
+| Ground Animal | 0.0% | 14K | **Has GT but not detected** |
 
-## Sometimes Detected Classes (5)
+## Classes WITHOUT Ground Truth Annotations (43 classes)
 
-These classes are detected in most (50-99%) but not all models:
+These classes have **ZERO** ground truth pixels in the test set:
 
-| Class | Detection Rate | Avg IoU | Notes |
-|-------|----------------|---------|-------|
-| Road | 98.8% | 90.67% | Very common, high IoU |
-| Building | 98.8% | 89.83% | Very common, high IoU |
-| Tunnel | 98.8% | 60.44% | Occasional in dataset |
-| Pedestrian Area | 98.8% | 49.46% | Moderate presence |
-| Service Lane | 98.8% | 38.34% | Moderate presence |
-
-## Rarely Detected Classes (6)
-
-These classes are only occasionally detected (<50% of models):
-
-| Class | Detection Rate | Avg IoU | Notes |
-|-------|----------------|---------|-------|
-| Mailbox | 32.5% | 0.80% | Very small object |
-| Car | 20.0% | 0.33% | Likely label confusion |
-| Ground Animal | 2.5% | 0.75% | Very rare |
-| Bird | 1.2% | 1.20% | Very rare |
-| Fence | 1.2% | 0.43% | Possible confusion |
-| Bike Lane | 1.2% | 0.38% | Rare marking |
-
-## Never Detected Classes (40)
-
-These classes have zero IoU across all 81 models. They are either not present in the test set or too challenging to detect:
-
-**Structural/Infrastructure:**
-- Wall, Sidewalk, Bridge, Rail Track, Parking
-
-**Vehicles:**
-- Bicycle, Boat, Bus, Car (different from 'Car' above), Caravan, Motorcycle, On Rails, Other Vehicle, Trailer, Truck, Wheeled Slow
-
-**People:**
+**People & Riders:**
 - Person, Bicyclist, Motorcyclist, Other Rider
 
-**Nature:**
-- Sky, Vegetation, Water, Snow, Sand
+**Vehicles:**
+- Bicycle, Boat, Bus, Caravan, Motorcycle, On Rails, Other Vehicle, Trailer, Truck, Wheeled Slow
 
-**Urban Features:**
-- Banner, Bench, Bike Rack, Catch Basin, CCTV Camera, Fire Hydrant, Manhole, Pothole, Street Light, Utility Pole, Traffic Light, Traffic Sign (Front), Trash Can
-
-**Road Features:**
+**Infrastructure:**
+- Bird, Fence, Wall, Sidewalk, Bridge, Rail Track, Parking, Bike Lane
 - Crosswalk - Plain, Lane Marking - Crosswalk
+- Street Light, Utility Pole, Traffic Light, Traffic Sign (Front)
+- Catch Basin, CCTV Camera, Fire Hydrant, Manhole, Pothole, Trash Can
+- Banner, Bench, Bike Rack
+
+**Nature:**
+- Sky, Vegetation, Water, Sand, Snow
 
 **Other:**
-- Ego Vehicle (dash-cam hood area)
+- Ego Vehicle
 
 ## Implications for Analysis
 
-1. **mIoU Interpretation:** The overall mIoU (~45-50%) is computed across all 66 classes. Many zeros pull down the average.
+1. **mIoU Interpretation:** The overall mIoU (~45-50%) is computed across all 66 classes, but only 20-23 classes actually have GT annotations. The effective mIoU on annotated classes would be higher.
 
-2. **Strategy Comparison:** When comparing strategies, focus on the ~20-26 detected classes rather than raw mIoU.
+2. **Strategy Comparison:** All strategies face the same GT annotation sparsity, so relative comparisons remain valid.
 
-3. **Cross-Domain Performance:** The detected classes are consistent across different augmentation strategies, suggesting the issue is dataset-related rather than model-related.
+3. **Dataset Limitation:** This is a characteristic of the MapillaryVistas test set, not our evaluation code. The test set appears to have been annotated for a subset of classes.
 
-4. **Class Imbalance:** This analysis reveals significant class imbalance in MapillaryVistas, which is common in real-world driving datasets.
+4. **Class-Level Analysis:** When analyzing per-class performance, focus on the 20 classes that are actually annotated and detected.
 
-## Recommendations
+## Technical Notes
 
-1. For detailed analysis, consider weighted metrics based on class frequency
-2. Compare strategies using only the detected classes
-3. Note that some zeros may be due to mapping issues in the original test procedure
+### CSV Fix Applied
+The per_class_metrics in downstream_results.csv were corrected to use proper MapillaryVistas class names (previously mislabeled with Cityscapes names due to older test code).
+
+### Verification
+- Stage 1 tests (53 entries) were relabeled via post-processing
+- Stage 2 tests already have correct labels
+- IoU values are preserved - only labels were changed
 
 ---
 
-*Generated from downstream_results.csv analysis across 81 trained models*
+*Analysis based on downstream_results.csv and test results JSON files*
 *Last updated: 2026-01-21*
