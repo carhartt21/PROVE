@@ -1,6 +1,6 @@
 # PROVE Project TODO List
 
-**Last Updated:** 2026-01-21 (10:00)
+**Last Updated:** 2026-01-21 (12:35)
 
 ## Current Job Status Summary
 
@@ -16,62 +16,97 @@
 ### Stage 2 (All Domains) - WEIGHTS_STAGE_2 directory
 | Category | Running | Pending | Complete | Total |
 |----------|--------:|--------:|---------:|------:|
-| Training | 36 | 0 | 96 | 132 |
-| Testing | 3 | 0 | 289 | 292 |
+| Training | 2 | 0 | 323 | 325 |
+| Testing | 6 | 0 | 333 | ~340 |
 
-**Stage 2 Status (as of 2026-01-21 10:00):**
-- **Training:** 96/132 complete (73%) - 36 jobs running (gen_cyclediffusion, std_cutmix, std_mixup)
-- **Testing:** 292 tests collected, 3 tests just submitted for missing MapillaryVistas models
-- **Leaderboard Analysis:** See Stage 2 Leaderboard Analysis section below
+**Stage 2 Status (as of 2026-01-21 12:35):**
+- **Training:** 323/325 complete (99.4%) - 2 std_cutmix jobs running (resume)
+- **Testing:** 333 tests complete, 6 MapillaryVistas tests running
+- **Key Finding:** std_cutmix's +1.45 lead is artifact of missing configs (see below)
 
 ---
 
-## 🔄 Active Jobs (Jan 21, 2026)
+## 🔄 Active Jobs (Jan 21, 2026 - 12:35)
 
-### Stage 2 Training (36 jobs) - Running
-Submitted via `submit_stage2_pending.sh` (Jan 20):
-| Strategy | Jobs | IDs |
-|----------|------|-----|
-| gen_cyclediffusion | 12 | 9670343-9670354 |
-| std_cutmix | 12 | 9670355-9670366 |
-| std_mixup | 12 | 9670367-9670378 |
+### Stage 2 Training (2 jobs) - Running
+Resume training for incomplete std_cutmix models:
+| Strategy | Dataset | Model | Progress | Job ID |
+|----------|---------|-------|----------|--------|
+| std_cutmix | BDD10k | pspnet_r50 | 50000→80000 | 9675468 |
+| std_cutmix | OUTSIDE15k | deeplabv3plus_r50 | 40000→80000 | 9675473 |
 
-### Stage 2 Testing (3 jobs) - Pending
-Submitted 2026-01-21 to fill missing MapillaryVistas tests:
-| Strategy | Dataset | Model | Job ID |
-|----------|---------|-------|--------|
-| gen_stargan_v2 | MapillaryVistas | deeplabv3plus_r50_ratio0p50 | 9670915 |
-| gen_Weather_Effect_Generator | MapillaryVistas | pspnet_r50_ratio0p50 | 9670916 |
-| gen_step1x_new | MapillaryVistas | pspnet_r50_ratio0p50 | 9670917 |
+### Stage 2 Testing (6 jobs) - Running
+MapillaryVistas tests for various strategies:
+| Strategy | Model | Job ID |
+|----------|-------|--------|
+| gen_cycleGAN | pspnet_r50 | 9672242 |
+| gen_stargan_v2 | deeplabv3plus_r50 | 9672788 |
+| gen_Weather_Effect_Generator | pspnet_r50 | 9672789 |
+| gen_step1x_new | pspnet_r50 | 9672790 |
+| std_mixup | deeplabv3plus_r50 | 9673188 |
+| std_mixup | pspnet_r50 | 9673189 |
+
+---
+
+## 🔍 Critical Finding: std_cutmix Artifact (Jan 21)
+
+**Issue:** std_cutmix appeared #1 in Stage 2 leaderboard with +1.45 gain over baseline.
+
+**Investigation:** Compared std_cutmix vs baseline per-configuration and found:
+- std_cutmix only has **10/12 configurations** tested
+- Missing configs are **lower-performing** ones:
+  - `bdd10k/pspnet_r50` (baseline: 44.17 mIoU)
+  - `outside15k/deeplabv3plus_r50` (baseline: 30.18 mIoU)
+
+**Calculation:**
+- std_cutmix current avg (10 configs): 45.94 mIoU
+- baseline avg (12 configs): 44.48 mIoU
+- **Estimated std_cutmix avg with all 12 configs: ~44.48 mIoU = 0.00 gain**
+
+**Root Cause:** Training for 2 std_cutmix configs was incomplete:
+- `bdd10k/pspnet_r50`: stopped at iter_50000
+- `outside15k/deeplabv3plus_r50`: stopped at iter_40000
+
+**Fix:** Submitted resume training jobs (9675468, 9675473). After completion:
+1. Submit tests for the 2 completed models
+2. Regenerate Stage 2 leaderboard
+3. Verify std_cutmix equals baseline (~0.00 gain)
 
 ---
 
 ## Stage 2 Leaderboard Analysis (Jan 21, 2026)
 
+### Key Finding: No Strategy Beats Baseline in Stage 2
+
+After investigating the Stage 2 leaderboard, we found:
+1. **std_cutmix's +1.45 lead is an artifact** of missing low-performing configs
+2. **gen_step1x_new** genuinely underperforms (#25, -0.49 vs baseline)
+3. **gen_Weather_Effect_Generator** genuinely underperforms (#24, -0.34 vs baseline)
+
 ### Anomalous Model Counts Investigation
 
 Expected: 12 models per strategy (4 datasets × 3 models)
 
-#### Strategies with MISSING models (11 instead of 12)
-| Strategy | Missing | Status | Job ID |
-|----------|---------|--------|--------|
-| gen_stargan_v2 | mapillaryvistas/deeplabv3plus_r50_ratio0p50 | 🔄 Submitted | 9670915 |
-| gen_Weather_Effect_Generator | mapillaryvistas/pspnet_r50_ratio0p50 | 🔄 Submitted | 9670916 |
-| gen_step1x_new | mapillaryvistas/pspnet_r50_ratio0p50 | 🔄 Submitted | 9670917 |
+#### Strategies with Incomplete Training
+| Strategy | Dataset | Model | Status | Progress |
+|----------|---------|-------|--------|----------|
+| std_cutmix | BDD10k | pspnet_r50 | 🔄 Resuming | 50000→80000 |
+| std_cutmix | OUTSIDE15k | deeplabv3plus_r50 | 🔄 Resuming | 40000→80000 |
 
-**Root Cause:** Tests were not submitted for these MapillaryVistas models.
-
-#### Strategies with EXTRA models (>12 in CSV)
+#### Extra Entry (Harmless)
 | Strategy | Count | Issue |
 |----------|-------|-------|
-| gen_flux_kontext | 16 | Stale CSV entries (4 extra) |
-| gen_Qwen_Image_Edit | 15 | Stale CSV entries (3 extra) |
+| gen_IP2P | 13 | Backup folder with iter_80000.pth |
 
-**Root Cause:** `downstream_results_stage2.csv` contains both:
-- Old entries: `deeplabv3plus_r50`, `pspnet_r50` (without ratio suffix)
-- New entries: `deeplabv3plus_r50_ratio0p50`, `pspnet_r50_ratio0p50`, `segformer_mit-b5_ratio0p50`
+### Stage 1 vs Stage 2 Performance Comparison
 
-**Fix:** Regenerate CSV after pending tests complete to clean stale entries.
+| Strategy | Stage 1 Rank | Stage 2 Rank | Change | Notes |
+|----------|-------------|--------------|--------|-------|
+| gen_step1x_new | #5 (+1.28) | #25 (-0.49) | ↓20 | Artifacts hurt small objects |
+| gen_Qwen_Image_Edit | #1 (+1.97) | TBD | TBD | Still testing |
+| std_cutmix | TBD | #1* (+1.45) | - | *Artifact - actually ~0.00 |
+
+See [STAGE_COMPARISON_ANALYSIS.md](docs/STAGE_COMPARISON_ANALYSIS.md) for full analysis.
 
 ---
 
@@ -102,34 +137,36 @@ Expected: 12 models per strategy (4 datasets × 3 models)
 
 ## Stage 2 Coverage Analysis
 
-### Top 15 Strategies Coverage
+### All Strategies (27 total)
 | Strategy | Training | Testing | Notes |
 |----------|:--------:|:-------:|-------|
-| gen_Qwen_Image_Edit | ✅ 12/12 | ✅ 12/12 | CSV has 15 (stale entries) |
+| baseline | ✅ 12/12 | ✅ 12/12 | |
 | gen_Attribute_Hallucination | ✅ 12/12 | ✅ 12/12 | |
-| gen_cycleGAN | ✅ 12/12 | ✅ 12/12 | |
-| gen_flux_kontext | ✅ 12/12 | ✅ 12/12 | CSV has 16 (stale entries) |
-| gen_step1x_new | ✅ 12/12 | 🔄 11/12 | mapillary/pspnet test submitted (9670917) |
-| gen_stargan_v2 | ✅ 12/12 | 🔄 11/12 | mapillary/deeplabv3plus test submitted (9670915) |
-| **gen_cyclediffusion** | 🔄 0/12 | ⏳ 0/12 | **Training running** |
-| gen_automold | ✅ 12/12 | ✅ 12/12 | |
 | gen_CNetSeg | ✅ 12/12 | ✅ 12/12 | |
-| gen_albumentations_weather | ✅ 12/12 | ✅ 12/12 | |
-| gen_Weather_Effect_Generator | ✅ 12/12 | 🔄 11/12 | mapillary/pspnet test submitted (9670916) |
-| gen_IP2P | ✅ 12/12 | ✅ 12/12 | |
-| gen_SUSTechGAN | ✅ 12/12 | ✅ 12/12 | |
-| std_autoaugment | ✅ 12/12 | ✅ 12/12 | |
 | gen_CUT | ✅ 12/12 | ✅ 12/12 | |
-
-### Standard Augmentation Strategies (Stage 2)
-| Strategy | Training | Testing |
-|----------|:--------:|:-------:|
-| baseline | ✅ 12/12 | ✅ 12/12 |
-| photometric_distort | ✅ 12/12 | ✅ 12/12 |
-| std_autoaugment | ✅ 12/12 | ✅ 12/12 |
-| std_randaugment | ✅ 12/12 | ✅ 12/12 |
-| **std_cutmix** | 🔄 0/12 | ⏳ 0/12 | **Training running** |
-| **std_mixup** | 🔄 0/12 | ⏳ 0/12 | **Training running** |
+| gen_cycleGAN | ✅ 12/12 | ✅ 12/12 | |
+| gen_cyclediffusion | ✅ 12/12 | 🔄 Testing | MapillaryVistas test pending |
+| gen_flux_kontext | ✅ 12/12 | ✅ 12/12 | |
+| gen_Img2Img | ✅ 12/12 | ✅ 12/12 | |
+| gen_IP2P | ✅ 13/12 | ✅ 12/12 | +1 backup folder |
+| gen_LANIT | ✅ 12/12 | ✅ 12/12 | |
+| gen_Qwen_Image_Edit | ✅ 12/12 | ✅ 12/12 | |
+| gen_stargan_v2 | ✅ 12/12 | ✅ 12/12 | |
+| gen_step1x_new | ✅ 12/12 | 🔄 Testing | MapillaryVistas test running |
+| gen_step1x_v1p2 | ✅ 12/12 | ✅ 12/12 | |
+| gen_SUSTechGAN | ✅ 12/12 | ✅ 12/12 | |
+| gen_TSIT | ✅ 12/12 | ✅ 12/12 | |
+| gen_UniControl | ✅ 12/12 | ✅ 12/12 | |
+| gen_VisualCloze | ✅ 12/12 | ✅ 12/12 | |
+| gen_Weather_Effect_Generator | ✅ 12/12 | 🔄 Testing | MapillaryVistas test running |
+| gen_albumentations_weather | ✅ 12/12 | ✅ 12/12 | |
+| gen_augmenters | ✅ 12/12 | ✅ 12/12 | |
+| gen_automold | ✅ 12/12 | ✅ 12/12 | |
+| photometric_distort | ✅ 12/12 | ✅ 12/12 | |
+| std_autoaugment | ✅ 12/12 | ✅ 12/12 | |
+| **std_cutmix** | 🔄 10/12 | ⏳ 10/12 | **2 jobs resuming** |
+| std_mixup | ✅ 12/12 | 🔄 Testing | MapillaryVistas test running |
+| std_randaugment | ✅ 12/12 | ✅ 12/12 | |
 
 ---
 
