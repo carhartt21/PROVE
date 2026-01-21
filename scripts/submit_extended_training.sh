@@ -49,11 +49,10 @@ cd "$PROJECT_ROOT"
 
 # Top 5 strategies by average mIoU with full coverage (4/4 datasets)
 TOP_5_STRATEGIES=(
-    "gen_TSIT"
-    "gen_albumentations_weather"
-    "gen_cycleGAN"
-    "gen_UniControl"
-    "gen_automold"
+    "gen_cyclediffusion"
+    "gen_flux_kontext"
+    "gen_step1x_new"
+    "gen_step1x_v1p2"
 )
 
 # Datasets and models - Stage 1 (Clear Day) training datasets
@@ -63,7 +62,7 @@ DATASETS=("BDD10k" "IDD-AW" "MapillaryVistas" "OUTSIDE15k")
 MODELS=("pspnet_r50" "segformer_mit-b5")
 
 # Default settings
-DEFAULT_MAX_ITERS=160000  # 2x the default 80000
+DEFAULT_MAX_ITERS=320000  # 4x the default 80000
 DEFAULT_QUEUE="BatchGPU"
 DEFAULT_GPU_MEM="24G"
 DEFAULT_GPU_MODE="shared"
@@ -110,7 +109,7 @@ print_usage() {
     done
     echo ""
     echo "Training Extension:"
-    echo "  - Default: 80,000 → 160,000 iterations (2x)"
+    echo "  - Default: 80,000 → 320,000 iterations (4x)"    
     echo "  - Early stopping is DISABLED for full training duration"
     echo "  - Resumes from latest checkpoint to continue training"
     echo ""
@@ -446,7 +445,7 @@ for job in "${JOBS[@]}"; do
     
     # Build training command - call unified_training.py directly
     dataset_lower=$(echo "$dataset" | tr '[:upper:]' '[:lower:]')
-    train_cmd="cd $PROJECT_ROOT && source venv/bin/activate && PROVE_WEIGHTS_ROOT='${OUTPUT_ROOT}' python unified_training.py --dataset $dataset --model $model --strategy $main_strategy --real-gen-ratio 0.5 --no-early-stop --max-iters $MAX_ITERS --resume-from $checkpoint"
+    train_cmd="cd $PROJECT_ROOT && source ~/.bashrc && mamba activate prove && PROVE_WEIGHTS_ROOT='${OUTPUT_ROOT}' python unified_training.py --dataset $dataset --model $model --strategy $main_strategy --real-gen-ratio 0.5 --no-early-stop --max-iters $MAX_ITERS --resume-from $checkpoint"
     
     # Add std_strategy if present
     if [ -n "$std_strategy" ]; then
@@ -458,8 +457,8 @@ for job in "${JOBS[@]}"; do
         -q ${QUEUE} \
         -R \"span[hosts=1]\" \
         -n ${NUM_CPUS} \
-        -oo \"logs/${job_name}_%J.log\" \
-        -eo \"logs/${job_name}_%J.err\" \
+        -oo \"logs/ext/${job_name}_%J.log\" \
+        -eo \"logs/ext/${job_name}_%J.err\" \
         -L /bin/bash \
         -J \"${job_name}\" \
         \"${train_cmd}\""

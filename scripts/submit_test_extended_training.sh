@@ -32,37 +32,27 @@ cd "$PROJECT_ROOT"
 # Configuration
 # ============================================================================
 
-# Top 15 strategies used in extended training
-TOP_15_STRATEGIES=(
-    "std_randaugment+std_mixup"
-    "std_randaugment+std_cutout"
-    "gen_LANIT"
+# Available strategies in WEIGHTS_EXTENDED (gen_* strategies from extended training)
+AVAILABLE_STRATEGIES=(
+    "gen_cyclediffusion"
+    "gen_flux_kontext"
     "gen_step1x_new"
-    "gen_automold"
-    "gen_TSIT"
-    "gen_NST"
-    "gen_CNetSeg"
-    "gen_CUT"
-    "gen_cycleGAN"
-    "gen_ControlNetSeg"
-    "gen_HRDA"
     "std_randaugment"
-    "std_mixup"
-    "std_cutout"
+    "gen_step1x_v1p2"
 )
 
 # Iteration checkpoints to test
 ITERATIONS=(80000 120000 160000 200000 240000 280000 320000)
 
 # Datasets and models
-DATASETS=("ACDC" "BDD10k" "IDD-AW" "MapillaryVistas" "OUTSIDE15k")
-MODELS=("deeplabv3plus_r50" "pspnet_r50" "segformer_mit-b5")
+DATASETS=("BDD10k" "IDD-AW" "MapillaryVistas" "OUTSIDE15k")
+MODELS=("pspnet_r50" "segformer_mit-b5")
 
 # Default LSF settings
 DEFAULT_QUEUE="BatchGPU"
 DEFAULT_GPU_MEM="16G"
 DEFAULT_GPU_MODE="shared"
-DEFAULT_NUM_CPUS=4
+DEFAULT_NUM_CPUS=10
 DEFAULT_WEIGHTS_ROOT="/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED"
 
 # ============================================================================
@@ -193,7 +183,7 @@ NUM_CPUS="$DEFAULT_NUM_CPUS"
 JOB_LIMIT=""
 WEIGHTS_ROOT="$DEFAULT_WEIGHTS_ROOT"
 SKIP_TESTED=false
-ALL_CHECKPOINTS=false
+ALL_CHECKPOINTS=true  # Test all available checkpoints by default
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -300,7 +290,7 @@ if [ ! -d "$WEIGHTS_ROOT" ]; then
 fi
 
 # Iterate through configurations
-for strategy in "${TOP_15_STRATEGIES[@]}"; do
+for strategy in "${AVAILABLE_STRATEGIES[@]}"; do
     # Apply strategy filter
     if [ -n "$FILTER_STRATEGY" ] && [ "$strategy" != "$FILTER_STRATEGY" ]; then
         continue
@@ -328,7 +318,7 @@ for strategy in "${TOP_15_STRATEGIES[@]}"; do
                 continue
             fi
             
-            model_dir="${dataset_dir}/${model}"
+            model_dir="${dataset_dir}/${model}_ratio0p50"
             if [ ! -d "$model_dir" ]; then
                 continue
             fi
