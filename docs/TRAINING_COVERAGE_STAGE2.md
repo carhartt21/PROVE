@@ -1,32 +1,32 @@
 # Training Coverage Report
 
-**Generated:** 2026-01-19 09:44
+**Generated:** 2026-01-21 11:28
 
 ## Summary
 
 | Status | Count | Percentage |
 |--------|------:|----------:|
-| ✅ Complete | 281 | 97.6% |
+| ✅ Complete | 288 | 100.0% |
 | 🔄 Running | 0 | 0.0% |
 | ⏳ Pending (in queue) | 0 | 0.0% |
-| ⚠️ Missing (not started) | 7 | 2.4% |
+| ⚠️ Missing (not started) | 0 | 0.0% |
 | ❌ Failed | 0 | 0.0% |
 | **Total** | **288** | **100%** |
 
 ## Per-Dataset Breakdown
 
 ### BDD10K
-- Complete: 68/72 (94.4%)
+- Complete: 72/72 (100.0%)
 - Running: 0
 - Pending (in queue): 0
-- Missing (not started): 4
+- Missing (not started): 0
 - Failed: 0
 
 ### IDD-AW
-- Complete: 69/72 (95.8%)
+- Complete: 72/72 (100.0%)
 - Running: 0
 - Pending (in queue): 0
-- Missing (not started): 3
+- Missing (not started): 0
 - Failed: 0
 
 ### MAPILLARYVISTAS
@@ -56,15 +56,8 @@
 
 ## Missing Configurations (not started)
 
-| Strategy | Dataset | Model |
-|----------|---------|-------|
-| baseline | bdd10k | SegFormer |
-| gen_CNetSeg | bdd10k | SegFormer (0.5) |
-| gen_CNetSeg | idd-aw | SegFormer (0.5) |
-| gen_flux_kontext | bdd10k | DeepLabV3+ (0.5) |
-| gen_flux_kontext | bdd10k | PSPNet (0.5) |
-| gen_flux_kontext | idd-aw | DeepLabV3+ (0.5) |
-| gen_flux_kontext | idd-aw | PSPNet (0.5) |
+*No configurations missing.*
+
 
 ## Failed Configurations
 
@@ -78,11 +71,11 @@
 | gen_Attribute_Hallucination | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer |
 | gen_augmenters | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer |
 | gen_automold | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer |
-| gen_CNetSeg | ✅ DeepLabV3+, PSPNet | ✅ DeepLabV3+, PSPNet | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer |
+| gen_CNetSeg | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer |
 | gen_CUT | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer |
 | gen_cyclediffusion | ⏳ | ⏳ | ⏳ | ⏳ |
 | gen_cycleGAN | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer |
-| gen_flux_kontext | ✅ SegFormer | ✅ SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer |
+| gen_flux_kontext | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer |
 | gen_Img2Img | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer |
 | gen_IP2P | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer |
 | gen_LANIT | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer |
@@ -96,7 +89,7 @@
 | gen_VisualCloze | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer |
 | gen_Weather_Effect_Generator | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer |
 | gen_albumentations_weather | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer |
-| baseline | ✅ DeepLabV3+, PSPNet | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer |
+| baseline | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer |
 | photometric_distort | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer |
 | std_autoaugment | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer |
 | std_cutmix | ⏳ | ⏳ | ⏳ | ⏳ |

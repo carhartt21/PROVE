@@ -1,14 +1,14 @@
 # Training Tracker - Stage 2 (All Domains)
 
-**Last Updated:** 2026-01-20 08:20
+**Last Updated:** 2026-01-21 11:27
 
 ## Progress Summary
 
 | Category | Total | Complete | Partial | Running | Pending | Failed |
 |----------|-------|----------|---------|---------|---------|--------|
-| **Generative (gen_*)** | 83 | 80 | 0 | 0 | 4 | 0 |
-| **Standard (std_*)** | 24 | 16 | 0 | 0 | 8 | 0 |
-| **TOTAL** | 107 | 96 | 0 | 0 | 12 | 0 |
+| **Generative (gen_*)** | 83 | 84 | 0 | 0 | 0 | 0 |
+| **Standard (std_*)** | 24 | 22 | 2 | 0 | 0 | 0 |
+| **TOTAL** | 107 | 106 | 2 | 0 | 0 | 0 |
 
 ### Generative Image Augmentation Strategies
 
@@ -19,7 +19,7 @@
 | gen_automold | ✅ | ✅ | ✅ | ✅ |  |
 | gen_CNetSeg | ✅ | ✅ | ✅ | ✅ |  |
 | gen_CUT | ✅ | ✅ | ✅ | ✅ |  |
-| gen_cyclediffusion | ⏳ | ⏳ | ⏳ | ⏳ |  |
+| gen_cyclediffusion | ✅ | ✅ | ✅ | ✅ |  |
 | gen_cycleGAN | ✅ | ✅ | ✅ | ✅ |  |
 | gen_flux_kontext | ✅ | ✅ | ✅ | ✅ |  |
 | gen_Img2Img | ✅ | ✅ | ✅ | ✅ |  |
@@ -42,6 +42,6 @@
 | baseline | ✅ | ✅ | ✅ | ✅ |  |
 | photometric_distort | ✅ | ✅ | ✅ | ✅ |  |
 | std_autoaugment | ✅ | ✅ | ✅ | ✅ |  |
-| std_cutmix | ⏳ | ⏳ | ⏳ | ⏳ |  |
-| std_mixup | ⏳ | ⏳ | ⏳ | ⏳ |  |
+| std_cutmix | 2/3 | ✅ | ✅ | 2/3 |  |
+| std_mixup | ✅ | ✅ | ✅ | ✅ |  |
 | std_randaugment | ✅ | ✅ | ✅ | ✅ |  |

@@ -1,15 +1,15 @@
 # Training Coverage Report
 
-**Generated:** 2026-01-20 08:07
+**Generated:** 2026-01-21 08:26
 
 ## Summary
 
 | Status | Count | Percentage |
 |--------|------:|----------:|
-| ✅ Complete | 322 | 99.4% |
+| ✅ Complete | 324 | 100.0% |
 | 🔄 Running | 0 | 0.0% |
 | ⏳ Pending (in queue) | 0 | 0.0% |
-| ⚠️ Missing (not started) | 2 | 0.6% |
+| ⚠️ Missing (not started) | 0 | 0.0% |
 | ❌ Failed | 0 | 0.0% |
 | **Total** | **324** | **100%** |
 
@@ -37,10 +37,10 @@
 - Failed: 0
 
 ### OUTSIDE15K
-- Complete: 79/81 (97.5%)
+- Complete: 81/81 (100.0%)
 - Running: 0
 - Pending (in queue): 0
-- Missing (not started): 2
+- Missing (not started): 0
 - Failed: 0
 
 
@@ -56,10 +56,8 @@
 
 ## Missing Configurations (not started)
 
-| Strategy | Dataset | Model |
-|----------|---------|-------|
-| photometric_distort | outside15k | SegFormer |
-| std_autoaugment | outside15k | SegFormer |
+*No configurations missing.*
+
 
 ## Failed Configurations
 
@@ -92,8 +90,8 @@
 | gen_Weather_Effect_Generator | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer |
 | gen_albumentations_weather | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer |
 | baseline | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer |
-| photometric_distort | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet |
-| std_autoaugment | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet |
+| photometric_distort | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer |
+| std_autoaugment | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer |
 | std_cutmix | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer |
 | std_mixup | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer |
 | std_randaugment | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer |

@@ -108,8 +108,14 @@ def parse_per_domain_metrics(row) -> Dict[str, float]:
     try:
         metrics = row['per_domain_metrics']
         if isinstance(metrics, str):
-            import json
-            metrics = json.loads(metrics)  # Convert JSON string to dict
+            import ast
+            # Use ast.literal_eval for Python dict syntax (single quotes)
+            # Fall back to json.loads for JSON format (double quotes)
+            try:
+                metrics = ast.literal_eval(metrics)
+            except (ValueError, SyntaxError):
+                import json
+                metrics = json.loads(metrics)
         
         result = {}
         for domain, data in metrics.items():

@@ -13,13 +13,12 @@ Training context matters significantly for augmentation strategy effectiveness:
 
 ### 1. Gain Reduction in Stage 2
 
-All strategies except std_cutmix showed **reduced gain over baseline** when moving from Stage 1 to Stage 2:
+All strategies showed **reduced gain over baseline** when moving from Stage 1 to Stage 2:
 
 | Statistic | Value |
 |-----------|-------|
 | Average gain reduction | -0.77 mIoU |
 | Max gain reduction | -1.93 (gen_Qwen_Image_Edit) |
-| Only strategy with gain increase | std_cutmix (+1.18) |
 
 ### 2. Ranking Changes (Stage 1 → Stage 2)
 
@@ -27,7 +26,6 @@ All strategies except std_cutmix showed **reduced gain over baseline** when movi
 
 | Strategy | S1 Rank | S2 Rank | Change | S1 Gain | S2 Gain |
 |----------|---------|---------|--------|---------|---------|
-| std_cutmix | 26 | 1 | **+25** | +0.27 | +1.45 |
 | gen_UniControl | 20 | 2 | **+18** | +0.85 | +0.51 |
 | gen_augmenters | 24 | 7 | **+17** | +0.63 | +0.44 |
 | gen_LANIT | 23 | 10 | **+13** | +0.68 | +0.34 |
