@@ -1,200 +1,97 @@
 # PROVE Project TODO List
 
-**Last Updated:** 2026-01-18
-
-## In Progress
-
-### Combination Ablation Study (RUNNING)
-- [x] Created `scripts/submit_combination_training.sh`
-- [x] Expanded strategy configuration (2026-01-18)
-  - Added gen_stargan_v2, gen_Attribute_Hallucination, photometric_distort
-  - 5 generative × 5 standard = 25 gen+std combinations (100 jobs)
-  - C(5,2) = 10 std+std combinations (40 jobs)
-  - Total: 140 jobs across 2 datasets × 2 models
-- [x] Submitted all 140 combination jobs
-  - Gen+std: 47 complete, 53 submitted
-  - Std+std: 40 submitted
-  - Jobs: 9625286, 9635126-9635319 (duplicates removed)
-- [x] Fixed testing tracker (_cd suffix bugs)
-  - Now correctly displays 183 completed test results
-- [x] Ran preliminary analysis on 47 gen+std results
-  - Mean mIoU: 47.20-47.88
-  - Top: gen_Qwen_Image_Edit+std_randaugment (47.88)
-- [ ] Wait for remaining 93 jobs to complete (~40-48 hours)
-- [ ] Run comprehensive analysis: `python analysis_scripts/analyze_combination_ablation.py`
-- [ ] Compare gen+std vs std+std effectiveness
-- [ ] Generate final report and figures
-
-### Extended Training Testing
-- [x] Modified `submit_test_extended_training.sh` to use `fine_grained_test.py`
-- [x] Added `find_dataset_dir()` function to handle directory naming variations
-- [x] Submitted 504 test jobs (9 strategies × 4 datasets × 2 models × 7 iterations)
-- [ ] Wait for all extended training test jobs to complete
-- [ ] Analyze complete results with `analyze_extended_training.py`
-- [ ] Generate final IEEE figures with full dataset
-
-### Domain Adaptation Ablation (READY)
-- [x] Updated `submit_domain_adaptation_ablation.sh` for correct weights paths
-- [x] Fixed `conda activate` → `mamba activate`
-- [x] Script now uses WEIGHTS_STAGE_2 for full dataset, WEIGHTS for clear_day
-- [x] Added support for Top 15 augmentation strategies
-- [x] Updated documentation with strategy tables
-- [ ] Submit baseline jobs (8 available): `./scripts/submit_domain_adaptation_ablation.sh --all-full`
-- [ ] Submit strategy jobs (76 available): `./scripts/submit_domain_adaptation_ablation.sh --all-strategies`
-- [ ] Analyze results with `analyze_domain_adaptation_ablation.py`
-
-### Analysis Scripts
-- [x] Updated `analyze_extended_training.py` with Pattern 5 for new output format
-- [x] Created `generate_ieee_figures_extended_training.py` for publication figures
-- [x] Updated documentation in `docs/EXTENDED_TRAINING.md`
-- [x] Updated `docs/TESTING_TRACKER.md` with extended training section
-- [x] Updated `docs/DOMAIN_ADAPTATION_ABLATION.md` with correct paths
-
-## Pending
-
-### Publication
-- [ ] Finalize extended training analysis figures
-- [ ] Run statistical significance tests on extended training results
-- [ ] Prepare tables for publication
-
-### Job Monitoring
-- [ ] Monitor combination ablation jobs: `bjobs | grep combo_`
-- [ ] Monitor extended training test jobs: `bjobs | grep test_ext`
-- [ ] Check for failed jobs and resubmit if needed
-- [ ] Document any strategies that fail consistently
-
-## Completed
-
-### Testing Tracker Fix (2026-01-18)
-- [x] **Fixed update_testing_tracker.py `_cd` suffix bugs**
-  - Removed `_cd` suffix from 4 locations causing directory mismatches
-  - Line 217: `load_miou_results()` function
-  - Line 342: `check_test_results()` function
-  - Lines 173, 182-183: `load_existing_results()` function
-  - Line 307: `parse_running_jobs()` function
-  - Result: Now correctly displays 183 completed test results with actual mIoU values
-
-### Combination Ablation Infrastructure (2026-01-18)
-- [x] **Expanded combination ablation study to 140 total jobs**
-  - Added gen_stargan_v2, gen_Attribute_Hallucination strategies
-  - Added photometric_distort standard strategy
-  - Updated script configuration (5 gen × 5 std = 25 combinations)
-  - Added 4 new std+std pairs with photometric_distort
-  - Total: 100 gen+std + 40 std+std jobs
-- [x] **Submitted and cleaned queue**
-  - Submitted 93 new jobs (47 already complete)
-  - Identified and removed 25 duplicate jobs
-  - Final queue: 93 unique jobs (6 running, 87 pending)
-- [x] **Updated analysis script**
-  - Changed path to WEIGHTS_COMBINATIONS_chge7185
-  - Added new strategies to COMPONENT_FAMILIES
-  - Added permission error handling for restricted directories
-  - Successfully analyzed 47 gen+std results
-
-### Combination Ablation Infrastructure (2026-01-16)
-- [x] Created `scripts/submit_combination_training.sh`
-- [x] Script supports gen+std and std+std combinations
-- [x] Automatic testing integrated with `fine_grained_test.py`
-- [x] Explicit work directory setting for WEIGHTS_COMBINATIONS
-- [x] Skip logic for already completed models
-- [x] Updated `docs/COMBINATION_ABLATION.md` with new configuration
-
-### Domain Adaptation Infrastructure (2026-01-23)
-- [x] Script updated to use WEIGHTS_STAGE_2 for full dataset models
-- [x] Script updated to use WEIGHTS for clear_day models
-- [x] Documentation updated with checkpoint availability table
-- [x] 8 jobs available: 5 full dataset + 3 clear_day
-
-### Extended Training Infrastructure (2026-01-23)
-- [x] All 9 strategies have complete checkpoints (40k-160k iterations)
-- [x] Test command uses `fine_grained_test.py` for per-domain metrics
-- [x] Directory naming variations handled (`bdd10k_ad`, `iddaw_ad`, etc.)
-- [x] Test output stored in `test_results_iter_{N}/{timestamp}/results.json`
-- [x] Analysis scripts support new output format
-- [x] IEEE figure generation working with partial results (66 results)
-
-### Documentation Updates (2026-01-23)
-- [x] EXTENDED_TRAINING.md - Added testing and analysis sections
-- [x] TESTING_TRACKER.md - Added extended training section
-- [x] DOMAIN_ADAPTATION_ABLATION.md - Updated checkpoint paths
-
-## Notes
-
-### Domain Adaptation Checkpoint Availability
-
-**Baseline Models:** 8 / 12 available
-**Strategy Models:** 76 / 90 available  
-**Total:** 84 configurations ready for evaluation
-
-| Dataset | Model | Full (WEIGHTS_STAGE_2) | Clear_day (WEIGHTS) |
-|---------|-------|:----------------------:|:-------------------:|
-| BDD10k | pspnet_r50 | ✅ | ✅ |
-| BDD10k | segformer_mit-b5 | ❌ | ✅ |
-| IDD-AW | pspnet_r50 | ✅ | ❌ |
-| IDD-AW | segformer_mit-b5 | ✅ | ❌ |
-| MapillaryVistas | pspnet_r50 | ✅ | ✅ |
-| MapillaryVistas | segformer_mit-b5 | ❌ | ✅ |
-
-**Top 15 Strategies:** gen_cyclediffusion, gen_flux_kontext, gen_step1x_new, gen_step1x_v1p2, gen_stargan_v2, gen_cycleGAN, gen_automold, gen_albumentations_weather, gen_TSIT, gen_UniControl, std_randaugment, std_autoaugment, std_cutmix, std_mixup, photometric_distort
-
-### Extended Training Test Configuration
-- **Strategies:** gen_albumentations_weather, gen_automold, gen_cyclediffusion, gen_cycleGAN, gen_flux_kontext, gen_step1x_new, gen_TSIT, gen_UniControl, std_randaugment
-- **Datasets:** BDD10k, IDD-AW, MapillaryVistas, OUTSIDE15k
-- **Models:** segformer_mit-b5, pspnet_r50
-- **Iterations:** 40000, 60000, 80000, 100000, 120000, 140000, 160000
-- **Total Jobs:** 504
-
-### Key Scripts
-- `scripts/submit_test_extended_training.sh` - Submit extended training test jobs
-- `scripts/submit_domain_adaptation_ablation.sh` - Submit domain adaptation jobs
-- `analysis_scripts/analyze_extended_training.py` - Analyze extended training results
-- `analysis_scripts/generate_ieee_figures_extended_training.py` - Generate IEEE figures
-- `fine_grained_test.py` - Per-domain, per-class testing
-
-### Output Directories
-- Extended training tests: `{WEIGHTS_EXTENDED}/{strategy}/{dataset}/{model}_ratio0p50/test_results_iter_{N}/`
-- Extended training figures: `result_figures/extended_training/{ieee/,preview/,data/}`
-- Domain adaptation results: `{WEIGHTS}/domain_adaptation_ablation/`
-# TODO - Upcoming Tasks
-
-*Last updated: 2026-01-16 (16:00)*
+**Last Updated:** 2026-01-21 (18:10)
 
 ## Current Job Status Summary
 
 ### Stage 1 (Clear Day Domain) - WEIGHTS directory
-| Category | Running | Pending | Done | Total |
-|----------|--------:|--------:|-----:|------:|
-| Training | 21 | 0 | 101 | 107* |
-| Testing | 2 | 5 | 328 | 335 |
+| Category | Running | Pending | Complete | Total |
+|----------|--------:|--------:|---------:|------:|
+| Training | 4 | 77 | 80 | 161 |
+| Testing | 0 | 0 | ~80 | ~80 |
 
-*Note: Reduced from 111 to 107 strategies after removing std_minimal (not useful)
+⚠️ **Stage 1 MapillaryVistas RETRAINING (162 jobs total, 81 per stage)**
+- All MapillaryVistas models invalidated due to BGR/RGB bug in training
 
-### Stage 2 (All Domains - Adverse Weather) - WEIGHTS_STAGE_2 directory
-| Category | Running | Pending | Done | Partial | Total |
-|----------|--------:|--------:|-----:|--------:|------:|
-| Training | 0 | 57 | 6 | 48 | 111 |
-| Testing | - | - | - | - | - |
+### Stage 2 (All Domains) - WEIGHTS_STAGE_2 directory
+| Category | Running | Pending | Complete | Total |
+|----------|--------:|--------:|---------:|------:|
+| Training | 4 | 77 | 78 | 159 |
+| Testing | 0 | 0 | ~78 | ~78 |
 
-**Note:** Stage 2 uses all 3 models (DeepLabV3+, PSPNet, SegFormer).
-Partial indicates configurations where 1/3 or 2/3 models are complete.
-
-### Ablation Studies
-| Study | Owner | Running | Pending | Total |
-|-------|-------|--------:|--------:|------:|
-| Ratio Ablation | mima2416 | 13 | 54 | 112 |
-| Extended Training | chge7185 | 6 | 454 | 460 |
+**Stage 2 Status (as of 2026-01-21 18:10):**
+- **Training:** 78/159 complete - MapillaryVistas models retraining
+- **Testing:** On hold until MapillaryVistas retraining completes
 
 ---
 
-## ✅ RESOLVED: Wrong num_classes Models (Jan 16)
+## 🚨 CRITICAL: MapillaryRGBToClassId TRAINING Bug (Jan 21)
 
-**Issue:** Some models were trained with wrong number of classes.
-**Resolution:** Removed incorrect checkpoints and submitted 21 retraining jobs.
+### The Bug
 
-| Dataset | Expected Classes | Actions Taken |
-|---------|------------------|---------------|
-| MapillaryVistas | 66 | Removed wrong models, retraining 6 jobs |
-| OUTSIDE15k | 24 | Removed wrong models, retraining 15 jobs |
+**Root Cause:** `mmcv.imfrombytes()` returns BGR by default, but `MapillaryRGBToClassId` transform was treating input as RGB.
+
+**Code Location:** `custom_transforms.py` line ~117
+
+**Wrong (before fix):**
+```python
+# Treated BGR input as RGB (WRONG!)
+r = seg_map[:, :, 0]  # Actually B channel
+g = seg_map[:, :, 1]  # G channel (OK)
+b = seg_map[:, :, 2]  # Actually R channel
+```
+
+**Fixed:**
+```python
+# Correct BGR channel indexing
+r = seg_map[:, :, 2]  # R is channel 2 in BGR
+g = seg_map[:, :, 1]  # G is channel 1
+b = seg_map[:, :, 0]  # B is channel 0
+```
+
+### Impact
+
+**Training Impact:** ALL 162 MapillaryVistas models learned WRONG class mappings:
+- Sky RGB (70,130,180) → was decoded as class 42 (Phone Booth) instead of class 27 (Sky)
+- Vegetation RGB (107,142,35) → was decoded as class 25 (Mountain) instead of class 30 (Vegetation)
+- Car RGB (0,0,142) → was decoded as class 54 (Car Mount) instead of class 55 (Car)
+
+**Evidence:** Training logs showed `nan` for Sky and Vegetation IoU from iteration 0
+
+### Fix Applied
+
+**Commit:** d7b2b99 - "fix(training): Fix BGR/RGB channel order in MapillaryRGBToClassId"
+
+**Files Modified:**
+- `custom_transforms.py`: Fixed channel indexing for BGR input
+
+### Retraining Status
+
+| Stage | Jobs Submitted | Running | Pending | Job IDs |
+|-------|---------------|---------|---------|---------|
+| Stage 1 | 81 | ~4 | ~77 | 9739253-9739333 |
+| Stage 2 | 81 | ~4 | ~77 | 9739334-9739414 |
+| **Total** | **162** | **~8** | **~154** | 9739253-9739414 |
+
+**Backup Location:** `/scratch/aaa_exchange/AWARE/WEIGHTS_BACKUP_BUGGY_MAPILLARY/`
+
+**Monitor Progress:**
+```bash
+bjobs -u mima2416 -w | grep "rt_map" | wc -l  # Total jobs
+bjobs -u mima2416 -w | grep "rt_map" | grep " RUN "  # Running jobs
+```
+
+---
+
+## ⚠️ Testing Pipeline SEPARATE Bug (Already Fixed)
+
+**Note:** There was also a BGR/RGB bug in `fine_grained_test.py` for test-time label loading.
+That was fixed in commit 9313a5e (Jan 21).
+
+**However**, the TRAINING bug in `custom_transforms.py` means all MapillaryVistas models 
+learned wrong classes, so even correct test evaluation would show garbage results.
+
+The training bug fix (d7b2b99) is the critical one that requires full retraining.
 
 **Strategies Removed (permanently):**
 - `std_minimal` - Not useful, removed from all datasets
@@ -384,28 +281,3 @@ WEIGHTS_STAGE_2/             # Stage 2 (all domains)
 ### Training
 - ✅ **gen_IP2P / IDD-AW / DeepLabV3+** - Job 9602408 (DONE)
 
----
-
-## Monitoring Commands
-
-\`\`\`bash
-# Check all running/pending jobs
-bjobs -w
-
-# Check specific job types
-bjobs -w | grep ratio_  # Ratio ablation jobs
-bjobs -w | grep fg_     # Test jobs
-bjobs -u chge7185       # Extended training jobs
-
-# Update trackers
-cd scripts && python update_training_tracker.py          # Stage 1
-cd scripts && python update_training_tracker.py --stage 2  # Stage 2
-cd scripts && python update_testing_tracker.py
-
-# Submit missing tests (auto-detection)
-cd scripts && python auto_submit_tests.py --dry-run   # Preview
-cd scripts && python auto_submit_tests.py --limit 20  # Submit up to 20
-
-# View job history
-bhist -n 20
-\`\`\`
