@@ -1,6 +1,6 @@
 # Study Coverage Analysis
 
-**Last Updated:** 2026-01-22 (11:15)
+**Last Updated:** 2026-01-22 (14:30)
 
 ## Summary
 
@@ -8,22 +8,24 @@
 |-------|------|-------------|------------|--------|
 | **Stage 1** | `WEIGHTS/` | 306 | 27 | 🔄 MapillaryVistas retraining |
 | **Stage 2** | `WEIGHTS_STAGE_2/` | 244 | 27 | ⏳ MapillaryVistas pending |
-| **Ratio Ablation** | `WEIGHTS_RATIO_ABLATION/` | 119 | 6 | ✅ MV moved to backup |
-| **Extended Training** | `WEIGHTS_EXTENDED/` | ~700+ | 5 | ✅ MV moved to backup |
-| **Combinations** | `WEIGHTS_COMBINATIONS/` | ~55 | 27 | ✅ MV moved to backup |
+| **Ratio Ablation** | `WEIGHTS_RATIO_ABLATION/` | 119 | 6 | 📦 MV backed up (buggy) |
+| **Extended Training** | `WEIGHTS_EXTENDED/` | ~700+ | 5 | 📦 MV backed up (buggy) |
+| **Combinations** | `WEIGHTS_COMBINATIONS/` | ~55 | 27 | 📦 MV backed up (buggy) |
 | **Domain Adaptation** | Testing-only | Top 5 + baseline | ⏳ Not started |
 
 ### MapillaryVistas BGR/RGB Bug Status
 
-The BGR/RGB bug in `custom_transforms.py` affected all MapillaryVistas training. Buggy checkpoints are being handled:
+The BGR/RGB bug in `custom_transforms.py` affected all MapillaryVistas training. Buggy checkpoints have been backed up:
 
 | Study | Owner | MV Checkpoint Status | Backup Location |
 |-------|-------|---------------------|-----------------|
 | **Stage 1** | mima2416 | 🔄 Being retrained | In-place replacement |
 | **Stage 2** | mima2416 | ⏳ Pending retrain | Queued after Stage 1 |
-| **Ratio Ablation** | mima2416 | ✅ **Backed up (52 ckpts)** | `WEIGHTS_BACKUP_BUGGY_MAPILLARY/ratio_ablation/` |
-| **Extended Training** | chge7185 | ✅ **Backed up (logs only)** | `WEIGHTS_BACKUP_BUGGY_MAPILLARY/extended_training/` |
-| **Combinations** | chge7185 | ✅ **Backed up (54 ckpts)** | `WEIGHTS_BACKUP_BUGGY_MAPILLARY/combinations/` |
+| **Ratio Ablation** | mima2416 | 📦 **Backed up (52 ckpts)** | `WEIGHTS_BACKUP_BUGGY_MAPILLARY/ratio_ablation/` |
+| **Extended Training** | chge7185 | 📦 **Backed up (logs only)** | `WEIGHTS_BACKUP_BUGGY_MAPILLARY/extended_training/` |
+| **Combinations** | chge7185 | 📦 **Backed up (54 ckpts)** | `WEIGHTS_BACKUP_BUGGY_MAPILLARY/combinations/` |
+
+**Note:** Backed up checkpoints are INVALID and cannot be used. Awaiting retrain after Stage 1/2 completes.
 
 ---
 
@@ -44,11 +46,11 @@ The BGR/RGB bug in `custom_transforms.py` affected all MapillaryVistas training.
 | gen_Img2Img | ✅ 3/3 | ✅ 3/3 | 🔄 3/3 | ✅ 3/3 | 12 |
 | gen_LANIT | ✅ 3/3 | ✅ 3/3 | 🔄 3/3 | ✅ 3/3 | 12 |
 | gen_Qwen_Image_Edit | ✅ 3/3 | ✅ 3/3 | 🔄 3/3 | ✅ 3/3 | 12 |
-| gen_SUSTechGAN | ✅ 3/3 | ✅ 3/3 | ❌ | ✅ 3/3 | 9 |
-| gen_TSIT | ✅ 3/3 | ✅ 3/3 | ❌ | ✅ 3/3 | 9 |
-| gen_UniControl | ✅ 3/3 | ✅ 3/3 | ❌ | ✅ 3/3 | 9 |
-| gen_VisualCloze | ✅ 3/3 | ✅ 3/3 | ❌ | ✅ 3/3 | 9 |
-| gen_Weather_Effect_Generator | ✅ 3/3 | ✅ 3/3 | ❌ | ✅ 3/3 | 9 |
+| gen_SUSTechGAN | ✅ 3/3 | ✅ 3/3 | 🔄 2/3 | ✅ 3/3 | 11 |
+| gen_TSIT | ✅ 3/3 | ✅ 3/3 | ⏸️ | ✅ 3/3 | 9 |
+| gen_UniControl | ✅ 3/3 | ✅ 3/3 | ⏸️ | ✅ 3/3 | 9 |
+| gen_VisualCloze | ✅ 3/3 | ✅ 3/3 | ⏸️ | ✅ 3/3 | 9 |
+| gen_Weather_Effect_Generator | ✅ 3/3 | ✅ 3/3 | ⏸️ | ✅ 3/3 | 9 |
 | gen_albumentations_weather | ✅ 3/3 | ✅ 3/3 | 🔄 3/3 | ✅ 3/3 | 12 |
 | gen_augmenters | ✅ 3/3 | ✅ 3/3 | 🔄 3/3 | ✅ 3/3 | 12 |
 | gen_automold | ✅ 3/3 | ✅ 3/3 | 🔄 3/3 | ✅ 3/3 | 12 |
@@ -64,11 +66,15 @@ The BGR/RGB bug in `custom_transforms.py` affected all MapillaryVistas training.
 | std_mixup | ✅ 3/3 | ✅ 3/3 | 🔄 3/3 | ✅ 3/3 | 12 |
 | std_randaugment | ✅ 3/3 | ✅ 3/3 | 🔄 3/3 | ✅ 3/3 | 12 |
 
-**Legend:** 🔄 = Retraining in progress (BGR/RGB fix)
+**Legend:** 🔄 = Retraining in progress (BGR/RGB fix) | ⏸️ = Never trained (lower priority)
 
 ### Notes
 - MapillaryVistas models being retrained due to BGR/RGB bug in `custom_transforms.py`
-- Some strategies missing MapillaryVistas data (gen_SUSTechGAN, gen_TSIT, gen_UniControl, gen_VisualCloze, gen_Weather_Effect_Generator)
+- **Strategies never trained for Stage 1 MapillaryVistas** (lower priority):
+  - `gen_TSIT`: Has 45k generated images, trained in ratio_ablation only, never in main Stage 1
+  - `gen_UniControl`: Has 45k generated images, trained in extended_training only
+  - `gen_VisualCloze`: Limited generated images (~5k), skipped for Stage 1
+  - `gen_Weather_Effect_Generator`: Has ~15k generated images, skipped for Stage 1
 
 ---
 
@@ -289,6 +295,7 @@ Evaluate **cross-dataset domain generalization** using existing models:
 | 🔶 1/3 | 1 of 3 models complete |
 | 🔄 | Retraining in progress |
 | ⏳ | Pending/queued |
-| ❌ | Not available |
-| 📦 | Backed up (buggy, awaiting retrain) |
+| ⏸️ | Never trained (lower priority, generated data available) |
+| ❌ | Not available / no data |
+| 📦 | Backed up (buggy checkpoints, INVALID, awaiting retrain) |
 | ⚠️ INVALID | Trained with bug, cannot use results |
