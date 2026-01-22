@@ -74,7 +74,8 @@ DATA_ROOT = Path("/scratch/aaa_exchange/AWARE/FINAL_SPLITS")
 WEIGHTS_ROOT = Path("/scratch/aaa_exchange/AWARE/WEIGHTS")
 
 # Source datasets (models trained on these)
-SOURCE_DATASETS = ['bdd10k', 'idd-aw', 'mapillaryvistas']
+# SOURCE_DATASETS = ['bdd10k', 'idd-aw', 'mapillaryvistas']
+SOURCE_DATASETS = ['bdd10k', 'idd-aw']
 
 # Target domains for evaluation
 TARGET_DOMAINS = {
@@ -89,6 +90,43 @@ TARGET_DOMAINS = {
 
 # Models to test
 MODELS_TO_TEST = ['pspnet_r50', 'segformer_mit-b5', 'deeplabv3plus_r50']
+
+# All available strategies
+ALL_STRATEGIES = [
+    # Baseline
+    'baseline',
+    # Standard augmentation strategies
+    'std_autoaugment',
+    'std_cutmix',
+    'std_mixup',
+    'std_randaugment',
+    'photometric_distort',
+    # Generative strategies - GAN-based
+    'gen_cycleGAN',
+    'gen_CUT',
+    'gen_LANIT',
+    'gen_stargan_v2',
+    'gen_TSIT',
+    'gen_SUSTechGAN',
+    # Generative strategies - Diffusion-based
+    'gen_cyclediffusion',
+    'gen_flux_kontext',
+    'gen_Img2Img',
+    'gen_IP2P',
+    'gen_step1x_new',
+    'gen_step1x_v1p2',
+    # Generative strategies - Other
+    'gen_Attribute_Hallucination',
+    'gen_CNetSeg',
+    'gen_Qwen_Image_Edit',
+    'gen_UniControl',
+    'gen_VisualCloze',
+    'gen_Weather_Effect_Generator',
+    # Generative strategies - Classical augmentation
+    'gen_albumentations_weather',
+    'gen_augmenters',
+    'gen_automold',
+]
 
 # Cityscapes labelID to trainID mapping
 CITYSCAPES_LABELID_TO_TRAINID = {
@@ -558,10 +596,12 @@ def main():
                        help='Source dataset to test')
     parser.add_argument('--model', choices=['pspnet_r50', 'segformer_mit-b5', 'deeplabv3plus_r50'],
                        help='Model architecture')
-    parser.add_argument('--strategy', default='baseline',
-                       help='Training strategy (default: baseline)')
+    parser.add_argument('--strategy', choices=ALL_STRATEGIES, default='baseline',
+                       help='Training strategy (default: baseline). Available: ' + ', '.join(ALL_STRATEGIES[:5]) + '...')
     parser.add_argument('--all', action='store_true',
-                       help='Run all source datasets and models')
+                       help='Run all source datasets and models for the specified strategy')
+    parser.add_argument('--all-strategies', action='store_true',
+                       help='Run all strategies (use with --all for full matrix)')
     parser.add_argument('--batch-size', type=int, default=4,
                        help='Batch size for inference')
     parser.add_argument('--device', default='cuda:0',
@@ -570,36 +610,49 @@ def main():
                        help='Show what would be tested without running')
     parser.add_argument('--quick-test', type=int, default=0,
                        help='Only test this many images per domain (0=all, for debugging)')
+    parser.add_argument('--list-strategies', action='store_true',
+                       help='List all available strategies and exit')
     
     args = parser.parse_args()
+    
+    # List strategies and exit
+    if args.list_strategies:
+        print("Available strategies:")
+        for i, strategy in enumerate(ALL_STRATEGIES, 1):
+            print(f"  {i:2d}. {strategy}")
+        return
+    
+    # Determine which strategies to run
+    strategies_to_run = ALL_STRATEGIES if args.all_strategies else [args.strategy]
     
     if args.all:
         # Run all combinations
         all_results = []
-        for source_ds in SOURCE_DATASETS:
-            for model_name in MODELS_TO_TEST:
-                result = run_domain_adaptation_test(
-                    source_dataset=source_ds,
-                    model_name=model_name,
-                    strategy=args.strategy,
-                    batch_size=args.batch_size,
-                    device=args.device,
-                    dry_run=args.dry_run,
-                    max_images=args.quick_test
-                )
-                if result:
-                    all_results.append(result)
+        for strategy in strategies_to_run:
+            for source_ds in SOURCE_DATASETS:
+                for model_name in MODELS_TO_TEST:
+                    result = run_domain_adaptation_test(
+                        source_dataset=source_ds,
+                        model_name=model_name,
+                        strategy=strategy,
+                        batch_size=args.batch_size,
+                        device=args.device,
+                        dry_run=args.dry_run,
+                        max_images=args.quick_test
+                    )
+                    if result:
+                        all_results.append(result)
         
         # Print summary
         if not args.dry_run and all_results:
-            print("\n" + "="*70)
+            print("\n" + "="*90)
             print("SUMMARY: Domain Adaptation Results")
-            print("="*70)
-            print(f"{'Source':<20} {'Model':<20} {'Clear':<8} {'Foggy':<8} {'Night':<8} {'Rainy':<8} {'Snowy':<8} {'Avg':<8}")
-            print("-"*70)
+            print("="*90)
+            print(f"{'Strategy':<30} {'Source':<15} {'Model':<20} {'Clear':<8} {'Foggy':<8} {'Night':<8} {'Rainy':<8} {'Snowy':<8} {'Avg':<8}")
+            print("-"*90)
             for r in all_results:
                 if 'domains' in r:
-                    print(f"{r['source_dataset']:<20} {r['model']:<20} "
+                    print(f"{r['strategy']:<30} {r['source_dataset']:<15} {r['model']:<20} "
                           f"{r['domains'].get('clear_day', {}).get('mIoU', 0):<8.1f} "
                           f"{r['domains'].get('foggy', {}).get('mIoU', 0):<8.1f} "
                           f"{r['domains'].get('night', {}).get('mIoU', 0):<8.1f} "
