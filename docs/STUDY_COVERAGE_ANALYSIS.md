@@ -10,7 +10,7 @@
 | **Stage 2** | `WEIGHTS_STAGE_2/` | 244 | 27 | ⏳ MapillaryVistas pending |
 | **Ratio Ablation** | `WEIGHTS_RATIO_ABLATION/` | 119 | 6 | ⚠️ MV moved to backup |
 | **Extended Training** | `WEIGHTS_EXTENDED/` | ~700+ | 5 | ⚠️ MV requires backup (chge7185 owned) |
-| **Combinations** | `WEIGHTS_COMBINATIONS_chge7185/` | ~55 | 27 | ⚠️ MV requires backup (chge7185 owned) |
+| **Combinations** | `WEIGHTS_COMBINATIONS/` | ~55 | 27 | ⚠️ MV moved to backup |
 | **Domain Adaptation** | Testing-only | Top 5 + baseline | ⏳ Not started |
 
 ### MapillaryVistas BGR/RGB Bug Status
@@ -22,8 +22,8 @@ The BGR/RGB bug in `custom_transforms.py` affected all MapillaryVistas training.
 | **Stage 1** | mima2416 | 🔄 Being retrained | In-place replacement |
 | **Stage 2** | mima2416 | ⏳ Pending retrain | Queued after Stage 1 |
 | **Ratio Ablation** | mima2416 | ✅ **Backed up (52 ckpts)** | `WEIGHTS_BACKUP_BUGGY_MAPILLARY/ratio_ablation/` |
-| **Extended Training** | chge7185 | ❌ Cannot move | Requires owner to backup |
-| **Combinations** | chge7185 | ❌ Cannot move | Requires owner to backup |
+| **Extended Training** | chge7185 | ❌ Cannot move (4 dirs) | Requires owner to backup |
+| **Combinations** | chge7185 | ✅ **Backed up (54 ckpts)** | `WEIGHTS_BACKUP_BUGGY_MAPILLARY/combinations/` |
 
 ---
 
@@ -189,48 +189,48 @@ Extended iterations: 40k, 60k, 80k, 100k, 120k, 140k, 160k, 320k
 
 ## Combination Strategies Study
 
-**Path:** `/scratch/aaa_exchange/AWARE/WEIGHTS_COMBINATIONS_chge7185/`
-**Status:** ⚠️ MapillaryVistas INVALID (owned by chge7185, cannot move)
+**Path:** `/scratch/aaa_exchange/AWARE/WEIGHTS_COMBINATIONS/`
+**Status:** ✅ MapillaryVistas backed up (54 checkpoints)
 
-### MapillaryVistas Bug Status
-- **27 combinations with buggy MapillaryVistas** (2 models each ≈ 54 checkpoints)
-- Cannot be moved to backup (directory owned by chge7185)
-- **Action required:** Contact chge7185 to backup/invalidate these checkpoints
+### MapillaryVistas Backup
+- **54 buggy MapillaryVistas checkpoints** moved to `WEIGHTS_BACKUP_BUGGY_MAPILLARY/combinations/`
+- 27 combinations × 2 models (pspnet_r50, segformer_mit-b5)
+- Requires retraining after main Stage 1/2 completes
 
 ### Study Design
 Combining generative + standard augmentation strategies
 
-### Coverage Matrix (27 combinations)
+### Coverage Matrix (27 combinations, after MV backup)
 
 | Strategy Combination | BDD10k | IDD-AW | MapillaryVistas | OUTSIDE15k |
 |---------------------|:------:|:------:|:---------------:|:----------:|
-| gen_Attribute_Hallucination+photometric_distort | ❌ | 🔶 2/3 | ⚠️ INVALID | ❌ |
-| gen_flux_kontext+photometric_distort | ❌ | 🔶 2/3 | ⚠️ INVALID | ❌ |
-| gen_flux_kontext+std_autoaugment | ❌ | 🔶 2/3 | ⚠️ INVALID | ❌ |
-| gen_flux_kontext+std_cutmix | ❌ | 🔶 2/3 | ⚠️ INVALID | ❌ |
-| gen_flux_kontext+std_mixup | ❌ | 🔶 2/3 | ⚠️ INVALID | ❌ |
-| gen_flux_kontext+std_randaugment | ❌ | 🔶 2/3 | ⚠️ INVALID | ❌ |
-| gen_Qwen_Image_Edit+photometric_distort | ❌ | 🔶 2/3 | ⚠️ INVALID | ❌ |
-| gen_Qwen_Image_Edit+std_autoaugment | ❌ | 🔶 2/3 | ⚠️ INVALID | ❌ |
-| gen_Qwen_Image_Edit+std_cutmix | ❌ | 🔶 2/3 | ⚠️ INVALID | ❌ |
-| gen_Qwen_Image_Edit+std_mixup | ❌ | 🔶 2/3 | ⚠️ INVALID | ❌ |
-| gen_Qwen_Image_Edit+std_randaugment | ❌ | 🔶 2/3 | ⚠️ INVALID | ❌ |
-| gen_stargan_v2+photometric_distort | ❌ | 🔶 2/3 | ⚠️ INVALID | ❌ |
-| gen_step1x_new+photometric_distort | 🔶 1/3 | 🔶 2/3 | ⚠️ INVALID | ❌ |
-| gen_step1x_new+std_autoaugment | ❌ | 🔶 2/3 | ⚠️ INVALID | ❌ |
-| gen_step1x_new+std_cutmix | ❌ | 🔶 2/3 | ⚠️ INVALID | ❌ |
-| gen_step1x_new+std_mixup | ❌ | 🔶 2/3 | ⚠️ INVALID | ❌ |
-| gen_step1x_new+std_randaugment | ❌ | 🔶 2/3 | ⚠️ INVALID | ❌ |
-| std_autoaugment+photometric_distort | ❌ | 🔶 2/3 | ⚠️ INVALID | ❌ |
-| std_cutmix+photometric_distort | ❌ | 🔶 2/3 | ⚠️ INVALID | ❌ |
-| std_cutmix+std_autoaugment | ❌ | 🔶 2/3 | ⚠️ INVALID | ❌ |
-| std_mixup+photometric_distort | ❌ | 🔶 2/3 | ⚠️ INVALID | ❌ |
-| std_mixup+std_autoaugment | ❌ | 🔶 2/3 | ⚠️ INVALID | ❌ |
-| std_mixup+std_cutmix | ❌ | 🔶 2/3 | ⚠️ INVALID | ❌ |
-| std_randaugment+photometric_distort | ❌ | 🔶 2/3 | ⚠️ INVALID | ❌ |
-| std_randaugment+std_autoaugment | ❌ | 🔶 2/3 | ⚠️ INVALID | ❌ |
-| std_randaugment+std_cutmix | ❌ | 🔶 2/3 | ⚠️ INVALID | ❌ |
-| std_randaugment+std_mixup | ❌ | 🔶 2/3 | ⚠️ INVALID | ❌ |
+| gen_Attribute_Hallucination+photometric_distort | ❌ | 🔶 2/3 | 📦 backed up | ❌ |
+| gen_flux_kontext+photometric_distort | ❌ | 🔶 2/3 | 📦 backed up | ❌ |
+| gen_flux_kontext+std_autoaugment | ❌ | 🔶 2/3 | 📦 backed up | ❌ |
+| gen_flux_kontext+std_cutmix | ❌ | 🔶 2/3 | 📦 backed up | ❌ |
+| gen_flux_kontext+std_mixup | ❌ | 🔶 2/3 | 📦 backed up | ❌ |
+| gen_flux_kontext+std_randaugment | ❌ | 🔶 2/3 | 📦 backed up | ❌ |
+| gen_Qwen_Image_Edit+photometric_distort | ❌ | 🔶 2/3 | 📦 backed up | ❌ |
+| gen_Qwen_Image_Edit+std_autoaugment | ❌ | 🔶 2/3 | 📦 backed up | ❌ |
+| gen_Qwen_Image_Edit+std_cutmix | ❌ | 🔶 2/3 | 📦 backed up | ❌ |
+| gen_Qwen_Image_Edit+std_mixup | ❌ | 🔶 2/3 | 📦 backed up | ❌ |
+| gen_Qwen_Image_Edit+std_randaugment | ❌ | 🔶 2/3 | 📦 backed up | ❌ |
+| gen_stargan_v2+photometric_distort | ❌ | 🔶 2/3 | 📦 backed up | ❌ |
+| gen_step1x_new+photometric_distort | 🔶 1/3 | 🔶 2/3 | 📦 backed up | ❌ |
+| gen_step1x_new+std_autoaugment | ❌ | 🔶 2/3 | 📦 backed up | ❌ |
+| gen_step1x_new+std_cutmix | ❌ | 🔶 2/3 | 📦 backed up | ❌ |
+| gen_step1x_new+std_mixup | ❌ | 🔶 2/3 | 📦 backed up | ❌ |
+| gen_step1x_new+std_randaugment | ❌ | 🔶 2/3 | 📦 backed up | ❌ |
+| std_autoaugment+photometric_distort | ❌ | 🔶 2/3 | 📦 backed up | ❌ |
+| std_cutmix+photometric_distort | ❌ | 🔶 2/3 | 📦 backed up | ❌ |
+| std_cutmix+std_autoaugment | ❌ | 🔶 2/3 | 📦 backed up | ❌ |
+| std_mixup+photometric_distort | ❌ | 🔶 2/3 | 📦 backed up | ❌ |
+| std_mixup+std_autoaugment | ❌ | 🔶 2/3 | 📦 backed up | ❌ |
+| std_mixup+std_cutmix | ❌ | 🔶 2/3 | 📦 backed up | ❌ |
+| std_randaugment+photometric_distort | ❌ | 🔶 2/3 | 📦 backed up | ❌ |
+| std_randaugment+std_autoaugment | ❌ | 🔶 2/3 | 📦 backed up | ❌ |
+| std_randaugment+std_cutmix | ❌ | 🔶 2/3 | 📦 backed up | ❌ |
+| std_randaugment+std_mixup | ❌ | 🔶 2/3 | 📦 backed up | ❌ |
 
 **Valid Checkpoints:** ~55 (IDD-AW only)
 
@@ -238,7 +238,7 @@ Combining generative + standard augmentation strategies
 - Conducted by chge7185
 - Models: pspnet_r50, segformer_mit-b5 primarily
 - Missing BDD10k and OUTSIDE15k coverage
-- **MapillaryVistas checkpoints are INVALID** - trained with BGR/RGB bug
+- **MapillaryVistas backed up** to `WEIGHTS_BACKUP_BUGGY_MAPILLARY/combinations/`
 
 ---
 
