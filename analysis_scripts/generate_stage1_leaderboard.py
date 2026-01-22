@@ -12,8 +12,8 @@ This script generates:
 4. Gain over baseline calculations
 
 Usage:
-    python generate_stage1_leaderboard.py
-    python generate_stage1_leaderboard.py --refresh  # Re-extract from WEIGHTS
+    python generate_stage1_leaderboard.py               # Auto-refresh results
+    python generate_stage1_leaderboard.py --no-refresh  # Use cached results
     python generate_stage1_leaderboard.py --weights-root /path/to/WEIGHTS
 """
 
@@ -301,8 +301,8 @@ def format_markdown_table(df: pd.DataFrame, title: str, description: str = "") -
 
 def main():
     parser = argparse.ArgumentParser(description="Generate Stage 1 Strategy Leaderboard")
-    parser.add_argument('--refresh', action='store_true', 
-                       help='Re-extract results from WEIGHTS directory')
+    parser.add_argument('--no-refresh', action='store_true', 
+                       help='Use cached results instead of re-extracting from WEIGHTS')
     parser.add_argument('--weights-root', type=str, default=None,
                        help='Override WEIGHTS directory path')
     parser.add_argument('--verbose', action='store_true',
@@ -320,7 +320,8 @@ def main():
     print(f"Weights root: {weights_path}")
     print("=" * 70)
     
-    if args.refresh or not RESULTS_CSV.exists():
+    # Default behavior: refresh unless --no-refresh is specified
+    if not args.no_refresh or not RESULTS_CSV.exists():
         df = extract_results(weights_path, verbose=args.verbose)
         if not df.empty:
             df.to_csv(RESULTS_CSV, index=False)
