@@ -1,13 +1,13 @@
 # Evaluation Stage Status
 
-**Last Updated:** 2026-01-21 (14:10)
+**Last Updated:** 2026-01-22 (17:00)
 
 ## Overview
 
 | Stage | Training | Testing | Status |
 |-------|----------|---------|--------|
-| **Stage 1** | 107/107 (100%) | 🔄 MapillaryVistas Retest | ✅ Training | 🔄 Retesting (BGR fix) |
-| **Stage 2** | 324/325 (99.7%) | 🔄 MapillaryVistas Retest | 🔄 Training (1 resume) | 🔄 Retesting (BGR fix) |
+| **Stage 1** | 306/306 (100%) | 🔄 MapillaryVistas Retest | ✅ Training | 🔄 Retesting (BGR fix) |
+| **Stage 2** | 243/243 (100%) | ✅ 243/243 (100%) | ✅ Complete (non-MV) |
 
 ## 🔧 Critical Bug Fix: BGR→RGB in MapillaryVistas Labels
 
@@ -96,7 +96,7 @@
 
 ## Stage 2: All-Domains Training
 
-**Status: 🔄 Training Resume (2 jobs) | 🔄 Testing In Progress (6 jobs)**
+**Status: ✅ Training Complete | ✅ Testing Complete (non-MV)**
 
 ### Description
 - **Training Domain Filter:** None (all domains)
@@ -106,49 +106,37 @@
 ### Coverage
 | Metric | Count | Percentage |
 |--------|-------|------------|
-| Training Complete | 324/325 | 99.7% |
-| Training Running | 1 | std_cutmix resume |
-| Testing Complete (non-MV) | 252/252 | 100% |
-| MapillaryVistas Retest | 🔄 81 jobs | Running |
+| Training Complete | 243/243 | 100% |
+| Testing Complete (non-MV) | 243/243 | 100% |
+| MapillaryVistas Retest | ⏳ Pending | Queued after Stage 1 |
 
-**Note:** MapillaryVistas tests invalidated by BGR→RGB bug. Retesting in progress.
+**Note:** MapillaryVistas tests will be run after Stage 1 MapillaryVistas retraining completes.
 
-### 🔧 BGR→RGB Bug Fix Impact
+### ✅ std_cutmix Artifact RESOLVED
 
-All MapillaryVistas test results are being regenerated. See summary at top of document.
+**Issue:** std_cutmix previously appeared #1 with +1.45 gain due to incomplete testing.
 
-### 🔍 Critical Finding: std_cutmix Artifact
+**Resolution:** Both missing tests completed (2026-01-22):
+- `bdd10k/pspnet_r50`: mIoU = 41.31%
+- `outside15k/deeplabv3plus_r50`: mIoU = 31.48%
 
-**Issue:** std_cutmix appeared #1 in Stage 2 leaderboard with +1.45 gain over baseline.
+**Result:** std_cutmix now ranks **#27 (last)** at -0.29 below baseline.
 
-**Investigation Findings:**
-- std_cutmix only has **10/12 configurations** tested
-- Missing configs are **lower-performing** ones:
-  - `bdd10k/pspnet_r50` (baseline: 44.17 mIoU)
-  - `outside15k/deeplabv3plus_r50` (baseline: 30.18 mIoU)
-
-**Calculation:**
-| Metric | Value |
-|--------|-------|
-| std_cutmix avg (10 configs) | 45.94 mIoU |
-| baseline avg (12 configs) | 44.48 mIoU |
-| **Estimated std_cutmix avg (12 configs)** | **~44.48 mIoU = 0.00 gain** |
-
-**Root Cause:** Training for 2 std_cutmix configs was incomplete - stopped early.
-
-**Fix Status:** Resume training submitted (jobs 9675468, 9675473)
-
-### Active Training Jobs (1) - Resuming
-| Strategy | Dataset | Model | Progress | Job ID |
-|----------|---------|-------|----------|--------|
-| std_cutmix | OUTSIDE15k | deeplabv3plus_r50 | 40000→80000 | 9675473 |
-
-### MapillaryVistas Retest Jobs (81) - Running
-All MapillaryVistas Stage 2 tests resubmitted after BGR→RGB fix.
-| Status | Count | Job ID Range |
-|--------|-------|--------------|
-| Running | ~5 | 9681687-9681938 |
-| Pending | ~76 | 9681687-9681938 |
+### Leaderboard (Top 10)
+| Rank | Strategy | mIoU | Gain |
+|------|----------|------|------|
+| 1 | gen_CNetSeg | 43.68% | +0.58 |
+| 2 | gen_stargan_v2 | 43.60% | +0.50 |
+| 3 | gen_UniControl | 43.59% | +0.49 |
+| 4 | gen_cyclediffusion | 43.56% | +0.47 |
+| 5 | std_autoaugment | 43.55% | +0.46 |
+| 6 | gen_augmenters | 43.54% | +0.44 |
+| 7 | std_randaugment | 43.53% | +0.43 |
+| 8 | gen_cycleGAN | 43.52% | +0.42 |
+| 9 | gen_CUT | 43.51% | +0.42 |
+| 10 | gen_VisualCloze | 43.48% | +0.38 |
+| - | baseline | 43.10% | - |
+| 27 | std_cutmix | 42.80% | -0.29 |
 
 ### Strategies Coverage (All 27)
 | Strategy | Training | Testing | Notes |

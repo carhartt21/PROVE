@@ -1,17 +1,17 @@
 # Study Coverage Analysis
 
-**Last Updated:** 2026-01-22 (14:30)
+**Last Updated:** 2026-01-22 (17:00)
 
 ## Summary
 
 | Study | Path | Checkpoints | Strategies | Status |
 |-------|------|-------------|------------|--------|
 | **Stage 1** | `WEIGHTS/` | 306 | 27 | 🔄 MapillaryVistas retraining |
-| **Stage 2** | `WEIGHTS_STAGE_2/` | 244 | 27 | ⏳ MapillaryVistas pending |
+| **Stage 2** | `WEIGHTS_STAGE_2/` | 243 | 27 | ✅ Testing complete (non-MV) |
 | **Ratio Ablation** | `WEIGHTS_RATIO_ABLATION/` | 119 | 6 | 📦 MV backed up (buggy) |
 | **Extended Training** | `WEIGHTS_EXTENDED/` | ~700+ | 5 | 📦 MV backed up (buggy) |
 | **Combinations** | `WEIGHTS_COMBINATIONS/` | ~55 | 27 | 📦 MV backed up (buggy) |
-| **Domain Adaptation** | Testing-only | Top 5 + baseline | ⏳ Not started |
+| **Domain Adaptation** | Testing-only | Top 5 + baseline | ⏳ Ready to start |
 
 ### MapillaryVistas BGR/RGB Bug Status
 
@@ -81,7 +81,19 @@ The BGR/RGB bug in `custom_transforms.py` affected all MapillaryVistas training.
 ## Stage 2: All Domains Training
 
 **Path:** `/scratch/aaa_exchange/AWARE/WEIGHTS_STAGE_2/`
-**Status:** ⏳ MapillaryVistas pending (queued after Stage 1 retraining)
+**Status:** ✅ Testing complete (243/243 non-MapillaryVistas configurations)
+
+### Leaderboard (Top 10 + Notable)
+| Rank | Strategy | mIoU | Gain vs Baseline |
+|------|----------|------|------------------|
+| 1 | gen_CNetSeg | 43.68% | +0.58 |
+| 2 | gen_stargan_v2 | 43.60% | +0.50 |
+| 3 | gen_UniControl | 43.59% | +0.49 |
+| 4 | gen_cyclediffusion | 43.56% | +0.47 |
+| 5 | std_autoaugment | 43.55% | +0.46 |
+| ... | ... | ... | ... |
+| 23 | baseline | 43.10% | - |
+| 27 | std_cutmix | 42.80% | -0.29 |
 
 ### Coverage Matrix
 

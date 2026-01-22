@@ -1,6 +1,6 @@
 # PROVE Project TODO List
 
-**Last Updated:** 2026-01-22 (15:00)
+**Last Updated:** 2026-01-22 (17:00)
 
 ## Current Job Status Summary
 
@@ -16,12 +16,14 @@
 ### Stage 2 (All Domains) - WEIGHTS_STAGE_2 directory
 | Category | Running | Pending | Complete | Total |
 |----------|--------:|--------:|---------:|------:|
-| Training | 4 | 77 | 78 | 159 |
-| Testing | 0 | 0 | ~78 | ~78 |
+| Training | 0 | 0 | 243 | 243 |
+| Testing | 0 | 0 | 243 | 243 |
 
-**Stage 2 Status (as of 2026-01-21 18:10):**
-- **Training:** 78/159 complete - MapillaryVistas models retraining
-- **Testing:** On hold until MapillaryVistas retraining completes
+**Stage 2 Status (as of 2026-01-22 17:00):**
+- **Training:** ✅ 243/243 complete (excluding MapillaryVistas retraining)
+- **Testing:** ✅ 243/243 complete
+- **std_cutmix artifact resolved:** Now ranks #27 at -0.29 below baseline
+- **Top performer:** gen_CNetSeg (+0.58 over baseline)
 
 ---
 
