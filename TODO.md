@@ -1,6 +1,6 @@
 # PROVE Project TODO List
 
-**Last Updated:** 2026-01-21 (18:10)
+**Last Updated:** 2026-01-22 (15:00)
 
 ## Current Job Status Summary
 
@@ -323,9 +323,11 @@ See [STAGE_COMPARISON_ANALYSIS.md](docs/STAGE_COMPARISON_ANALYSIS.md) for full a
    - 504 test jobs submitted for extended training analysis
    - Analyze results with \`analyze_extended_training.py\`
 
-5. **Domain Adaptation Ablation**
-   - 84 configurations ready
-   - Script: \`./scripts/submit_domain_adaptation_ablation.sh --all-strategies\`
+5. **Domain Adaptation Ablation** ✅ Ready
+   - Scripts created: \`run_domain_adaptation_tests.py\`, \`submit_domain_adaptation_ablation.sh\`
+   - All 27 strategies available via \`--all-strategies\` flag
+   - Test matrix: 2 source datasets × 3 models × 27 strategies = 162 configurations
+   - Usage: \`python scripts/run_domain_adaptation_tests.py --all --all-strategies --dry-run\`
 
 ### Low Priority
 6. **Publication preparation**

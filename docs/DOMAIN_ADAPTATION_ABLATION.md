@@ -1,5 +1,7 @@
 # Domain Adaptation Ablation Study: Cross-Dataset Domain Generalization
 
+**Last Updated:** 2026-01-22
+
 ## Overview
 
 This experiment evaluates the **cross-dataset domain adaptation** capability of models trained on traffic-focused datasets (BDD10k, IDD-AW, MapillaryVistas) when tested on:
@@ -70,8 +72,30 @@ Labels: `*_gt_labelIds.png` (Cityscapes labelID format, converted to trainID)
 
 ### Models
 
+- **DeepLabV3+ ResNet-50** (deeplabv3plus_r50)
 - **PSPNet ResNet-50** (pspnet_r50)
 - **SegFormer MiT-B5** (segformer_mit-b5)
+
+### All Available Strategies (27)
+
+| Category | Strategies |
+|----------|------------|
+| **Baseline** | baseline |
+| **Standard Augmentation** | std_autoaugment, std_cutmix, std_mixup, std_randaugment, photometric_distort |
+| **GAN-based** | gen_cycleGAN, gen_CUT, gen_LANIT, gen_stargan_v2, gen_TSIT, gen_SUSTechGAN |
+| **Diffusion-based** | gen_cyclediffusion, gen_flux_kontext, gen_Img2Img, gen_IP2P, gen_step1x_new, gen_step1x_v1p2 |
+| **Other Generative** | gen_Attribute_Hallucination, gen_CNetSeg, gen_Qwen_Image_Edit, gen_UniControl, gen_VisualCloze, gen_Weather_Effect_Generator |
+| **Classical Augmentation** | gen_albumentations_weather, gen_augmenters, gen_automold |
+
+### Test Matrix
+
+| Dimension | Options | Count |
+|-----------|---------|-------|
+| Source Datasets | BDD10k, IDD-AW | 2 |
+| Models | pspnet_r50, segformer_mit-b5, deeplabv3plus_r50 | 3 |
+| Strategies | All 27 strategies | 27 |
+| Target Domains | clear_day, foggy, night, rainy, snowy | 5 |
+| **Total Configurations** | 2 × 3 × 27 = **162** | |
 
 ### Training Configurations
 
@@ -264,32 +288,44 @@ Results will be saved to:
 
 ## Script Usage
 
+### Python Script (Local/LSF)
+
 ```bash
-# Submit all 12 evaluation jobs (6 full + 6 clear_day baseline)
+# List all available strategies
+python scripts/run_domain_adaptation_tests.py --list-strategies
+
+# Single configuration test
+python scripts/run_domain_adaptation_tests.py \
+    --source-dataset bdd10k \
+    --model pspnet_r50 \
+    --strategy baseline
+
+# All models for one strategy
+python scripts/run_domain_adaptation_tests.py --all --strategy gen_cycleGAN
+
+# Full matrix: all models × all strategies (162 configs)
+python scripts/run_domain_adaptation_tests.py --all --all-strategies
+
+# Quick test mode (3 images per domain, for debugging)
+python scripts/run_domain_adaptation_tests.py --all --strategy baseline --quick-test 3
+
+# Dry run to preview jobs
+python scripts/run_domain_adaptation_tests.py --all --all-strategies --dry-run
+```
+
+### LSF Job Submission
+
+```bash
+# Submit baseline jobs for all models
 ./scripts/submit_domain_adaptation_ablation.sh --all
 
-# Submit only the 6 full dataset model jobs
-./scripts/submit_domain_adaptation_ablation.sh --all-full
-
-# Submit only the 6 clear_day baseline model jobs
-./scripts/submit_domain_adaptation_ablation.sh --all-clear-day
-
-# Submit single job (full dataset)
+# Submit single job
 ./scripts/submit_domain_adaptation_ablation.sh \
     --source-dataset BDD10k \
     --model pspnet_r50
 
-# Submit single job (clear_day baseline)
-./scripts/submit_domain_adaptation_ablation.sh \
-    --source-dataset BDD10k \
-    --model pspnet_r50 \
-    --variant _clear_day
-
 # Dry run
 ./scripts/submit_domain_adaptation_ablation.sh --all --dry-run
-
-# List all available checkpoints
-./scripts/submit_domain_adaptation_ablation.sh --list
 ```
 
 ## Analysis
