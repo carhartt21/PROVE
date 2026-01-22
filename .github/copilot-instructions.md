@@ -1,306 +1,181 @@
 # PROVE Repository Instructions
 
-This document provides essential information for working with the PROVE repository, especially when using AI agents.
+## Architecture Overview
 
-## Repository Overview
+PROVE evaluates semantic segmentation models under adverse weather conditions using MMSegmentation. The pipeline has **two training stages**:
 
-PROVE (PRobustness under adVErse weather) is a research project for training and evaluating semantic segmentation models under adverse weather conditions.
+| Stage | Domain Filter | Weights Dir | Purpose |
+|-------|--------------|-------------|---------|
+| **Stage 1** | `clear_day` | `WEIGHTS/` | Train clear-only, test cross-domain robustness |
+| **Stage 2** | None (all) | `WEIGHTS_STAGE_2/` | Train all conditions, evaluate domain-inclusive |
 
-### Key Directories
-
+**External Data Paths:**
 ```
-/home/mima2416/repositories/PROVE/          # Repository root
-├── scripts/                                # Job submission and utility scripts
-├── docs/                                   # Documentation and tracker files
-├── unified_training.py                     # Main training script
-├── fine_grained_test.py                    # Main testing script
-└── unified_training_config.py              # Configuration builder
-
-/scratch/aaa_exchange/AWARE/WEIGHTS/        # Stage 1 models (clear_day training)
-/scratch/aaa_exchange/AWARE/WEIGHTS_STAGE_2/# Stage 2 models (all_domains training)
+/scratch/aaa_exchange/AWARE/WEIGHTS/           # Stage 1 weights
+/scratch/aaa_exchange/AWARE/WEIGHTS_STAGE_2/   # Stage 2 weights
+/scratch/aaa_exchange/AWARE/WEIGHTS_RATIO_ABLATION/  # Ratio ablation study
+/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/        # Extended training study
 ```
 
-### Training Stages
+**Core Data Flow:**
+```
+unified_training.py → unified_training_config.py → MMSegmentation training
+                           ↓
+                    custom_transforms.py (label mapping: RGB→class ID)
+                           ↓
+                    fine_grained_test.py → results.json (per-domain/per-class metrics)
+```
 
-| Stage | Domain Filter | Directory | Description |
-|-------|---------------|-----------|-------------|
-| **Stage 1** | `clear_day` | `WEIGHTS/` | Train on clear weather only, test cross-domain |
-| **Stage 2** | None (all) | `WEIGHTS_STAGE_2/` | Train on all weather conditions |
+## Critical Conventions
 
----
+### ⚠️ Label Handling (Common Bug Source)
+- **mmcv.imfrombytes() returns BGR**, not RGB - always account for channel order
+- MapillaryVistas/OUTSIDE15k use RGB-encoded labels requiring `MapillaryRGBToClassId` transform
+- BDD10k/ACDC/IDD-AW use Cityscapes train IDs (single-channel, 19 classes)
+- **Always use `--use-native-classes`** for MapillaryVistas (66 classes) and OUTSIDE15k (24 classes)
 
-## Job Submission
+### ⚠️ Stage 1 vs Stage 2 Training (Critical Difference)
+| Aspect | Stage 1 | Stage 2 |
+|--------|---------|---------|
+| **Domain Filter** | `--domain-filter clear_day` | NO domain filter |
+| **Output Dir** | `WEIGHTS/` | `WEIGHTS_STAGE_2/` |
+| **Purpose** | Cross-domain robustness | Domain-inclusive training |
+| **Auto Scripts** | `auto_submit_tests.py` | `auto_submit_tests_stage2.py` |
 
-### LSF Cluster Commands
+**Common mistake:** Forgetting `--domain-filter clear_day` for Stage 1 trains on ALL domains (wrong!).
 
+### Directory Naming
+- Lowercase dataset dirs: `bdd10k`, `idd-aw`, `mapillaryvistas`, `outside15k`
+- Keep hyphen in `idd-aw` (not `iddaw`)
+- No `_cd`/`_ad` suffixes - stage determined by root directory
+
+### Weights Structure
+```
+WEIGHTS/{strategy}/{dataset}/{model}[_ratio0p50]/
+├── iter_80000.pth              # Final checkpoint (80k iterations)
+├── training_config.py          # Config used for training
+└── test_results_detailed/{timestamp}/results.json
+```
+
+## Essential Commands
+
+### LSF Cluster (HPC Job Management)
 ```bash
-# Check running jobs
-bjobs -w
-bjobs -u mima2416
-
-# Check job history
-bhist -n 20
-
-# Kill a job
-bkill <job_id>
+bjobs -w                          # List all jobs with full names
+bjobs -u mima2416 | grep RUN      # Running jobs only
+bjobs -u mima2416 | wc -l         # Count total jobs
+bkill <job_id>                    # Kill specific job
+bkill 0                           # Kill ALL your jobs
+bhist -n 20                       # Recent job history
+bpeek <job_id>                    # View running job output
 ```
 
-### Training Job Submission
-
-**Using unified_training.py directly:**
+### Training
 ```bash
-# Stage 1 (clear_day)
-python unified_training.py \
-    --dataset BDD10k \
-    --model deeplabv3plus_r50 \
-    --strategy baseline \
-    --domain-filter clear_day
+# Stage 1 (REQUIRES --domain-filter clear_day)
+python unified_training.py --dataset BDD10k --model deeplabv3plus_r50 \
+    --strategy baseline --domain-filter clear_day
 
-# Stage 2 (all domains)
-python unified_training.py \
-    --dataset BDD10k \
-    --model deeplabv3plus_r50 \
-    --strategy baseline
+# Stage 2 (NO domain filter - trains on all conditions)
+python unified_training.py --dataset BDD10k --model deeplabv3plus_r50 \
+    --strategy gen_cycleGAN --real-gen-ratio 0.5
 
-# With generative augmentation
-python unified_training.py \
-    --dataset BDD10k \
-    --model deeplabv3plus_r50 \
-    --strategy gen_cycleGAN \
-    --real-gen-ratio 0.5 \
-    --domain-filter clear_day
+# MapillaryVistas REQUIRES --use-native-classes (66 classes, not 19)
+python unified_training.py --dataset MapillaryVistas --model deeplabv3plus_r50 \
+    --strategy baseline --use-native-classes --domain-filter clear_day
+
+# Submit as LSF job instead of running locally
+python unified_training.py --dataset BDD10k --model deeplabv3plus_r50 \
+    --strategy baseline --domain-filter clear_day --submit-job
 ```
 
-**Using submit_training.sh:**
+### Testing
 ```bash
-./scripts/submit_training.sh \
-    --dataset BDD10k \
-    --model deeplabv3plus_r50 \
-    --strategy baseline \
-    --domain-filter clear_day
+python fine_grained_test.py --config /path/config.py --checkpoint /path/iter_80000.pth \
+    --dataset BDD10k --output-dir /path/test_results_detailed
 
-# Dry run to preview
-./scripts/submit_training.sh \
-    --dataset BDD10k \
-    --model deeplabv3plus_r50 \
-    --strategy gen_cycleGAN \
-    --ratio 0.5 \
-    --dry-run
+# Auto-submit missing tests (always dry-run first!)
+python scripts/auto_submit_tests.py --dry-run        # Stage 1
+python scripts/auto_submit_tests_stage2.py --dry-run # Stage 2
+python scripts/auto_submit_tests_stage2.py --limit 20
 ```
 
-### Testing Job Submission
-
-**Using fine_grained_test.py:**
+### Update Trackers (after job completion)
 ```bash
-python fine_grained_test.py \
-    --config /path/to/training_config.py \
-    --checkpoint /path/to/iter_80000.pth \
-    --dataset BDD10k \
-    --output-dir /path/to/test_results_detailed
-```
-
-**Using submit_testing.sh:**
-```bash
-./scripts/submit_testing.sh \
-    --checkpoint /path/to/iter_80000.pth \
-    --dataset BDD10k
-```
-
-**Auto-submit missing tests:**
-```bash
-python scripts/auto_submit_tests.py --dry-run    # Preview
-python scripts/auto_submit_tests.py --limit 20   # Submit up to 20
-```
-
----
-
-## Available Models and Strategies
-
-### Models
-| Model | ID |
-|-------|-----|
-| DeepLabV3+ | `deeplabv3plus_r50` |
-| PSPNet | `pspnet_r50` |
-| SegFormer | `segformer_mit-b5` |
-
-### Datasets
-| Dataset | Expected Classes |
-|---------|------------------|
-| ACDC | 19 (Cityscapes) |
-| BDD10k | 19 (Cityscapes) |
-| IDD-AW | 19 (Cityscapes) |
-| MapillaryVistas | 66 (native) |
-| OUTSIDE15k | 24 (native) |
-
-### Strategies
-- **Baseline:** `baseline`
-- **Standard Augmentation:** `std_minimal`, `std_autoaugment`, `std_cutmix`, `std_mixup`, `std_randaugment`, `photometric_distort`
-- **Generative:** `gen_cycleGAN`, `gen_cyclediffusion`, `gen_CUT`, `gen_IP2P`, `gen_step1x_new`, `gen_flux_kontext`, etc.
-
----
-
-## Tracking Progress
-
-### Update Trackers
-
-```bash
-# Update Stage 1 training tracker
 python scripts/update_training_tracker.py --stage 1
-
-# Update Stage 2 training tracker
 python scripts/update_training_tracker.py --stage 2
-
-# Update testing tracker
-python scripts/update_testing_tracker.py
+python scripts/update_testing_tracker.py --stage 1
+python scripts/update_testing_tracker.py --stage 2
 ```
 
-### Key Tracker Files
-- `docs/TRAINING_TRACKER_STAGE1.md` - Stage 1 training progress
-- `docs/TRAINING_TRACKER_STAGE2.md` - Stage 2 training progress
-- `docs/TESTING_TRACKER.md` - Testing coverage
-- `TODO.md` - Task list and status summary
+## Key Files
 
-### Status Indicators
-| Emoji | Status |
-|-------|--------|
-| ✅ | Complete |
-| 🔶 | Partial (e.g., 2/3 models done) |
-| 🔄 | Running |
-| ⏳ | Pending |
-| ❌ | Failed |
-| ➖ | Skipped |
+| File | Purpose |
+|------|---------|
+| `unified_training.py` | Main training entry point, handles job submission |
+| `fine_grained_test.py` | Per-domain/per-class evaluation with optimized inference |
+| `unified_training_config.py` | Generates MMSeg configs from CLI args |
+| `custom_transforms.py` | Label transforms including `MapillaryRGBToClassId` |
+| `TODO.md` | **Check first** - current status, active jobs, known issues |
+| `docs/EVALUATION_STAGE_STATUS.md` | Training/testing progress overview |
 
----
+## Models, Datasets & Strategies
 
-## Directory Structure
+**Models:** `deeplabv3plus_r50`, `pspnet_r50`, `segformer_mit-b5`
 
-### Weights Directory Structure
+**Datasets:**
+| Dataset | Classes | Label Format |
+|---------|---------|--------------|
+| ACDC, BDD10k, IDD-AW | 19 | Cityscapes train IDs |
+| MapillaryVistas | 66 | RGB-encoded |
+| OUTSIDE15k | 24 | RGB-encoded |
+
+**Strategies:** `baseline`, `std_autoaugment`, `std_cutmix`, `std_mixup`, `std_randaugment`, `photometric_distort`, `gen_cycleGAN`, `gen_IP2P`, `gen_flux_kontext`, `gen_step1x_new`, etc.
+
+## Ablation Studies
+
+| Study | Directory | Purpose |
+|-------|-----------|---------|
+| Ratio Ablation | `WEIGHTS_RATIO_ABLATION/` | Real/gen ratios: 0.00, 0.12, 0.25, 0.38, 0.50, 0.62, 0.75, 0.88 |
+| Extended Training | `WEIGHTS_EXTENDED/` | Iterations: 40k→160k (20k steps) + 320k |
+
+Analysis scripts: `analysis_scripts/analyze_ratio_ablation.py`, `analysis_scripts/analyze_extended_training.py`
+
+## Documentation Updates
+
+After completing tasks, always:
+1. Update `TODO.md` status numbers and "Last Updated" timestamp
+2. Move completed items to "Recently Completed" section
+3. Use status emojis: ✅ Complete | 🔄 Running | ⏳ Pending | ❌ Failed | 🔶 Partial
+
+## Git Conventions
+
+```bash
+git commit -m "type: Short description"
 ```
-WEIGHTS/                           # Stage 1 (clear_day)
-├── baseline/
-│   ├── bdd10k/
-│   │   └── deeplabv3plus_r50/
-│   │       ├── iter_80000.pth     # Trained model
-│   │       ├── training_config.py # Config used for training
-│   │       └── test_results_detailed/
-│   │           └── 20260116_123456/
-│   │               └── results.json
-│   ├── idd-aw/
-│   ├── mapillaryvistas/
-│   └── outside15k/
-├── gen_cycleGAN/
-│   ├── bdd10k/
-│   │   └── deeplabv3plus_r50_ratio0p50/
-│   ...
-```
+Types: `feat:`, `fix:`, `docs:`, `refactor:`, `chore:`
 
-### Test Results Format (results.json)
-```json
-{
-    "overall": {
-        "mIoU": 45.23,
-        "aAcc": 92.1
-    },
-    "per_domain": {
-        "clear_day": {"mIoU": 48.5, "aAcc": 93.2},
-        "rainy": {"mIoU": 42.1, "aAcc": 90.8}
-    },
-    "per_class": {
-        "road": {"IoU": 95.2},
-        "sidewalk": {"IoU": 72.3}
-    }
-}
-```
+## Debugging
 
----
-
-## Common Tasks
-
-### Check Model num_classes
+### Check model num_classes from checkpoint
 ```python
 import torch
-
 ckpt = torch.load('iter_80000.pth', map_location='cpu')
-state_dict = ckpt.get('state_dict', ckpt)
-
-for key in state_dict:
-    if 'conv_seg' in key and 'weight' in key:
-        print(f"num_classes = {state_dict[key].shape[0]}")
-        break
+for k, v in ckpt.get('state_dict', ckpt).items():
+    if 'conv_seg' in k and 'weight' in k:
+        print(f"num_classes = {v.shape[0]}")
 ```
 
-### Analyze Test Results
+### Analyze all test results
 ```bash
 python test_result_analyzer.py --root /scratch/aaa_exchange/AWARE/WEIGHTS --comprehensive
 ```
 
----
-
-## Important Notes
-
-### ⚠️ Native Classes vs Cityscapes Classes
-- MapillaryVistas: Use `--use-native-classes` for 66 classes (not 19)
-- OUTSIDE15k: Use `--use-native-classes` for 24 classes (not 19)
-
-**Example:**
-```bash
-python unified_training.py \
-    --dataset MapillaryVistas \
-    --model deeplabv3plus_r50 \
-    --strategy baseline \
-    --domain-filter clear_day \
-    --use-native-classes
+### Test results format (results.json)
+```json
+{
+    "overall": {"mIoU": 45.23, "aAcc": 92.1},
+    "per_domain": {"clear_day": {"mIoU": 48.5}, "rainy": {"mIoU": 42.1}},
+    "per_class": {"road": {"IoU": 95.2}, "sidewalk": {"IoU": 72.3}}
+}
 ```
-
-### Directory Naming
-- **No more `_cd` or `_ad` suffixes** in dataset directories
-- Stage is determined by root directory (WEIGHTS vs WEIGHTS_STAGE_2)
-- Keep hyphen in `idd-aw` (not `iddaw`)
-
----
-
-## Updating TODO.md
-
-**Always update TODO.md after completing tasks:**
-1. Update status numbers
-2. Move completed items to "Recently Completed"
-3. Update "Last updated" timestamp
-
-**Template for Recently Completed:**
-```markdown
-### Task Category (Date)
-- ✅ **Task description**
-  - Detail 1
-  - Detail 2
-```
-
----
-
-## Git Workflow
-
-```bash
-# Check status
-git status
-
-# Stage and commit
-git add <files>
-git commit -m "type: Short description
-
-Longer description if needed"
-
-# Push
-git push
-
-# If rejected (remote has changes)
-git stash
-git pull --rebase
-git stash pop
-git push
-```
-
-**Commit Types:**
-- `feat:` - New feature
-- `fix:` - Bug fix
-- `docs:` - Documentation
-- `refactor:` - Code restructuring
-- `chore:` - Maintenance tasks
