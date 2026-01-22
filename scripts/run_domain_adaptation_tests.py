@@ -451,66 +451,33 @@ def evaluate_on_domain(model, model_num_classes: int, dataset: str, domain: str,
 # Main Test Runner
 # ============================================================================
 
-def run_domain_adaptation_test(
+def evaluate_with_model(
+    model,
+    model_num_classes: int,
+    weights_dir: Path,
     source_dataset: str,
     model_name: str,
-    strategy: str = 'baseline',
+    strategy: str,
     batch_size: int = 4,
     device: str = 'cuda:0',
-    dry_run: bool = False,
-    max_images: int = 0,
-    regenerate: bool = False
-) -> Optional[Dict]:
-    """Run domain adaptation test for a single source model.
+    max_images: int = 0
+) -> Dict:
+    """Run domain adaptation evaluation with an already-loaded model.
     
     Args:
+        model: Loaded PyTorch model (already on device)
+        model_num_classes: Number of output classes
+        weights_dir: Path to save results
+        source_dataset: Source dataset name
+        model_name: Model architecture name
+        strategy: Training strategy name
+        batch_size: Batch size for inference
+        device: Device for inference
         max_images: Maximum images per domain (0=all, for quick testing)
-        regenerate: If True, re-run even if results exist
+    
+    Returns:
+        Dict with evaluation results
     """
-    
-    # Construct paths
-    weights_dir = WEIGHTS_ROOT / strategy / source_dataset / model_name
-    config_path = weights_dir / "training_config.py"
-    checkpoint_path = weights_dir / "iter_80000.pth"
-    
-    print(f"\n{'='*60}")
-    print(f"Source: {source_dataset} | Model: {model_name} | Strategy: {strategy}")
-    print(f"{'='*60}")
-    
-    # Check if checkpoint exists
-    if not checkpoint_path.exists():
-        print(f"  [SKIP] Checkpoint not found: {checkpoint_path}")
-        return None
-    
-    if not config_path.exists():
-        print(f"  [SKIP] Config not found: {config_path}")
-        return None
-    
-    # Check if results already exist
-    domain_adapt_dir = weights_dir / "domain_adaptation"
-    if domain_adapt_dir.exists() and not regenerate:
-        # Find the most recent results
-        result_dirs = sorted(domain_adapt_dir.glob("*/results.json"))
-        if result_dirs:
-            latest_result = result_dirs[-1]
-            print(f"  [SKIP] Results already exist: {latest_result}")
-            print(f"         Use --regenerate to re-run")
-            # Load and return existing results
-            with open(latest_result) as f:
-                return json.load(f)
-    
-    print(f"  Config: {config_path}")
-    print(f"  Checkpoint: {checkpoint_path}")
-    
-    if dry_run:
-        print("  [DRY RUN] Would test on Cityscapes + ACDC")
-        return {'dry_run': True}
-    
-    # Load model
-    print("  Loading model...")
-    model, cfg, model_num_classes = load_model(config_path, checkpoint_path, device)
-    print(f"  Model loaded (num_classes={model_num_classes})")
-    
     # Results structure
     results = {
         'source_dataset': source_dataset,
@@ -603,6 +570,86 @@ def run_domain_adaptation_test(
     print(f"  Report saved to: {report_file}")
     
     return results
+
+
+def run_domain_adaptation_test(
+    source_dataset: str,
+    model_name: str,
+    strategy: str = 'baseline',
+    batch_size: int = 4,
+    device: str = 'cuda:0',
+    dry_run: bool = False,
+    max_images: int = 0,
+    regenerate: bool = False,
+    preloaded_model: tuple = None
+) -> Optional[Dict]:
+    """Run domain adaptation test for a single source model.
+    
+    Args:
+        max_images: Maximum images per domain (0=all, for quick testing)
+        regenerate: If True, re-run even if results exist
+        preloaded_model: Optional tuple of (model, cfg, model_num_classes) to reuse
+    """
+    
+    # Construct paths
+    weights_dir = WEIGHTS_ROOT / strategy / source_dataset / model_name
+    config_path = weights_dir / "training_config.py"
+    checkpoint_path = weights_dir / "iter_80000.pth"
+    
+    print(f"\n{'='*60}")
+    print(f"Source: {source_dataset} | Model: {model_name} | Strategy: {strategy}")
+    print(f"{'='*60}")
+    
+    # Check if checkpoint exists
+    if not checkpoint_path.exists():
+        print(f"  [SKIP] Checkpoint not found: {checkpoint_path}")
+        return None
+    
+    if not config_path.exists():
+        print(f"  [SKIP] Config not found: {config_path}")
+        return None
+    
+    # Check if results already exist
+    domain_adapt_dir = weights_dir / "domain_adaptation"
+    if domain_adapt_dir.exists() and not regenerate:
+        # Find the most recent results
+        result_dirs = sorted(domain_adapt_dir.glob("*/results.json"))
+        if result_dirs:
+            latest_result = result_dirs[-1]
+            print(f"  [SKIP] Results already exist: {latest_result}")
+            print(f"         Use --regenerate to re-run")
+            # Load and return existing results
+            with open(latest_result) as f:
+                return json.load(f)
+    
+    print(f"  Config: {config_path}")
+    print(f"  Checkpoint: {checkpoint_path}")
+    
+    if dry_run:
+        print("  [DRY RUN] Would test on Cityscapes + ACDC")
+        return {'dry_run': True, 'strategy': strategy, 'source_dataset': source_dataset, 'model': model_name}
+    
+    # Load model (or use preloaded)
+    if preloaded_model is not None:
+        model, cfg, model_num_classes = preloaded_model
+        print(f"  Using preloaded model (num_classes={model_num_classes})")
+    else:
+        print("  Loading model...")
+        model, cfg, model_num_classes = load_model(config_path, checkpoint_path, device)
+        print(f"  Model loaded (num_classes={model_num_classes})")
+    
+    # Run evaluation
+    return evaluate_with_model(
+        model=model,
+        model_num_classes=model_num_classes,
+        weights_dir=weights_dir,
+        source_dataset=source_dataset,
+        model_name=model_name,
+        strategy=strategy,
+        batch_size=batch_size,
+        device=device,
+        max_images=max_images
+    )
 
 
 def main():
