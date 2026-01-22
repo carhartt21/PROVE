@@ -458,12 +458,14 @@ def run_domain_adaptation_test(
     batch_size: int = 4,
     device: str = 'cuda:0',
     dry_run: bool = False,
-    max_images: int = 0
+    max_images: int = 0,
+    regenerate: bool = False
 ) -> Optional[Dict]:
     """Run domain adaptation test for a single source model.
     
     Args:
         max_images: Maximum images per domain (0=all, for quick testing)
+        regenerate: If True, re-run even if results exist
     """
     
     # Construct paths
@@ -483,6 +485,19 @@ def run_domain_adaptation_test(
     if not config_path.exists():
         print(f"  [SKIP] Config not found: {config_path}")
         return None
+    
+    # Check if results already exist
+    domain_adapt_dir = weights_dir / "domain_adaptation"
+    if domain_adapt_dir.exists() and not regenerate:
+        # Find the most recent results
+        result_dirs = sorted(domain_adapt_dir.glob("*/results.json"))
+        if result_dirs:
+            latest_result = result_dirs[-1]
+            print(f"  [SKIP] Results already exist: {latest_result}")
+            print(f"         Use --regenerate to re-run")
+            # Load and return existing results
+            with open(latest_result) as f:
+                return json.load(f)
     
     print(f"  Config: {config_path}")
     print(f"  Checkpoint: {checkpoint_path}")
@@ -612,6 +627,8 @@ def main():
                        help='Only test this many images per domain (0=all, for debugging)')
     parser.add_argument('--list-strategies', action='store_true',
                        help='List all available strategies and exit')
+    parser.add_argument('--regenerate', action='store_true',
+                       help='Re-run tests even if results already exist (default: skip existing)')
     
     args = parser.parse_args()
     
@@ -638,7 +655,8 @@ def main():
                         batch_size=args.batch_size,
                         device=args.device,
                         dry_run=args.dry_run,
-                        max_images=args.quick_test
+                        max_images=args.quick_test,
+                        regenerate=args.regenerate
                     )
                     if result:
                         all_results.append(result)
@@ -670,7 +688,8 @@ def main():
             batch_size=args.batch_size,
             device=args.device,
             dry_run=args.dry_run,
-            max_images=args.quick_test
+            max_images=args.quick_test,
+            regenerate=args.regenerate
         )
 
 
