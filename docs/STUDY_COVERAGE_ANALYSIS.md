@@ -8,9 +8,9 @@
 |-------|------|-------------|------------|--------|
 | **Stage 1** | `WEIGHTS/` | 306 | 27 | 🔄 MapillaryVistas retraining |
 | **Stage 2** | `WEIGHTS_STAGE_2/` | 244 | 27 | ⏳ MapillaryVistas pending |
-| **Ratio Ablation** | `WEIGHTS_RATIO_ABLATION/` | 119 | 6 | ⚠️ MV moved to backup |
-| **Extended Training** | `WEIGHTS_EXTENDED/` | ~700+ | 5 | ⚠️ MV requires backup (chge7185 owned) |
-| **Combinations** | `WEIGHTS_COMBINATIONS/` | ~55 | 27 | ⚠️ MV moved to backup |
+| **Ratio Ablation** | `WEIGHTS_RATIO_ABLATION/` | 119 | 6 | ✅ MV moved to backup |
+| **Extended Training** | `WEIGHTS_EXTENDED/` | ~700+ | 5 | ✅ MV moved to backup |
+| **Combinations** | `WEIGHTS_COMBINATIONS/` | ~55 | 27 | ✅ MV moved to backup |
 | **Domain Adaptation** | Testing-only | Top 5 + baseline | ⏳ Not started |
 
 ### MapillaryVistas BGR/RGB Bug Status
@@ -22,7 +22,7 @@ The BGR/RGB bug in `custom_transforms.py` affected all MapillaryVistas training.
 | **Stage 1** | mima2416 | 🔄 Being retrained | In-place replacement |
 | **Stage 2** | mima2416 | ⏳ Pending retrain | Queued after Stage 1 |
 | **Ratio Ablation** | mima2416 | ✅ **Backed up (52 ckpts)** | `WEIGHTS_BACKUP_BUGGY_MAPILLARY/ratio_ablation/` |
-| **Extended Training** | chge7185 | ❌ Cannot move (4 dirs) | Requires owner to backup |
+| **Extended Training** | chge7185 | ✅ **Backed up (logs only)** | `WEIGHTS_BACKUP_BUGGY_MAPILLARY/extended_training/` |
 | **Combinations** | chge7185 | ✅ **Backed up (54 ckpts)** | `WEIGHTS_BACKUP_BUGGY_MAPILLARY/combinations/` |
 
 ---
@@ -154,25 +154,25 @@ Testing real/generated ratios: 0.00, 0.125, 0.25, 0.375, 0.50, 0.625, 0.75, 0.87
 ## Extended Training Study
 
 **Path:** `/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/`
-**Status:** ⚠️ MapillaryVistas INVALID (owned by chge7185, cannot move)
+**Status:** ✅ MapillaryVistas backed up (logs/configs only - no saved checkpoints)
 
-### MapillaryVistas Bug Status
-- **4 strategies with buggy MapillaryVistas:** gen_albumentations_weather, gen_cycleGAN, gen_TSIT, gen_UniControl
-- Cannot be moved to backup (directory owned by chge7185)
-- **Action required:** Contact chge7185 to backup/invalidate these checkpoints
+### MapillaryVistas Backup
+- **4 strategies with MapillaryVistas** moved to `WEIGHTS_BACKUP_BUGGY_MAPILLARY/extended_training/`
+- Strategies: gen_albumentations_weather, gen_cycleGAN, gen_TSIT, gen_UniControl
+- Note: Only logs and configs were present - no checkpoint files saved
 
 ### Study Design
 Extended iterations: 40k, 60k, 80k, 100k, 120k, 140k, 160k, 320k
 
-### Coverage Matrix
+### Coverage Matrix (after MV backup)
 
 | Strategy | BDD10k | IDD-AW | MapillaryVistas | OUTSIDE15k | Iterations |
 |----------|:------:|:------:|:---------------:|:----------:|------------|
-| gen_TSIT | 🔶 2/3 | 🔶 2/3 | ⚠️ INVALID | ❌ | Multiple |
-| gen_UniControl | 🔶 2/3 | 🔶 2/3 | ⚠️ INVALID | ❌ | Multiple |
-| gen_albumentations_weather | 🔶 2/3 | 🔶 2/3 | ⚠️ INVALID | ❌ | Multiple |
+| gen_TSIT | 🔶 2/3 | 🔶 2/3 | 📦 backed up | ❌ | Multiple |
+| gen_UniControl | 🔶 2/3 | 🔶 2/3 | 📦 backed up | ❌ | Multiple |
+| gen_albumentations_weather | 🔶 2/3 | 🔶 2/3 | 📦 backed up | ❌ | Multiple |
 | gen_automold | 🔶 2/3 | 🔶 1/3 | ❌ | ❌ | Multiple |
-| gen_cycleGAN | 🔶 2/3 | 🔶 2/3 | ⚠️ INVALID | ❌ | Multiple |
+| gen_cycleGAN | 🔶 2/3 | 🔶 2/3 | 📦 backed up | ❌ | Multiple |
 | gen_cyclediffusion | 🔶 2/3 | 🔶 2/3 | ❌ | ❌ | Multiple |
 | gen_flux_kontext | 🔶 2/3 | 🔶 2/3 | ❌ | ❌ | Multiple |
 | std_randaugment | 🔶 2/3 | 🔶 2/3 | ❌ | ❌ | Multiple |
@@ -183,7 +183,7 @@ Extended iterations: 40k, 60k, 80k, 100k, 120k, 140k, 160k, 320k
 - Focus on BDD10k and IDD-AW datasets
 - Models: pspnet_r50, segformer_mit-b5 primarily
 - Intermediate checkpoints saved at each iteration milestone
-- **MapillaryVistas checkpoints are INVALID** - trained with BGR/RGB bug
+- **MapillaryVistas directories backed up** to `WEIGHTS_BACKUP_BUGGY_MAPILLARY/extended_training/`
 
 ---
 
