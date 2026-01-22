@@ -11,7 +11,7 @@
 | **Ratio Ablation** | `WEIGHTS_RATIO_ABLATION/` | 171 | 6 | 🔶 Partial coverage |
 | **Extended Training** | `WEIGHTS_EXTENDED/` | 19 | 5 | 🔶 Partial coverage |
 | **Combinations** | `WEIGHTS_COMBINATIONS_chge7185/` | 109 | 27 | 🔶 IDD-AW/MV only |
-| **Domain Adaptation** | `WEIGHTS/domain_adaptation_ablation/` | 0 | - | ⏳ Not started |
+| **Domain Adaptation** | Testing-only | Top 5 + baseline | ⏳ Not started |
 
 ---
 
@@ -212,20 +212,38 @@ Combining generative + standard augmentation strategies
 ## Domain Adaptation Ablation
 
 **Path:** `/scratch/aaa_exchange/AWARE/WEIGHTS/domain_adaptation_ablation/`
-**Status:** ⏳ Not started (directory structure exists)
+**Type:** Testing-only study (uses existing checkpoints from `WEIGHTS/`)
+**Status:** ⏳ Not started
 
 ### Study Design
-Evaluate cross-dataset domain generalization:
-- Train on: BDD10k, IDD-AW, MapillaryVistas
-- Test on: Cityscapes (clear_day), ACDC (foggy, night, rainy, snowy)
+Evaluate **cross-dataset domain generalization** using existing models:
+- **Source Models:** Checkpoints from `WEIGHTS/` (trained on BDD10k, IDD-AW, MapillaryVistas)
+- **Target Test Sets:** 
+  - Cityscapes (clear_day condition)
+  - ACDC (foggy, night, rainy, snowy)
 
-### Planned Strategies
-- Top 5 generative strategies
+### Research Questions
+1. How well do models trained on one dataset generalize to other domains?
+2. Does training on all weather conditions (Stage 2) improve adverse weather performance?
+3. Which training datasets provide the best domain generalization?
+
+### Planned Testing Matrix
+
+| Source (Training) | Target (Testing) | Conditions |
+|-------------------|------------------|------------|
+| BDD10k models | Cityscapes + ACDC | 5 domains |
+| IDD-AW models | Cityscapes + ACDC | 5 domains |
+| MapillaryVistas models | Cityscapes + ACDC | 5 domains |
+
+### Strategies to Test
+- Top 5 generative strategies (gen_Qwen_Image_Edit, gen_Attribute_Hallucination, gen_cycleGAN, gen_flux_kontext, gen_step1x_new)
 - Baseline models
 
 ### Notes
-- Directory structure created but no training started
-- Requires models trained on source datasets to be tested on target datasets
+- **No training required** - uses existing checkpoints from Stage 1 (`WEIGHTS/`)
+- Test results stored in `domain_adaptation_ablation/` subdirectories
+- Script: `./scripts/submit_domain_adaptation_ablation.sh`
+- Doc: [DOMAIN_ADAPTATION_ABLATION.md](DOMAIN_ADAPTATION_ABLATION.md)
 
 ---
 
