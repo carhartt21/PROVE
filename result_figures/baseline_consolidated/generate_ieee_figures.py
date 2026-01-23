@@ -610,65 +610,95 @@ def create_model_ranking_figure(data, output_path):
     print("✓ Figure 7: Model Ranking saved")
 
 # =============================================================================
-# Figure 8: Domain Shift Impact Visualization
+# Figure 8: Domain Shift Impact Visualization (Per Dataset)
 # =============================================================================
 
 def create_domain_shift_figure(data, output_path):
     """
-    Create a visualization showing performance drop from clear_day to each adverse domain.
+    Create a visualization showing performance drop from clear_day to adverse domains.
+    Shows per-dataset performance to reveal dataset-specific patterns.
     
     IMPORTANT: Uses Stage 1 data (clear_domain) - models trained ONLY on clear_day.
     This measures cross-domain robustness: how well models generalize to unseen conditions.
-    Stage 2 (full_domain) would show models trained ON those conditions, not domain shift.
     """
-    fig, ax = plt.subplots(figsize=(IEEE_SINGLE_COL, 2.5))
-    
     # Use Stage 1 data (clear_day training only) to measure domain shift
     domain_df = data['clear_domain']
     domain_df = domain_df[domain_df['num_images'] >= 50]
     
-    # Calculate drop from clear_day to each adverse domain
-    # Include foggy in adverse domains
-    adverse_domains = ['foggy', 'dawn_dusk', 'night', 'rainy', 'snowy']
+    datasets = ['bdd10k', 'idd-aw', 'mapillaryvistas', 'outside15k']
+    adverse_domains = ['dawn_dusk', 'night', 'rainy', 'snowy']  # Removed foggy (only in IDD-AW)
+    
+    # Create figure with subplots for each dataset
+    fig, axes = plt.subplots(2, 2, figsize=(IEEE_DOUBLE_COL, 4.0))
+    axes = axes.flatten()
+    
     models = ['deeplabv3plus_r50', 'pspnet_r50', 'segformer_mit-b5']
     
-    x = np.arange(len(adverse_domains))
-    width = 0.18  # Smaller width for 5 domains
-    
-    for i, model in enumerate(models):
-        model_data = domain_df[domain_df['model'] == model]
-        clear_day_avg = model_data[model_data['domain'] == 'clear_day']['mIoU'].mean()
+    for ds_idx, dataset in enumerate(datasets):
+        ax = axes[ds_idx]
+        ds_data = domain_df[domain_df['dataset'] == dataset]
         
-        drops = []
-        for domain in adverse_domains:
-            domain_avg = model_data[model_data['domain'] == domain]['mIoU'].mean()
-            # Negative drop = performance loss (adverse < clear_day)
-            drop = domain_avg - clear_day_avg  # Will be negative when adverse is worse
-            drops.append(drop)
+        # Get domains available for this dataset
+        available_domains = [d for d in adverse_domains 
+                            if len(ds_data[ds_data['domain'] == d]) > 0]
         
-        bars = ax.bar(x + i * width, drops, width, label=MODEL_NAMES[model],
-                     color=COLORS_MODELS[model], edgecolor='black', linewidth=0.3)
+        if len(available_domains) == 0:
+            ax.text(0.5, 0.5, 'No adverse\ndomains', ha='center', va='center', 
+                   transform=ax.transAxes, fontsize=FONT_SIZE_TICK)
+            ax.set_title(DATASET_NAMES[dataset], fontsize=FONT_SIZE_TITLE)
+            ax.axis('off')
+            continue
+        
+        x = np.arange(len(available_domains))
+        width = 0.25
+        
+        for i, model in enumerate(models):
+            model_data = ds_data[ds_data['model'] == model]
+            clear_day_row = model_data[model_data['domain'] == 'clear_day']
+            
+            if len(clear_day_row) == 0:
+                continue
+                
+            clear_day_miou = clear_day_row['mIoU'].values[0]
+            
+            changes = []
+            for domain in available_domains:
+                domain_row = model_data[model_data['domain'] == domain]
+                if len(domain_row) > 0:
+                    change = domain_row['mIoU'].values[0] - clear_day_miou
+                    changes.append(change)
+                else:
+                    changes.append(0)
+            
+            offset = (i - 1) * width
+            ax.bar(x + offset, changes, width, label=MODEL_NAMES[model],
+                   color=COLORS_MODELS[model], edgecolor='black', linewidth=0.3)
+        
+        ax.axhline(y=0, color='gray', linestyle='--', linewidth=0.5)
+        ax.set_ylabel('mIoU Change (%)', fontsize=FONT_SIZE_LABEL)
+        ax.set_xticks(x)
+        ax.set_xticklabels([DOMAIN_NAMES[d] for d in available_domains], 
+                          fontsize=FONT_SIZE_TICK, rotation=15, ha='right')
+        ax.set_title(DATASET_NAMES[dataset], fontsize=FONT_SIZE_TITLE)
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        
+        # Set consistent y-axis limits
+        ax.set_ylim(-30, 10)
     
-    ax.set_ylabel('mIoU Change (%)')
-    ax.set_xlabel('Target Domain')
-    ax.set_xticks(x + width)
-    ax.set_xticklabels([DOMAIN_NAMES[d] for d in adverse_domains])
-    # Legend at top
-    ax.legend(loc='upper center', bbox_to_anchor=(0.5, 1.22), ncol=3, 
-              frameon=False, fontsize=FONT_SIZE_LEGEND-0.5)
-    ax.spines['top'].set_visible(False)
-    ax.spines['right'].set_visible(False)
-    ax.axhline(y=0, color='gray', linestyle='--', linewidth=0.5)
+    # Add legend to first subplot
+    axes[0].legend(loc='lower left', fontsize=FONT_SIZE_LEGEND-1, ncol=1)
     
-    ax.set_title('Performance Change from Clear Day', fontsize=FONT_SIZE_TITLE, pad=18)
+    # Overall title
+    fig.suptitle('Performance Change from Clear Day (Stage 1: Clear Day Training Only)', 
+                 fontsize=FONT_SIZE_TITLE, y=1.02)
     
     plt.tight_layout()
-    plt.subplots_adjust(top=0.80)
     
-    fig.savefig(output_path / 'fig8_domain_shift.png', dpi=300)
+    fig.savefig(output_path / 'fig8_domain_shift.png', dpi=300, bbox_inches='tight')
     plt.close(fig)
     
-    print("✓ Figure 8: Domain Shift Impact saved")
+    print("✓ Figure 8: Domain Shift Impact (Per Dataset) saved")
 
 # =============================================================================
 # Main Execution
