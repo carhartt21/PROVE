@@ -642,13 +642,14 @@ def create_domain_shift_figure(data, output_path):
         drops = []
         for domain in adverse_domains:
             domain_avg = model_data[model_data['domain'] == domain]['mIoU'].mean()
-            drop = clear_day_avg - domain_avg
+            # Negative drop = performance loss (adverse < clear_day)
+            drop = domain_avg - clear_day_avg  # Will be negative when adverse is worse
             drops.append(drop)
         
         bars = ax.bar(x + i * width, drops, width, label=MODEL_NAMES[model],
                      color=COLORS_MODELS[model], edgecolor='black', linewidth=0.3)
     
-    ax.set_ylabel('Performance Drop (%)')
+    ax.set_ylabel('mIoU Change (%)')
     ax.set_xlabel('Target Domain')
     ax.set_xticks(x + width)
     ax.set_xticklabels([DOMAIN_NAMES[d] for d in adverse_domains])
@@ -659,7 +660,7 @@ def create_domain_shift_figure(data, output_path):
     ax.spines['right'].set_visible(False)
     ax.axhline(y=0, color='gray', linestyle='--', linewidth=0.5)
     
-    ax.set_title('Performance Drop from Clear Day', fontsize=FONT_SIZE_TITLE, pad=18)
+    ax.set_title('Performance Change from Clear Day', fontsize=FONT_SIZE_TITLE, pad=18)
     
     plt.tight_layout()
     plt.subplots_adjust(top=0.80)
