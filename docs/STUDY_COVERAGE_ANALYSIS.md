@@ -1,87 +1,92 @@
 # Study Coverage Analysis
 
-**Last Updated:** 2026-01-22 (17:00)
+**Last Updated:** 2026-01-23 (17:00)
 
 ## Summary
 
 | Study | Path | Checkpoints | Strategies | Status |
 |-------|------|-------------|------------|--------|
-| **Stage 1** | `WEIGHTS/` | 306 | 27 | 🔄 MapillaryVistas retraining |
-| **Stage 2** | `WEIGHTS_STAGE_2/` | 243 | 27 | ✅ Testing complete (non-MV) |
-| **Ratio Ablation** | `WEIGHTS_RATIO_ABLATION/` | 119 | 6 | 📦 MV backed up (buggy) |
+| **Stage 1** | `WEIGHTS/` | 405 | 27 | ✅ **COMPLETE** (Training + Testing) |
+| **Stage 2** | `WEIGHTS_STAGE_2/` | 291 | 27 | 🔄 MV Retraining (59%) |
+| **Ratio Ablation** | `WEIGHTS_RATIO_ABLATION/` | ~119 | 6 | 📦 MV backed up (buggy) |
 | **Extended Training** | `WEIGHTS_EXTENDED/` | ~700+ | 5 | 📦 MV backed up (buggy) |
 | **Combinations** | `WEIGHTS_COMBINATIONS/` | ~55 | 27 | 📦 MV backed up (buggy) |
-| **Domain Adaptation** | Testing-only | Top 5 + baseline | ⏳ Ready to start |
+| **Domain Adaptation** | Testing-only | N/A | Top 5 + baseline | ⏳ Ready to start |
 
 ### MapillaryVistas BGR/RGB Bug Status
 
 The BGR/RGB bug in `custom_transforms.py` affected all MapillaryVistas training. Buggy checkpoints have been backed up:
 
-| Study | Owner | MV Checkpoint Status | Backup Location |
-|-------|-------|---------------------|-----------------|
-| **Stage 1** | mima2416 | 🔄 Being retrained | In-place replacement |
-| **Stage 2** | mima2416 | ⏳ Pending retrain | Queued after Stage 1 |
-| **Ratio Ablation** | mima2416 | 📦 **Backed up (52 ckpts)** | `WEIGHTS_BACKUP_BUGGY_MAPILLARY/ratio_ablation/` |
-| **Extended Training** | chge7185 | 📦 **Backed up (logs only)** | `WEIGHTS_BACKUP_BUGGY_MAPILLARY/extended_training/` |
-| **Combinations** | chge7185 | 📦 **Backed up (54 ckpts)** | `WEIGHTS_BACKUP_BUGGY_MAPILLARY/combinations/` |
+| Study | Owner | MV Checkpoint Status | Notes |
+|-------|-------|---------------------|-------|
+| **Stage 1** | mima2416 | ✅ **COMPLETE** | All 81/81 retrained + tested |
+| **Stage 2** | mima2416 | 🔄 59% (48/81) | Retraining in progress |
+| **Ratio Ablation** | mima2416 | 📦 Backed up | `WEIGHTS_BACKUP_BUGGY_MAPILLARY/ratio_ablation/` |
+| **Extended Training** | chge7185 | 📦 Backed up | `WEIGHTS_BACKUP_BUGGY_MAPILLARY/extended_training/` |
+| **Combinations** | chge7185 | 📦 Backed up | `WEIGHTS_BACKUP_BUGGY_MAPILLARY/combinations/` |
 
-**Note:** Backed up checkpoints are INVALID and cannot be used. Awaiting retrain after Stage 1/2 completes.
+**Note:** Backed up checkpoints are INVALID and cannot be used.
 
 ---
 
 ## Stage 1: Clear Day Training
 
 **Path:** `/scratch/aaa_exchange/AWARE/WEIGHTS/`
-**Status:** 🔄 MapillaryVistas retraining in progress (BGR/RGB fix)
+**Status:** ✅ **COMPLETE** (Training 405/405 + Testing 405/405)
+
+### Baseline Analysis Results
+
+Publication-ready analysis available at `result_figures/baseline_consolidated/stage1_baseline_output/`:
+
+| Metric | Value |
+|--------|-------|
+| Overall mIoU | 33.3% |
+| Domain Gap | 10.1% |
+| Most Robust Model | SegFormer (8.7% gap) |
+| Hardest Domain | Night (-14.9% from Clear Day) |
+| Largest Dataset Gap | IDD-AW (17.6%) |
+| Smallest Dataset Gap | Mapillary (2.6%) |
 
 ### Coverage Matrix
 
 | Strategy | BDD10k | IDD-AW | MapillaryVistas | OUTSIDE15k | Total |
 |----------|:------:|:------:|:---------------:|:----------:|------:|
-| baseline | ✅ 3/3 | ✅ 3/3 | 🔄 3/3 | ✅ 3/3 | 12 |
-| gen_Attribute_Hallucination | ✅ 3/3 | ✅ 3/3 | 🔄 3/3 | ✅ 3/3 | 12 |
-| gen_CNetSeg | ✅ 3/3 | ✅ 3/3 | 🔄 3/3 | ✅ 3/3 | 12 |
-| gen_CUT | ✅ 3/3 | ✅ 3/3 | 🔄 3/3 | ✅ 3/3 | 12 |
-| gen_IP2P | ✅ 3/3 | ✅ 3/3 | 🔄 3/3 | ✅ 3/3 | 12 |
-| gen_Img2Img | ✅ 3/3 | ✅ 3/3 | 🔄 3/3 | ✅ 3/3 | 12 |
-| gen_LANIT | ✅ 3/3 | ✅ 3/3 | 🔄 3/3 | ✅ 3/3 | 12 |
-| gen_Qwen_Image_Edit | ✅ 3/3 | ✅ 3/3 | 🔄 3/3 | ✅ 3/3 | 12 |
-| gen_SUSTechGAN | ✅ 3/3 | ✅ 3/3 | 🔄 2/3 | ✅ 3/3 | 11 |
-| gen_TSIT | ✅ 3/3 | ✅ 3/3 | ⏸️ | ✅ 3/3 | 9 |
-| gen_UniControl | ✅ 3/3 | ✅ 3/3 | ⏸️ | ✅ 3/3 | 9 |
-| gen_VisualCloze | ✅ 3/3 | ✅ 3/3 | ⏸️ | ✅ 3/3 | 9 |
-| gen_Weather_Effect_Generator | ✅ 3/3 | ✅ 3/3 | ⏸️ | ✅ 3/3 | 9 |
-| gen_albumentations_weather | ✅ 3/3 | ✅ 3/3 | 🔄 3/3 | ✅ 3/3 | 12 |
-| gen_augmenters | ✅ 3/3 | ✅ 3/3 | 🔄 3/3 | ✅ 3/3 | 12 |
-| gen_automold | ✅ 3/3 | ✅ 3/3 | 🔄 3/3 | ✅ 3/3 | 12 |
-| gen_cycleGAN | ✅ 3/3 | ✅ 3/3 | 🔄 3/3 | ✅ 3/3 | 12 |
-| gen_cyclediffusion | ✅ 3/3 | ✅ 3/3 | 🔄 3/3 | ✅ 3/3 | 12 |
-| gen_flux_kontext | ✅ 3/3 | ✅ 3/3 | 🔄 3/3 | ✅ 3/3 | 12 |
-| gen_stargan_v2 | ✅ 3/3 | ✅ 3/3 | 🔄 2/3 | ✅ 3/3 | 11 |
-| gen_step1x_new | ✅ 3/3 | ✅ 3/3 | 🔄 3/3 | ✅ 3/3 | 12 |
-| gen_step1x_v1p2 | ✅ 3/3 | ✅ 3/3 | 🔄 1/3 | ✅ 3/3 | 10 |
-| photometric_distort | ✅ 3/3 | ✅ 3/3 | 🔄 3/3 | ✅ 3/3 | 12 |
-| std_autoaugment | ✅ 3/3 | ✅ 3/3 | 🔄 3/3 | ✅ 3/3 | 12 |
-| std_cutmix | ✅ 3/3 | ✅ 3/3 | 🔄 3/3 | ✅ 3/3 | 12 |
-| std_mixup | ✅ 3/3 | ✅ 3/3 | 🔄 3/3 | ✅ 3/3 | 12 |
-| std_randaugment | ✅ 3/3 | ✅ 3/3 | 🔄 3/3 | ✅ 3/3 | 12 |
+| baseline | ✅ 3/3 | ✅ 3/3 | ✅ 3/3 | ✅ 3/3 | 12 |
+| gen_Attribute_Hallucination | ✅ 3/3 | ✅ 3/3 | ✅ 3/3 | ✅ 3/3 | 12 |
+| gen_CNetSeg | ✅ 3/3 | ✅ 3/3 | ✅ 3/3 | ✅ 3/3 | 12 |
+| gen_CUT | ✅ 3/3 | ✅ 3/3 | ✅ 3/3 | ✅ 3/3 | 12 |
+| gen_IP2P | ✅ 3/3 | ✅ 3/3 | ✅ 3/3 | ✅ 3/3 | 12 |
+| gen_Img2Img | ✅ 3/3 | ✅ 3/3 | ✅ 3/3 | ✅ 3/3 | 12 |
+| gen_LANIT | ✅ 3/3 | ✅ 3/3 | ✅ 3/3 | ✅ 3/3 | 12 |
+| gen_Qwen_Image_Edit | ✅ 3/3 | ✅ 3/3 | ✅ 3/3 | ✅ 3/3 | 12 |
+| gen_SUSTechGAN | ✅ 3/3 | ✅ 3/3 | ✅ 3/3 | ✅ 3/3 | 12 |
+| gen_TSIT | ✅ 3/3 | ✅ 3/3 | ✅ 3/3 | ✅ 3/3 | 12 |
+| gen_UniControl | ✅ 3/3 | ✅ 3/3 | ✅ 3/3 | ✅ 3/3 | 12 |
+| gen_VisualCloze | ✅ 3/3 | ✅ 3/3 | ✅ 3/3 | ✅ 3/3 | 12 |
+| gen_Weather_Effect_Generator | ✅ 3/3 | ✅ 3/3 | ✅ 3/3 | ✅ 3/3 | 12 |
+| gen_albumentations_weather | ✅ 3/3 | ✅ 3/3 | ✅ 3/3 | ✅ 3/3 | 12 |
+| gen_augmenters | ✅ 3/3 | ✅ 3/3 | ✅ 3/3 | ✅ 3/3 | 12 |
+| gen_automold | ✅ 3/3 | ✅ 3/3 | ✅ 3/3 | ✅ 3/3 | 12 |
+| gen_cycleGAN | ✅ 3/3 | ✅ 3/3 | ✅ 3/3 | ✅ 3/3 | 12 |
+| gen_cyclediffusion | ✅ 3/3 | ✅ 3/3 | ✅ 3/3 | ✅ 3/3 | 12 |
+| gen_flux_kontext | ✅ 3/3 | ✅ 3/3 | ✅ 3/3 | ✅ 3/3 | 12 |
+| gen_stargan_v2 | ✅ 3/3 | ✅ 3/3 | ✅ 3/3 | ✅ 3/3 | 12 |
+| gen_step1x_new | ✅ 3/3 | ✅ 3/3 | ✅ 3/3 | ✅ 3/3 | 12 |
+| gen_step1x_v1p2 | ✅ 3/3 | ✅ 3/3 | ✅ 3/3 | ✅ 3/3 | 12 |
+| photometric_distort | ✅ 3/3 | ✅ 3/3 | ✅ 3/3 | ✅ 3/3 | 12 |
+| std_autoaugment | ✅ 3/3 | ✅ 3/3 | ✅ 3/3 | ✅ 3/3 | 12 |
+| std_cutmix | ✅ 3/3 | ✅ 3/3 | ✅ 3/3 | ✅ 3/3 | 12 |
+| std_mixup | ✅ 3/3 | ✅ 3/3 | ✅ 3/3 | ✅ 3/3 | 12 |
+| std_randaugment | ✅ 3/3 | ✅ 3/3 | ✅ 3/3 | ✅ 3/3 | 12 |
 
-**Legend:** 🔄 = Retraining in progress (BGR/RGB fix) | ⏸️ = Never trained (lower priority)
-
-### Notes
-- MapillaryVistas models being retrained due to BGR/RGB bug in `custom_transforms.py`
-- **Strategies never trained for Stage 1 MapillaryVistas** (lower priority):
-  - `gen_TSIT`: Has 45k generated images, trained in ratio_ablation only, never in main Stage 1
-  - `gen_UniControl`: Has 45k generated images, trained in extended_training only
-  - `gen_VisualCloze`: Limited generated images (~5k), skipped for Stage 1
-  - `gen_Weather_Effect_Generator`: Has ~15k generated images, skipped for Stage 1
+**Total:** 405 checkpoints (27 strategies × 4 datasets × 3 models) ✅
 
 ---
 
 ## Stage 2: All Domains Training
 
 **Path:** `/scratch/aaa_exchange/AWARE/WEIGHTS_STAGE_2/`
-**Status:** ✅ Testing complete (243/243 non-MapillaryVistas configurations)
+**Status:** 🔄 Non-MV Complete (243/243) | MapillaryVistas Retraining (59%)
 
 ### Leaderboard (Top 10 + Notable)
 | Rank | Strategy | mIoU | Gain vs Baseline |
@@ -99,39 +104,40 @@ The BGR/RGB bug in `custom_transforms.py` affected all MapillaryVistas training.
 
 | Strategy | BDD10k | IDD-AW | MapillaryVistas | OUTSIDE15k | Total |
 |----------|:------:|:------:|:---------------:|:----------:|------:|
-| baseline | ✅ 3/3 | ✅ 3/3 | ⏳ | ✅ 3/3 | 9 |
-| gen_Attribute_Hallucination | ✅ 3/3 | ✅ 3/3 | ⏳ | ✅ 3/3 | 9 |
-| gen_CNetSeg | ✅ 3/3 | ✅ 3/3 | ⏳ | ✅ 3/3 | 9 |
-| gen_CUT | ✅ 3/3 | ✅ 3/3 | ⏳ | ✅ 3/3 | 9 |
-| gen_IP2P | ✅ 3/3 | ✅ 3/3 | ⏳ | ✅ 3/3 | 9 |
-| gen_Img2Img | ✅ 3/3 | ✅ 3/3 | ⏳ | ✅ 3/3 | 9 |
-| gen_LANIT | ✅ 3/3 | ✅ 3/3 | ⏳ | ✅ 3/3 | 9 |
-| gen_Qwen_Image_Edit | ✅ 3/3 | ✅ 3/3 | ⏳ | ✅ 3/3 | 9 |
-| gen_SUSTechGAN | ✅ 3/3 | ✅ 3/3 | ⏳ | ✅ 3/3 | 9 |
-| gen_TSIT | ✅ 3/3 | ✅ 3/3 | ⏳ | ✅ 3/3 | 9 |
-| gen_UniControl | ✅ 3/3 | ✅ 3/3 | ⏳ | ✅ 3/3 | 9 |
-| gen_VisualCloze | ✅ 3/3 | ✅ 3/3 | ⏳ | ✅ 3/3 | 9 |
-| gen_Weather_Effect_Generator | ✅ 3/3 | ✅ 3/3 | ⏳ | ✅ 3/3 | 9 |
-| gen_albumentations_weather | ✅ 3/3 | ✅ 3/3 | ⏳ | ✅ 3/3 | 9 |
-| gen_augmenters | ✅ 3/3 | ✅ 3/3 | ⏳ | ✅ 3/3 | 9 |
-| gen_automold | ✅ 3/3 | ✅ 3/3 | ⏳ | ✅ 3/3 | 9 |
-| gen_cycleGAN | ✅ 3/3 | ✅ 3/3 | ⏳ | ✅ 3/3 | 9 |
-| gen_cyclediffusion | ✅ 3/3 | ✅ 3/3 | ⏳ | ✅ 3/3 | 9 |
-| gen_flux_kontext | ✅ 3/3 | ✅ 3/3 | ⏳ | ✅ 3/3 | 9 |
-| gen_stargan_v2 | ✅ 3/3 | ✅ 3/3 | ⏳ | ✅ 3/3 | 9 |
-| gen_step1x_new | ✅ 3/3 | ✅ 3/3 | ⏳ | ✅ 3/3 | 9 |
-| gen_step1x_v1p2 | ✅ 3/3 | ✅ 3/3 | ⏳ | ✅ 3/3 | 9 |
-| photometric_distort | ✅ 3/3 | ✅ 3/3 | ⏳ | ✅ 3/3 | 9 |
-| std_autoaugment | ✅ 3/3 | ✅ 3/3 | ⏳ | ✅ 3/3 | 9 |
-| std_cutmix | ✅ 3/3 | ✅ 3/3 | ⏳ | ✅ 3/3 | 9 |
-| std_mixup | ✅ 3/3 | ✅ 3/3 | ⏳ | ✅ 3/3 | 9 |
-| std_randaugment | ✅ 3/3 | ✅ 3/3 | ⏳ | ✅ 3/3 | 9 |
+| baseline | ✅ 3/3 | ✅ 3/3 | 🔄 | ✅ 3/3 | 9+ |
+| gen_Attribute_Hallucination | ✅ 3/3 | ✅ 3/3 | 🔄 | ✅ 3/3 | 9+ |
+| gen_CNetSeg | ✅ 3/3 | ✅ 3/3 | 🔄 | ✅ 3/3 | 9+ |
+| gen_CUT | ✅ 3/3 | ✅ 3/3 | 🔄 | ✅ 3/3 | 9+ |
+| gen_IP2P | ✅ 3/3 | ✅ 3/3 | 🔄 | ✅ 3/3 | 9+ |
+| gen_Img2Img | ✅ 3/3 | ✅ 3/3 | 🔄 | ✅ 3/3 | 9+ |
+| gen_LANIT | ✅ 3/3 | ✅ 3/3 | 🔄 | ✅ 3/3 | 9+ |
+| gen_Qwen_Image_Edit | ✅ 3/3 | ✅ 3/3 | 🔄 | ✅ 3/3 | 9+ |
+| gen_SUSTechGAN | ✅ 3/3 | ✅ 3/3 | 🔄 | ✅ 3/3 | 9+ |
+| gen_TSIT | ✅ 3/3 | ✅ 3/3 | 🔄 | ✅ 3/3 | 9+ |
+| gen_UniControl | ✅ 3/3 | ✅ 3/3 | 🔄 | ✅ 3/3 | 9+ |
+| gen_VisualCloze | ✅ 3/3 | ✅ 3/3 | 🔄 | ✅ 3/3 | 9+ |
+| gen_Weather_Effect_Generator | ✅ 3/3 | ✅ 3/3 | 🔄 | ✅ 3/3 | 9+ |
+| gen_albumentations_weather | ✅ 3/3 | ✅ 3/3 | 🔄 | ✅ 3/3 | 9+ |
+| gen_augmenters | ✅ 3/3 | ✅ 3/3 | 🔄 | ✅ 3/3 | 9+ |
+| gen_automold | ✅ 3/3 | ✅ 3/3 | 🔄 | ✅ 3/3 | 9+ |
+| gen_cycleGAN | ✅ 3/3 | ✅ 3/3 | 🔄 | ✅ 3/3 | 9+ |
+| gen_cyclediffusion | ✅ 3/3 | ✅ 3/3 | 🔄 | ✅ 3/3 | 9+ |
+| gen_flux_kontext | ✅ 3/3 | ✅ 3/3 | 🔄 | ✅ 3/3 | 9+ |
+| gen_stargan_v2 | ✅ 3/3 | ✅ 3/3 | 🔄 | ✅ 3/3 | 9+ |
+| gen_step1x_new | ✅ 3/3 | ✅ 3/3 | 🔄 | ✅ 3/3 | 9+ |
+| gen_step1x_v1p2 | ✅ 3/3 | ✅ 3/3 | 🔄 | ✅ 3/3 | 9+ |
+| photometric_distort | ✅ 3/3 | ✅ 3/3 | 🔄 | ✅ 3/3 | 9+ |
+| std_autoaugment | ✅ 3/3 | ✅ 3/3 | 🔄 | ✅ 3/3 | 9+ |
+| std_cutmix | ✅ 3/3 | ✅ 3/3 | 🔄 | ✅ 3/3 | 9+ |
+| std_mixup | ✅ 3/3 | ✅ 3/3 | 🔄 | ✅ 3/3 | 9+ |
+| std_randaugment | ✅ 3/3 | ✅ 3/3 | 🔄 | ✅ 3/3 | 9+ |
 
-**Total:** 244 checkpoints (27 strategies × 3 datasets × 3 models)
+**Non-MV Complete:** 243/243 (27 strategies × 3 datasets × 3 models) ✅
+**MapillaryVistas:** 🔄 48/81 complete (59%), 33 remaining
 
 ### Notes
-- MapillaryVistas training will start after Stage 1 retraining completes
-- All non-MapillaryVistas configs are complete
+- MapillaryVistas training in progress (48/81 done, 59%)
+- Tests will run as training completes using `./scripts/run_stage2_mapillary_tests.sh`
 
 ---
 
