@@ -1,6 +1,6 @@
 # PROVE Project TODO List
 
-**Last Updated:** 2026-01-23 (10:00)
+**Last Updated:** 2026-01-23 (15:30)
 
 ## Current Job Status Summary
 
@@ -9,24 +9,25 @@
 |----------|--------:|--------:|---------:|------:|
 | Training | 0 | 0 | 405 | 405 |
 | Testing (non-MV) | 0 | 0 | ~324 | ~324 |
-| **MV Testing** | **0** | **81** | **0** | **81** |
+| **MV Testing** | **0** | **0** | **81** | **81** |
 
-✅ **Stage 1 MapillaryVistas RETRAINING COMPLETE (81/81)**
-- All 81 MapillaryVistas Stage 1 models now have `iter_80000.pth`
-- Ready for testing with `./scripts/run_stage1_mapillary_tests.sh`
+✅ **Stage 1 MapillaryVistas FULLY COMPLETE (Training + Testing)**
+- All 81 MapillaryVistas Stage 1 models trained ✅
+- All 81 MapillaryVistas Stage 1 tests completed ✅
+- Results available in `test_results_detailed/*/results.json`
 
 ### Stage 2 (All Domains) - WEIGHTS_STAGE_2 directory
 | Category | Running | Pending | Complete | Total |
 |----------|--------:|--------:|---------:|------:|
 | Training (non-MV) | 0 | 0 | 243 | 243 |
 | Testing (non-MV) | 0 | 0 | 243 | 243 |
-| **MV Training** | **2** | **41** | **38** | **81** |
-| **MV Testing** | **0** | **38** | **0** | **38** |
+| **MV Training** | **6** | **27** | **48** | **81** |
+| **MV Testing** | **0** | **48** | **0** | **48** |
 
-**Stage 2 Status (as of 2026-01-23 10:00):**
+**Stage 2 Status (as of 2026-01-23 15:30):**
 - **Non-MV Training:** ✅ 243/243 complete
 - **Non-MV Testing:** ✅ 243/243 complete
-- **MapillaryVistas Training:** 🔄 38/81 complete (47%), 43 remaining
+- **MapillaryVistas Training:** 🔄 48/81 complete (59%), 33 remaining
 - **Top performer:** gen_CNetSeg (+0.58 over baseline at 43.68% mIoU)
 
 ---
@@ -152,39 +153,37 @@ WEIGHTS_STAGE_2/             # Stage 2 (all domains)
 
 ## Active Tasks
 
-### ✅ Stage 1 MapillaryVistas Retraining COMPLETE
+### ✅ Stage 1 MapillaryVistas FULLY COMPLETE
 
-All 81 MapillaryVistas Stage 1 models have completed retraining after BGR/RGB bug fix.
-Ready for testing!
+All 81 MapillaryVistas Stage 1 models have completed:
+- ✅ Training after BGR/RGB bug fix
+- ✅ Fine-grained testing with per-domain/per-class metrics
 
-### 🎯 IMMEDIATE: Run Stage 1 MapillaryVistas Tests
+**Results Location:** `/scratch/aaa_exchange/AWARE/WEIGHTS/*/mapillaryvistas/*/test_results_detailed/*/results.json`
 
-**Script:** `./scripts/run_stage1_mapillary_tests.sh`
+### 🎯 IMMEDIATE: Generate Stage 1 Leaderboard with MapillaryVistas
+
+Now that all Stage 1 tests are complete (including MV), generate the final leaderboard:
 
 ```bash
-# Preview tests
-./scripts/run_stage1_mapillary_tests.sh --dry-run
-
-# Run all 81 tests on GPU 0
-./scripts/run_stage1_mapillary_tests.sh --gpu 0
-
-# Run with limit for testing
-./scripts/run_stage1_mapillary_tests.sh --gpu 0 --limit 5
+python analysis_scripts/generate_stage1_leaderboard.py
 ```
 
-**Estimated time:** ~10 min per test = ~13.5 hours for all 81
+### 🔄 Stage 2 MapillaryVistas Retraining (59% complete)
 
-### 🔄 Stage 2 MapillaryVistas Retraining (47% complete)
-
-**Status:** 38/81 complete, 2 running, ~41 pending
+**Status:** 48/81 complete, 6 running, ~27 pending
 
 | Progress | Count |
 |----------|-------|
-| Complete | 38 |
-| Running | 2 |
-| Pending | ~41 |
+| Complete | 48 |
+| Running | 6 |
+| Pending | ~27 |
 
 **Monitor:** `bjobs -u mima2416 | grep rt_map`
+
+**Test Script Ready:** `./scripts/run_stage2_mapillary_tests.sh`
+- Run after training completes for each model
+- Current script finds 48 models ready for testing
 
 ### Stage 2 Non-MapillaryVistas (100% Complete)
 

@@ -1,29 +1,35 @@
 # Evaluation Stage Status
 
-**Last Updated:** 2026-01-22 (17:00)
+**Last Updated:** 2026-01-23 (15:30)
 
 ## Overview
 
 | Stage | Training | Testing | Status |
 |-------|----------|---------|--------|
-| **Stage 1** | 306/306 (100%) | 🔄 MapillaryVistas Retest | ✅ Training | 🔄 Retesting (BGR fix) |
-| **Stage 2** | 243/243 (100%) | ✅ 243/243 (100%) | ✅ Complete (non-MV) |
+| **Stage 1** | ✅ 405/405 (100%) | ✅ 405/405 (100%) | ✅ **COMPLETE** |
+| **Stage 2** | 🔄 291/324 (90%) | ✅ 243/243 (100% non-MV) | 🔄 MV Retraining |
 
 ## 🔧 Critical Bug Fix: BGR→RGB in MapillaryVistas Labels
 
 **Issue Discovered:** MapillaryVistas RGB label decoding used BGR channel order (cv2.imread default).
 
-**Impact:** ALL MapillaryVistas test results were INVALID.
+**Impact:** ALL MapillaryVistas models were INVALID (training and testing).
 
-**Fix:** Commit 9313a5e - Changed `r = gt_seg_map[:, :, 0]` to `r = gt_seg_map[:, :, 2]`.
+**Fixes Applied:**
+1. **Training Bug (d7b2b99):** Fixed `custom_transforms.py` - Changed BGR→RGB channel order in `MapillaryRGBToClassId`
+2. **Testing Bug (9313a5e):** Fixed `fine_grained_test.py` - Changed BGR→RGB in test-time label loading
 
-**Retest Status:**
-| Stage | Jobs Submitted | Running | Pending | Job ID Range |
-|-------|----------------|---------|---------|--------------|
-| Stage 1 | 81 | ~6 | ~75 | 9681356-9681666 |
-| Stage 2 | 81 | ~5 | ~76 | 9681687-9681938 |
+**Retraining Status:**
+| Stage | Complete | Running | Pending | Total |
+|-------|----------|---------|---------|-------|
+| Stage 1 | ✅ 81/81 | 0 | 0 | 81 |
+| Stage 2 | 48/81 | 6 | ~27 | 81 |
 
-**Expected Completion:** ~4-5 hours per job (4949 images × 7 domains)
+**Testing Status:**
+| Stage | Complete | Pending | Total |
+|-------|----------|---------|-------|
+| Stage 1 | ✅ 81/81 | 0 | 81 |
+| Stage 2 | 0/48 | 48 | 48 |
 
 ## 📊 Performance Issue: MapillaryVistas 16x Slowdown
 
@@ -46,21 +52,22 @@
 
 ## Stage 1: Clear-Day Domain Training
 
-**Status: ✅ Training Complete | 🔄 Testing In Progress**
+**Status: ✅ COMPLETE (Training + Testing)**
 
 ### Description
-- **Training Domain Filter:** \`clear_day\` only
-- **Weights Directory:** \`/scratch/aaa_exchange/AWARE/WEIGHTS/\`
+- **Training Domain Filter:** `clear_day` only
+- **Weights Directory:** `/scratch/aaa_exchange/AWARE/WEIGHTS/`
 - **Purpose:** Train models on clear weather conditions, evaluate cross-domain robustness
 
 ### Coverage
 | Metric | Count | Percentage |
 |--------|-------|------------|
-| Training Complete | 107/107 | 100% |
-| Testing Complete (non-MV) | 265/265 | 100% |
-| MapillaryVistas Retest | 🔄 81 jobs | Running |
+| Training Complete | 405/405 | ✅ 100% |
+| Testing Complete | 405/405 | ✅ 100% |
+| MapillaryVistas Training | 81/81 | ✅ 100% |
+| MapillaryVistas Testing | 81/81 | ✅ 100% |
 
-**Note:** MapillaryVistas tests invalidated by BGR→RGB bug. Retesting in progress.
+**Stage 1 is now fully complete including MapillaryVistas!**
 
 ### Strategies (27)
 | Category | Count | Strategies |
@@ -96,7 +103,7 @@
 
 ## Stage 2: All-Domains Training
 
-**Status: ✅ Training Complete | ✅ Testing Complete (non-MV)**
+**Status: ✅ Non-MV Complete | 🔄 MapillaryVistas Retraining (59%)**
 
 ### Description
 - **Training Domain Filter:** None (all domains)
@@ -106,11 +113,12 @@
 ### Coverage
 | Metric | Count | Percentage |
 |--------|-------|------------|
-| Training Complete | 243/243 | 100% |
-| Testing Complete (non-MV) | 243/243 | 100% |
-| MapillaryVistas Retest | ⏳ Pending | Queued after Stage 1 |
+| Training Complete (non-MV) | 243/243 | ✅ 100% |
+| Testing Complete (non-MV) | 243/243 | ✅ 100% |
+| MapillaryVistas Training | 48/81 | 🔄 59% |
+| MapillaryVistas Testing | 0/48 | ⏳ Waiting |
 
-**Note:** MapillaryVistas tests will be run after Stage 1 MapillaryVistas retraining completes.
+**Note:** MapillaryVistas tests will run as training completes. Script ready: `./scripts/run_stage2_mapillary_tests.sh`
 
 ### ✅ std_cutmix Artifact RESOLVED
 
@@ -180,13 +188,13 @@
 |--------|---------|---------|
 | Training Domain | Clear-day only | All domains |
 | Total Strategies | 27 | 27 |
-| Training Complete | 107/107 (100%) | 324/325 (99.7%) |
-| Testing Complete (non-MV) | 265/265 (100%) | 252/252 (100%) |
-| MapillaryVistas Retest | 🔄 81 jobs running | 🔄 81 jobs running |
-| Baseline mIoU | 41.64% | 44.48% |
-| Best Strategy | gen_Qwen_Image_Edit (43.61%) | TBD (after retest) |
+| Training Complete | ✅ 405/405 (100%) | 🔄 291/324 (90%) |
+| Testing Complete | ✅ 405/405 (100%) | ✅ 243/243 (100% non-MV) |
+| MapillaryVistas Status | ✅ Complete | 🔄 59% Training |
+| Baseline mIoU | 41.64% | 43.10% |
+| Best Strategy | TBD (need to regenerate with MV) | gen_CNetSeg (43.68%) |
 
-**Note:** MapillaryVistas results pending after BGR→RGB fix.
+**Note:** Stage 1 leaderboard should be regenerated now that MapillaryVistas results are available.
 
 ---
 
