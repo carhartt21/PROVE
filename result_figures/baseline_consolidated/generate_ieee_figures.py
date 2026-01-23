@@ -702,6 +702,105 @@ def create_domain_shift_figure(data, output_path):
     print("✓ Figure 8: Domain Shift Heatmap saved")
 
 # =============================================================================
+# Figure 9: Stage 1 vs Stage 2 Radar Chart Comparison
+# =============================================================================
+
+def create_stage_comparison_radar(data, output_path):
+    """
+    Create radar charts comparing Stage 1 (clear_day training) vs Stage 2 (all domains training)
+    performance across different weather domains for each model.
+    """
+    from matplotlib.patches import Patch
+    
+    # Load both stage data
+    stage1_df = data['clear_domain']
+    stage2_df = data['full_domain']
+    
+    # Filter by num_images
+    stage1_df = stage1_df[stage1_df['num_images'] >= 50]
+    stage2_df = stage2_df[stage2_df['num_images'] >= 50]
+    
+    # Domains to compare (those available in both stages)
+    domains = ['clear_day', 'dawn_dusk', 'night', 'rainy', 'snowy']
+    models = ['deeplabv3plus_r50', 'pspnet_r50', 'segformer_mit-b5']
+    
+    # Create 1x3 subplots for each model
+    fig, axes = plt.subplots(1, 3, figsize=(IEEE_DOUBLE_COL, 2.8), 
+                              subplot_kw=dict(projection='polar'))
+    
+    # Colors for stages
+    stage1_color = '#E76F51'  # Orange-red for Stage 1
+    stage2_color = '#2A9D8F'  # Teal for Stage 2
+    
+    # Angles for radar chart
+    num_domains = len(domains)
+    angles = np.linspace(0, 2 * np.pi, num_domains, endpoint=False).tolist()
+    angles += angles[:1]  # Close the loop
+    
+    for model_idx, model in enumerate(models):
+        ax = axes[model_idx]
+        
+        # Get average mIoU per domain for each stage (averaged across datasets)
+        stage1_values = []
+        stage2_values = []
+        
+        for domain in domains:
+            # Stage 1 average
+            s1_data = stage1_df[(stage1_df['model'] == model) & (stage1_df['domain'] == domain)]
+            stage1_values.append(s1_data['mIoU'].mean() if len(s1_data) > 0 else 0)
+            
+            # Stage 2 average
+            s2_data = stage2_df[(stage2_df['model'] == model) & (stage2_df['domain'] == domain)]
+            stage2_values.append(s2_data['mIoU'].mean() if len(s2_data) > 0 else 0)
+        
+        # Close the loop
+        stage1_values += stage1_values[:1]
+        stage2_values += stage2_values[:1]
+        
+        # Plot Stage 1
+        ax.plot(angles, stage1_values, 'o-', linewidth=1.5, color=stage1_color, 
+                label='Stage 1 (Clear Only)', markersize=4)
+        ax.fill(angles, stage1_values, alpha=0.15, color=stage1_color)
+        
+        # Plot Stage 2
+        ax.plot(angles, stage2_values, 's-', linewidth=1.5, color=stage2_color, 
+                label='Stage 2 (All Domains)', markersize=4)
+        ax.fill(angles, stage2_values, alpha=0.15, color=stage2_color)
+        
+        # Set domain labels
+        ax.set_xticks(angles[:-1])
+        domain_labels = [DOMAIN_NAMES[d].replace(' ', '\n') for d in domains]
+        ax.set_xticklabels(domain_labels, fontsize=FONT_SIZE_TICK - 1)
+        
+        # Set radial limits
+        ax.set_ylim(0, 60)
+        ax.set_yticks([20, 40, 60])
+        ax.set_yticklabels(['20', '40', '60'], fontsize=FONT_SIZE_TICK - 1)
+        
+        ax.set_title(MODEL_NAMES[model], fontsize=FONT_SIZE_TITLE, pad=15)
+    
+    # Add legend to the right of the last subplot
+    legend_elements = [
+        Patch(facecolor=stage1_color, alpha=0.3, edgecolor=stage1_color, 
+              label='Stage 1 (Clear Day Training)'),
+        Patch(facecolor=stage2_color, alpha=0.3, edgecolor=stage2_color, 
+              label='Stage 2 (All Domains Training)')
+    ]
+    fig.legend(handles=legend_elements, loc='lower center', ncol=2, 
+               fontsize=FONT_SIZE_LEGEND, bbox_to_anchor=(0.5, -0.02), frameon=False)
+    
+    fig.suptitle('Stage 1 vs Stage 2: Per-Domain Performance Comparison', 
+                 fontsize=FONT_SIZE_TITLE, y=1.02)
+    
+    plt.tight_layout()
+    plt.subplots_adjust(bottom=0.15)
+    
+    fig.savefig(output_path / 'fig9_stage_comparison_radar.png', dpi=300, bbox_inches='tight')
+    plt.close(fig)
+    
+    print("✓ Figure 9: Stage Comparison Radar Chart saved")
+
+# =============================================================================
 # Main Execution
 # =============================================================================
 
@@ -738,6 +837,7 @@ def main():
     create_performance_matrix(data, output_path)
     create_model_ranking_figure(data, output_path)
     create_domain_shift_figure(data, output_path)
+    create_stage_comparison_radar(data, output_path)
     
     print("-" * 40)
     print(f"\n✓ All figures saved to: {output_path}")
