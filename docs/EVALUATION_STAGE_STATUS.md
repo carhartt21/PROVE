@@ -1,6 +1,6 @@
 # Evaluation Stage Status
 
-**Last Updated:** 2026-01-23 (17:00)
+**Last Updated:** 2026-01-23 (18:15)
 
 ## Overview
 
@@ -9,15 +9,8 @@
 | **Stage 1** | ✅ 405/405 (100%) | ✅ 405/405 (100%) | ✅ **COMPLETE** |
 | **Stage 2** | 🔄 291/324 (90%) | ✅ 243/243 (100% non-MV) | 🔄 MV Retraining |
 
-## 🔧 Critical Bug Fix: BGR→RGB in MapillaryVistas Labels
+**📊 Comprehensive Ablation Analysis Report:** [ABLATION_STUDIES_ANALYSIS.md](ABLATION_STUDIES_ANALYSIS.md)
 
-**Issue Discovered:** MapillaryVistas RGB label decoding used BGR channel order (cv2.imread default).
-
-**Impact:** ALL MapillaryVistas models were INVALID (training and testing).
-
-**Fixes Applied:**
-1. **Training Bug (d7b2b99):** Fixed `custom_transforms.py` - Changed BGR→RGB channel order in `MapillaryRGBToClassId`
-2. **Testing Bug (9313a5e):** Fixed `fine_grained_test.py` - Changed BGR→RGB in test-time label loading
 
 **Retraining Status:**
 | Stage | Complete | Running | Pending | Total |
@@ -31,24 +24,6 @@
 | Stage 1 | ✅ 81/81 | 0 | 81 |
 | Stage 2 | 0/48 | 48 | 48 |
 
-## 📊 Performance Issue: MapillaryVistas 16x Slowdown
-
-**Observation:** MapillaryVistas tests take ~3.15s/image vs BDD10k ~0.2s/image.
-
-### Investigation Results (Jan 21)
-
-| Component | Time/Image | Status |
-|-----------|------------|--------|
-| Model Inference | ~30ms | ✅ Identical for both datasets |
-| Per-class IoU | ~20ms | ✅ Negligible overhead |
-| RGB Label Decode | ~5ms | ✅ Negligible overhead |
-| **Unknown Overhead** | ~3000ms | ❓ Not identified |
-
-**Key Finding:** Model inference is NOT the bottleneck. Both 19-class and 66-class models run at identical speed (~30ms/image). The ~3000ms mystery overhead is elsewhere in the test pipeline.
-
-**Practical Impact:** Each MapillaryVistas test takes ~4-5 hours (4949 images × 3.15s).
-
----
 
 ## Stage 1: Clear-Day Domain Training
 
@@ -121,16 +96,8 @@
 | MapillaryVistas Testing | 0/48 | ⏳ Waiting |
 
 **Note:** MapillaryVistas tests will run as training completes. Script ready: `./scripts/run_stage2_mapillary_tests.sh`
+Afterwards, update leaderboard.
 
-### ✅ std_cutmix Artifact RESOLVED
-
-**Issue:** std_cutmix previously appeared #1 with +1.45 gain due to incomplete testing.
-
-**Resolution:** Both missing tests completed (2026-01-22):
-- `bdd10k/pspnet_r50`: mIoU = 41.31%
-- `outside15k/deeplabv3plus_r50`: mIoU = 31.48%
-
-**Result:** std_cutmix now ranks **#27 (last)** at -0.29 below baseline.
 
 ### Leaderboard (Top 10)
 | Rank | Strategy | mIoU | Gain |
@@ -280,53 +247,63 @@ python analysis_scripts/generate_stage2_leaderboard.py
 
 ## Ablation Studies
 
-### 1. Ratio Ablation Study
-**Status:** ✅ Complete
+**📊 Full Analysis:** [ABLATION_STUDIES_ANALYSIS.md](ABLATION_STUDIES_ANALYSIS.md)
 
-- **Location:** \`/scratch/aaa_exchange/AWARE/WEIGHTS_RATIO_ABLATION/\`
+### 1. Domain Adaptation Study
+**Status:** 🔄 Running (64 tests complete)
+
+- **Location:** Uses Stage 1 checkpoints (no additional training)
+- **Tests:** 64/~100 complete
+- **Key Finding:** BDD10k→ACDC best (23.7%), gen_TSIT leads (+3.9% vs baseline)
+- **CSV:** `result_figures/domain_adaptation_analysis.csv`
+
+### 2. Ratio Ablation Study
+**Status:** 🔶 Partial Testing (46/187)
+
+- **Location:** `/scratch/aaa_exchange/AWARE/WEIGHTS_RATIO_ABLATION/`
 - **Ratios:** 0.00, 0.12, 0.25, 0.38, 0.50, 0.62, 0.75, 0.88
-- **Checkpoints:** 1,976
-- **Finding:** Optimal ratio ~0.50
+- **Checkpoints:** 187 (46 tested)
+- **Key Finding:** Lower ratios (0.00-0.25) slightly outperform higher ratios
+- **CSV:** `result_figures/ratio_ablation_analysis.csv`
 
-### 2. Extended Training Study
+### 3. Extended Training Study
 **Status:** ✅ Complete
 
-- **Location:** \`/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/\`
-- **Iterations:** 40k to 160k (in 20k increments) + 320k
+- **Location:** `/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/`
+- **Iterations:** 40k to 160k (20k increments) + 320k
 - **Checkpoints:** 959
-- **Finding:** Extended training provides marginal improvements (~1-2% mIoU)
+- **Key Finding:** 160k iterations = 75% of gains at 50% compute cost
+- **CSV:** `result_figures/extended_training_analysis.csv`
 
-### 3. Strategy Combinations Study
-**Status:** 🔶 Partial (by chge7185)
+### 4. Strategy Combinations Study
+**Status:** ✅ Complete (ALL TESTED)
 
-- **Location:** \`/scratch/aaa_exchange/AWARE/WEIGHTS_COMBINATIONS_chge7185/\`
-- **Checkpoints:** 293
-
-### 4. Domain Adaptation Ablation
-**Status:** ⏳ Ready to start
-
-- **Location:** \`/scratch/aaa_exchange/AWARE/WEIGHTS/domain_adaptation_ablation/\`
-- **Configs Ready:** 84
-- **Script:** \`./scripts/submit_domain_adaptation_ablation.sh --all-strategies\`
+- **Location:** `/scratch/aaa_exchange/AWARE/WEIGHTS_COMBINATIONS/`
+- **Checkpoints:** 53 (all IDD-AW, all tested)
+- **Key Finding:** photometric_distort combos dominate (45.1% avg vs ~40% others)
+- **CSV:** `result_figures/combinations_analysis.csv`
 
 ---
 
 ## Next Steps
 
-1. **Monitor MapillaryVistas Retest Jobs**
-   - 162 test jobs (81 Stage 1 + 81 Stage 2)
-   - ~4-5 hours per job
-   - Job IDs: 9681356-9681938
+1. **Domain Adaptation Testing** (Running Locally)
+   - 64/~100 tests complete
+   - gen_TSIT showing +3.9% improvement over baseline
 
-2. **Monitor std_cutmix Training Resume**
-   - Job 9675473: OUTSIDE15k/deeplabv3plus_r50 (40000→80000)
-   - After completion, submit test job
+2. **Monitor MapillaryVistas Stage 2 Retraining**
+   - 48/81 complete (59%)
+   - Job IDs: Check `bjobs -u mima2416 | grep rt_map`
 
-3. **After MapillaryVistas Retests Complete**
-   - Regenerate leaderboards with correct MapillaryVistas results
-   - Update `downstream_results.csv`
-   - Verify leaderboard rankings
+3. **After MapillaryVistas Stage 2 Completes**
+   - Run Stage 2 MapillaryVistas tests
+   - Regenerate Stage 2 leaderboard
 
-4. **Publication Preparation**
-   - Finalize figures with corrected MapillaryVistas data
+4. **Ratio Ablation Testing** (141 remaining)
+   - Priority: BDD10k checkpoints
+   - Remaining strategies: gen_TSIT, gen_step1x_new, gen_step1x_v1p2
+
+5. **Publication Preparation**
+   - Finalize ablation study figures
    - Run statistical significance tests
+   - Document in paper

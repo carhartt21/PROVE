@@ -1,6 +1,6 @@
 # PROVE Project TODO List
 
-**Last Updated:** 2026-01-23 (17:00)
+**Last Updated:** 2026-01-23 (18:00)
 
 ## Current Job Status Summary
 
@@ -241,14 +241,15 @@ python analysis_scripts/generate_stage1_leaderboard.py
 
 ### High Priority
 
-1. **🎯 Domain Adaptation Ablation** (NO TRAINING REQUIRED!)
-   - **Status:** Ready to start
-   - **Cost:** Testing only - uses existing Stage 1 checkpoints
-   - **Strategies:** Top 5 (gen_Attribute_Hallucination, gen_cycleGAN, gen_stargan_v2, gen_flux_kontext, gen_cyclediffusion) + baseline
-   - **Model:** SegFormer (most robust from baseline analysis: 8.7% domain gap)
-   - **Test matrix:** 3 source datasets × 5 target domains (Cityscapes + ACDC) × 6 strategies
-   - **Script:** `python scripts/run_domain_adaptation_tests.py --all --dry-run`
-   - **Value:** High publication value with zero training cost
+1. **🎯 Domain Adaptation Ablation** (RUNNING - 64/~100 complete)
+   - **Status:** 🔄 Running locally
+   - **Results:** 64 tests complete
+   - **Key findings:**
+     - BDD10k→ACDC: 23.7% mIoU (best source dataset)
+     - IDD-AW→ACDC: 13.8% mIoU 
+     - gen_TSIT leads (+3.9% vs baseline at 21.4%)
+     - SegFormer best model (24.0% on ACDC)
+   - **Report:** [docs/ABLATION_STUDIES_ANALYSIS.md](docs/ABLATION_STUDIES_ANALYSIS.md)
 
 2. **Monitor Stage 2 MapillaryVistas Retraining**
    - Current: 48/81 complete (59%)
@@ -259,25 +260,26 @@ python analysis_scripts/generate_stage1_leaderboard.py
 
 ### Medium Priority
 
-4. **Ratio Ablation Analysis** (NO ADDITIONAL TRAINING)
-   - **Current coverage:** ✅ Sufficient
-   - **Top performers covered:** gen_cycleGAN, gen_stargan_v2, gen_cyclediffusion (all top-10)
-   - **Checkpoints:** 187 (6 strategies × multiple ratios × datasets)
-   - **Action:** Run analysis on existing data
-   - **Script:** `analysis_scripts/analyze_ratio_ablation.py`
+4. **Ratio Ablation Testing** (141 checkpoints need testing)
+   - **Checkpoints:** 187 total, 46 tested
+   - **Tested results:**
+     - Lower ratios (0.00-0.25) slightly better
+     - gen_cycleGAN stable across ratios (41.1% avg)
+     - gen_cyclediffusion/gen_stargan_v2 degrade at higher ratios
+   - **Remaining:** gen_TSIT, gen_step1x_new, gen_step1x_v1p2
+   - **Priority datasets:** BDD10k (most validated)
 
-5. **Extended Training Analysis** (NO ADDITIONAL TRAINING)
-   - **Current coverage:** ✅ Sufficient
-   - **Top performers covered:** gen_cycleGAN, gen_cyclediffusion, gen_flux_kontext
-   - **Checkpoints:** ~959 (9 strategies × 8 iterations × datasets)
+5. **Extended Training Documentation** (Analysis Complete ✅)
+   - **Checkpoints:** 959 (9 strategies × 24 iterations × datasets)
    - **Key finding:** 160k iterations = 75% of gains at 50% compute
-   - **Action:** Analysis complete, document in paper
+   - **Action:** Document convergence curves in paper
 
 ### Low Priority
 
-6. **Combination Strategies Analysis** (NO ADDITIONAL TRAINING)
-   - **Current coverage:** 53 checkpoints (IDD-AW only)
-   - **Status:** Sufficient for initial exploratory analysis
+6. **Combination Strategies Analysis** (ALL TESTED ✅)
+   - **Checkpoints:** 53 (all IDD-AW)
+   - **Key finding:** photometric_distort combos dominate (45.1% avg vs ~40% others)
+   - **Best combo:** std_mixup + photometric_distort (45.2%)
    - **Action:** Analyze existing IDD-AW results
    - **Future:** If results warrant, expand to BDD10k (most validated)
 
