@@ -6,7 +6,7 @@ Stage 1: All models are trained with clear_day domain filter only.
 Reference baseline is 'baseline' (which is trained on clear_day in Stage 1).
 
 This script generates:
-1. Overall strategy ranking by mIoU
+1. Overall strategy ranking by selected metric (mIoU, aAcc, mAcc, fwIoU)
 2. Per-dataset breakdown
 3. Per-domain breakdown (Normal vs Adverse performance)
 4. Gain over baseline calculations
@@ -14,7 +14,14 @@ This script generates:
 Usage:
     python generate_stage1_leaderboard.py               # Auto-refresh results
     python generate_stage1_leaderboard.py --no-refresh  # Use cached results
+    python generate_stage1_leaderboard.py --metric aAcc # Use pixel accuracy instead of mIoU
     python generate_stage1_leaderboard.py --weights-root /path/to/WEIGHTS
+
+Available metrics:
+    mIoU  - Mean Intersection over Union (default)
+    aAcc  - Pixel Accuracy (overall accuracy)
+    mAcc  - Mean Class Accuracy
+    fwIoU - Frequency-weighted IoU
 """
 
 import os
@@ -46,6 +53,15 @@ except ImportError:
 WEIGHTS_ROOT = Path(os.environ.get('PROVE_WEIGHTS_ROOT', '/scratch/aaa_exchange/AWARE/WEIGHTS'))
 RESULTS_CSV = PROJECT_ROOT / 'downstream_results.csv'
 OUTPUT_DIR = PROJECT_ROOT / 'result_figures' / 'leaderboard'
+
+# Valid metrics for leaderboard generation
+VALID_METRICS = ['mIoU', 'aAcc', 'mAcc', 'fwIoU']
+METRIC_DESCRIPTIONS = {
+    'mIoU': 'Mean Intersection over Union',
+    'aAcc': 'Pixel Accuracy (Overall Accuracy)',
+    'mAcc': 'Mean Class Accuracy',
+    'fwIoU': 'Frequency-Weighted IoU'
+}
 
 # Weather domain classifications
 NORMAL_DOMAINS = ['clear_day', 'cloudy']
@@ -100,8 +116,16 @@ def get_strategy_type(strategy: str) -> str:
         return 'Other'
 
 
-def parse_per_domain_metrics(row) -> Dict[str, float]:
-    """Parse per-domain metrics from a row."""
+def parse_per_domain_metrics(row, metric: str = 'mIoU') -> Dict[str, float]:
+    """Parse per-domain metrics from a row.
+    
+    Args:
+        row: DataFrame row with per_domain_metrics
+        metric: Which metric to extract ('mIoU', 'aAcc', 'mAcc', 'fwIoU')
+    
+    Returns:
+        Dict mapping domain name to metric value
+    """
     if pd.isna(row.get('per_domain_metrics')) or row.get('per_domain_metrics') == '':
         return {}
     
@@ -119,81 +143,100 @@ def parse_per_domain_metrics(row) -> Dict[str, float]:
         
         result = {}
         for domain, data in metrics.items():
-            if isinstance(data, dict) and 'mIoU' in data:
-                result[domain] = data['mIoU']
+            if isinstance(data, dict) and metric in data:
+                result[domain] = data[metric]
         return result
     except:
         return {}
 
 
-def compute_normal_adverse_miou(domain_metrics: Dict[str, float]) -> Tuple[Optional[float], Optional[float]]:
-    """Compute Normal and Adverse mIoU from per-domain metrics."""
+def compute_normal_adverse_metric(domain_metrics: Dict[str, float]) -> Tuple[Optional[float], Optional[float]]:
+    """Compute Normal and Adverse metric values from per-domain metrics.
+    
+    Works with any metric (mIoU, aAcc, mAcc, fwIoU).
+    """
     normal_vals = [domain_metrics.get(d) for d in NORMAL_DOMAINS if d in domain_metrics]
     adverse_vals = [domain_metrics.get(d) for d in ADVERSE_DOMAINS if d in domain_metrics]
     
-    normal_miou = np.mean([v for v in normal_vals if v is not None]) if normal_vals else None
-    adverse_miou = np.mean([v for v in adverse_vals if v is not None]) if adverse_vals else None
+    normal_val = np.mean([v for v in normal_vals if v is not None]) if normal_vals else None
+    adverse_val = np.mean([v for v in adverse_vals if v is not None]) if adverse_vals else None
     
-    return normal_miou, adverse_miou
+    return normal_val, adverse_val
 
 
-def generate_leaderboard(df: pd.DataFrame) -> pd.DataFrame:
-    """Generate the main strategy leaderboard."""
+def generate_leaderboard(df: pd.DataFrame, metric: str = 'mIoU') -> pd.DataFrame:
+    """Generate the main strategy leaderboard.
     
-    # Get baseline mIoU for comparison
+    Args:
+        df: DataFrame with test results
+        metric: Which metric to use for ranking ('mIoU', 'aAcc', 'mAcc', 'fwIoU')
+    
+    Returns:
+        DataFrame with strategy leaderboard sorted by selected metric
+    """
+    # Validate metric exists in dataframe
+    if metric not in df.columns:
+        raise ValueError(f"Metric '{metric}' not found in results. Available: {list(df.columns)}")
+    
+    # Get baseline metric value for comparison
     baseline_df = df[df['strategy'] == 'baseline']
-    baseline_miou = baseline_df['mIoU'].mean() if not baseline_df.empty else None
+    baseline_val = baseline_df[metric].mean() if not baseline_df.empty else None
     
     # Group by strategy
     records = []
     for strategy in sorted(df['strategy'].unique()):
         strat_df = df[df['strategy'] == strategy]
         
-        overall_miou = strat_df['mIoU'].mean()
-        overall_std = strat_df['mIoU'].std()
+        overall_val = strat_df[metric].mean()
+        overall_std = strat_df[metric].std()
         num_results = len(strat_df)
         
-        # Compute Normal/Adverse mIoU from per-domain metrics
-        normal_mious = []
-        adverse_mious = []
+        # Compute Normal/Adverse values from per-domain metrics
+        normal_vals = []
+        adverse_vals = []
         
         for _, row in strat_df.iterrows():
-            domain_metrics = parse_per_domain_metrics(row)
+            domain_metrics = parse_per_domain_metrics(row, metric)
             if domain_metrics:
-                normal, adverse = compute_normal_adverse_miou(domain_metrics)
+                normal, adverse = compute_normal_adverse_metric(domain_metrics)
                 if normal is not None:
-                    normal_mious.append(normal)
+                    normal_vals.append(normal)
                 if adverse is not None:
-                    adverse_mious.append(adverse)
+                    adverse_vals.append(adverse)
         
-        normal_miou = np.mean(normal_mious) if normal_mious else None
-        adverse_miou = np.mean(adverse_mious) if adverse_mious else None
-        domain_gap = (normal_miou - adverse_miou) if (normal_miou and adverse_miou) else None
+        normal_avg = np.mean(normal_vals) if normal_vals else None
+        adverse_avg = np.mean(adverse_vals) if adverse_vals else None
+        domain_gap = (normal_avg - adverse_avg) if (normal_avg and adverse_avg) else None
         
         # Compute gain vs baseline
-        gain = (overall_miou - baseline_miou) if baseline_miou else None
+        gain = (overall_val - baseline_val) if baseline_val else None
         
         records.append({
             'Strategy': strategy,
             'Type': get_strategy_type(strategy),
-            'mIoU': round(overall_miou, 2),
+            metric: round(overall_val, 2),
             'Std': round(overall_std, 2),
             'Gain': round(gain, 2) if gain else None,
-            'Normal mIoU': round(normal_miou, 2) if normal_miou else None,
-            'Adverse mIoU': round(adverse_miou, 2) if adverse_miou else None,
+            f'Normal {metric}': round(normal_avg, 2) if normal_avg else None,
+            f'Adverse {metric}': round(adverse_avg, 2) if adverse_avg else None,
             'Domain Gap': round(domain_gap, 2) if domain_gap else None,
             'Num Tests': num_results,
         })
     
     result_df = pd.DataFrame(records)
-    result_df = result_df.sort_values('mIoU', ascending=False).reset_index(drop=True)
+    result_df = result_df.sort_values(metric, ascending=False).reset_index(drop=True)
     return result_df
 
 
-def generate_per_dataset_table(df: pd.DataFrame) -> pd.DataFrame:
-    """Generate per-dataset mIoU breakdown."""
+def generate_per_dataset_table(df: pd.DataFrame, metric: str = 'mIoU') -> pd.DataFrame:
+    """Generate per-dataset metric breakdown.
+    
+    Args:
+        df: DataFrame with test results
+        metric: Which metric to use ('mIoU', 'aAcc', 'mAcc', 'fwIoU')
+    """
     baseline_df = df[df['strategy'] == 'baseline']
-    baseline_by_ds = baseline_df.groupby('dataset')['mIoU'].mean().to_dict()
+    baseline_by_ds = baseline_df.groupby('dataset')[metric].mean().to_dict()
     
     records = []
     for strategy in sorted(df['strategy'].unique()):
@@ -203,10 +246,10 @@ def generate_per_dataset_table(df: pd.DataFrame) -> pd.DataFrame:
         for dataset in DATASETS:
             ds_df = strat_df[strat_df['dataset'] == dataset]
             if not ds_df.empty:
-                miou = ds_df['mIoU'].mean()
+                val = ds_df[metric].mean()
                 baseline = baseline_by_ds.get(dataset)
-                gain = (miou - baseline) if baseline else None
-                row[dataset] = f"{miou:.2f}"
+                gain = (val - baseline) if baseline else None
+                row[dataset] = f"{val:.2f}"
                 row[f"{dataset}_gain"] = f"{gain:+.2f}" if gain else "-"
             else:
                 row[dataset] = "-"
@@ -215,7 +258,7 @@ def generate_per_dataset_table(df: pd.DataFrame) -> pd.DataFrame:
         records.append(row)
     
     result_df = pd.DataFrame(records)
-    # Sort by average mIoU
+    # Sort by average metric value
     for ds in DATASETS:
         result_df[f'{ds}_num'] = pd.to_numeric(result_df[ds], errors='coerce')
     result_df['avg'] = result_df[[f'{ds}_num' for ds in DATASETS]].mean(axis=1)
@@ -225,17 +268,22 @@ def generate_per_dataset_table(df: pd.DataFrame) -> pd.DataFrame:
     return result_df
 
 
-def generate_per_domain_table(df: pd.DataFrame) -> pd.DataFrame:
-    """Generate per-domain mIoU breakdown."""
+def generate_per_domain_table(df: pd.DataFrame, metric: str = 'mIoU') -> pd.DataFrame:
+    """Generate per-domain metric breakdown.
+    
+    Args:
+        df: DataFrame with test results
+        metric: Which metric to use ('mIoU', 'aAcc', 'mAcc', 'fwIoU')
+    """
     # Aggregate per-domain metrics by strategy
     domain_data = defaultdict(lambda: defaultdict(list))
     
     for _, row in df.iterrows():
         strategy = row['strategy']
-        metrics = parse_per_domain_metrics(row)
-        for domain, miou in metrics.items():
-            if miou is not None:
-                domain_data[strategy][domain].append(miou)
+        metrics = parse_per_domain_metrics(row, metric)
+        for domain, val in metrics.items():
+            if val is not None:
+                domain_data[strategy][domain].append(val)
     
     # Get baseline per-domain
     baseline_by_domain = {}
@@ -252,15 +300,15 @@ def generate_per_domain_table(df: pd.DataFrame) -> pd.DataFrame:
         
         for domain in ALL_DOMAINS:
             if domain in domain_data[strategy]:
-                miou = np.mean(domain_data[strategy][domain])
+                val = np.mean(domain_data[strategy][domain])
                 baseline = baseline_by_domain.get(domain)
-                gain = (miou - baseline) if baseline else None
-                row[domain] = f"{miou:.2f}"
+                gain = (val - baseline) if baseline else None
+                row[domain] = f"{val:.2f}"
                 
                 if domain in NORMAL_DOMAINS:
-                    normal_vals.append(miou)
+                    normal_vals.append(val)
                 elif domain in ADVERSE_DOMAINS:
-                    adverse_vals.append(miou)
+                    adverse_vals.append(val)
             else:
                 row[domain] = "-"
         
@@ -300,15 +348,33 @@ def format_markdown_table(df: pd.DataFrame, title: str, description: str = "") -
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Generate Stage 1 Strategy Leaderboard")
+    parser = argparse.ArgumentParser(
+        description="Generate Stage 1 Strategy Leaderboard",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Available metrics:
+  mIoU  - Mean Intersection over Union (default)
+  aAcc  - Pixel Accuracy (overall accuracy)
+  mAcc  - Mean Class Accuracy
+  fwIoU - Frequency-weighted IoU
+
+Examples:
+  %(prog)s                        # Generate leaderboard with mIoU
+  %(prog)s --metric aAcc          # Use pixel accuracy instead
+  %(prog)s --metric mAcc --no-refresh  # Use mean class accuracy from cache
+"""
+    )
     parser.add_argument('--no-refresh', action='store_true', 
                        help='Use cached results instead of re-extracting from WEIGHTS')
     parser.add_argument('--weights-root', type=str, default=None,
                        help='Override WEIGHTS directory path')
+    parser.add_argument('--metric', type=str, default='mIoU', choices=VALID_METRICS,
+                       help='Metric to use for ranking (default: mIoU)')
     parser.add_argument('--verbose', action='store_true',
                        help='Verbose output')
     
     args = parser.parse_args()
+    metric = args.metric
     
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     weights_path = Path(args.weights_root) if args.weights_root else WEIGHTS_ROOT
@@ -318,6 +384,7 @@ def main():
     print("STAGE 1 STRATEGY LEADERBOARD GENERATOR")
     print("=" * 70)
     print(f"Weights root: {weights_path}")
+    print(f"Metric: {metric} ({METRIC_DESCRIPTIONS.get(metric, '')})")
     print("=" * 70)
     
     # Default behavior: refresh unless --no-refresh is specified
@@ -339,36 +406,37 @@ def main():
     print(f"Datasets: {sorted(df['dataset'].unique())}")
     
     # Generate leaderboard
-    print("\n1. Generating main leaderboard...")
-    leaderboard_df = generate_leaderboard(df)
+    print(f"\n1. Generating main leaderboard by {metric}...")
+    leaderboard_df = generate_leaderboard(df, metric)
     
     print("\n" + "=" * 70)
-    print("STRATEGY LEADERBOARD (Stage 1 - Clear Day Training)")
+    print(f"STRATEGY LEADERBOARD (Stage 1 - Clear Day Training) - Ranked by {metric}")
     print("=" * 70)
     print(leaderboard_df.to_string(index=False))
     
     # Get baseline info
     baseline_row = leaderboard_df[leaderboard_df['Strategy'] == 'baseline']
     if not baseline_row.empty:
-        baseline_miou = baseline_row.iloc[0]['mIoU']
-        print(f"\nBaseline mIoU: {baseline_miou}%")
+        baseline_val = baseline_row.iloc[0][metric]
+        print(f"\nBaseline {metric}: {baseline_val}%")
         
-        strategies_above = len(leaderboard_df[leaderboard_df['mIoU'] > baseline_miou])
+        strategies_above = len(leaderboard_df[leaderboard_df[metric] > baseline_val])
         print(f"Strategies beating baseline: {strategies_above}/{len(leaderboard_df) - 1}")
     
     # Generate per-dataset table
-    print("\n2. Generating per-dataset breakdown...")
-    per_dataset_df = generate_per_dataset_table(df)
+    print(f"\n2. Generating per-dataset breakdown by {metric}...")
+    per_dataset_df = generate_per_dataset_table(df, metric)
     
     # Generate per-domain table
-    print("\n3. Generating per-domain breakdown...")
-    per_domain_df = generate_per_domain_table(df)
+    print(f"\n3. Generating per-domain breakdown by {metric}...")
+    per_domain_df = generate_per_domain_table(df, metric)
     
     # Save markdown
-    output_file = OUTPUT_DIR / 'STRATEGY_LEADERBOARD.md'
+    output_file = OUTPUT_DIR / f'STRATEGY_LEADERBOARD_{metric.upper()}.md'
     with open(output_file, 'w') as f:
-        f.write("# Stage 1 Strategy Leaderboard\n\n")
+        f.write(f"# Stage 1 Strategy Leaderboard (by {metric})\n\n")
         f.write("**Stage 1**: All models trained with `clear_day` domain filter only.\n\n")
+        f.write(f"**Metric**: {metric} ({METRIC_DESCRIPTIONS.get(metric, '')})\n\n")
         f.write(f"**Total Results**: {len(df)} test results from {len(df['strategy'].unique())} strategies\n\n")
         f.write("---\n\n")
         
@@ -376,7 +444,7 @@ def main():
         f.write(format_markdown_table(
             leaderboard_df,
             "Overall Strategy Ranking",
-            "Sorted by mIoU. Gain = improvement over baseline. Domain Gap = Normal mIoU - Adverse mIoU (lower is better)."
+            f"Sorted by {metric}. Gain = improvement over baseline. Domain Gap = Normal {metric} - Adverse {metric} (lower is better)."
         ))
         
         f.write("---\n\n")
@@ -385,7 +453,7 @@ def main():
         f.write(format_markdown_table(
             per_dataset_df,
             "Per-Dataset Breakdown",
-            "mIoU performance on each dataset."
+            f"{metric} performance on each dataset."
         ))
         
         f.write("---\n\n")
@@ -394,20 +462,20 @@ def main():
         f.write(format_markdown_table(
             per_domain_df,
             "Per-Domain Breakdown",
-            "mIoU performance on each weather domain. Normal = clear_day, cloudy. Adverse = foggy, night, rainy, snowy."
+            f"{metric} performance on each weather domain. Normal = clear_day, cloudy. Adverse = foggy, night, rainy, snowy."
         ))
     
     print(f"\nSaved to: {output_file}")
     
     # Save detailed gains
-    detailed_file = OUTPUT_DIR / 'DETAILED_GAINS.md'
+    detailed_file = OUTPUT_DIR / f'DETAILED_GAINS_{metric.upper()}.md'
     with open(detailed_file, 'w') as f:
-        f.write("# Detailed Per-Dataset and Per-Domain Analysis\n\n")
-        f.write("## Per-Dataset mIoU by Strategy\n\n")
+        f.write(f"# Detailed Per-Dataset and Per-Domain Analysis ({metric})\n\n")
+        f.write(f"## Per-Dataset {metric} by Strategy\n\n")
         
         # Detailed per-dataset with gains
         baseline_df = df[df['strategy'] == 'baseline']
-        baseline_by_ds = baseline_df.groupby('dataset')['mIoU'].mean().to_dict()
+        baseline_by_ds = baseline_df.groupby('dataset')[metric].mean().to_dict()
         
         f.write("| Strategy | Type |")
         for ds in DATASETS:
@@ -428,27 +496,28 @@ def main():
             for ds in DATASETS:
                 ds_df = strat_df[strat_df['dataset'] == ds]
                 if not ds_df.empty:
-                    miou = ds_df['mIoU'].mean()
+                    val = ds_df[metric].mean()
                     baseline = baseline_by_ds.get(ds, 0)
-                    gain = miou - baseline
+                    gain = val - baseline
                     gains.append(gain)
                     gain_str = f"+{gain:.1f}" if gain >= 0 else f"{gain:.1f}"
-                    f.write(f" {miou:.1f} | {gain_str} |")
+                    f.write(f" {val:.1f} | {gain_str} |")
                 else:
                     f.write(" - | - |")
             
             avg_gain = np.mean(gains) if gains else 0
             f.write(f" {avg_gain:+.2f} |\n")
         
-        f.write("\n## Per-Domain mIoU by Strategy\n\n")
+        f.write(f"\n## Per-Domain {metric} by Strategy\n\n")
         per_domain_df.to_markdown(f, index=False)
     
     print(f"Saved to: {detailed_file}")
     
-    # Save CSVs
-    leaderboard_df.to_csv(OUTPUT_DIR / 'strategy_leaderboard.csv', index=False)
-    per_dataset_df.to_csv(OUTPUT_DIR / 'per_dataset_breakdown.csv', index=False)
-    per_domain_df.to_csv(OUTPUT_DIR / 'per_domain_breakdown.csv', index=False)
+    # Save CSVs (include metric in filename for non-default metrics)
+    suffix = f"_{metric.lower()}" if metric != 'mIoU' else ""
+    leaderboard_df.to_csv(OUTPUT_DIR / f'strategy_leaderboard{suffix}.csv', index=False)
+    per_dataset_df.to_csv(OUTPUT_DIR / f'per_dataset_breakdown{suffix}.csv', index=False)
+    per_domain_df.to_csv(OUTPUT_DIR / f'per_domain_breakdown{suffix}.csv', index=False)
     print(f"CSVs saved to: {OUTPUT_DIR}")
 
 
