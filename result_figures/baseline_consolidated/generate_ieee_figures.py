@@ -801,16 +801,14 @@ def create_stage_comparison_radar(data, output_path):
     print("✓ Figure 9: Stage Comparison Radar Chart saved")
 
 # =============================================================================
-# Figure 10: SegFormer Per-Dataset Domain Performance (4 Charts)
+# Figure 10: SegFormer Per-Dataset Domain Performance (Bar Chart)
 # =============================================================================
 
 def create_segformer_per_dataset_radar(data, output_path):
     """
-    Create 4 radar charts (one per dataset) showing SegFormer performance.
-    Stage 1 shown with dashed lines, Stage 2 with solid lines.
+    Create 2x2 bar charts showing SegFormer performance per dataset.
+    Stage 1 and Stage 2 shown as grouped bars for each domain.
     """
-    from matplotlib.lines import Line2D
-    
     stage1_df = data['clear_domain']
     stage2_df = data['full_domain']
     
@@ -822,96 +820,78 @@ def create_segformer_per_dataset_radar(data, output_path):
     datasets = ['bdd10k', 'idd-aw', 'mapillaryvistas', 'outside15k']
     domains = ['clear_day', 'dawn_dusk', 'night', 'rainy', 'snowy']
     
-    DOMAIN_LABELS = {
-        'clear_day': 'Clear\nDay',
-        'dawn_dusk': 'Dawn/\nDusk',
+    DOMAIN_ABBREV = {
+        'clear_day': 'Clear',
+        'dawn_dusk': 'Dawn',
         'night': 'Night',
-        'rainy': 'Rainy',
-        'snowy': 'Snowy'
+        'rainy': 'Rain',
+        'snowy': 'Snow'
     }
-    
-    # Create 2x2 grid of radar charts
-    fig, axes = plt.subplots(2, 2, figsize=(IEEE_DOUBLE_COL, 5.0), 
-                              subplot_kw=dict(projection='polar'))
-    axes = axes.flatten()
-    
-    # Angles for radar chart
-    num_domains = len(domains)
-    angles = np.linspace(0, 2 * np.pi, num_domains, endpoint=False).tolist()
-    angles += angles[:1]
     
     # Colors for stages
     stage1_color = '#E76F51'  # Orange-red
     stage2_color = '#2A9D8F'  # Teal
     
+    # Create 2x2 grid
+    fig, axes = plt.subplots(2, 2, figsize=(IEEE_DOUBLE_COL, 4.0))
+    axes = axes.flatten()
+    
+    x = np.arange(len(domains))
+    width = 0.35
+    
     for ds_idx, dataset in enumerate(datasets):
         ax = axes[ds_idx]
         
-        # Stage 1 (dashed line)
+        # Get Stage 1 values
         ds_data = stage1_df[(stage1_df['model'] == model) & (stage1_df['dataset'] == dataset)]
-        values = []
+        stage1_values = []
         for domain in domains:
             domain_data = ds_data[ds_data['domain'] == domain]
-            values.append(domain_data['mIoU'].values[0] if len(domain_data) > 0 else np.nan)
-        values_closed = values + [values[0]]
+            stage1_values.append(domain_data['mIoU'].values[0] if len(domain_data) > 0 else 0)
         
-        valid_angles = [a for a, v in zip(angles, values_closed) if not np.isnan(v)]
-        valid_values = [v for v in values_closed if not np.isnan(v)]
-        
-        if valid_values:
-            ax.plot(valid_angles, valid_values, linestyle='--', linewidth=2.0, 
-                   color=stage1_color, marker='o', markersize=4, alpha=0.8,
-                   label='Stage 1')
-            ax.fill(valid_angles, valid_values, alpha=0.15, color=stage1_color)
-        
-        # Stage 2 (solid line)
+        # Get Stage 2 values
         ds_data = stage2_df[(stage2_df['model'] == model) & (stage2_df['dataset'] == dataset)]
-        values = []
+        stage2_values = []
         for domain in domains:
             domain_data = ds_data[ds_data['domain'] == domain]
-            values.append(domain_data['mIoU'].values[0] if len(domain_data) > 0 else np.nan)
-        values_closed = values + [values[0]]
+            stage2_values.append(domain_data['mIoU'].values[0] if len(domain_data) > 0 else 0)
         
-        valid_angles = [a for a, v in zip(angles, values_closed) if not np.isnan(v)]
-        valid_values = [v for v in values_closed if not np.isnan(v)]
+        # Plot bars
+        bars1 = ax.bar(x - width/2, stage1_values, width, label='Stage 1',
+                       color=stage1_color, edgecolor='black', linewidth=0.3, alpha=0.85)
+        bars2 = ax.bar(x + width/2, stage2_values, width, label='Stage 2',
+                       color=stage2_color, edgecolor='black', linewidth=0.3, alpha=0.85)
         
-        if valid_values:
-            ax.plot(valid_angles, valid_values, linestyle='-', linewidth=2.0, 
-                   color=stage2_color, marker='s', markersize=4, alpha=0.9,
-                   label='Stage 2')
-            ax.fill(valid_angles, valid_values, alpha=0.15, color=stage2_color)
+        # Add value labels on top of bars
+        for bar, val in zip(bars1, stage1_values):
+            if val > 0:
+                ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 1,
+                       f'{val:.0f}', ha='center', va='bottom', fontsize=FONT_SIZE_ANNOTATION)
+        for bar, val in zip(bars2, stage2_values):
+            if val > 0:
+                ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 1,
+                       f'{val:.0f}', ha='center', va='bottom', fontsize=FONT_SIZE_ANNOTATION)
         
-        # Set domain labels
-        ax.set_xticks(angles[:-1])
-        ax.set_xticklabels([DOMAIN_LABELS[d] for d in domains], fontsize=FONT_SIZE_TICK - 1)
-        
-        # Set radial limits
-        ax.set_ylim(0, 65)
-        ax.set_yticks([20, 40, 60])
-        ax.set_yticklabels(['20%', '40%', '60%'], fontsize=FONT_SIZE_TICK - 1)
-        
-        ax.set_title(DATASET_NAMES[dataset], fontsize=FONT_SIZE_TITLE, pad=10)
+        ax.set_ylabel('mIoU (%)', fontsize=FONT_SIZE_LABEL)
+        ax.set_xticks(x)
+        ax.set_xticklabels([DOMAIN_ABBREV[d] for d in domains], fontsize=FONT_SIZE_TICK)
+        ax.set_ylim(0, 70)
+        ax.set_title(DATASET_NAMES[dataset], fontsize=FONT_SIZE_TITLE)
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
     
-    # Create common legend
-    legend_elements = [
-        Line2D([0], [0], color=stage1_color, linewidth=2, linestyle='--', 
-               marker='o', markersize=4, label='Stage 1 (Clear Day Training)'),
-        Line2D([0], [0], color=stage2_color, linewidth=2, linestyle='-', 
-               marker='s', markersize=4, label='Stage 2 (All Domains Training)')
-    ]
-    fig.legend(handles=legend_elements, loc='lower center', ncol=2, 
-               fontsize=FONT_SIZE_LEGEND, bbox_to_anchor=(0.5, -0.02), frameon=False)
+    # Add legend to first subplot
+    axes[0].legend(loc='upper right', fontsize=FONT_SIZE_LEGEND - 0.5)
     
     fig.suptitle('SegFormer: Stage 1 vs Stage 2 Per-Domain Performance', 
                  fontsize=FONT_SIZE_TITLE, y=1.01)
     
     plt.tight_layout()
-    plt.subplots_adjust(bottom=0.1)
     
     fig.savefig(output_path / 'fig10_segformer_per_dataset_radar.png', dpi=300, bbox_inches='tight')
     plt.close(fig)
     
-    print("✓ Figure 10: SegFormer Per-Dataset Radar Charts (2x2) saved")
+    print("✓ Figure 10: SegFormer Per-Dataset Bar Charts (2x2) saved")
 
 # =============================================================================
 # Main Execution
