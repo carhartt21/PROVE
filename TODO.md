@@ -194,25 +194,46 @@ python analysis_scripts/generate_stage1_leaderboard.py
 ### Ratio Ablation Study
 
 **Location:** `WEIGHTS_RATIO_ABLATION/`
+**Status:** ✅ Sufficient coverage (187 checkpoints)
 
-- Strategies: gen_step1x_new, gen_step1x_v1p2
-- Models: PSPNet, SegFormer  
-- Datasets: BDD10k, IDD-AW, MapillaryVistas, OUTSIDE15k
-- Ratios: 0.0, 0.125, 0.25, 0.375, 0.625, 0.75, 0.875
+| Strategy | Stage 1 Rank | Checkpoints | Datasets |
+|----------|-------------|-------------|----------|
+| gen_cycleGAN | #2 (+1.13) | 28 | IDD-AW, OUTSIDE15k |
+| gen_stargan_v2 | #4 (+1.08) | 9 | IDD-AW |
+| gen_cyclediffusion | #6 (+1.05) | 9 | IDD-AW |
+| gen_step1x_new | #13 (+0.94) | 56 | BDD10k, IDD-AW, MV*, OUTSIDE15k |
+| gen_step1x_v1p2 | #21 (+0.69) | 46 | BDD10k, IDD-AW, MV*, OUTSIDE15k |
+| gen_TSIT | #22 (+0.63) | 39 | BDD10k, IDD-AW, OUTSIDE15k |
 
-### Extended Training Ablation (chge7185)
+*MV = MapillaryVistas (backed up - buggy)
+
+**Ratios:** 0.00, 0.125, 0.25, 0.375, 0.625, 0.75, 0.875 (0.50 = standard training)
+
+**Next Action:** Run analysis on existing data (`analysis_scripts/analyze_ratio_ablation.py`)
+
+### Extended Training Study
 
 **Location:** `WEIGHTS_EXTENDED/`
+**Owner:** User chge7185
+**Status:** ✅ Sufficient coverage (~959 checkpoints)
 
-- **Owner:** User chge7185
-- **Duration:** 320k iterations (4× standard 80k)
-- **Strategies:** gen_automold, gen_flux_kontext, gen_step1x_new, std_randaugment, etc.
-- **Models:** PSPNet, SegFormer
-- **Datasets:** BDD10k, IDD-AW, MapillaryVistas, OUTSIDE15k
+| Strategy | Stage 1 Rank | Checkpoints | Datasets |
+|----------|-------------|-------------|----------|
+| gen_cycleGAN | #2 (+1.13) | 96 | BDD10k, IDD-AW, OUTSIDE15k |
+| gen_flux_kontext | #5 (+1.07) | 96 | BDD10k, MV*, OUTSIDE15k |
+| gen_cyclediffusion | #6 (+1.05) | 192 | All 4 datasets |
+| gen_step1x_new | #13 (+0.94) | 120 | All 4 datasets |
+| std_randaugment | #25 (+0.45) | 72 | All 4 datasets |
+| gen_albumentations_weather | #16 (+0.84) | 96 | BDD10k, IDD-AW, OUTSIDE15k |
+| gen_TSIT | #22 (+0.63) | 96 | BDD10k, IDD-AW, OUTSIDE15k |
+| gen_UniControl | #19 (+0.71) | 96 | BDD10k, IDD-AW, OUTSIDE15k |
+| gen_automold | #12 (+0.96) | 95 | BDD10k, IDD-AW |
 
-**Previous Analysis (Jan 15):**
+**Iterations:** 40k, 60k, 80k, 100k, 120k, 140k, 160k, 320k
+
+**Key Finding (Analysis Complete):**
+- **160k iterations** captures ~75% of gains at 50% compute cost
 - Report: [docs/EXTENDED_TRAINING_ANALYSIS.md](docs/EXTENDED_TRAINING_ANALYSIS.md)
-- Key finding: 160k captures 75% of gains at 50% compute cost
 
 ---
 
@@ -220,33 +241,76 @@ python analysis_scripts/generate_stage1_leaderboard.py
 
 ### High Priority
 
-1. **🎯 Run Stage 1 MapillaryVistas Tests**
-   - Script: `./scripts/run_stage1_mapillary_tests.sh --gpu 0`
-   - 81 tests, ~13.5 hours
+1. **🎯 Domain Adaptation Ablation** (NO TRAINING REQUIRED!)
+   - **Status:** Ready to start
+   - **Cost:** Testing only - uses existing Stage 1 checkpoints
+   - **Strategies:** Top 5 (gen_Attribute_Hallucination, gen_cycleGAN, gen_stargan_v2, gen_flux_kontext, gen_cyclediffusion) + baseline
+   - **Model:** SegFormer (most robust from baseline analysis: 8.7% domain gap)
+   - **Test matrix:** 3 source datasets × 5 target domains (Cityscapes + ACDC) × 6 strategies
+   - **Script:** `python scripts/run_domain_adaptation_tests.py --all --dry-run`
+   - **Value:** High publication value with zero training cost
 
 2. **Monitor Stage 2 MapillaryVistas Retraining**
+   - Current: 48/81 complete (59%)
    - Monitor: `bjobs -u mima2416 | grep rt_map`
-   - 43 jobs remaining
 
-3. **Generate Final Stage 1 Leaderboard** (after MV tests complete)
-   - Script: `python analysis_scripts/generate_stage1_leaderboard.py`
+3. **Run Stage 2 MapillaryVistas Tests** (as training completes)
+   - Script: `./scripts/run_stage2_mapillary_tests.sh`
 
 ### Medium Priority
 
-4. **Run Stage 2 MapillaryVistas Tests** (after retraining completes)
-   - Use auto_submit_tests_stage2.py or create similar local script
+4. **Ratio Ablation Analysis** (NO ADDITIONAL TRAINING)
+   - **Current coverage:** ✅ Sufficient
+   - **Top performers covered:** gen_cycleGAN, gen_stargan_v2, gen_cyclediffusion (all top-10)
+   - **Checkpoints:** 187 (6 strategies × multiple ratios × datasets)
+   - **Action:** Run analysis on existing data
+   - **Script:** `analysis_scripts/analyze_ratio_ablation.py`
 
-5. **Domain Adaptation Ablation** ✅ Ready
-   - Scripts created: `run_domain_adaptation_tests.py`, `submit_domain_adaptation_ablation.sh`
-   - All 27 strategies available via `--all-strategies` flag
-   - Test matrix: 2 source datasets × 3 models × 27 strategies = 162 configurations
-   - Usage: `python scripts/run_domain_adaptation_tests.py --all --all-strategies --dry-run`
-
-6. **Ratio Ablation Analysis** (when jobs complete)
-   - Generate ratio ablation figures
-   - Analyze optimal mixing ratios per strategy
+5. **Extended Training Analysis** (NO ADDITIONAL TRAINING)
+   - **Current coverage:** ✅ Sufficient
+   - **Top performers covered:** gen_cycleGAN, gen_cyclediffusion, gen_flux_kontext
+   - **Checkpoints:** ~959 (9 strategies × 8 iterations × datasets)
+   - **Key finding:** 160k iterations = 75% of gains at 50% compute
+   - **Action:** Analysis complete, document in paper
 
 ### Low Priority
+
+6. **Combination Strategies Analysis** (NO ADDITIONAL TRAINING)
+   - **Current coverage:** 53 checkpoints (IDD-AW only)
+   - **Status:** Sufficient for initial exploratory analysis
+   - **Action:** Analyze existing IDD-AW results
+   - **Future:** If results warrant, expand to BDD10k (most validated)
+
+---
+
+## Ablation Study Summary (Based on Leaderboard Analysis)
+
+### Top Strategies (Both Stage 1 & Stage 2 Top 10)
+1. gen_Attribute_Hallucination (+1.36 Stage 1, +0.90 Stage 2)
+2. gen_cycleGAN (+1.13 Stage 1, +0.13 Stage 2)
+3. gen_stargan_v2 (+1.08 Stage 1, +0.21 Stage 2)
+4. gen_cyclediffusion (+1.05 Stage 1, +0.17 Stage 2)
+5. gen_CNetSeg (+1.00 Stage 1, +0.29 Stage 2)
+6. gen_augmenters (+0.99 Stage 1, +0.15 Stage 2)
+7. std_autoaugment (+0.94 Stage 1, +0.16 Stage 2)
+
+### Current Ablation Coverage vs Top Strategies
+
+| Study | Top Strategies Covered | Status |
+|-------|----------------------|--------|
+| **Ratio Ablation** | gen_cycleGAN, gen_stargan_v2, gen_cyclediffusion | ✅ Sufficient |
+| **Extended Training** | gen_cycleGAN, gen_cyclediffusion, gen_flux_kontext | ✅ Sufficient |
+| **Combinations** | Multiple gen_* + std_* | ✅ Sufficient (IDD-AW) |
+| **Domain Adaptation** | All 6 top strategies | ⏳ Ready (no training) |
+
+### Recommendation: ZERO NEW TRAINING NEEDED
+- All ablation studies have sufficient coverage of top-performing strategies
+- Focus on **testing** and **analysis** of existing checkpoints
+- **Domain Adaptation is highest priority** (zero training cost, high value)
+
+---
+
+## Recently Completed
 
 7. **Extended Training Analysis Follow-up** (when chge7185 jobs complete)
    - Analyze finer iteration granularity
