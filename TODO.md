@@ -1,29 +1,33 @@
 # PROVE Project TODO List
 
-**Last Updated:** 2026-01-22 (17:00)
+**Last Updated:** 2026-01-23 (10:00)
 
 ## Current Job Status Summary
 
 ### Stage 1 (Clear Day Domain) - WEIGHTS directory
 | Category | Running | Pending | Complete | Total |
 |----------|--------:|--------:|---------:|------:|
-| Training | 4 | 77 | 80 | 161 |
-| Testing | 0 | 0 | ~80 | ~80 |
+| Training | 0 | 0 | 405 | 405 |
+| Testing (non-MV) | 0 | 0 | ~324 | ~324 |
+| **MV Testing** | **0** | **81** | **0** | **81** |
 
-⚠️ **Stage 1 MapillaryVistas RETRAINING (162 jobs total, 81 per stage)**
-- All MapillaryVistas models invalidated due to BGR/RGB bug in training
+✅ **Stage 1 MapillaryVistas RETRAINING COMPLETE (81/81)**
+- All 81 MapillaryVistas Stage 1 models now have `iter_80000.pth`
+- Ready for testing with `./scripts/run_stage1_mapillary_tests.sh`
 
 ### Stage 2 (All Domains) - WEIGHTS_STAGE_2 directory
 | Category | Running | Pending | Complete | Total |
 |----------|--------:|--------:|---------:|------:|
-| Training | 0 | 0 | 243 | 243 |
-| Testing | 0 | 0 | 243 | 243 |
+| Training (non-MV) | 0 | 0 | 243 | 243 |
+| Testing (non-MV) | 0 | 0 | 243 | 243 |
+| **MV Training** | **2** | **41** | **38** | **81** |
+| **MV Testing** | **0** | **38** | **0** | **38** |
 
-**Stage 2 Status (as of 2026-01-22 17:00):**
-- **Training:** ✅ 243/243 complete (excluding MapillaryVistas retraining)
-- **Testing:** ✅ 243/243 complete
-- **std_cutmix artifact resolved:** Now ranks #27 at -0.29 below baseline
-- **Top performer:** gen_CNetSeg (+0.58 over baseline)
+**Stage 2 Status (as of 2026-01-23 10:00):**
+- **Non-MV Training:** ✅ 243/243 complete
+- **Non-MV Testing:** ✅ 243/243 complete
+- **MapillaryVistas Training:** 🔄 38/81 complete (47%), 43 remaining
+- **Top performer:** gen_CNetSeg (+0.58 over baseline at 43.68% mIoU)
 
 ---
 
@@ -148,42 +152,49 @@ WEIGHTS_STAGE_2/             # Stage 2 (all domains)
 
 ## Active Tasks
 
-### 🔄 Stage 1 Retraining (21 jobs running)
+### ✅ Stage 1 MapillaryVistas Retraining COMPLETE
 
-**Job IDs:** 9611966-9611986 (moved to top of queue)
+All 81 MapillaryVistas Stage 1 models have completed retraining after BGR/RGB bug fix.
+Ready for testing!
 
-| Strategy | MapillaryVistas | OUTSIDE15k |
-|----------|-----------------|------------|
-| gen_cyclediffusion | 🔄 3 jobs | 🔄 3 jobs |
-| gen_flux_kontext | ✅ | 🔄 3 jobs |
-| gen_TSIT | 🔄 3 jobs | 🔄 3 jobs |
-| std_cutmix | ✅ | 🔄 3 jobs |
-| std_mixup | ✅ | 🔄 3 jobs |
+### 🎯 IMMEDIATE: Run Stage 1 MapillaryVistas Tests
 
-- Once complete, Stage 1 will be 107/107 (100%)
+**Script:** `./scripts/run_stage1_mapillary_tests.sh`
 
-### Stage 1 Testing Coverage (93.4%)
+```bash
+# Preview tests
+./scripts/run_stage1_mapillary_tests.sh --dry-run
 
-**Status:** 312/334 complete, 22 jobs pending
+# Run all 81 tests on GPU 0
+./scripts/run_stage1_mapillary_tests.sh --gpu 0
 
-| Category | Pending Jobs |
-|----------|-------------|
-| Generative strategies | 14 jobs (gen_CNetSeg, gen_IP2P, gen_Weather_Effect, etc.) |
-| Standard strategies | 8 jobs (photometric_distort, std_minimal, std_randaugment) |
+# Run with limit for testing
+./scripts/run_stage1_mapillary_tests.sh --gpu 0 --limit 5
+```
 
-**Note:** Some tests depend on training completion (gen_IP2P, gen_step1x_new tests).
+**Estimated time:** ~10 min per test = ~13.5 hours for all 81
 
-### Stage 2 Training (5.4%)
+### 🔄 Stage 2 MapillaryVistas Retraining (47% complete)
 
-**Status:** 6/111 strategy-dataset combinations complete
+**Status:** 38/81 complete, 2 running, ~41 pending
 
-- **Models:** PSPNet, SegFormer only (DeepLabV3+ excluded)
-- **Datasets:** BDD10k, IDD-AW, MapillaryVistas, OUTSIDE15k (adverse conditions)
-- **Training not yet prioritized** - focus is on completing Stage 1 first
+| Progress | Count |
+|----------|-------|
+| Complete | 38 |
+| Running | 2 |
+| Pending | ~41 |
 
-### Ratio Ablation Study (mima2416)
+**Monitor:** `bjobs -u mima2416 | grep rt_map`
 
-**Status:** 🔄 13 jobs running, 54 pending
+### Stage 2 Non-MapillaryVistas (100% Complete)
+
+- **Training:** ✅ 243/243 complete
+- **Testing:** ✅ 243/243 complete
+- **Top performer:** gen_CNetSeg (+0.58 over baseline at 43.68% mIoU)
+
+### Ratio Ablation Study
+
+**Location:** `WEIGHTS_RATIO_ABLATION/`
 
 - Strategies: gen_step1x_new, gen_step1x_v1p2
 - Models: PSPNet, SegFormer  
@@ -192,10 +203,10 @@ WEIGHTS_STAGE_2/             # Stage 2 (all domains)
 
 ### Extended Training Ablation (chge7185)
 
-**Status:** 🔄 6 jobs running, 454 pending
+**Location:** `WEIGHTS_EXTENDED/`
 
 - **Owner:** User chge7185
-- **Duration:** 320k iterations (4× standard 80k) + finer iteration checkpoints (110k, 120k, ..., 320k)
+- **Duration:** 320k iterations (4× standard 80k)
 - **Strategies:** gen_automold, gen_flux_kontext, gen_step1x_new, std_randaugment, etc.
 - **Models:** PSPNet, SegFormer
 - **Datasets:** BDD10k, IDD-AW, MapillaryVistas, OUTSIDE15k
@@ -203,7 +214,6 @@ WEIGHTS_STAGE_2/             # Stage 2 (all domains)
 **Previous Analysis (Jan 15):**
 - Report: [docs/EXTENDED_TRAINING_ANALYSIS.md](docs/EXTENDED_TRAINING_ANALYSIS.md)
 - Key finding: 160k captures 75% of gains at 50% compute cost
-- Diminishing returns: 90k→160k (+0.75 mIoU), 160k→240k (+0.39), 240k→320k (+0.10)
 
 ---
 
@@ -211,57 +221,69 @@ WEIGHTS_STAGE_2/             # Stage 2 (all domains)
 
 ### High Priority
 
-1. **Monitor Stage 1 Training/Testing Completion**
-   - Run \`python scripts/update_training_tracker.py\` periodically
-   - Run \`python scripts/update_testing_tracker.py\` after tests complete
+1. **🎯 Run Stage 1 MapillaryVistas Tests**
+   - Script: `./scripts/run_stage1_mapillary_tests.sh --gpu 0`
+   - 81 tests, ~13.5 hours
 
-2. **Ratio Ablation Analysis** (when jobs complete)
-   - Generate ratio ablation figures
-   - Analyze optimal mixing ratios per strategy
+2. **Monitor Stage 2 MapillaryVistas Retraining**
+   - Monitor: `bjobs -u mima2416 | grep rt_map`
+   - 43 jobs remaining
 
-3. **Extended Training Analysis Follow-up** (when chge7185 jobs complete)
-   - Analyze finer iteration granularity (110k, 120k, ..., 320k)
-   - Update convergence curves
+3. **Generate Final Stage 1 Leaderboard** (after MV tests complete)
+   - Script: `python analysis_scripts/generate_stage1_leaderboard.py`
 
 ### Medium Priority
 
-4. **Stage 2 Training Submission**
-   - After Stage 1 is 100% complete
-   - Submit PSPNet and SegFormer models for all strategies
-   - Script: \`./scripts/generate_stage2_training_jobs.py\`
+4. **Run Stage 2 MapillaryVistas Tests** (after retraining completes)
+   - Use auto_submit_tests_stage2.py or create similar local script
 
-5. **Generate Final Stage 1 Leaderboard**
-   - After all 334 tests complete
-   - Update strategy rankings
 5. **Domain Adaptation Ablation** ✅ Ready
-   - Scripts created: \`run_domain_adaptation_tests.py\`, \`submit_domain_adaptation_ablation.sh\`
-   - All 27 strategies available via \`--all-strategies\` flag
+   - Scripts created: `run_domain_adaptation_tests.py`, `submit_domain_adaptation_ablation.sh`
+   - All 27 strategies available via `--all-strategies` flag
    - Test matrix: 2 source datasets × 3 models × 27 strategies = 162 configurations
-   - Usage: \`python scripts/run_domain_adaptation_tests.py --all --all-strategies --dry-run\`
+   - Usage: `python scripts/run_domain_adaptation_tests.py --all --all-strategies --dry-run`
+
+6. **Ratio Ablation Analysis** (when jobs complete)
+   - Generate ratio ablation figures
+   - Analyze optimal mixing ratios per strategy
 
 ### Low Priority
 
-6. **Domain Adaptation Ablation Study** (optional)
-   - Cross-dataset generalization evaluation
-   - Script ready: \`./scripts/submit_domain_adaptation_ablation.sh --all\`
+7. **Extended Training Analysis Follow-up** (when chge7185 jobs complete)
+   - Analyze finer iteration granularity
+   - Update convergence curves
 
-7. **Augmentation Combination Training** (optional)
+8. **Augmentation Combination Training** (optional)
    - Combine top std and gen strategies
-   - Script ready: \`./scripts/submit_combination_training.sh\`
+   - Script ready: `./scripts/submit_combination_training.sh`
 
 ---
 
-## Recently Completed (Jan 16, 2026)
+## Recently Completed
 
-### Directory Restructuring (Afternoon)
+### Jan 23, 2026
+- ✅ **Created Stage 1 MapillaryVistas test script** (`run_stage1_mapillary_tests.sh`)
+  - Supports `--gpu`, `--limit`, `--batch-size`, `--dry-run` options
+  - Finds all 81 MV configs needing tests
+
+### Jan 22, 2026
+- ✅ **Stage 2 non-MV testing complete** (243/243)
+- ✅ **std_cutmix artifact resolved** - now ranks #27 at -0.29
+- ✅ **Domain adaptation scripts enhanced** with all 27 strategies
+- ✅ **Leaderboard scripts auto-refresh by default**
+
+### Jan 21, 2026
+- ✅ **Fixed BGR/RGB bug** in `custom_transforms.py` (commit d7b2b99)
+- ✅ **Submitted MapillaryVistas retraining** (162 jobs total)
+- ✅ **Stage 1 MV retraining complete** (81/81)
+
+### Jan 16, 2026
+
+### Directory Restructuring
 - ✅ **Created WEIGHTS_STAGE_2 directory** for Stage 2 (all_domains) training
 - ✅ **Moved all _ad directories** from WEIGHTS to WEIGHTS_STAGE_2 (62 directories)
 - ✅ **Removed _cd and _ad suffixes** from all dataset directories
-- ✅ **Updated scripts** for new directory structure:
-  - `unified_training_config.py` - Uses WEIGHTS for Stage 1, WEIGHTS_STAGE_2 for Stage 2
-  - `update_training_tracker.py` - Checks both directories
-  - `auto_submit_tests.py` - Removed _cd suffix lookups
-  - `test_result_analyzer.py` - Updated baseline calculation
+- ✅ **Updated scripts** for new directory structure
 - ✅ **Created separate tracker files**:
   - `docs/TRAINING_TRACKER_STAGE1.md`
   - `docs/TRAINING_TRACKER_STAGE2.md`
