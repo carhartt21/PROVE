@@ -1,6 +1,6 @@
 # Evaluation Stage Status
 
-**Last Updated:** 2026-01-23 (15:30)
+**Last Updated:** 2026-01-23 (17:00)
 
 ## Overview
 
@@ -197,6 +197,43 @@
 | Best Strategy | TBD (need to regenerate with MV) | gen_CNetSeg (43.68%) |
 
 **Note:** Stage 1 leaderboard should be regenerated now that MapillaryVistas results are available.
+
+---
+
+## 📊 Stage 1 Baseline Analysis
+
+**Publication-ready analysis generated:** 2026-01-23
+
+| Output | Description |
+|--------|-------------|
+| **Location** | `result_figures/baseline_consolidated/stage1_baseline_output/` |
+| **Script** | `result_figures/baseline_consolidated/generate_stage1_baseline.py` |
+
+### Tables
+| Table | Content |
+|-------|---------|
+| Table 1 | Overall Baseline Performance (12 configs + average) |
+| Table 2 | Model Architecture Robustness |
+| Table 3 | Per-Domain Degradation |
+| Table 4 | Dataset Challenge Levels |
+
+### Figures
+| Figure | Content |
+|--------|---------|
+| Figure 1 | Cross-Domain Robustness (grouped bar chart) |
+| Figure 2 | Dataset × Domain Performance (heatmap) |
+| Figure 3 | Domain Gap by Dataset (horizontal bars) |
+| Figure 4 | Performance Distribution (box plots) |
+
+### Key Findings
+| Metric | Value | Notes |
+|--------|-------|-------|
+| Overall mIoU | 33.3% | Average across 12 configs |
+| Domain Gap | 10.1% | Clear Day - Adverse Avg |
+| Most Robust Model | SegFormer | Gap 8.7% |
+| Hardest Domain | Night | -14.9% from Clear Day |
+| Largest Dataset Gap | IDD-AW | 17.6% domain gap |
+| Smallest Dataset Gap | Mapillary | 2.6% domain gap |
 
 ---
 

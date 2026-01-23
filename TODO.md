@@ -1,6 +1,6 @@
 # PROVE Project TODO List
 
-**Last Updated:** 2026-01-23 (15:30)
+**Last Updated:** 2026-01-23 (17:00)
 
 ## Current Job Status Summary
 
@@ -261,6 +261,12 @@ python analysis_scripts/generate_stage1_leaderboard.py
 ## Recently Completed
 
 ### Jan 23, 2026
+- ✅ **Stage 1 Baseline Analysis (Publication)** - 4 figures + 4 tables
+  - Script: `result_figures/baseline_consolidated/generate_stage1_baseline.py`
+  - Output: `result_figures/baseline_consolidated/stage1_baseline_output/`
+  - Key findings: Overall 33.3% mIoU, 10.1% domain gap
+  - SegFormer most robust (8.7% gap), Night hardest domain (-14.9%)
+
 - ✅ **Created Stage 1 MapillaryVistas test script** (`run_stage1_mapillary_tests.sh`)
   - Supports `--gpu`, `--limit`, `--batch-size`, `--dry-run` options
   - Finds all 81 MV configs needing tests
