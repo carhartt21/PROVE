@@ -816,8 +816,9 @@ def create_segformer_per_dataset_radar(data, output_path):
     stage1_df = data['clear_domain']
     stage2_df = data['full_domain']
     
-    stage1_df = stage1_df[stage1_df['num_images'] >= 50]
-    stage2_df = stage2_df[stage2_df['num_images'] >= 50]
+    # Lowered threshold to 45 to include MapillaryVistas dawn_dusk (48 images)
+    stage1_df = stage1_df[stage1_df['num_images'] >= 45]
+    stage2_df = stage2_df[stage2_df['num_images'] >= 45]
     
     model = 'segformer_mit-b5'
     datasets = ['bdd10k', 'idd-aw', 'mapillaryvistas', 'outside15k']
