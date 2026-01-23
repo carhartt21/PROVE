@@ -801,16 +801,14 @@ def create_stage_comparison_radar(data, output_path):
     print("✓ Figure 9: Stage Comparison Radar Chart saved")
 
 # =============================================================================
-# Figure 10: SegFormer Per-Dataset Domain Performance (Combined)
+# Figure 10: SegFormer Per-Dataset Domain Performance (4 Charts)
 # =============================================================================
 
 def create_segformer_per_dataset_radar(data, output_path):
     """
-    Create single radar chart showing SegFormer performance per dataset.
+    Create 4 radar charts (one per dataset) showing SegFormer performance.
     Stage 1 shown with dashed lines, Stage 2 with solid lines.
-    Each dataset has its own color.
     """
-    from matplotlib.patches import Patch
     from matplotlib.lines import Line2D
     
     stage1_df = data['clear_domain']
@@ -825,24 +823,29 @@ def create_segformer_per_dataset_radar(data, output_path):
     domains = ['clear_day', 'dawn_dusk', 'night', 'rainy', 'snowy']
     
     DOMAIN_LABELS = {
-        'clear_day': 'Clear Day',
-        'dawn_dusk': 'Dawn/Dusk',
+        'clear_day': 'Clear\nDay',
+        'dawn_dusk': 'Dawn/\nDusk',
         'night': 'Night',
         'rainy': 'Rainy',
         'snowy': 'Snowy'
     }
     
-    # Single radar chart
-    fig, ax = plt.subplots(figsize=(IEEE_SINGLE_COL + 1.0, 3.5), subplot_kw=dict(projection='polar'))
+    # Create 2x2 grid of radar charts
+    fig, axes = plt.subplots(2, 2, figsize=(IEEE_DOUBLE_COL, 5.0), 
+                              subplot_kw=dict(projection='polar'))
+    axes = axes.flatten()
     
     # Angles for radar chart
     num_domains = len(domains)
     angles = np.linspace(0, 2 * np.pi, num_domains, endpoint=False).tolist()
     angles += angles[:1]
     
-    # Plot each dataset with Stage 1 (dashed) and Stage 2 (solid)
-    for dataset in datasets:
-        color = COLORS_DATASETS[dataset]
+    # Colors for stages
+    stage1_color = '#E76F51'  # Orange-red
+    stage2_color = '#2A9D8F'  # Teal
+    
+    for ds_idx, dataset in enumerate(datasets):
+        ax = axes[ds_idx]
         
         # Stage 1 (dashed line)
         ds_data = stage1_df[(stage1_df['model'] == model) & (stage1_df['dataset'] == dataset)]
@@ -856,8 +859,10 @@ def create_segformer_per_dataset_radar(data, output_path):
         valid_values = [v for v in values_closed if not np.isnan(v)]
         
         if valid_values:
-            ax.plot(valid_angles, valid_values, linestyle='--', linewidth=1.5, 
-                   color=color, markersize=0, alpha=0.7)
+            ax.plot(valid_angles, valid_values, linestyle='--', linewidth=2.0, 
+                   color=stage1_color, marker='o', markersize=4, alpha=0.8,
+                   label='Stage 1')
+            ax.fill(valid_angles, valid_values, alpha=0.15, color=stage1_color)
         
         # Stage 2 (solid line)
         ds_data = stage2_df[(stage2_df['model'] == model) & (stage2_df['dataset'] == dataset)]
@@ -872,45 +877,41 @@ def create_segformer_per_dataset_radar(data, output_path):
         
         if valid_values:
             ax.plot(valid_angles, valid_values, linestyle='-', linewidth=2.0, 
-                   color=color, marker='o', markersize=4, alpha=0.9)
-            ax.fill(valid_angles, valid_values, alpha=0.08, color=color)
+                   color=stage2_color, marker='s', markersize=4, alpha=0.9,
+                   label='Stage 2')
+            ax.fill(valid_angles, valid_values, alpha=0.15, color=stage2_color)
+        
+        # Set domain labels
+        ax.set_xticks(angles[:-1])
+        ax.set_xticklabels([DOMAIN_LABELS[d] for d in domains], fontsize=FONT_SIZE_TICK - 1)
+        
+        # Set radial limits
+        ax.set_ylim(0, 65)
+        ax.set_yticks([20, 40, 60])
+        ax.set_yticklabels(['20%', '40%', '60%'], fontsize=FONT_SIZE_TICK - 1)
+        
+        ax.set_title(DATASET_NAMES[dataset], fontsize=FONT_SIZE_TITLE, pad=10)
     
-    # Set domain labels
-    ax.set_xticks(angles[:-1])
-    ax.set_xticklabels([DOMAIN_LABELS[d] for d in domains], fontsize=FONT_SIZE_TICK)
-    
-    # Set radial limits
-    ax.set_ylim(0, 65)
-    ax.set_yticks([20, 40, 60])
-    ax.set_yticklabels(['20%', '40%', '60%'], fontsize=FONT_SIZE_TICK - 1)
-    
-    # Create custom legend
-    # Dataset colors
-    dataset_handles = [Line2D([0], [0], color=COLORS_DATASETS[ds], linewidth=2, 
-                              label=DATASET_NAMES[ds]) for ds in datasets]
-    # Line styles
-    style_handles = [
-        Line2D([0], [0], color='gray', linewidth=1.5, linestyle='--', label='Stage 1 (Clear Only)'),
-        Line2D([0], [0], color='gray', linewidth=2, linestyle='-', label='Stage 2 (All Domains)')
+    # Create common legend
+    legend_elements = [
+        Line2D([0], [0], color=stage1_color, linewidth=2, linestyle='--', 
+               marker='o', markersize=4, label='Stage 1 (Clear Day Training)'),
+        Line2D([0], [0], color=stage2_color, linewidth=2, linestyle='-', 
+               marker='s', markersize=4, label='Stage 2 (All Domains Training)')
     ]
+    fig.legend(handles=legend_elements, loc='lower center', ncol=2, 
+               fontsize=FONT_SIZE_LEGEND, bbox_to_anchor=(0.5, -0.02), frameon=False)
     
-    # Two-row legend
-    legend1 = ax.legend(handles=dataset_handles, loc='upper right', 
-                        bbox_to_anchor=(1.35, 1.0), fontsize=FONT_SIZE_LEGEND - 0.5, 
-                        title='Dataset', title_fontsize=FONT_SIZE_LEGEND, frameon=True)
-    ax.add_artist(legend1)
-    ax.legend(handles=style_handles, loc='upper right', 
-              bbox_to_anchor=(1.35, 0.55), fontsize=FONT_SIZE_LEGEND - 0.5,
-              title='Training', title_fontsize=FONT_SIZE_LEGEND, frameon=True)
-    
-    ax.set_title('SegFormer: Per-Dataset Domain Performance', fontsize=FONT_SIZE_TITLE, pad=20)
+    fig.suptitle('SegFormer: Stage 1 vs Stage 2 Per-Domain Performance', 
+                 fontsize=FONT_SIZE_TITLE, y=1.01)
     
     plt.tight_layout()
+    plt.subplots_adjust(bottom=0.1)
     
     fig.savefig(output_path / 'fig10_segformer_per_dataset_radar.png', dpi=300, bbox_inches='tight')
     plt.close(fig)
     
-    print("✓ Figure 10: SegFormer Per-Dataset Radar Chart saved")
+    print("✓ Figure 10: SegFormer Per-Dataset Radar Charts (2x2) saved")
 
 # =============================================================================
 # Main Execution
