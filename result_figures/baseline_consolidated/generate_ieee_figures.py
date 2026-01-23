@@ -127,17 +127,42 @@ def setup_ieee_style():
     })
 
 def load_data(base_path):
-    """Load all CSV data files."""
+    """Load all CSV data files.
+    
+    Updated for new naming convention:
+    - stage1_baseline_* : Clear day training (Stage 1)
+    - stage2_baseline_* : All domains training (Stage 2)
+    
+    Falls back to old naming (full_baseline_*, clear_day_baseline_*) for compatibility.
+    """
     data = {}
     
-    # Full baseline per domain
-    data['full_domain'] = pd.read_csv(base_path / 'full_baseline_per_domain.csv')
+    # Try new naming convention first, then fall back to old
+    # Stage 1 = Clear day training (was "clear_day_baseline")
+    stage1_domain_path = base_path / 'stage1_baseline_per_domain.csv'
+    if not stage1_domain_path.exists():
+        stage1_domain_path = base_path / 'clear_day_baseline_per_domain.csv'
+    if stage1_domain_path.exists():
+        data['clear_domain'] = pd.read_csv(stage1_domain_path)
     
-    # Clear day baseline per domain
-    data['clear_domain'] = pd.read_csv(base_path / 'clear_day_baseline_per_domain.csv')
+    # Stage 2 = All domains training (was "full_baseline")
+    stage2_domain_path = base_path / 'stage2_baseline_per_domain.csv'
+    if not stage2_domain_path.exists():
+        stage2_domain_path = base_path / 'full_baseline_per_domain.csv'
+    if stage2_domain_path.exists():
+        data['full_domain'] = pd.read_csv(stage2_domain_path)
     
-    # Full baseline per config
-    data['config'] = pd.read_csv(base_path / 'full_baseline_per_config.csv')
+    # Config files
+    stage1_config_path = base_path / 'stage1_baseline_per_config.csv'
+    if not stage1_config_path.exists():
+        stage1_config_path = base_path / 'full_baseline_per_config.csv'
+    if stage1_config_path.exists():
+        data['config'] = pd.read_csv(stage1_config_path)
+    
+    # Also load Stage 2 config if available
+    stage2_config_path = base_path / 'stage2_baseline_per_config.csv'
+    if stage2_config_path.exists():
+        data['config_stage2'] = pd.read_csv(stage2_config_path)
     
     return data
 
