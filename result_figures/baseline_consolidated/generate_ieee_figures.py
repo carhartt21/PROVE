@@ -623,11 +623,12 @@ def create_domain_shift_figure(data, output_path):
     domain_df = domain_df[domain_df['num_images'] >= 50]
     
     # Calculate drop from clear_day to each adverse domain
-    adverse_domains = ['dawn_dusk', 'night', 'rainy', 'snowy']
+    # Include foggy in adverse domains
+    adverse_domains = ['foggy', 'dawn_dusk', 'night', 'rainy', 'snowy']
     models = ['deeplabv3plus_r50', 'pspnet_r50', 'segformer_mit-b5']
     
     x = np.arange(len(adverse_domains))
-    width = 0.25
+    width = 0.18  # Smaller width for 5 domains
     
     for i, model in enumerate(models):
         model_data = domain_df[domain_df['model'] == model]
