@@ -610,13 +610,13 @@ def create_model_ranking_figure(data, output_path):
     print("✓ Figure 7: Model Ranking saved")
 
 # =============================================================================
-# Figure 8: Domain Shift Impact Visualization (Per Dataset)
+# Figure 8: Domain Shift Impact Visualization (Heatmap)
 # =============================================================================
 
 def create_domain_shift_figure(data, output_path):
     """
-    Create a visualization showing performance drop from clear_day to adverse domains.
-    Shows per-dataset performance to reveal dataset-specific patterns.
+    Create a heatmap visualization showing performance change from clear_day.
+    Rows: Datasets, Columns: Domains, Cells: Average mIoU change across models.
     
     IMPORTANT: Uses Stage 1 data (clear_domain) - models trained ONLY on clear_day.
     This measures cross-domain robustness: how well models generalize to unseen conditions.
@@ -626,79 +626,86 @@ def create_domain_shift_figure(data, output_path):
     domain_df = domain_df[domain_df['num_images'] >= 50]
     
     datasets = ['bdd10k', 'idd-aw', 'mapillaryvistas', 'outside15k']
-    adverse_domains = ['dawn_dusk', 'night', 'rainy', 'snowy']  # Removed foggy (only in IDD-AW)
-    
-    # Create figure with subplots for each dataset
-    fig, axes = plt.subplots(2, 2, figsize=(IEEE_DOUBLE_COL, 4.0))
-    axes = axes.flatten()
-    
+    adverse_domains = ['dawn_dusk', 'night', 'rainy', 'snowy', 'foggy']
     models = ['deeplabv3plus_r50', 'pspnet_r50', 'segformer_mit-b5']
     
-    for ds_idx, dataset in enumerate(datasets):
-        ax = axes[ds_idx]
-        ds_data = domain_df[domain_df['dataset'] == dataset]
+    # Create separate heatmaps for each model
+    fig, axes = plt.subplots(1, 3, figsize=(IEEE_DOUBLE_COL, 2.5))
+    
+    for model_idx, model in enumerate(models):
+        ax = axes[model_idx]
         
-        # Get domains available for this dataset
-        available_domains = [d for d in adverse_domains 
-                            if len(ds_data[ds_data['domain'] == d]) > 0]
+        # Build heatmap data
+        heatmap_data = np.full((len(datasets), len(adverse_domains)), np.nan)
         
-        if len(available_domains) == 0:
-            ax.text(0.5, 0.5, 'No adverse\ndomains', ha='center', va='center', 
-                   transform=ax.transAxes, fontsize=FONT_SIZE_TICK)
-            ax.set_title(DATASET_NAMES[dataset], fontsize=FONT_SIZE_TITLE)
-            ax.axis('off')
-            continue
-        
-        x = np.arange(len(available_domains))
-        width = 0.25
-        
-        for i, model in enumerate(models):
-            model_data = ds_data[ds_data['model'] == model]
-            clear_day_row = model_data[model_data['domain'] == 'clear_day']
+        for ds_idx, dataset in enumerate(datasets):
+            ds_model_data = domain_df[(domain_df['dataset'] == dataset) & 
+                                       (domain_df['model'] == model)]
             
+            # Get clear_day baseline
+            clear_day_row = ds_model_data[ds_model_data['domain'] == 'clear_day']
             if len(clear_day_row) == 0:
                 continue
-                
             clear_day_miou = clear_day_row['mIoU'].values[0]
             
-            changes = []
-            for domain in available_domains:
-                domain_row = model_data[model_data['domain'] == domain]
+            for dom_idx, domain in enumerate(adverse_domains):
+                domain_row = ds_model_data[ds_model_data['domain'] == domain]
                 if len(domain_row) > 0:
                     change = domain_row['mIoU'].values[0] - clear_day_miou
-                    changes.append(change)
+                    heatmap_data[ds_idx, dom_idx] = change
+        
+        # Create masked array for NaN values
+        masked_data = np.ma.masked_invalid(heatmap_data)
+        
+        # Create heatmap with diverging colormap (red=bad, green=good)
+        cmap = plt.cm.RdYlGn  # Red (negative) to Green (positive)
+        im = ax.imshow(masked_data, cmap=cmap, aspect='auto', vmin=-30, vmax=10)
+        
+        # Add text annotations
+        for i in range(len(datasets)):
+            for j in range(len(adverse_domains)):
+                if not np.isnan(heatmap_data[i, j]):
+                    value = heatmap_data[i, j]
+                    text_color = 'white' if abs(value) > 15 else 'black'
+                    ax.text(j, i, f'{value:+.0f}', ha='center', va='center',
+                           fontsize=FONT_SIZE_ANNOTATION, color=text_color, fontweight='bold')
                 else:
-                    changes.append(0)
-            
-            offset = (i - 1) * width
-            ax.bar(x + offset, changes, width, label=MODEL_NAMES[model],
-                   color=COLORS_MODELS[model], edgecolor='black', linewidth=0.3)
+                    ax.text(j, i, '—', ha='center', va='center',
+                           fontsize=FONT_SIZE_ANNOTATION, color='gray')
         
-        ax.axhline(y=0, color='gray', linestyle='--', linewidth=0.5)
-        ax.set_ylabel('mIoU Change (%)', fontsize=FONT_SIZE_LABEL)
-        ax.set_xticks(x)
-        ax.set_xticklabels([DOMAIN_NAMES[d] for d in available_domains], 
-                          fontsize=FONT_SIZE_TICK, rotation=15, ha='right')
-        ax.set_title(DATASET_NAMES[dataset], fontsize=FONT_SIZE_TITLE)
-        ax.spines['top'].set_visible(False)
-        ax.spines['right'].set_visible(False)
+        # Set labels
+        ax.set_xticks(np.arange(len(adverse_domains)))
+        ax.set_xticklabels([DOMAIN_NAMES[d].replace('/', '/\n') for d in adverse_domains], 
+                          fontsize=FONT_SIZE_TICK-1, rotation=0)
+        ax.set_yticks(np.arange(len(datasets)))
+        if model_idx == 0:
+            ax.set_yticklabels([DATASET_NAMES[d] for d in datasets], fontsize=FONT_SIZE_TICK)
+        else:
+            ax.set_yticklabels([])
         
-        # Set consistent y-axis limits
-        ax.set_ylim(-30, 10)
+        ax.set_title(MODEL_NAMES[model], fontsize=FONT_SIZE_TITLE)
+        
+        # Add grid lines
+        ax.set_xticks(np.arange(len(adverse_domains) + 1) - 0.5, minor=True)
+        ax.set_yticks(np.arange(len(datasets) + 1) - 0.5, minor=True)
+        ax.grid(which='minor', color='white', linewidth=1)
+        ax.tick_params(which='minor', length=0)
     
-    # Add legend to first subplot
-    axes[0].legend(loc='lower left', fontsize=FONT_SIZE_LEGEND-1, ncol=1)
+    # Add colorbar
+    cbar = fig.colorbar(im, ax=axes, orientation='vertical', shrink=0.8, pad=0.02)
+    cbar.set_label('mIoU Change (%)', fontsize=FONT_SIZE_LABEL)
+    cbar.ax.tick_params(labelsize=FONT_SIZE_TICK)
     
     # Overall title
-    fig.suptitle('Performance Change from Clear Day (Stage 1: Clear Day Training Only)', 
-                 fontsize=FONT_SIZE_TITLE, y=1.02)
+    fig.suptitle('Domain Shift Impact: Performance Change from Clear Day', 
+                 fontsize=FONT_SIZE_TITLE, y=1.05)
     
     plt.tight_layout()
     
     fig.savefig(output_path / 'fig8_domain_shift.png', dpi=300, bbox_inches='tight')
     plt.close(fig)
     
-    print("✓ Figure 8: Domain Shift Impact (Per Dataset) saved")
+    print("✓ Figure 8: Domain Shift Heatmap saved")
 
 # =============================================================================
 # Main Execution
