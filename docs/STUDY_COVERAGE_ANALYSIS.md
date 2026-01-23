@@ -4,26 +4,26 @@
 
 ## Summary
 
-| Study | Path | Checkpoints | Strategies | Status |
-|-------|------|-------------|------------|--------|
-| **Stage 1** | `WEIGHTS/` | 405 | 27 | ✅ **COMPLETE** (Training + Testing) |
-| **Stage 2** | `WEIGHTS_STAGE_2/` | 291 | 27 | 🔄 MV Retraining (59%) |
-| **Ratio Ablation** | `WEIGHTS_RATIO_ABLATION/` | ~119 | 6 | 📦 MV backed up (buggy) |
-| **Extended Training** | `WEIGHTS_EXTENDED/` | ~700+ | 5 | 📦 MV backed up (buggy) |
-| **Combinations** | `WEIGHTS_COMBINATIONS/` | ~55 | 27 | 📦 MV backed up (buggy) |
-| **Domain Adaptation** | Testing-only | N/A | Top 5 + baseline | ⏳ Ready to start |
+| Study | Path | Checkpoints | Strategies | Owner | Status |
+|-------|------|-------------|------------|-------|--------|
+| **Stage 1** | `WEIGHTS/` | 405 | 27 | mima2416 | ✅ **COMPLETE** |
+| **Stage 2** | `WEIGHTS_STAGE_2/` | 291 | 27 | mima2416 | 🔄 MV 59% |
+| **Ratio Ablation** | `WEIGHTS_RATIO_ABLATION/` | 187 | 6 | mima2416 | ✅ Valid (non-MV) |
+| **Extended Training** | `WEIGHTS_EXTENDED/` | ~959 | 9 | chge7185 | ✅ Valid (non-MV) |
+| **Combinations** | `WEIGHTS_COMBINATIONS/` | 53 | 27 | chge7185 | ✅ Valid (IDD-AW) |
+| **Domain Adaptation** | Testing-only | N/A | 6 | mima2416 | ⏳ Ready |
 
 ### MapillaryVistas BGR/RGB Bug Status
 
 The BGR/RGB bug in `custom_transforms.py` affected all MapillaryVistas training. Buggy checkpoints have been backed up:
 
-| Study | Owner | MV Checkpoint Status | Notes |
-|-------|-------|---------------------|-------|
-| **Stage 1** | mima2416 | ✅ **COMPLETE** | All 81/81 retrained + tested |
-| **Stage 2** | mima2416 | 🔄 59% (48/81) | Retraining in progress |
-| **Ratio Ablation** | mima2416 | 📦 Backed up | `WEIGHTS_BACKUP_BUGGY_MAPILLARY/ratio_ablation/` |
-| **Extended Training** | chge7185 | 📦 Backed up | `WEIGHTS_BACKUP_BUGGY_MAPILLARY/extended_training/` |
-| **Combinations** | chge7185 | 📦 Backed up | `WEIGHTS_BACKUP_BUGGY_MAPILLARY/combinations/` |
+| Study | MV Status | Backup Location |
+|-------|-----------|-----------------|
+| **Stage 1** | ✅ **COMPLETE** | All 81/81 retrained + tested |
+| **Stage 2** | 🔄 59% (48/81) | Retraining in progress |
+| **Ratio Ablation** | 📦 Backed up | `WEIGHTS_BACKUP_BUGGY_MAPILLARY/ratio_ablation/` |
+| **Extended Training** | 📦 Backed up | `WEIGHTS_BACKUP_BUGGY_MAPILLARY/extended_training/` |
+| **Combinations** | 📦 Backed up | `WEIGHTS_BACKUP_BUGGY_MAPILLARY/combinations/` |
 
 **Note:** Backed up checkpoints are INVALID and cannot be used.
 
@@ -144,163 +144,134 @@ Publication-ready analysis available at `result_figures/baseline_consolidated/st
 ## Ratio Ablation Study
 
 **Path:** `/scratch/aaa_exchange/AWARE/WEIGHTS_RATIO_ABLATION/`
-**Status:** ⚠️ MapillaryVistas backed up (buggy), remaining datasets valid
+**Owner:** mima2416
+**Status:** ✅ Valid (BDD10k, IDD-AW, OUTSIDE15k) | 📦 MV backed up (buggy)
 
-### MapillaryVistas Backup
-- **52 buggy MapillaryVistas checkpoints** moved to `WEIGHTS_BACKUP_BUGGY_MAPILLARY/ratio_ablation/`
-- Strategies backed up: gen_cycleGAN, gen_flux_kontext, gen_stargan_v2, gen_step1x_v1p2, gen_TSIT
-- Requires retraining after main Stage 1/2 completes
+### Purpose
+Test the impact of different real/generated image mixing ratios on model performance.
 
-### Study Design
-Testing real/generated ratios: 0.00, 0.125, 0.25, 0.375, 0.50, 0.625, 0.75, 0.875, 1.00
+### Ratios Tested
+0.00, 0.125, 0.25, 0.375, 0.50*, 0.625, 0.75, 0.875, 1.00
 
-### Coverage Matrix (After MV Backup)
+*Note: Ratio 0.50 is the standard training in `WEIGHTS/`
 
-| Strategy | BDD10k | IDD-AW | MapillaryVistas | OUTSIDE15k | Ratios |
-|----------|:------:|:------:|:---------------:|:----------:|--------|
-| gen_TSIT | 🔶 2/3 | ✅ 3/3 | 📦 backed up | ✅ 3/3 | Multiple |
-| gen_cycleGAN | ❌ | 🔶 2/3 | 📦 backed up | 🔶 2/3 | Multiple |
-| gen_cyclediffusion | ❌ | 🔶 2/3 | ❌ | ❌ | Limited |
-| gen_flux_kontext | ❌ | ❌ | 📦 backed up | ❌ | Limited |
-| gen_stargan_v2 | ❌ | 🔶 2/3 | 📦 backed up | ❌ | Limited |
-| gen_step1x_v1p2 | 🔶 2/3 | 🔶 2/3 | 📦 backed up | 🔶 2/3 | Multiple |
+### Coverage Summary
 
-**Valid Checkpoints:** ~119 (after removing 52 buggy MV checkpoints)
+| Strategy | Checkpoints | Datasets | Notes |
+|----------|-------------|----------|-------|
+| gen_step1x_new | 56 | BDD10k, IDD-AW, MV*, OUTSIDE15k | Most complete |
+| gen_step1x_v1p2 | 46 | BDD10k, IDD-AW, MV*, OUTSIDE15k | |
+| gen_TSIT | 39 | BDD10k, IDD-AW, MV*, OUTSIDE15k | |
+| gen_cycleGAN | 28 | IDD-AW, MV*, OUTSIDE15k | |
+| gen_stargan_v2 | 9 | IDD-AW, MV* | Limited |
+| gen_cyclediffusion | 9 | IDD-AW | Limited |
+
+**Total Valid Checkpoints:** 187 (after MV backup)
 
 ### Notes
-- Focus on top-performing generative strategies
-- Ratio 0.50 excluded (standard training in WEIGHTS/)
-- Used for finding optimal real/generated balance
-- **MapillaryVistas requires retraining** after main Stage 1/2 completes
+- MapillaryVistas checkpoints backed up to `WEIGHTS_BACKUP_BUGGY_MAPILLARY/ratio_ablation/`
+- Analysis script: `analysis_scripts/analyze_ratio_ablation.py`
+- Visualization: `analysis_scripts/visualize_ratio_ablation.py`
 
 ---
 
 ## Extended Training Study
 
 **Path:** `/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/`
-**Status:** ✅ MapillaryVistas backed up (logs/configs only - no saved checkpoints)
+**Owner:** chge7185
+**Status:** ✅ Valid (BDD10k, IDD-AW, OUTSIDE15k) | 📦 MV backed up (logs only)
 
-### MapillaryVistas Backup
-- **4 strategies with MapillaryVistas** moved to `WEIGHTS_BACKUP_BUGGY_MAPILLARY/extended_training/`
-- Strategies: gen_albumentations_weather, gen_cycleGAN, gen_TSIT, gen_UniControl
-- Note: Only logs and configs were present - no checkpoint files saved
+### Purpose
+Evaluate training convergence and performance at extended iteration milestones.
 
-### Study Design
-Extended iterations: 40k, 60k, 80k, 100k, 120k, 140k, 160k, 320k
+### Iterations Tested
+40k, 60k, 80k, 100k, 120k, 140k, 160k, 320k
 
-### Coverage Matrix (after MV backup)
+### Coverage Summary
 
-| Strategy | BDD10k | IDD-AW | MapillaryVistas | OUTSIDE15k | Iterations |
-|----------|:------:|:------:|:---------------:|:----------:|------------|
-| gen_TSIT | 🔶 2/3 | 🔶 2/3 | 📦 backed up | ❌ | Multiple |
-| gen_UniControl | 🔶 2/3 | 🔶 2/3 | 📦 backed up | ❌ | Multiple |
-| gen_albumentations_weather | 🔶 2/3 | 🔶 2/3 | 📦 backed up | ❌ | Multiple |
-| gen_automold | 🔶 2/3 | 🔶 1/3 | ❌ | ❌ | Multiple |
-| gen_cycleGAN | 🔶 2/3 | 🔶 2/3 | 📦 backed up | ❌ | Multiple |
-| gen_cyclediffusion | 🔶 2/3 | 🔶 2/3 | ❌ | ❌ | Multiple |
-| gen_flux_kontext | 🔶 2/3 | 🔶 2/3 | ❌ | ❌ | Multiple |
-| std_randaugment | 🔶 2/3 | 🔶 2/3 | ❌ | ❌ | Multiple |
+| Strategy | Checkpoints | Datasets | Notes |
+|----------|-------------|----------|-------|
+| gen_cyclediffusion | 192 | 4 datasets | Most complete |
+| gen_step1x_new | 120 | 4 datasets | |
+| gen_albumentations_weather | 96 | 3 datasets | |
+| gen_automold | 95 | 5 datasets | Partial |
+| gen_cycleGAN | 96 | 3 datasets | |
+| gen_flux_kontext | 96 | 3 datasets | |
+| gen_TSIT | 96 | 3 datasets | |
+| gen_UniControl | 96 | 3 datasets | |
+| std_randaugment | 72 | 4 datasets | |
 
-**Valid Checkpoints:** ~700+ (excluding MapillaryVistas)
+**Total Checkpoints:** ~959
+
+### Key Findings (from analysis)
+- **160k iterations** captures ~75% of gains at 50% compute cost
+- Performance plateaus vary by strategy
 
 ### Notes
-- Focus on BDD10k and IDD-AW datasets
-- Models: pspnet_r50, segformer_mit-b5 primarily
-- Intermediate checkpoints saved at each iteration milestone
-- **MapillaryVistas directories backed up** to `WEIGHTS_BACKUP_BUGGY_MAPILLARY/extended_training/`
+- MapillaryVistas directories backed up (logs/configs only, no checkpoints saved)
+- Analysis: `analysis_scripts/analyze_extended_training.py`
+- Report: [docs/EXTENDED_TRAINING_ANALYSIS.md](EXTENDED_TRAINING_ANALYSIS.md)
 
 ---
 
 ## Combination Strategies Study
 
 **Path:** `/scratch/aaa_exchange/AWARE/WEIGHTS_COMBINATIONS/`
-**Status:** ✅ MapillaryVistas backed up (54 checkpoints)
+**Owner:** chge7185
+**Status:** ✅ Valid (IDD-AW only) | 📦 MV backed up (54 checkpoints)
 
-### MapillaryVistas Backup
-- **54 buggy MapillaryVistas checkpoints** moved to `WEIGHTS_BACKUP_BUGGY_MAPILLARY/combinations/`
-- 27 combinations × 2 models (pspnet_r50, segformer_mit-b5)
-- Requires retraining after main Stage 1/2 completes
+### Purpose
+Test combining generative augmentation with standard augmentation techniques.
 
-### Study Design
-Combining generative + standard augmentation strategies
+### Coverage Summary
 
-### Coverage Matrix (27 combinations, after MV backup)
-
-| Strategy Combination | BDD10k | IDD-AW | MapillaryVistas | OUTSIDE15k |
-|---------------------|:------:|:------:|:---------------:|:----------:|
-| gen_Attribute_Hallucination+photometric_distort | ❌ | 🔶 2/3 | 📦 backed up | ❌ |
-| gen_flux_kontext+photometric_distort | ❌ | 🔶 2/3 | 📦 backed up | ❌ |
-| gen_flux_kontext+std_autoaugment | ❌ | 🔶 2/3 | 📦 backed up | ❌ |
-| gen_flux_kontext+std_cutmix | ❌ | 🔶 2/3 | 📦 backed up | ❌ |
-| gen_flux_kontext+std_mixup | ❌ | 🔶 2/3 | 📦 backed up | ❌ |
-| gen_flux_kontext+std_randaugment | ❌ | 🔶 2/3 | 📦 backed up | ❌ |
-| gen_Qwen_Image_Edit+photometric_distort | ❌ | 🔶 2/3 | 📦 backed up | ❌ |
-| gen_Qwen_Image_Edit+std_autoaugment | ❌ | 🔶 2/3 | 📦 backed up | ❌ |
-| gen_Qwen_Image_Edit+std_cutmix | ❌ | 🔶 2/3 | 📦 backed up | ❌ |
-| gen_Qwen_Image_Edit+std_mixup | ❌ | 🔶 2/3 | 📦 backed up | ❌ |
-| gen_Qwen_Image_Edit+std_randaugment | ❌ | 🔶 2/3 | 📦 backed up | ❌ |
-| gen_stargan_v2+photometric_distort | ❌ | 🔶 2/3 | 📦 backed up | ❌ |
-| gen_step1x_new+photometric_distort | 🔶 1/3 | 🔶 2/3 | 📦 backed up | ❌ |
-| gen_step1x_new+std_autoaugment | ❌ | 🔶 2/3 | 📦 backed up | ❌ |
-| gen_step1x_new+std_cutmix | ❌ | 🔶 2/3 | 📦 backed up | ❌ |
-| gen_step1x_new+std_mixup | ❌ | 🔶 2/3 | 📦 backed up | ❌ |
-| gen_step1x_new+std_randaugment | ❌ | 🔶 2/3 | 📦 backed up | ❌ |
-| std_autoaugment+photometric_distort | ❌ | 🔶 2/3 | 📦 backed up | ❌ |
-| std_cutmix+photometric_distort | ❌ | 🔶 2/3 | 📦 backed up | ❌ |
-| std_cutmix+std_autoaugment | ❌ | 🔶 2/3 | 📦 backed up | ❌ |
-| std_mixup+photometric_distort | ❌ | 🔶 2/3 | 📦 backed up | ❌ |
-| std_mixup+std_autoaugment | ❌ | 🔶 2/3 | 📦 backed up | ❌ |
-| std_mixup+std_cutmix | ❌ | 🔶 2/3 | 📦 backed up | ❌ |
-| std_randaugment+photometric_distort | ❌ | 🔶 2/3 | 📦 backed up | ❌ |
-| std_randaugment+std_autoaugment | ❌ | 🔶 2/3 | 📦 backed up | ❌ |
-| std_randaugment+std_cutmix | ❌ | 🔶 2/3 | 📦 backed up | ❌ |
-| std_randaugment+std_mixup | ❌ | 🔶 2/3 | 📦 backed up | ❌ |
-
-**Valid Checkpoints:** ~55 (IDD-AW only)
+| Category | Combinations | Checkpoints |
+|----------|-------------|-------------|
+| gen_flux_kontext + std_* | 5 | 10 |
+| gen_Qwen_Image_Edit + std_* | 5 | 10 |
+| gen_step1x_new + std_* | 5 | 9 |
+| gen_stargan_v2 + photometric | 1 | 2 |
+| gen_Attribute_Hallucination + photometric | 1 | 2 |
+| std_* + std_* | 10 | 20 |
+| **Total** | **27** | **53** |
 
 ### Notes
-- Conducted by chge7185
-- Models: pspnet_r50, segformer_mit-b5 primarily
-- Missing BDD10k and OUTSIDE15k coverage
-- **MapillaryVistas backed up** to `WEIGHTS_BACKUP_BUGGY_MAPILLARY/combinations/`
+- All valid checkpoints are IDD-AW only
+- Models: pspnet_r50, segformer_mit-b5
+- MapillaryVistas backed up to `WEIGHTS_BACKUP_BUGGY_MAPILLARY/combinations/`
+- Missing: BDD10k, OUTSIDE15k coverage
 
 ---
 
 ## Domain Adaptation Ablation
 
-**Path:** `/scratch/aaa_exchange/AWARE/WEIGHTS/domain_adaptation_ablation/`
-**Type:** Testing-only study (uses existing checkpoints from `WEIGHTS/`)
-**Status:** ⏳ Not started
+**Path:** Testing-only (uses `WEIGHTS/` checkpoints)
+**Status:** ⏳ Ready to start (scripts ready)
+
+### Purpose
+Evaluate **cross-dataset domain generalization** using Stage 1 models.
 
 ### Study Design
-Evaluate **cross-dataset domain generalization** using existing models:
-- **Source Models:** Checkpoints from `WEIGHTS/` (trained on BDD10k, IDD-AW, MapillaryVistas)
-- **Target Test Sets:** 
-  - Cityscapes (clear_day condition)
-  - ACDC (foggy, night, rainy, snowy)
-
-### Research Questions
-1. How well do models trained on one dataset generalize to other domains?
-2. Does training on all weather conditions (Stage 2) improve adverse weather performance?
-3. Which training datasets provide the best domain generalization?
-
-### Planned Testing Matrix
-
-| Source (Training) | Target (Testing) | Conditions |
-|-------------------|------------------|------------|
-| BDD10k models | Cityscapes + ACDC | 5 domains |
-| IDD-AW models | Cityscapes + ACDC | 5 domains |
-| MapillaryVistas models | Cityscapes + ACDC | 5 domains |
+| Source (Training) | Target (Testing) | Domains |
+|-------------------|------------------|---------|
+| BDD10k models | ACDC | foggy, night, rainy, snowy |
+| IDD-AW models | ACDC | foggy, night, rainy, snowy |
+| MapillaryVistas models | ACDC | foggy, night, rainy, snowy |
+| All datasets | Cityscapes | clear_day |
 
 ### Strategies to Test
-- Top 5 generative strategies (gen_Qwen_Image_Edit, gen_Attribute_Hallucination, gen_cycleGAN, gen_flux_kontext, gen_step1x_new)
+- Top 5 generative: gen_Qwen_Image_Edit, gen_Attribute_Hallucination, gen_cycleGAN, gen_flux_kontext, gen_step1x_new
 - Baseline models
 
+### Research Questions
+1. Which training dataset provides best domain generalization?
+2. Do generative augmentations improve cross-dataset transfer?
+3. Which adverse weather conditions are hardest to transfer to?
+
 ### Notes
-- **No training required** - uses existing checkpoints from Stage 1 (`WEIGHTS/`)
-- Test results stored in `domain_adaptation_ablation/` subdirectories
-- Script: `./scripts/submit_domain_adaptation_ablation.sh`
-- Doc: [DOMAIN_ADAPTATION_ABLATION.md](DOMAIN_ADAPTATION_ABLATION.md)
+- **No training required** - uses existing Stage 1 checkpoints
+- Script: `./scripts/run_domain_adaptation_tests.py`
+- Doc: [docs/DOMAIN_ADAPTATION_ABLATION.md](DOMAIN_ADAPTATION_ABLATION.md)
 
 ---
 
