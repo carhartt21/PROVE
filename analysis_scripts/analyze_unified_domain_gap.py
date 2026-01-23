@@ -8,6 +8,10 @@ This script provides a comprehensive analysis combining:
 3. Domain gap reduction measurement
 4. Frequency-weighted averaging for aggregates
 
+Supports both Stage 1 and Stage 2:
+- Stage 1 (WEIGHTS/): Models trained only on clear_day
+- Stage 2 (WEIGHTS_STAGE_2/): Models trained on all domains
+
 Primary Metric: mIoU (mean Intersection over Union)
 - Recommended for domain robustness analysis
 - Equal weight to all classes
@@ -19,7 +23,9 @@ Data Quality:
 - Reports individual values only for reliable data
 
 Usage:
-    python analyze_unified_domain_gap.py
+    python analyze_unified_domain_gap.py              # Stage 1 (default)
+    python analyze_unified_domain_gap.py --stage 2   # Stage 2
+    python analyze_unified_domain_gap.py --weights-root /path/to/weights
 
 Output:
     result_figures/unified_domain_gap/
@@ -28,6 +34,7 @@ Output:
 import os
 import re
 import json
+import argparse
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -42,7 +49,9 @@ warnings.filterwarnings('ignore')
 OUTPUT_DIR = Path("result_figures/unified_domain_gap")
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-WEIGHTS_ROOT = "/scratch/aaa_exchange/AWARE/WEIGHTS"
+# Stage-specific weights directories
+WEIGHTS_ROOT_STAGE1 = "/scratch/aaa_exchange/AWARE/WEIGHTS"
+WEIGHTS_ROOT_STAGE2 = "/scratch/aaa_exchange/AWARE/WEIGHTS_STAGE_2"
 
 # Minimum sample size for reliable metrics
 MIN_SAMPLE_SIZE = 50
@@ -246,26 +255,23 @@ def compute_domain_gap(df, metric='mIoU'):
     return normal_avg - adverse_avg
 
 
-def analyze_all_strategies():
-    """Analyze domain gap for all available strategies."""
+def analyze_all_strategies(weights_root: str = WEIGHTS_ROOT_STAGE1):
+    """Analyze domain gap for all available strategies.
     
-    print("=" * 70)
-    print("UNIFIED DOMAIN GAP ANALYSIS")
-    print("Primary Metric: mIoU | Filtering: ≥50 images per domain")
-    print("Aggregation: Frequency-weighted averaging")
-    print("=" * 70)
-    print()
+    Args:
+        weights_root: Root directory for weights (WEIGHTS or WEIGHTS_STAGE_2)
+    """
     
     # Load clear_day baseline
-    print("Loading clear_day baseline results...")
-    baseline_clear_day = load_clear_day_baseline(WEIGHTS_ROOT)
+    print("Loading baseline results...")
+    baseline_clear_day = load_clear_day_baseline(weights_root)
     baseline_clear_day_reliable = filter_reliable_data(baseline_clear_day)
     
     if len(baseline_clear_day) > 0:
         print(f"  Loaded {len(baseline_clear_day)} raw results, {len(baseline_clear_day_reliable)} reliable")
     
     # Find all strategy directories
-    weights_path = Path(WEIGHTS_ROOT)
+    weights_path = Path(weights_root)
     strategies = []
     for d in weights_path.iterdir():
         if d.is_dir() and not d.name.startswith('.'):
@@ -280,7 +286,7 @@ def analyze_all_strategies():
     for strategy in sorted(strategies):
         print(f"  Processing: {strategy}...")
         
-        df = load_strategy_domain_results(WEIGHTS_ROOT, strategy)
+        df = load_strategy_domain_results(weights_root, strategy)
         if len(df) == 0:
             continue
         
@@ -529,12 +535,47 @@ def create_visualizations(summary_df, all_df, baseline_df):
 
 
 def main():
-    summary_df, all_df = analyze_all_strategies()
+    parser = argparse.ArgumentParser(description='Unified Domain Gap Analysis')
+    parser.add_argument('--stage', type=int, choices=[1, 2], default=1,
+                        help='Stage to analyze (1=clear_day training, 2=all domains training)')
+    parser.add_argument('--weights-root', type=str, default=None,
+                        help='Override weights root directory')
+    parser.add_argument('--output-dir', type=str, default=None,
+                        help='Override output directory')
+    args = parser.parse_args()
+    
+    # Determine weights root
+    if args.weights_root:
+        weights_root = args.weights_root
+    elif args.stage == 1:
+        weights_root = WEIGHTS_ROOT_STAGE1
+    else:
+        weights_root = WEIGHTS_ROOT_STAGE2
+    
+    # Set output directory
+    if args.output_dir:
+        output_dir = Path(args.output_dir)
+    else:
+        output_dir = OUTPUT_DIR / f"stage{args.stage}"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    
+    stage_name = f"Stage {args.stage}"
+    stage_desc = "Clear Day Training" if args.stage == 1 else "All Domains Training"
+    
+    print("=" * 70)
+    print(f"UNIFIED DOMAIN GAP ANALYSIS - {stage_name}")
+    print(f"Training: {stage_desc}")
+    print(f"Weights: {weights_root}")
+    print("=" * 70)
+    
+    summary_df, all_df = analyze_all_strategies(weights_root)
     
     # Generate text report
     report = []
     report.append("=" * 80)
-    report.append("UNIFIED DOMAIN GAP ANALYSIS REPORT")
+    report.append(f"UNIFIED DOMAIN GAP ANALYSIS REPORT - {stage_name}")
+    report.append(f"Training: {stage_desc}")
+    report.append(f"Weights: {weights_root}")
     report.append(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     report.append("=" * 80)
     report.append("")
@@ -557,10 +598,17 @@ def main():
     
     report_text = '\n'.join(report)
     
-    with open(OUTPUT_DIR / 'analysis_report.txt', 'w') as f:
+    with open(output_dir / 'analysis_report.txt', 'w') as f:
         f.write(report_text)
     
+    # Save dataframes
+    if not summary_df.empty:
+        summary_df.to_csv(output_dir / 'strategy_summary.csv', index=False)
+    if not all_df.empty:
+        all_df.to_csv(output_dir / 'all_results.csv', index=False)
+    
     print("\n" + report_text)
+    print(f"\nResults saved to: {output_dir}")
 
 
 if __name__ == '__main__':

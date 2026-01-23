@@ -6,8 +6,14 @@ Analyzes segmentation performance across different weather conditions for all
 augmentation strategies. Generates insights about which strategies improve
 performance in specific weather domains (fog, rain, snow, night, etc.).
 
+Supports both Stage 1 and Stage 2:
+- Stage 1 (WEIGHTS/): Models trained only on clear_day
+- Stage 2 (WEIGHTS_STAGE_2/): Models trained on all domains
+
 Usage:
-    python analyze_weather_domains.py [--output-dir ./figures]
+    python analyze_weather_domains.py                  # Stage 1 (default)
+    python analyze_weather_domains.py --stage 2       # Stage 2
+    python analyze_weather_domains.py --output-dir ./figures
 """
 
 import os
@@ -24,8 +30,10 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-# Configuration
-WEIGHTS_DIR = "/scratch/aaa_exchange/AWARE/WEIGHTS"
+# Configuration - Stage-specific weights directories
+WEIGHTS_ROOT_STAGE1 = "/scratch/aaa_exchange/AWARE/WEIGHTS"
+WEIGHTS_ROOT_STAGE2 = "/scratch/aaa_exchange/AWARE/WEIGHTS_STAGE_2"
+
 DATASETS = ["acdc", "bdd10k", "idd-aw", "mapillaryvistas", "outside15k"]
 MODELS = ["deeplabv3plus_r50", "pspnet_r50", "segformer_mit-b5"]
 
@@ -578,20 +586,41 @@ def generate_summary_statistics(df: pd.DataFrame, output_dir: str):
 
 def main():
     parser = argparse.ArgumentParser(description="Analyze segmentation performance across weather domains")
-    parser.add_argument("--weights-dir", type=str, default=WEIGHTS_DIR, help="Weights directory")
-    parser.add_argument("--output-dir", type=str, default="./result_figures/weather_analysis", help="Output directory")
+    parser.add_argument("--stage", type=int, choices=[1, 2], default=1,
+                        help="Stage to analyze (1=clear_day training, 2=all domains training)")
+    parser.add_argument("--weights-dir", type=str, default=None, help="Override weights directory")
+    parser.add_argument("--output-dir", type=str, default=None, help="Output directory")
     args = parser.parse_args()
     
+    # Determine weights directory
+    if args.weights_dir:
+        weights_dir = args.weights_dir
+    elif args.stage == 1:
+        weights_dir = WEIGHTS_ROOT_STAGE1
+    else:
+        weights_dir = WEIGHTS_ROOT_STAGE2
+    
+    # Set output directory
+    if args.output_dir:
+        output_dir = args.output_dir
+    else:
+        output_dir = f"./result_figures/weather_analysis_stage{args.stage}"
+    
     # Create output directory
-    os.makedirs(args.output_dir, exist_ok=True)
+    os.makedirs(output_dir, exist_ok=True)
+    
+    stage_name = f"Stage {args.stage}"
+    stage_desc = "Clear Day Training" if args.stage == 1 else "All Domains Training"
     
     print("=" * 80)
-    print("WEATHER DOMAIN ANALYSIS")
+    print(f"WEATHER DOMAIN ANALYSIS - {stage_name}")
+    print(f"Training: {stage_desc}")
+    print(f"Weights: {weights_dir}")
     print("=" * 80)
     
     # Load results
     print("\nLoading detailed test results...")
-    results = load_detailed_results(args.weights_dir)
+    results = load_detailed_results(weights_dir)
     
     if not results:
         print("ERROR: No detailed results found. Run tests with detailed output first.")
@@ -612,26 +641,26 @@ def main():
     df = analyze_domain_performance(df)
     
     # Save raw data
-    df.to_csv(os.path.join(args.output_dir, "weather_domain_results.csv"), index=False)
-    print(f"Saved: {args.output_dir}/weather_domain_results.csv")
+    df.to_csv(os.path.join(output_dir, "weather_domain_results.csv"), index=False)
+    print(f"Saved: {output_dir}/weather_domain_results.csv")
     
     # Create visualizations
     print("\nGenerating visualizations...")
     
-    create_domain_heatmap(df, args.output_dir)
-    create_domain_comparison_plot(df, args.output_dir)
-    create_per_domain_boxplot(df, args.output_dir)
+    create_domain_heatmap(df, output_dir)
+    create_domain_comparison_plot(df, output_dir)
+    create_per_domain_boxplot(df, output_dir)
     
     # Find top/worst strategies per domain
-    top_df = create_top_strategies_per_domain(df, args.output_dir)
-    worst_df = create_worst_strategies_per_domain(df, args.output_dir)
+    top_df = create_top_strategies_per_domain(df, output_dir)
+    worst_df = create_worst_strategies_per_domain(df, output_dir)
     
     # Radar plot with top 5 strategies
     top_strategies = df[df["strategy"] != "baseline"].groupby("strategy")["improvement"].mean().nlargest(5).index.tolist()
-    create_domain_radar_plot(df, top_strategies + ["baseline"], args.output_dir)
+    create_domain_radar_plot(df, top_strategies + ["baseline"], output_dir)
     
     # Generate summary
-    generate_summary_statistics(df, args.output_dir)
+    generate_summary_statistics(df, output_dir)
     
     print("\n" + "=" * 80)
     print("ANALYSIS COMPLETE")
