@@ -1,6 +1,8 @@
-# Stage 1 Strategy Leaderboard
+# Stage 1 Strategy Leaderboard (by mIoU)
 
 **Stage 1**: All models trained with `clear_day` domain filter only.
+
+**Metric**: mIoU (Mean Intersection over Union)
 
 **Total Results**: 324 test results from 27 strategies
 

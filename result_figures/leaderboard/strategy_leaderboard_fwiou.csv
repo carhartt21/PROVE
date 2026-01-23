@@ -1,0 +1,28 @@
+Strategy,Type,fwIoU,Std,Gain,Normal fwIoU,Adverse fwIoU,Domain Gap,Num Tests
+gen_Attribute_Hallucination,Generative,76.55,8.15,0.81,79.52,70.74,8.78,12
+std_autoaugment,Standard Aug,76.39,8.14,0.65,79.07,70.93,8.14,12
+gen_cycleGAN,Generative,76.39,8.25,0.65,79.36,70.52,8.83,12
+gen_Img2Img,Generative,76.37,8.42,0.63,79.39,70.45,8.93,12
+gen_stargan_v2,Generative,76.35,8.28,0.61,79.27,70.62,8.65,12
+gen_flux_kontext,Generative,76.35,8.27,0.61,79.37,70.28,9.09,12
+std_randaugment,Standard Aug,76.29,8.07,0.55,79.05,71.02,8.03,12
+gen_augmenters,Generative,76.29,8.61,0.55,79.33,70.4,8.93,12
+gen_VisualCloze,Generative,76.2,8.42,0.46,79.06,70.31,8.75,12
+gen_CNetSeg,Generative,76.18,8.61,0.44,79.16,70.28,8.88,12
+gen_CUT,Generative,76.18,8.48,0.44,79.09,70.39,8.7,12
+gen_SUSTechGAN,Generative,76.17,8.46,0.43,79.12,70.38,8.74,12
+gen_Qwen_Image_Edit,Generative,76.16,8.8,0.42,79.11,70.29,8.83,12
+gen_automold,Generative,76.1,8.66,0.36,79.1,70.1,9.0,12
+gen_UniControl,Generative,76.09,8.66,0.35,79.04,70.09,8.94,12
+gen_albumentations_weather,Generative,76.08,8.71,0.34,79.09,70.07,9.03,12
+photometric_distort,Augmentation,76.05,8.84,0.31,79.13,70.31,8.82,12
+gen_Weather_Effect_Generator,Generative,76.01,8.67,0.27,79.03,69.85,9.17,12
+gen_IP2P,Generative,76.01,8.79,0.27,78.9,69.99,8.9,12
+gen_step1x_new,Generative,76.0,8.65,0.26,79.0,70.12,8.88,12
+gen_cyclediffusion,Generative,75.98,8.89,0.24,78.83,70.07,8.76,12
+gen_step1x_v1p2,Generative,75.92,8.99,0.18,78.91,70.01,8.9,12
+gen_LANIT,Generative,75.89,8.73,0.15,78.8,69.71,9.1,12
+std_mixup,Standard Aug,75.86,8.3,0.12,78.94,69.43,9.51,12
+gen_TSIT,Generative,75.82,8.85,0.09,78.94,69.55,9.39,12
+baseline,Baseline,75.74,8.76,,78.53,69.78,8.76,12
+std_cutmix,Standard Aug,75.66,8.63,-0.08,78.74,69.35,9.39,12

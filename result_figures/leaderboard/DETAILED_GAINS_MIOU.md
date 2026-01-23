@@ -1,4 +1,4 @@
-# Detailed Per-Dataset and Per-Domain Analysis
+# Detailed Per-Dataset and Per-Domain Analysis (mIoU)
 
 ## Per-Dataset mIoU by Strategy
 

@@ -75,25 +75,27 @@
 | Generative | 21 | gen_Attribute_Hallucination, gen_augmenters, gen_automold, gen_CNetSeg, gen_CUT, gen_cyclediffusion, gen_cycleGAN, gen_flux_kontext, gen_Img2Img, gen_IP2P, gen_LANIT, gen_Qwen_Image_Edit, gen_stargan_v2, gen_step1x_new, gen_step1x_v1p2, gen_SUSTechGAN, gen_TSIT, gen_UniControl, gen_VisualCloze, gen_Weather_Effect_Generator, gen_albumentations_weather |
 | Standard | 6 | baseline, photometric_distort, std_autoaugment, std_cutmix, std_mixup, std_randaugment |
 
-### Leaderboard (Top 15)
+### Leaderboard (Top 15) - Updated 2026-01-23 with MapillaryVistas
 | Rank | Strategy | mIoU | Gain |
 |------|----------|------|------|
-| 1 | gen_Qwen_Image_Edit | 43.61% | +1.97 |
-| 2 | gen_Attribute_Hallucination | 43.17% | +1.53 |
-| 3 | gen_cycleGAN | 42.99% | +1.35 |
-| 4 | gen_flux_kontext | 42.92% | +1.28 |
-| 5 | gen_step1x_new | 42.92% | +1.28 |
-| 6 | gen_stargan_v2 | 42.89% | +1.25 |
-| 7 | gen_cyclediffusion | 42.88% | +1.24 |
-| 8 | gen_automold | 42.84% | +1.20 |
-| 9 | gen_CNetSeg | 42.78% | +1.14 |
-| 10 | gen_albumentations_weather | 42.77% | +1.12 |
-| 11 | gen_Weather_Effect_Generator | 42.73% | +1.09 |
-| 12 | gen_IP2P | 42.72% | +1.08 |
-| 13 | gen_SUSTechGAN | 42.70% | +1.06 |
-| 14 | std_autoaugment | 42.67% | +1.03 |
-| 15 | gen_CUT | 42.66% | +1.02 |
-| - | baseline | 41.64% | - |
+| 1 | gen_Attribute_Hallucination | 39.83% | +1.36 |
+| 2 | gen_cycleGAN | 39.60% | +1.13 |
+| 3 | gen_Img2Img | 39.58% | +1.11 |
+| 4 | gen_stargan_v2 | 39.55% | +1.08 |
+| 5 | gen_flux_kontext | 39.54% | +1.07 |
+| 6 | gen_cyclediffusion | 39.52% | +1.05 |
+| 7 | gen_CNetSeg | 39.47% | +1.00 |
+| 8 | gen_IP2P | 39.47% | +1.00 |
+| 9 | gen_augmenters | 39.46% | +0.99 |
+| 10 | gen_Weather_Effect_Generator | 39.43% | +0.96 |
+| 11 | gen_SUSTechGAN | 39.43% | +0.96 |
+| 12 | gen_automold | 39.43% | +0.96 |
+| 13 | gen_step1x_new | 39.41% | +0.94 |
+| 14 | std_autoaugment | 39.41% | +0.94 |
+| 15 | gen_VisualCloze | 39.40% | +0.93 |
+| - | baseline | 38.47% | - |
+
+**Key Insight:** All 26 strategies beat baseline in Stage 1!
 
 ### Key Files
 - Training Tracker: [TRAINING_TRACKER_STAGE1.md](TRAINING_TRACKER_STAGE1.md)
