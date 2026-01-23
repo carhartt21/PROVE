@@ -616,10 +616,15 @@ def create_model_ranking_figure(data, output_path):
 def create_domain_shift_figure(data, output_path):
     """
     Create a visualization showing performance drop from clear_day to each adverse domain.
+    
+    IMPORTANT: Uses Stage 1 data (clear_domain) - models trained ONLY on clear_day.
+    This measures cross-domain robustness: how well models generalize to unseen conditions.
+    Stage 2 (full_domain) would show models trained ON those conditions, not domain shift.
     """
     fig, ax = plt.subplots(figsize=(IEEE_SINGLE_COL, 2.5))
     
-    domain_df = data['full_domain']
+    # Use Stage 1 data (clear_day training only) to measure domain shift
+    domain_df = data['clear_domain']
     domain_df = domain_df[domain_df['num_images'] >= 50]
     
     # Calculate drop from clear_day to each adverse domain
