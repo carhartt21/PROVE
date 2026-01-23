@@ -801,6 +801,103 @@ def create_stage_comparison_radar(data, output_path):
     print("✓ Figure 9: Stage Comparison Radar Chart saved")
 
 # =============================================================================
+# Figure 10: SegFormer Per-Dataset Domain Performance
+# =============================================================================
+
+def create_segformer_per_dataset_radar(data, output_path):
+    """
+    Create radar charts showing SegFormer performance per dataset for each stage.
+    Left: Stage 1 (clear_day training), Right: Stage 2 (all domains training).
+    Each dataset shown as a separate colored polygon.
+    """
+    from matplotlib.patches import Patch
+    
+    stage1_df = data['clear_domain']
+    stage2_df = data['full_domain']
+    
+    stage1_df = stage1_df[stage1_df['num_images'] >= 50]
+    stage2_df = stage2_df[stage2_df['num_images'] >= 50]
+    
+    model = 'segformer_mit-b5'
+    datasets = ['bdd10k', 'idd-aw', 'mapillaryvistas', 'outside15k']
+    domains = ['clear_day', 'dawn_dusk', 'night', 'rainy', 'snowy']
+    
+    DOMAIN_LABELS = {
+        'clear_day': 'Clear\nDay',
+        'dawn_dusk': 'Dawn/\nDusk',
+        'night': 'Night',
+        'rainy': 'Rainy',
+        'snowy': 'Snowy'
+    }
+    
+    # Create 1x2 figure: Stage 1 (left) vs Stage 2 (right)
+    fig, axes = plt.subplots(1, 2, figsize=(IEEE_DOUBLE_COL, 3.2), 
+                              subplot_kw=dict(projection='polar'))
+    
+    # Angles for radar chart
+    num_domains = len(domains)
+    angles = np.linspace(0, 2 * np.pi, num_domains, endpoint=False).tolist()
+    angles += angles[:1]
+    
+    stages = [(stage1_df, 'Stage 1: Clear Day Training'), 
+              (stage2_df, 'Stage 2: All Domains Training')]
+    
+    for stage_idx, (stage_df, stage_name) in enumerate(stages):
+        ax = axes[stage_idx]
+        
+        for dataset in datasets:
+            ds_data = stage_df[(stage_df['model'] == model) & (stage_df['dataset'] == dataset)]
+            
+            values = []
+            for domain in domains:
+                domain_data = ds_data[ds_data['domain'] == domain]
+                if len(domain_data) > 0:
+                    values.append(domain_data['mIoU'].values[0])
+                else:
+                    values.append(np.nan)
+            
+            # Close the loop
+            values_closed = values + [values[0]]
+            
+            # Filter out NaN for plotting
+            valid_angles = [a for a, v in zip(angles, values_closed) if not np.isnan(v)]
+            valid_values = [v for v in values_closed if not np.isnan(v)]
+            
+            if valid_values:
+                ax.plot(valid_angles, valid_values, 'o-', linewidth=1.5, 
+                       color=COLORS_DATASETS[dataset], label=DATASET_NAMES[dataset], 
+                       markersize=5, alpha=0.8)
+                ax.fill(valid_angles, valid_values, alpha=0.1, color=COLORS_DATASETS[dataset])
+        
+        # Set domain labels
+        ax.set_xticks(angles[:-1])
+        ax.set_xticklabels([DOMAIN_LABELS[d] for d in domains], fontsize=FONT_SIZE_TICK - 1)
+        
+        # Set radial limits
+        ax.set_ylim(0, 70)
+        ax.set_yticks([20, 40, 60])
+        ax.set_yticklabels(['20%', '40%', '60%'], fontsize=FONT_SIZE_TICK - 1)
+        
+        ax.set_title(stage_name, fontsize=FONT_SIZE_TITLE, pad=15)
+    
+    # Add legend
+    legend_elements = [Patch(facecolor=COLORS_DATASETS[ds], alpha=0.5, 
+                            edgecolor=COLORS_DATASETS[ds], label=DATASET_NAMES[ds]) 
+                      for ds in datasets]
+    fig.legend(handles=legend_elements, loc='lower center', ncol=4, 
+               fontsize=FONT_SIZE_LEGEND, bbox_to_anchor=(0.5, -0.02), frameon=False)
+    
+    fig.suptitle('SegFormer: Per-Dataset Domain Performance', fontsize=FONT_SIZE_TITLE, y=1.02)
+    
+    plt.tight_layout()
+    plt.subplots_adjust(bottom=0.12)
+    
+    fig.savefig(output_path / 'fig10_segformer_per_dataset_radar.png', dpi=300, bbox_inches='tight')
+    plt.close(fig)
+    
+    print("✓ Figure 10: SegFormer Per-Dataset Radar Chart saved")
+
+# =============================================================================
 # Main Execution
 # =============================================================================
 
@@ -838,6 +935,7 @@ def main():
     create_model_ranking_figure(data, output_path)
     create_domain_shift_figure(data, output_path)
     create_stage_comparison_radar(data, output_path)
+    create_segformer_per_dataset_radar(data, output_path)
     
     print("-" * 40)
     print(f"\n✓ All figures saved to: {output_path}")
