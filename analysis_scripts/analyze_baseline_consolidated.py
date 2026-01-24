@@ -7,8 +7,8 @@ analyze_baseline_clear_day.py, and analyze_baseline_miou.py into a single
 comprehensive analysis tool.
 
 Features:
-1. Full baseline analysis (models trained on all domains)
-2. Clear-day baseline analysis (models trained only on clear_day)
+1. Stage 1 baseline analysis (models trained only on clear_day) - WEIGHTS/
+2. Stage 2 baseline analysis (models trained on all domains) - WEIGHTS_STAGE_2/
 3. Per-domain performance breakdown
 4. Per-dataset and per-model comparisons
 5. Domain gap analysis (normal vs adverse conditions)
@@ -45,7 +45,9 @@ warnings.filterwarnings('ignore')
 # Configuration
 # ==============================================================================
 
-WEIGHTS_ROOT = "/scratch/aaa_exchange/AWARE/WEIGHTS"
+# Stage 1 = Clear day only training, Stage 2 = All domains training
+WEIGHTS_ROOT_STAGE1 = "/scratch/aaa_exchange/AWARE/WEIGHTS"
+WEIGHTS_ROOT_STAGE2 = "/scratch/aaa_exchange/AWARE/WEIGHTS_STAGE_2"
 
 # Weather domains
 ALL_DOMAINS = ['clear_day', 'cloudy', 'dawn_dusk', 'foggy', 'night', 'rainy', 'snowy']
@@ -92,21 +94,18 @@ def find_latest_results(detailed_dir: Path) -> Path:
     return None
 
 
-def load_baseline_results(strategy: str = "baseline", include_clear_day_models: bool = False) -> pd.DataFrame:
+def load_baseline_results(weights_root: str, stage_name: str = "stage1") -> pd.DataFrame:
     """Load baseline results from the weights directory.
     
     Args:
-        strategy: Which strategy folder to look in (default: "baseline")
-        include_clear_day_models: If True, include _cd suffix dataset variants (clear_day trained)
-        
-    NEW: Uses dataset suffix (_cd) instead of model suffix (_clear_day).
+        weights_root: Root directory for weights (WEIGHTS or WEIGHTS_STAGE_2)
+        stage_name: Name for reporting ('stage1' or 'stage2')
         
     Returns:
         DataFrame with per-domain results for all configurations
     """
-    CLEAR_DAY_DATASET_SUFFIX = '_cd'
     results = []
-    strategy_dir = Path(WEIGHTS_ROOT) / strategy
+    strategy_dir = Path(weights_root) / "baseline"
     
     if not strategy_dir.exists():
         print(f"Strategy directory not found: {strategy_dir}")
@@ -117,13 +116,9 @@ def load_baseline_results(strategy: str = "baseline", include_clear_day_models: 
             continue
         dataset_name = dataset_dir.name.lower()
         
-        # Handle clear_day dataset filtering
-        is_clear_day_dataset = dataset_name.endswith(CLEAR_DAY_DATASET_SUFFIX.lower())
-        if is_clear_day_dataset and not include_clear_day_models:
+        # Skip any legacy _cd or _ad suffixes
+        if dataset_name.endswith('_cd') or dataset_name.endswith('_ad'):
             continue
-        
-        # Get base dataset name (remove _cd suffix if present)
-        base_dataset = dataset_name[:-len(CLEAR_DAY_DATASET_SUFFIX)] if is_clear_day_dataset else dataset_name
         
         for model_dir in dataset_dir.iterdir():
             if not model_dir.is_dir():
@@ -156,9 +151,9 @@ def load_baseline_results(strategy: str = "baseline", include_clear_day_models: 
             for domain, metrics in per_domain.items():
                 summary = metrics.get('summary', metrics)
                 results.append({
-                    'dataset': base_dataset,
+                    'dataset': dataset_name,
                     'model': model,
-                    'model_type': 'clear_day' if is_clear_day_dataset else 'full',
+                    'stage': stage_name,
                     'domain': domain,
                     'mIoU': summary.get('mIoU', 0),
                     'aAcc': summary.get('aAcc', 0),
@@ -363,7 +358,7 @@ def per_config_analysis(df: pd.DataFrame, filter_small: bool = True) -> pd.DataF
 # Report Generation
 # ==============================================================================
 
-def generate_report(full_df: pd.DataFrame, clear_day_df: pd.DataFrame, output_dir: Path) -> str:
+def generate_report(stage1_df: pd.DataFrame, stage2_df: pd.DataFrame, output_dir: Path) -> str:
     """Generate comprehensive markdown report."""
     
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -372,14 +367,16 @@ def generate_report(full_df: pd.DataFrame, clear_day_df: pd.DataFrame, output_di
     lines.append("# Comprehensive Baseline Analysis Report")
     lines.append(f"\nGenerated: {timestamp}")
     lines.append(f"\n**Note:** Results from domains with fewer than {MIN_IMAGES_THRESHOLD} test images are excluded to ensure reliable metrics.\n")
-    # ============== Full Baseline Analysis ==============
-    lines.append("## 1. Full Baseline Analysis")
-    lines.append("\nModels trained on ALL domains (not just clear_day).\n")
     
-    if full_df.empty:
-        lines.append("**No full baseline results found.**\n")
+    # ============== Stage 1 Baseline Analysis ==============
+    lines.append("## 1. Stage 1 Baseline Analysis (Clear Day Training)")
+    lines.append("\nModels trained ONLY on clear_day images.")
+    lines.append(f"\n**Source:** `{WEIGHTS_ROOT_STAGE1}/baseline/`\n")
+    
+    if stage1_df.empty:
+        lines.append("**No Stage 1 baseline results found.**\n")
     else:
-        agg = compute_aggregates(full_df)
+        agg = compute_aggregates(stage1_df)
         lines.append(f"### Overall Statistics\n")
         lines.append(f"- **Average mIoU:** {agg['overall_miou']:.2f}% ± {agg['overall_std']:.2f}")
         lines.append(f"- **Normal Conditions mIoU:** {agg['normal_miou']:.2f}%")
@@ -388,7 +385,7 @@ def generate_report(full_df: pd.DataFrame, clear_day_df: pd.DataFrame, output_di
         
         # Per-domain breakdown
         lines.append("### Per-Domain Performance\n")
-        domain_df = per_domain_analysis(full_df)
+        domain_df = per_domain_analysis(stage1_df)
         if not domain_df.empty:
             lines.append("| Domain | Type | mIoU | Std | Avg Images |")
             lines.append("|--------|------|------|-----|------------|")
@@ -398,7 +395,7 @@ def generate_report(full_df: pd.DataFrame, clear_day_df: pd.DataFrame, output_di
         
         # Per-dataset breakdown
         lines.append("### Per-Dataset Performance\n")
-        dataset_df = per_dataset_analysis(full_df)
+        dataset_df = per_dataset_analysis(stage1_df)
         if not dataset_df.empty:
             lines.append("| Dataset | Overall mIoU | Normal | Adverse | Gap |")
             lines.append("|---------|--------------|--------|---------|-----|")
@@ -408,7 +405,7 @@ def generate_report(full_df: pd.DataFrame, clear_day_df: pd.DataFrame, output_di
         
         # Per-model breakdown
         lines.append("### Per-Model Performance\n")
-        model_df = per_model_analysis(full_df)
+        model_df = per_model_analysis(stage1_df)
         if not model_df.empty:
             lines.append("| Model | Overall mIoU | Normal | Adverse | Gap |")
             lines.append("|-------|--------------|--------|---------|-----|")
@@ -418,7 +415,7 @@ def generate_report(full_df: pd.DataFrame, clear_day_df: pd.DataFrame, output_di
         
         # Per-config breakdown
         lines.append("### Per-Configuration Performance\n")
-        config_df = per_config_analysis(full_df)
+        config_df = per_config_analysis(stage1_df)
         if not config_df.empty:
             config_df = config_df.sort_values('overall_mIoU', ascending=False)
             lines.append("| Dataset | Model | Clear Day | Normal | Adverse | Overall | Gap |")
@@ -427,14 +424,15 @@ def generate_report(full_df: pd.DataFrame, clear_day_df: pd.DataFrame, output_di
                 lines.append(f"| {row['dataset']} | {row['model']} | {row['clear_day_mIoU']:.1f}% | {row['normal_mIoU']:.1f}% | {row['adverse_mIoU']:.1f}% | {row['overall_mIoU']:.1f}% | {row['domain_gap']:+.1f}% |")
             lines.append("")
     
-    # ============== Clear Day Baseline Analysis ==============
-    lines.append("## 2. Clear Day Baseline Analysis")
-    lines.append("\nModels trained ONLY on clear_day images (limited training).\n")
+    # ============== Stage 2 Baseline Analysis ==============
+    lines.append("## 2. Stage 2 Baseline Analysis (All Domains Training)")
+    lines.append("\nModels trained on ALL domains (clear_day + adverse).")
+    lines.append(f"\n**Source:** `{WEIGHTS_ROOT_STAGE2}/baseline/`\n")
     
-    if clear_day_df.empty:
-        lines.append("**No clear_day baseline results found.**\n")
+    if stage2_df.empty:
+        lines.append("**No Stage 2 baseline results found.**\n")
     else:
-        agg = compute_aggregates(clear_day_df)
+        agg = compute_aggregates(stage2_df)
         lines.append(f"### Overall Statistics\n")
         lines.append(f"- **Average mIoU:** {agg['overall_miou']:.2f}% ± {agg['overall_std']:.2f}")
         lines.append(f"- **Normal Conditions mIoU:** {agg['normal_miou']:.2f}%")
@@ -443,61 +441,91 @@ def generate_report(full_df: pd.DataFrame, clear_day_df: pd.DataFrame, output_di
         
         # Per-domain breakdown
         lines.append("### Per-Domain Performance\n")
-        domain_df = per_domain_analysis(clear_day_df)
+        domain_df = per_domain_analysis(stage2_df)
         if not domain_df.empty:
             lines.append("| Domain | Type | mIoU | Std |")
             lines.append("|--------|------|------|-----|")
             for _, row in domain_df.iterrows():
                 lines.append(f"| {row['domain']} | {row['type']} | {row['mIoU_mean']:.2f}% | ±{row['mIoU_std']:.2f} |")
             lines.append("")
+        
+        # Per-dataset breakdown
+        lines.append("### Per-Dataset Performance\n")
+        dataset_df = per_dataset_analysis(stage2_df)
+        if not dataset_df.empty:
+            lines.append("| Dataset | Overall mIoU | Normal | Adverse | Gap |")
+            lines.append("|---------|--------------|--------|---------|-----|")
+            for _, row in dataset_df.iterrows():
+                lines.append(f"| {row['dataset']} | {row['overall_mIoU']:.2f}% | {row['normal_mIoU']:.2f}% | {row['adverse_mIoU']:.2f}% | {row['domain_gap']:+.2f}% |")
+            lines.append("")
+        
+        # Per-model breakdown
+        lines.append("### Per-Model Performance\n")
+        model_df = per_model_analysis(stage2_df)
+        if not model_df.empty:
+            lines.append("| Model | Overall mIoU | Normal | Adverse | Gap |")
+            lines.append("|-------|--------------|--------|---------|-----|")
+            for _, row in model_df.iterrows():
+                lines.append(f"| {row['model']} | {row['overall_mIoU']:.2f}% | {row['normal_mIoU']:.2f}% | {row['adverse_mIoU']:.2f}% | {row['domain_gap']:+.2f}% |")
+            lines.append("")
     
     # ============== Comparison ==============
-    if not full_df.empty and not clear_day_df.empty:
-        lines.append("## 3. Full vs Clear Day Baseline Comparison\n")
+    if not stage1_df.empty and not stage2_df.empty:
+        lines.append("## 3. Stage 1 vs Stage 2 Baseline Comparison\n")
         
-        full_agg = compute_aggregates(full_df)
-        cd_agg = compute_aggregates(clear_day_df)
+        s1_agg = compute_aggregates(stage1_df)
+        s2_agg = compute_aggregates(stage2_df)
         
-        lines.append("| Metric | Full Baseline | Clear Day Baseline | Difference |")
-        lines.append("|--------|---------------|-------------------|------------|")
-        lines.append(f"| Overall mIoU | {full_agg['overall_miou']:.2f}% | {cd_agg['overall_miou']:.2f}% | {full_agg['overall_miou'] - cd_agg['overall_miou']:+.2f}% |")
-        lines.append(f"| Normal mIoU | {full_agg['normal_miou']:.2f}% | {cd_agg['normal_miou']:.2f}% | {full_agg['normal_miou'] - cd_agg['normal_miou']:+.2f}% |")
-        lines.append(f"| Adverse mIoU | {full_agg['adverse_miou']:.2f}% | {cd_agg['adverse_miou']:.2f}% | {full_agg['adverse_miou'] - cd_agg['adverse_miou']:+.2f}% |")
-        lines.append(f"| Domain Gap | {full_agg['domain_gap']:+.2f}% | {cd_agg['domain_gap']:+.2f}% | {full_agg['domain_gap'] - cd_agg['domain_gap']:+.2f}% |")
+        lines.append("| Metric | Stage 1 (Clear Day) | Stage 2 (All Domains) | Difference |")
+        lines.append("|--------|---------------------|----------------------|------------|")
+        lines.append(f"| Overall mIoU | {s1_agg['overall_miou']:.2f}% | {s2_agg['overall_miou']:.2f}% | {s2_agg['overall_miou'] - s1_agg['overall_miou']:+.2f}% |")
+        lines.append(f"| Normal mIoU | {s1_agg['normal_miou']:.2f}% | {s2_agg['normal_miou']:.2f}% | {s2_agg['normal_miou'] - s1_agg['normal_miou']:+.2f}% |")
+        lines.append(f"| Adverse mIoU | {s1_agg['adverse_miou']:.2f}% | {s2_agg['adverse_miou']:.2f}% | {s2_agg['adverse_miou'] - s1_agg['adverse_miou']:+.2f}% |")
+        lines.append(f"| Domain Gap | {s1_agg['domain_gap']:+.2f}% | {s2_agg['domain_gap']:+.2f}% | {s2_agg['domain_gap'] - s1_agg['domain_gap']:+.2f}% |")
+        lines.append("")
+        
+        lines.append("### Key Insights\n")
+        lines.append("- **Stage 1** models are trained only on clear_day, testing cross-domain robustness")
+        lines.append("- **Stage 2** models are trained on all domains, testing domain-inclusive performance")
+        if s2_agg['overall_miou'] > s1_agg['overall_miou']:
+            lines.append(f"- Stage 2 outperforms Stage 1 by **{s2_agg['overall_miou'] - s1_agg['overall_miou']:+.2f}%** overall mIoU")
+        if s2_agg['domain_gap'] < s1_agg['domain_gap']:
+            lines.append(f"- Stage 2 has **smaller domain gap** ({s2_agg['domain_gap']:.2f}% vs {s1_agg['domain_gap']:.2f}%)")
         lines.append("")
     
     # ============== Key Insights ==============
     lines.append("## 4. Key Insights\n")
     
-    if not full_df.empty:
+    if not stage1_df.empty:
         # Best/worst configs
-        config_df = per_config_analysis(full_df)
+        config_df = per_config_analysis(stage1_df)
         if not config_df.empty:
             best = config_df.loc[config_df['overall_mIoU'].idxmax()]
             worst = config_df.loc[config_df['overall_mIoU'].idxmin()]
             
-            lines.append("### Best and Worst Configurations\n")
+            lines.append("### Best and Worst Configurations (Stage 1)\n")
             lines.append(f"- **Best:** {best['dataset']} / {best['model']} ({best['overall_mIoU']:.1f}% overall)")
             lines.append(f"- **Worst:** {worst['dataset']} / {worst['model']} ({worst['overall_mIoU']:.1f}% overall)\n")
         
         # Model ranking
-        model_df = per_model_analysis(full_df)
+        model_df = per_model_analysis(stage1_df)
         if not model_df.empty:
             model_df = model_df.sort_values('overall_mIoU', ascending=False)
-            lines.append("### Model Ranking (by overall mIoU)\n")
+            lines.append("### Model Ranking (by overall mIoU, Stage 1)\n")
             for i, (_, row) in enumerate(model_df.iterrows(), 1):
                 lines.append(f"{i}. **{row['model']}:** {row['overall_mIoU']:.1f}%")
             lines.append("")
         
         # Dataset ranking
-        dataset_df = per_dataset_analysis(full_df)
+        dataset_df = per_dataset_analysis(stage1_df)
         if not dataset_df.empty:
             dataset_df = dataset_df.sort_values('overall_mIoU', ascending=False)
-            lines.append("### Dataset Ranking (by overall mIoU)\n")
+            lines.append("### Dataset Ranking (by overall mIoU, Stage 1)\n")
             for i, (_, row) in enumerate(dataset_df.iterrows(), 1):
                 lines.append(f"{i}. **{row['dataset']}:** {row['overall_mIoU']:.1f}%")
             lines.append("")
     
+    return '\n'.join(lines)
     return '\n'.join(lines)
 
 
@@ -509,8 +537,10 @@ def main():
     parser = argparse.ArgumentParser(description='Comprehensive Baseline Analysis')
     parser.add_argument('--output-dir', type=str, default='result_figures/baseline_consolidated',
                         help='Output directory for results')
-    parser.add_argument('--weights-root', type=str, default=WEIGHTS_ROOT,
-                        help='Root directory containing weights')
+    parser.add_argument('--stage1-root', type=str, default=WEIGHTS_ROOT_STAGE1,
+                        help='Root directory for Stage 1 weights (clear_day training)')
+    parser.add_argument('--stage2-root', type=str, default=WEIGHTS_ROOT_STAGE2,
+                        help='Root directory for Stage 2 weights (all domains training)')
     args = parser.parse_args()
     
     output_dir = Path(args.output_dir)
@@ -519,19 +549,19 @@ def main():
     print("=" * 80)
     print("COMPREHENSIVE BASELINE ANALYSIS")
     print("=" * 80)
-    print(f"\nWeights root: {args.weights_root}")
+    print(f"\nStage 1 root (clear_day): {args.stage1_root}")
+    print(f"Stage 2 root (all domains): {args.stage2_root}")
     print(f"Output dir: {output_dir}\n")
     
-    # Load full baseline results
-    print("Loading full baseline results...")
-    full_df = load_baseline_results("baseline", include_clear_day_models=False)
-    print(f"  Found {len(full_df)} per-domain results")
+    # Load Stage 1 baseline results (clear_day training)
+    print("Loading Stage 1 baseline results (clear_day training)...")
+    stage1_df = load_baseline_results(args.stage1_root, "stage1")
+    print(f"  Found {len(stage1_df)} per-domain results")
     
-    # Load clear_day baseline results
-    print("Loading clear_day baseline results...")
-    clear_day_df = load_baseline_results("baseline", include_clear_day_models=True)
-    clear_day_df = clear_day_df[clear_day_df['model_type'] == 'clear_day']
-    print(f"  Found {len(clear_day_df)} per-domain results")
+    # Load Stage 2 baseline results (all domains training)
+    print("Loading Stage 2 baseline results (all domains training)...")
+    stage2_df = load_baseline_results(args.stage2_root, "stage2")
+    print(f"  Found {len(stage2_df)} per-domain results")
     
     # Print summary
     print("\n" + "-" * 80)
@@ -539,50 +569,50 @@ def main():
     print("-" * 80)
     
     # Print filtered results once
-    if not full_df.empty:
-        excluded = full_df[full_df['num_images'] < MIN_IMAGES_THRESHOLD]
+    if not stage1_df.empty:
+        excluded = stage1_df[stage1_df['num_images'] < MIN_IMAGES_THRESHOLD]
         if len(excluded) > 0:
-            print(f"\n  Note: {len(excluded)} results excluded (< {MIN_IMAGES_THRESHOLD} images):")
+            print(f"\n  Note: {len(excluded)} Stage 1 results excluded (< {MIN_IMAGES_THRESHOLD} images):")
             for _, row in excluded.iterrows():
                 print(f"    - {row['dataset']}/{row['model']}/{row['domain']}: {row['num_images']} images")
     
-    if not full_df.empty:
-        agg = compute_aggregates(full_df)
-        print(f"\nFull Baseline:")
+    if not stage1_df.empty:
+        agg = compute_aggregates(stage1_df)
+        print(f"\nStage 1 Baseline (Clear Day Training):")
         print(f"  Overall mIoU: {agg['overall_miou']:.2f}% ± {agg['overall_std']:.2f}")
         print(f"  Normal: {agg['normal_miou']:.2f}% | Adverse: {agg['adverse_miou']:.2f}% | Gap: {agg['domain_gap']:+.2f}%")
     
-    if not clear_day_df.empty:
-        agg = compute_aggregates(clear_day_df)
-        print(f"\nClear Day Baseline:")
+    if not stage2_df.empty:
+        agg = compute_aggregates(stage2_df)
+        print(f"\nStage 2 Baseline (All Domains Training):")
         print(f"  Overall mIoU: {agg['overall_miou']:.2f}% ± {agg['overall_std']:.2f}")
         print(f"  Normal: {agg['normal_miou']:.2f}% | Adverse: {agg['adverse_miou']:.2f}% | Gap: {agg['domain_gap']:+.2f}%")
     
-    # Print per-domain table for full baseline
-    if not full_df.empty:
+    # Print per-domain table for Stage 1
+    if not stage1_df.empty:
         print("\n" + "-" * 80)
-        print("PER-DOMAIN PERFORMANCE (Full Baseline)")
+        print("PER-DOMAIN PERFORMANCE (Stage 1 - Clear Day Training)")
         print("-" * 80)
-        domain_df = per_domain_analysis(full_df)
+        domain_df = per_domain_analysis(stage1_df)
         for _, row in domain_df.iterrows():
             print(f"  {row['domain']:12s} [{row['type']:7s}]: {row['mIoU_mean']:5.2f}% ± {row['mIoU_std']:.2f}")
     
     # Print per-model table
-    if not full_df.empty:
+    if not stage1_df.empty:
         print("\n" + "-" * 80)
-        print("PER-MODEL PERFORMANCE (Full Baseline)")
+        print("PER-MODEL PERFORMANCE (Stage 1 - Clear Day Training)")
         print("-" * 80)
-        model_df = per_model_analysis(full_df)
+        model_df = per_model_analysis(stage1_df)
         model_df = model_df.sort_values('overall_mIoU', ascending=False)
         for _, row in model_df.iterrows():
             print(f"  {row['model']:25s}: {row['overall_mIoU']:5.2f}% (N:{row['normal_mIoU']:.1f}% A:{row['adverse_mIoU']:.1f}% Gap:{row['domain_gap']:+.1f}%)")
     
     # Print per-dataset table
-    if not full_df.empty:
+    if not stage1_df.empty:
         print("\n" + "-" * 80)
-        print("PER-DATASET PERFORMANCE (Full Baseline)")
+        print("PER-DATASET PERFORMANCE (Stage 1 - Clear Day Training)")
         print("-" * 80)
-        dataset_df = per_dataset_analysis(full_df)
+        dataset_df = per_dataset_analysis(stage1_df)
         dataset_df = dataset_df.sort_values('overall_mIoU', ascending=False)
         for _, row in dataset_df.iterrows():
             print(f"  {row['dataset']:20s}: {row['overall_mIoU']:5.2f}% (N:{row['normal_mIoU']:.1f}% A:{row['adverse_mIoU']:.1f}% Gap:{row['domain_gap']:+.1f}%)")
@@ -592,24 +622,28 @@ def main():
     print("GENERATING REPORT")
     print("-" * 80)
     
-    report = generate_report(full_df, clear_day_df, output_dir)
+    report = generate_report(stage1_df, stage2_df, output_dir)
     report_path = output_dir / "BASELINE_ANALYSIS_REPORT.md"
     with open(report_path, 'w') as f:
         f.write(report)
     print(f"  Report saved to: {report_path}")
     
     # Save CSV data
-    if not full_df.empty:
-        full_df.to_csv(output_dir / "full_baseline_per_domain.csv", index=False)
-        print(f"  Full baseline data saved to: {output_dir / 'full_baseline_per_domain.csv'}")
+    if not stage1_df.empty:
+        stage1_df.to_csv(output_dir / "stage1_baseline_per_domain.csv", index=False)
+        print(f"  Stage 1 baseline data saved to: {output_dir / 'stage1_baseline_per_domain.csv'}")
         
-        config_df = per_config_analysis(full_df)
-        config_df.to_csv(output_dir / "full_baseline_per_config.csv", index=False)
-        print(f"  Config summary saved to: {output_dir / 'full_baseline_per_config.csv'}")
+        config_df = per_config_analysis(stage1_df)
+        config_df.to_csv(output_dir / "stage1_baseline_per_config.csv", index=False)
+        print(f"  Stage 1 config summary saved to: {output_dir / 'stage1_baseline_per_config.csv'}")
     
-    if not clear_day_df.empty:
-        clear_day_df.to_csv(output_dir / "clear_day_baseline_per_domain.csv", index=False)
-        print(f"  Clear day baseline data saved to: {output_dir / 'clear_day_baseline_per_domain.csv'}")
+    if not stage2_df.empty:
+        stage2_df.to_csv(output_dir / "stage2_baseline_per_domain.csv", index=False)
+        print(f"  Stage 2 baseline data saved to: {output_dir / 'stage2_baseline_per_domain.csv'}")
+        
+        config_df = per_config_analysis(stage2_df)
+        config_df.to_csv(output_dir / "stage2_baseline_per_config.csv", index=False)
+        print(f"  Stage 2 config summary saved to: {output_dir / 'stage2_baseline_per_config.csv'}")
     
     print("\n" + "=" * 80)
     print("ANALYSIS COMPLETE")

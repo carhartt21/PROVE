@@ -127,17 +127,42 @@ def setup_ieee_style():
     })
 
 def load_data(base_path):
-    """Load all CSV data files."""
+    """Load all CSV data files.
+    
+    Updated for new naming convention:
+    - stage1_baseline_* : Clear day training (Stage 1)
+    - stage2_baseline_* : All domains training (Stage 2)
+    
+    Falls back to old naming (full_baseline_*, clear_day_baseline_*) for compatibility.
+    """
     data = {}
     
-    # Full baseline per domain
-    data['full_domain'] = pd.read_csv(base_path / 'full_baseline_per_domain.csv')
+    # Try new naming convention first, then fall back to old
+    # Stage 1 = Clear day training (was "clear_day_baseline")
+    stage1_domain_path = base_path / 'stage1_baseline_per_domain.csv'
+    if not stage1_domain_path.exists():
+        stage1_domain_path = base_path / 'clear_day_baseline_per_domain.csv'
+    if stage1_domain_path.exists():
+        data['clear_domain'] = pd.read_csv(stage1_domain_path)
     
-    # Clear day baseline per domain
-    data['clear_domain'] = pd.read_csv(base_path / 'clear_day_baseline_per_domain.csv')
+    # Stage 2 = All domains training (was "full_baseline")
+    stage2_domain_path = base_path / 'stage2_baseline_per_domain.csv'
+    if not stage2_domain_path.exists():
+        stage2_domain_path = base_path / 'full_baseline_per_domain.csv'
+    if stage2_domain_path.exists():
+        data['full_domain'] = pd.read_csv(stage2_domain_path)
     
-    # Full baseline per config
-    data['config'] = pd.read_csv(base_path / 'full_baseline_per_config.csv')
+    # Config files
+    stage1_config_path = base_path / 'stage1_baseline_per_config.csv'
+    if not stage1_config_path.exists():
+        stage1_config_path = base_path / 'full_baseline_per_config.csv'
+    if stage1_config_path.exists():
+        data['config'] = pd.read_csv(stage1_config_path)
+    
+    # Also load Stage 2 config if available
+    stage2_config_path = base_path / 'stage2_baseline_per_config.csv'
+    if stage2_config_path.exists():
+        data['config_stage2'] = pd.read_csv(stage2_config_path)
     
     return data
 
@@ -585,58 +610,288 @@ def create_model_ranking_figure(data, output_path):
     print("✓ Figure 7: Model Ranking saved")
 
 # =============================================================================
-# Figure 8: Domain Shift Impact Visualization
+# Figure 8: Domain Shift Impact Visualization (Heatmap)
 # =============================================================================
 
 def create_domain_shift_figure(data, output_path):
     """
-    Create a visualization showing performance drop from clear_day to each adverse domain.
-    """
-    fig, ax = plt.subplots(figsize=(IEEE_SINGLE_COL, 2.5))
+    Create a heatmap visualization showing performance change from clear_day.
+    Single heatmap with average across all models.
+    Rows: Datasets, Columns: Domains, Cells: Average mIoU change.
     
-    domain_df = data['full_domain']
+    IMPORTANT: Uses Stage 1 data (clear_domain) - models trained ONLY on clear_day.
+    This measures cross-domain robustness: how well models generalize to unseen conditions.
+    """
+    # Use Stage 1 data (clear_day training only) to measure domain shift
+    domain_df = data['clear_domain']
     domain_df = domain_df[domain_df['num_images'] >= 50]
     
-    # Calculate drop from clear_day to each adverse domain
-    adverse_domains = ['dawn_dusk', 'night', 'rainy', 'snowy']
+    datasets = ['bdd10k', 'idd-aw', 'mapillaryvistas', 'outside15k']
+    adverse_domains = ['dawn_dusk', 'night', 'rainy', 'snowy', 'foggy']
     models = ['deeplabv3plus_r50', 'pspnet_r50', 'segformer_mit-b5']
     
-    x = np.arange(len(adverse_domains))
-    width = 0.25
+    # Create single heatmap with average across models
+    fig, ax = plt.subplots(figsize=(IEEE_SINGLE_COL + 0.5, 2.2))
     
-    for i, model in enumerate(models):
-        model_data = domain_df[domain_df['model'] == model]
-        clear_day_avg = model_data[model_data['domain'] == 'clear_day']['mIoU'].mean()
-        
-        drops = []
-        for domain in adverse_domains:
-            domain_avg = model_data[model_data['domain'] == domain]['mIoU'].mean()
-            drop = clear_day_avg - domain_avg
-            drops.append(drop)
-        
-        bars = ax.bar(x + i * width, drops, width, label=MODEL_NAMES[model],
-                     color=COLORS_MODELS[model], edgecolor='black', linewidth=0.3)
+    # Build heatmap data (average across models)
+    heatmap_data = np.full((len(datasets), len(adverse_domains)), np.nan)
     
-    ax.set_ylabel('Performance Drop (%)')
-    ax.set_xlabel('Target Domain')
-    ax.set_xticks(x + width)
-    ax.set_xticklabels([DOMAIN_NAMES[d] for d in adverse_domains])
-    # Legend at top
-    ax.legend(loc='upper center', bbox_to_anchor=(0.5, 1.22), ncol=3, 
-              frameon=False, fontsize=FONT_SIZE_LEGEND-0.5)
-    ax.spines['top'].set_visible(False)
-    ax.spines['right'].set_visible(False)
-    ax.axhline(y=0, color='gray', linestyle='--', linewidth=0.5)
+    for ds_idx, dataset in enumerate(datasets):
+        for dom_idx, domain in enumerate(adverse_domains):
+            changes = []
+            for model in models:
+                ds_model_data = domain_df[(domain_df['dataset'] == dataset) & 
+                                           (domain_df['model'] == model)]
+                
+                # Get clear_day baseline
+                clear_day_row = ds_model_data[ds_model_data['domain'] == 'clear_day']
+                domain_row = ds_model_data[ds_model_data['domain'] == domain]
+                
+                if len(clear_day_row) > 0 and len(domain_row) > 0:
+                    change = domain_row['mIoU'].values[0] - clear_day_row['mIoU'].values[0]
+                    changes.append(change)
+            
+            if changes:
+                heatmap_data[ds_idx, dom_idx] = np.mean(changes)
     
-    ax.set_title('Performance Drop from Clear Day', fontsize=FONT_SIZE_TITLE, pad=18)
+    # Create masked array for NaN values
+    masked_data = np.ma.masked_invalid(heatmap_data)
+    
+    # Create heatmap with diverging colormap (red=bad, green=good)
+    cmap = plt.cm.RdYlGn  # Red (negative) to Green (positive)
+    im = ax.imshow(masked_data, cmap=cmap, aspect='auto', vmin=-30, vmax=10)
+    
+    # Add text annotations with one decimal place
+    for i in range(len(datasets)):
+        for j in range(len(adverse_domains)):
+            if not np.isnan(heatmap_data[i, j]):
+                value = heatmap_data[i, j]
+                text_color = 'white' if abs(value) > 15 else 'black'
+                ax.text(j, i, f'{value:+.1f}', ha='center', va='center',
+                       fontsize=FONT_SIZE_ANNOTATION + 0.5, color=text_color, fontweight='bold')
+            else:
+                ax.text(j, i, '—', ha='center', va='center',
+                       fontsize=FONT_SIZE_ANNOTATION + 0.5, color='gray')
+    
+    # Set labels
+    ax.set_xticks(np.arange(len(adverse_domains)))
+    ax.set_xticklabels([DOMAIN_NAMES[d] for d in adverse_domains], 
+                      fontsize=FONT_SIZE_TICK, rotation=30, ha='right')
+    ax.set_yticks(np.arange(len(datasets)))
+    ax.set_yticklabels([DATASET_NAMES[d] for d in datasets], fontsize=FONT_SIZE_TICK)
+    
+    ax.set_title('Domain Shift Impact: mIoU Change from Clear Day (%)', 
+                 fontsize=FONT_SIZE_TITLE, pad=10)
+    
+    # Add grid lines
+    ax.set_xticks(np.arange(len(adverse_domains) + 1) - 0.5, minor=True)
+    ax.set_yticks(np.arange(len(datasets) + 1) - 0.5, minor=True)
+    ax.grid(which='minor', color='white', linewidth=1.5)
+    ax.tick_params(which='minor', length=0)
+    
+    # Add colorbar
+    cbar = fig.colorbar(im, ax=ax, orientation='vertical', shrink=0.9, pad=0.02)
+    cbar.set_label('mIoU Change (%)', fontsize=FONT_SIZE_LABEL)
+    cbar.ax.tick_params(labelsize=FONT_SIZE_TICK)
     
     plt.tight_layout()
-    plt.subplots_adjust(top=0.80)
     
-    fig.savefig(output_path / 'fig8_domain_shift.png', dpi=300)
+    fig.savefig(output_path / 'fig8_domain_shift.png', dpi=300, bbox_inches='tight')
     plt.close(fig)
     
-    print("✓ Figure 8: Domain Shift Impact saved")
+    print("✓ Figure 8: Domain Shift Heatmap saved")
+
+# =============================================================================
+# Figure 9: Stage 1 vs Stage 2 Radar Chart Comparison
+# =============================================================================
+
+def create_stage_comparison_radar(data, output_path):
+    """
+    Create radar charts comparing Stage 1 (clear_day training) vs Stage 2 (all domains training)
+    performance across different weather domains for each model.
+    """
+    from matplotlib.patches import Patch
+    
+    # Load both stage data
+    stage1_df = data['clear_domain']
+    stage2_df = data['full_domain']
+    
+    # Filter by num_images
+    stage1_df = stage1_df[stage1_df['num_images'] >= 50]
+    stage2_df = stage2_df[stage2_df['num_images'] >= 50]
+    
+    # Domains to compare (those available in both stages)
+    domains = ['clear_day', 'dawn_dusk', 'night', 'rainy', 'snowy']
+    models = ['deeplabv3plus_r50', 'pspnet_r50', 'segformer_mit-b5']
+    
+    # Create 1x3 subplots for each model
+    fig, axes = plt.subplots(1, 3, figsize=(IEEE_DOUBLE_COL, 2.8), 
+                              subplot_kw=dict(projection='polar'))
+    
+    # Colors for stages
+    stage1_color = '#E76F51'  # Orange-red for Stage 1
+    stage2_color = '#2A9D8F'  # Teal for Stage 2
+    
+    # Angles for radar chart
+    num_domains = len(domains)
+    angles = np.linspace(0, 2 * np.pi, num_domains, endpoint=False).tolist()
+    angles += angles[:1]  # Close the loop
+    
+    for model_idx, model in enumerate(models):
+        ax = axes[model_idx]
+        
+        # Get average mIoU per domain for each stage (averaged across datasets)
+        stage1_values = []
+        stage2_values = []
+        
+        for domain in domains:
+            # Stage 1 average
+            s1_data = stage1_df[(stage1_df['model'] == model) & (stage1_df['domain'] == domain)]
+            stage1_values.append(s1_data['mIoU'].mean() if len(s1_data) > 0 else 0)
+            
+            # Stage 2 average
+            s2_data = stage2_df[(stage2_df['model'] == model) & (stage2_df['domain'] == domain)]
+            stage2_values.append(s2_data['mIoU'].mean() if len(s2_data) > 0 else 0)
+        
+        # Close the loop
+        stage1_values += stage1_values[:1]
+        stage2_values += stage2_values[:1]
+        
+        # Plot Stage 1
+        ax.plot(angles, stage1_values, 'o-', linewidth=1.5, color=stage1_color, 
+                label='Stage 1 (Clear Only)', markersize=4)
+        ax.fill(angles, stage1_values, alpha=0.15, color=stage1_color)
+        
+        # Plot Stage 2
+        ax.plot(angles, stage2_values, 's-', linewidth=1.5, color=stage2_color, 
+                label='Stage 2 (All Domains)', markersize=4)
+        ax.fill(angles, stage2_values, alpha=0.15, color=stage2_color)
+        
+        # Set domain labels
+        ax.set_xticks(angles[:-1])
+        domain_labels = [DOMAIN_NAMES[d].replace(' ', '\n') for d in domains]
+        ax.set_xticklabels(domain_labels, fontsize=FONT_SIZE_TICK - 1)
+        
+        # Set radial limits
+        ax.set_ylim(0, 60)
+        ax.set_yticks([20, 40, 60])
+        ax.set_yticklabels(['20', '40', '60'], fontsize=FONT_SIZE_TICK - 1)
+        
+        ax.set_title(MODEL_NAMES[model], fontsize=FONT_SIZE_TITLE, pad=15)
+    
+    # Add legend to the right of the last subplot
+    legend_elements = [
+        Patch(facecolor=stage1_color, alpha=0.3, edgecolor=stage1_color, 
+              label='Stage 1 (Clear Day Training)'),
+        Patch(facecolor=stage2_color, alpha=0.3, edgecolor=stage2_color, 
+              label='Stage 2 (All Domains Training)')
+    ]
+    fig.legend(handles=legend_elements, loc='lower center', ncol=2, 
+               fontsize=FONT_SIZE_LEGEND, bbox_to_anchor=(0.5, -0.02), frameon=False)
+    
+    fig.suptitle('Stage 1 vs Stage 2: Per-Domain Performance Comparison', 
+                 fontsize=FONT_SIZE_TITLE, y=1.02)
+    
+    plt.tight_layout()
+    plt.subplots_adjust(bottom=0.15)
+    
+    fig.savefig(output_path / 'fig9_stage_comparison_radar.png', dpi=300, bbox_inches='tight')
+    plt.close(fig)
+    
+    print("✓ Figure 9: Stage Comparison Radar Chart saved")
+
+# =============================================================================
+# Figure 10: SegFormer Per-Dataset Domain Performance (Bar Chart)
+# =============================================================================
+
+def create_segformer_per_dataset_radar(data, output_path):
+    """
+    Create 2x2 bar charts showing SegFormer performance per dataset.
+    Stage 1 and Stage 2 shown as grouped bars for each domain.
+    """
+    stage1_df = data['clear_domain']
+    stage2_df = data['full_domain']
+    
+    # Lowered threshold to 45 to include MapillaryVistas dawn_dusk (48 images)
+    stage1_df = stage1_df[stage1_df['num_images'] >= 45]
+    stage2_df = stage2_df[stage2_df['num_images'] >= 45]
+    
+    model = 'segformer_mit-b5'
+    datasets = ['bdd10k', 'idd-aw', 'mapillaryvistas', 'outside15k']
+    domains = ['clear_day', 'dawn_dusk', 'night', 'rainy', 'snowy']
+    
+    DOMAIN_ABBREV = {
+        'clear_day': 'Clear',
+        'dawn_dusk': 'Dawn',
+        'night': 'Night',
+        'rainy': 'Rain',
+        'snowy': 'Snow'
+    }
+    
+    # Colors for stages
+    stage1_color = '#E76F51'  # Orange-red
+    stage2_color = '#2A9D8F'  # Teal
+    
+    # Create 2x2 grid
+    fig, axes = plt.subplots(2, 2, figsize=(IEEE_DOUBLE_COL, 4.0))
+    axes = axes.flatten()
+    
+    x = np.arange(len(domains))
+    width = 0.35
+    
+    for ds_idx, dataset in enumerate(datasets):
+        ax = axes[ds_idx]
+        
+        # Get Stage 1 values
+        ds_data = stage1_df[(stage1_df['model'] == model) & (stage1_df['dataset'] == dataset)]
+        stage1_values = []
+        for domain in domains:
+            domain_data = ds_data[ds_data['domain'] == domain]
+            stage1_values.append(domain_data['mIoU'].values[0] if len(domain_data) > 0 else 0)
+        
+        # Get Stage 2 values
+        ds_data = stage2_df[(stage2_df['model'] == model) & (stage2_df['dataset'] == dataset)]
+        stage2_values = []
+        for domain in domains:
+            domain_data = ds_data[ds_data['domain'] == domain]
+            stage2_values.append(domain_data['mIoU'].values[0] if len(domain_data) > 0 else 0)
+        
+        # Plot bars
+        bars1 = ax.bar(x - width/2, stage1_values, width, label='Stage 1',
+                       color=stage1_color, edgecolor='black', linewidth=0.3, alpha=0.85)
+        bars2 = ax.bar(x + width/2, stage2_values, width, label='Stage 2',
+                       color=stage2_color, edgecolor='black', linewidth=0.3, alpha=0.85)
+        
+        # Add value labels on top of bars
+        for bar, val in zip(bars1, stage1_values):
+            if val > 0:
+                ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 1,
+                       f'{val:.0f}', ha='center', va='bottom', fontsize=FONT_SIZE_ANNOTATION)
+        for bar, val in zip(bars2, stage2_values):
+            if val > 0:
+                ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 1,
+                       f'{val:.0f}', ha='center', va='bottom', fontsize=FONT_SIZE_ANNOTATION)
+        
+        ax.set_ylabel('mIoU (%)', fontsize=FONT_SIZE_LABEL)
+        ax.set_xticks(x)
+        ax.set_xticklabels([DOMAIN_ABBREV[d] for d in domains], fontsize=FONT_SIZE_TICK)
+        ax.set_ylim(0, 70)
+        ax.set_title(DATASET_NAMES[dataset], fontsize=FONT_SIZE_TITLE)
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+    
+    # Add legend to first subplot
+    axes[0].legend(loc='upper right', fontsize=FONT_SIZE_LEGEND - 0.5)
+    
+    fig.suptitle('SegFormer: Stage 1 vs Stage 2 Per-Domain Performance', 
+                 fontsize=FONT_SIZE_TITLE, y=1.01)
+    
+    plt.tight_layout()
+    
+    fig.savefig(output_path / 'fig10_segformer_per_dataset_radar.png', dpi=300, bbox_inches='tight')
+    plt.close(fig)
+    
+    print("✓ Figure 10: SegFormer Per-Dataset Bar Charts (2x2) saved")
 
 # =============================================================================
 # Main Execution
@@ -675,6 +930,8 @@ def main():
     create_performance_matrix(data, output_path)
     create_model_ranking_figure(data, output_path)
     create_domain_shift_figure(data, output_path)
+    create_stage_comparison_radar(data, output_path)
+    create_segformer_per_dataset_radar(data, output_path)
     
     print("-" * 40)
     print(f"\n✓ All figures saved to: {output_path}")

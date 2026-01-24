@@ -1,6 +1,17 @@
 #!/usr/bin/env python3
 """
-Comprehensive Strategy Leaderboard Analysis
+[DEPRECATED] Comprehensive Strategy Leaderboard Analysis
+
+⚠️ DEPRECATED: This script uses outdated naming conventions (_cd suffix).
+Use the newer scripts instead:
+- generate_stage1_leaderboard.py - For Stage 1 (WEIGHTS/)
+- generate_stage2_leaderboard.py - For Stage 2 (WEIGHTS_STAGE_2/)
+
+The new scripts use separate directories instead of dataset suffixes:
+- Stage 1: /scratch/aaa_exchange/AWARE/WEIGHTS/
+- Stage 2: /scratch/aaa_exchange/AWARE/WEIGHTS_STAGE_2/
+
+---
 
 Generates a leaderboard table comparing all augmentation strategies with:
 - Overall mIoU

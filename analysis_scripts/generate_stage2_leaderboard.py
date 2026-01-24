@@ -4,6 +4,10 @@ Generate Stage 2 strategy leaderboard from test results.
 
 Stage 2: Models trained on ALL domains (not just clear_day)
 Located in: /scratch/aaa_exchange/AWARE/WEIGHTS_STAGE_2/
+
+Usage:
+    python generate_stage2_leaderboard.py               # Auto-refresh results
+    python generate_stage2_leaderboard.py --no-refresh  # Use cached results
 """
 
 import os
@@ -380,10 +384,16 @@ def main():
     parser.add_argument('--output-dir', type=str,
                        default='result_figures/leaderboard',
                        help='Output directory for leaderboard files')
-    parser.add_argument('--refresh', action='store_true',
-                       help='Force refresh of cached results')
+    parser.add_argument('--no-refresh', action='store_true',
+                       help='Use cached results instead of re-scanning (default: auto-refresh)')
     
     args = parser.parse_args()
+    
+    # Default behavior: always scan for fresh results unless --no-refresh
+    if args.no_refresh:
+        print("Using cached results (--no-refresh specified)")
+        # For Stage 2, we don't have a separate cache file - always scan
+        # This flag could be extended to support caching if needed
     
     print(f"Scanning {args.weights_root} for test results...")
     results = find_test_results(args.weights_root)

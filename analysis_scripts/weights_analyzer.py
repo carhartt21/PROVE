@@ -2,12 +2,18 @@
 """
 PROVE Weights Directory Analyzer
 
-This script analyzes the generated weights in /scratch/aaa_exchange/AWARE/WEIGHTS/
-and generates a nicely formatted summary table of all training configurations,
-checkpoints, and metadata.
+This script analyzes the generated weights in the PROVE project and generates
+a nicely formatted summary table of all training configurations, checkpoints, and metadata.
+
+Supports both Stage 1 and Stage 2:
+- Stage 1 (WEIGHTS/): Models trained only on clear_day
+- Stage 2 (WEIGHTS_STAGE_2/): Models trained on all domains
 
 Usage:
-    python weights_analyzer.py [--root PATH] [--format {table,json,csv}] [--verbose]
+    python weights_analyzer.py                        # Stage 1 (default)
+    python weights_analyzer.py --stage 2             # Stage 2
+    python weights_analyzer.py --root /path/to/weights
+    python weights_analyzer.py --format {table,json,csv} [--verbose]
 """
 
 import os
@@ -19,6 +25,10 @@ from datetime import datetime
 from typing import Dict, List, Optional, Tuple
 from collections import defaultdict
 import re
+
+# Stage-specific weights directories
+WEIGHTS_ROOT_STAGE1 = "/scratch/aaa_exchange/AWARE/WEIGHTS/"
+WEIGHTS_ROOT_STAGE2 = "/scratch/aaa_exchange/AWARE/WEIGHTS_STAGE_2/"
 
 
 class WeightsAnalyzer:
@@ -375,9 +385,16 @@ def main():
         description="Analyze PROVE weights directory and generate summary"
     )
     parser.add_argument(
+        '--stage',
+        type=int,
+        choices=[1, 2],
+        default=1,
+        help="Stage to analyze (1=clear_day training, 2=all domains training)"
+    )
+    parser.add_argument(
         '--root',
-        default="/scratch/aaa_exchange/AWARE/WEIGHTS/",
-        help="Root directory to scan (default: /scratch/aaa_exchange/AWARE/WEIGHTS/)"
+        default=None,
+        help="Override root directory to scan"
     )
     parser.add_argument(
         '--format',
@@ -402,8 +419,20 @@ def main():
     
     args = parser.parse_args()
     
+    # Determine root directory
+    if args.root:
+        root_dir = args.root
+    elif args.stage == 1:
+        root_dir = WEIGHTS_ROOT_STAGE1
+    else:
+        root_dir = WEIGHTS_ROOT_STAGE2
+    
+    stage_name = f"Stage {args.stage}"
+    stage_desc = "Clear Day Training" if args.stage == 1 else "All Domains Training"
+    print(f"=== PROVE Weights Analyzer - {stage_name} ({stage_desc}) ===")
+    
     # Create analyzer
-    analyzer = WeightsAnalyzer(args.root)
+    analyzer = WeightsAnalyzer(root_dir)
     
     # Scan directory
     analyzer.scan_directory(verbose=args.verbose)
@@ -414,10 +443,10 @@ def main():
             print("\n" + analyzer.format_table())
         print("\n" + analyzer.format_summary())
     elif args.format == 'json':
-        output_path = args.output or 'weights_summary.json'
+        output_path = args.output or f'weights_summary_stage{args.stage}.json'
         analyzer.export_json(output_path)
     elif args.format == 'csv':
-        output_path = args.output or 'weights_summary.csv'
+        output_path = args.output or f'weights_summary_stage{args.stage}.csv'
         analyzer.export_csv(output_path)
 
 

@@ -1,66 +1,48 @@
 # Evaluation Stage Status
 
-**Last Updated:** 2026-01-21 (14:10)
+**Last Updated:** 2026-01-23 (18:15)
 
 ## Overview
 
 | Stage | Training | Testing | Status |
 |-------|----------|---------|--------|
-| **Stage 1** | 107/107 (100%) | 🔄 MapillaryVistas Retest | ✅ Training | 🔄 Retesting (BGR fix) |
-| **Stage 2** | 324/325 (99.7%) | 🔄 MapillaryVistas Retest | 🔄 Training (1 resume) | 🔄 Retesting (BGR fix) |
+| **Stage 1** | ✅ 405/405 (100%) | ✅ 405/405 (100%) | ✅ **COMPLETE** |
+| **Stage 2** | 🔄 291/324 (90%) | ✅ 243/243 (100% non-MV) | 🔄 MV Retraining |
 
-## 🔧 Critical Bug Fix: BGR→RGB in MapillaryVistas Labels
+**📊 Comprehensive Ablation Analysis Report:** [ABLATION_STUDIES_ANALYSIS.md](ABLATION_STUDIES_ANALYSIS.md)
 
-**Issue Discovered:** MapillaryVistas RGB label decoding used BGR channel order (cv2.imread default).
 
-**Impact:** ALL MapillaryVistas test results were INVALID.
+**Retraining Status:**
+| Stage | Complete | Running | Pending | Total |
+|-------|----------|---------|---------|-------|
+| Stage 1 | ✅ 81/81 | 0 | 0 | 81 |
+| Stage 2 | 48/81 | 6 | ~27 | 81 |
 
-**Fix:** Commit 9313a5e - Changed `r = gt_seg_map[:, :, 0]` to `r = gt_seg_map[:, :, 2]`.
+**Testing Status:**
+| Stage | Complete | Pending | Total |
+|-------|----------|---------|-------|
+| Stage 1 | ✅ 81/81 | 0 | 81 |
+| Stage 2 | 0/48 | 48 | 48 |
 
-**Retest Status:**
-| Stage | Jobs Submitted | Running | Pending | Job ID Range |
-|-------|----------------|---------|---------|--------------|
-| Stage 1 | 81 | ~6 | ~75 | 9681356-9681666 |
-| Stage 2 | 81 | ~5 | ~76 | 9681687-9681938 |
-
-**Expected Completion:** ~4-5 hours per job (4949 images × 7 domains)
-
-## 📊 Performance Issue: MapillaryVistas 16x Slowdown
-
-**Observation:** MapillaryVistas tests take ~3.15s/image vs BDD10k ~0.2s/image.
-
-### Investigation Results (Jan 21)
-
-| Component | Time/Image | Status |
-|-----------|------------|--------|
-| Model Inference | ~30ms | ✅ Identical for both datasets |
-| Per-class IoU | ~20ms | ✅ Negligible overhead |
-| RGB Label Decode | ~5ms | ✅ Negligible overhead |
-| **Unknown Overhead** | ~3000ms | ❓ Not identified |
-
-**Key Finding:** Model inference is NOT the bottleneck. Both 19-class and 66-class models run at identical speed (~30ms/image). The ~3000ms mystery overhead is elsewhere in the test pipeline.
-
-**Practical Impact:** Each MapillaryVistas test takes ~4-5 hours (4949 images × 3.15s).
-
----
 
 ## Stage 1: Clear-Day Domain Training
 
-**Status: ✅ Training Complete | 🔄 Testing In Progress**
+**Status: ✅ COMPLETE (Training + Testing)**
 
 ### Description
-- **Training Domain Filter:** \`clear_day\` only
-- **Weights Directory:** \`/scratch/aaa_exchange/AWARE/WEIGHTS/\`
+- **Training Domain Filter:** `clear_day` only
+- **Weights Directory:** `/scratch/aaa_exchange/AWARE/WEIGHTS/`
 - **Purpose:** Train models on clear weather conditions, evaluate cross-domain robustness
 
 ### Coverage
 | Metric | Count | Percentage |
 |--------|-------|------------|
-| Training Complete | 107/107 | 100% |
-| Testing Complete (non-MV) | 265/265 | 100% |
-| MapillaryVistas Retest | 🔄 81 jobs | Running |
+| Training Complete | 405/405 | ✅ 100% |
+| Testing Complete | 405/405 | ✅ 100% |
+| MapillaryVistas Training | 81/81 | ✅ 100% |
+| MapillaryVistas Testing | 81/81 | ✅ 100% |
 
-**Note:** MapillaryVistas tests invalidated by BGR→RGB bug. Retesting in progress.
+**Stage 1 is now fully complete including MapillaryVistas!**
 
 ### Strategies (27)
 | Category | Count | Strategies |
@@ -68,25 +50,27 @@
 | Generative | 21 | gen_Attribute_Hallucination, gen_augmenters, gen_automold, gen_CNetSeg, gen_CUT, gen_cyclediffusion, gen_cycleGAN, gen_flux_kontext, gen_Img2Img, gen_IP2P, gen_LANIT, gen_Qwen_Image_Edit, gen_stargan_v2, gen_step1x_new, gen_step1x_v1p2, gen_SUSTechGAN, gen_TSIT, gen_UniControl, gen_VisualCloze, gen_Weather_Effect_Generator, gen_albumentations_weather |
 | Standard | 6 | baseline, photometric_distort, std_autoaugment, std_cutmix, std_mixup, std_randaugment |
 
-### Leaderboard (Top 15)
+### Leaderboard (Top 15) - Updated 2026-01-23 with MapillaryVistas
 | Rank | Strategy | mIoU | Gain |
 |------|----------|------|------|
-| 1 | gen_Qwen_Image_Edit | 43.61% | +1.97 |
-| 2 | gen_Attribute_Hallucination | 43.17% | +1.53 |
-| 3 | gen_cycleGAN | 42.99% | +1.35 |
-| 4 | gen_flux_kontext | 42.92% | +1.28 |
-| 5 | gen_step1x_new | 42.92% | +1.28 |
-| 6 | gen_stargan_v2 | 42.89% | +1.25 |
-| 7 | gen_cyclediffusion | 42.88% | +1.24 |
-| 8 | gen_automold | 42.84% | +1.20 |
-| 9 | gen_CNetSeg | 42.78% | +1.14 |
-| 10 | gen_albumentations_weather | 42.77% | +1.12 |
-| 11 | gen_Weather_Effect_Generator | 42.73% | +1.09 |
-| 12 | gen_IP2P | 42.72% | +1.08 |
-| 13 | gen_SUSTechGAN | 42.70% | +1.06 |
-| 14 | std_autoaugment | 42.67% | +1.03 |
-| 15 | gen_CUT | 42.66% | +1.02 |
-| - | baseline | 41.64% | - |
+| 1 | gen_Attribute_Hallucination | 39.83% | +1.36 |
+| 2 | gen_cycleGAN | 39.60% | +1.13 |
+| 3 | gen_Img2Img | 39.58% | +1.11 |
+| 4 | gen_stargan_v2 | 39.55% | +1.08 |
+| 5 | gen_flux_kontext | 39.54% | +1.07 |
+| 6 | gen_cyclediffusion | 39.52% | +1.05 |
+| 7 | gen_CNetSeg | 39.47% | +1.00 |
+| 8 | gen_IP2P | 39.47% | +1.00 |
+| 9 | gen_augmenters | 39.46% | +0.99 |
+| 10 | gen_Weather_Effect_Generator | 39.43% | +0.96 |
+| 11 | gen_SUSTechGAN | 39.43% | +0.96 |
+| 12 | gen_automold | 39.43% | +0.96 |
+| 13 | gen_step1x_new | 39.41% | +0.94 |
+| 14 | std_autoaugment | 39.41% | +0.94 |
+| 15 | gen_VisualCloze | 39.40% | +0.93 |
+| - | baseline | 38.47% | - |
+
+**Key Insight:** All 26 strategies beat baseline in Stage 1!
 
 ### Key Files
 - Training Tracker: [TRAINING_TRACKER_STAGE1.md](TRAINING_TRACKER_STAGE1.md)
@@ -96,7 +80,7 @@
 
 ## Stage 2: All-Domains Training
 
-**Status: 🔄 Training Resume (2 jobs) | 🔄 Testing In Progress (6 jobs)**
+**Status: ✅ Non-MV Complete | 🔄 MapillaryVistas Retraining (59%)**
 
 ### Description
 - **Training Domain Filter:** None (all domains)
@@ -106,49 +90,30 @@
 ### Coverage
 | Metric | Count | Percentage |
 |--------|-------|------------|
-| Training Complete | 324/325 | 99.7% |
-| Training Running | 1 | std_cutmix resume |
-| Testing Complete (non-MV) | 252/252 | 100% |
-| MapillaryVistas Retest | 🔄 81 jobs | Running |
+| Training Complete (non-MV) | 243/243 | ✅ 100% |
+| Testing Complete (non-MV) | 243/243 | ✅ 100% |
+| MapillaryVistas Training | 48/81 | 🔄 59% |
+| MapillaryVistas Testing | 0/48 | ⏳ Waiting |
 
-**Note:** MapillaryVistas tests invalidated by BGR→RGB bug. Retesting in progress.
+**Note:** MapillaryVistas tests will run as training completes. Script ready: `./scripts/run_stage2_mapillary_tests.sh`
+Afterwards, update leaderboard.
 
-### 🔧 BGR→RGB Bug Fix Impact
 
-All MapillaryVistas test results are being regenerated. See summary at top of document.
-
-### 🔍 Critical Finding: std_cutmix Artifact
-
-**Issue:** std_cutmix appeared #1 in Stage 2 leaderboard with +1.45 gain over baseline.
-
-**Investigation Findings:**
-- std_cutmix only has **10/12 configurations** tested
-- Missing configs are **lower-performing** ones:
-  - `bdd10k/pspnet_r50` (baseline: 44.17 mIoU)
-  - `outside15k/deeplabv3plus_r50` (baseline: 30.18 mIoU)
-
-**Calculation:**
-| Metric | Value |
-|--------|-------|
-| std_cutmix avg (10 configs) | 45.94 mIoU |
-| baseline avg (12 configs) | 44.48 mIoU |
-| **Estimated std_cutmix avg (12 configs)** | **~44.48 mIoU = 0.00 gain** |
-
-**Root Cause:** Training for 2 std_cutmix configs was incomplete - stopped early.
-
-**Fix Status:** Resume training submitted (jobs 9675468, 9675473)
-
-### Active Training Jobs (1) - Resuming
-| Strategy | Dataset | Model | Progress | Job ID |
-|----------|---------|-------|----------|--------|
-| std_cutmix | OUTSIDE15k | deeplabv3plus_r50 | 40000→80000 | 9675473 |
-
-### MapillaryVistas Retest Jobs (81) - Running
-All MapillaryVistas Stage 2 tests resubmitted after BGR→RGB fix.
-| Status | Count | Job ID Range |
-|--------|-------|--------------|
-| Running | ~5 | 9681687-9681938 |
-| Pending | ~76 | 9681687-9681938 |
+### Leaderboard (Top 10)
+| Rank | Strategy | mIoU | Gain |
+|------|----------|------|------|
+| 1 | gen_CNetSeg | 43.68% | +0.58 |
+| 2 | gen_stargan_v2 | 43.60% | +0.50 |
+| 3 | gen_UniControl | 43.59% | +0.49 |
+| 4 | gen_cyclediffusion | 43.56% | +0.47 |
+| 5 | std_autoaugment | 43.55% | +0.46 |
+| 6 | gen_augmenters | 43.54% | +0.44 |
+| 7 | std_randaugment | 43.53% | +0.43 |
+| 8 | gen_cycleGAN | 43.52% | +0.42 |
+| 9 | gen_CUT | 43.51% | +0.42 |
+| 10 | gen_VisualCloze | 43.48% | +0.38 |
+| - | baseline | 43.10% | - |
+| 27 | std_cutmix | 42.80% | -0.29 |
 
 ### Strategies Coverage (All 27)
 | Strategy | Training | Testing | Notes |
@@ -192,13 +157,50 @@ All MapillaryVistas Stage 2 tests resubmitted after BGR→RGB fix.
 |--------|---------|---------|
 | Training Domain | Clear-day only | All domains |
 | Total Strategies | 27 | 27 |
-| Training Complete | 107/107 (100%) | 324/325 (99.7%) |
-| Testing Complete (non-MV) | 265/265 (100%) | 252/252 (100%) |
-| MapillaryVistas Retest | 🔄 81 jobs running | 🔄 81 jobs running |
-| Baseline mIoU | 41.64% | 44.48% |
-| Best Strategy | gen_Qwen_Image_Edit (43.61%) | TBD (after retest) |
+| Training Complete | ✅ 405/405 (100%) | 🔄 291/324 (90%) |
+| Testing Complete | ✅ 405/405 (100%) | ✅ 243/243 (100% non-MV) |
+| MapillaryVistas Status | ✅ Complete | 🔄 59% Training |
+| Baseline mIoU | 41.64% | 43.10% |
+| Best Strategy | TBD (need to regenerate with MV) | gen_CNetSeg (43.68%) |
 
-**Note:** MapillaryVistas results pending after BGR→RGB fix.
+**Note:** Stage 1 leaderboard should be regenerated now that MapillaryVistas results are available.
+
+---
+
+## 📊 Stage 1 Baseline Analysis
+
+**Publication-ready analysis generated:** 2026-01-23
+
+| Output | Description |
+|--------|-------------|
+| **Location** | `result_figures/baseline_consolidated/stage1_baseline_output/` |
+| **Script** | `result_figures/baseline_consolidated/generate_stage1_baseline.py` |
+
+### Tables
+| Table | Content |
+|-------|---------|
+| Table 1 | Overall Baseline Performance (12 configs + average) |
+| Table 2 | Model Architecture Robustness |
+| Table 3 | Per-Domain Degradation |
+| Table 4 | Dataset Challenge Levels |
+
+### Figures
+| Figure | Content |
+|--------|---------|
+| Figure 1 | Cross-Domain Robustness (grouped bar chart) |
+| Figure 2 | Dataset × Domain Performance (heatmap) |
+| Figure 3 | Domain Gap by Dataset (horizontal bars) |
+| Figure 4 | Performance Distribution (box plots) |
+
+### Key Findings
+| Metric | Value | Notes |
+|--------|-------|-------|
+| Overall mIoU | 33.3% | Average across 12 configs |
+| Domain Gap | 10.1% | Clear Day - Adverse Avg |
+| Most Robust Model | SegFormer | Gap 8.7% |
+| Hardest Domain | Night | -14.9% from Clear Day |
+| Largest Dataset Gap | IDD-AW | 17.6% domain gap |
+| Smallest Dataset Gap | Mapillary | 2.6% domain gap |
 
 ---
 
@@ -245,53 +247,63 @@ python analysis_scripts/generate_stage2_leaderboard.py
 
 ## Ablation Studies
 
-### 1. Ratio Ablation Study
-**Status:** ✅ Complete
+**📊 Full Analysis:** [ABLATION_STUDIES_ANALYSIS.md](ABLATION_STUDIES_ANALYSIS.md)
 
-- **Location:** \`/scratch/aaa_exchange/AWARE/WEIGHTS_RATIO_ABLATION/\`
+### 1. Domain Adaptation Study
+**Status:** 🔄 Running (64 tests complete)
+
+- **Location:** Uses Stage 1 checkpoints (no additional training)
+- **Tests:** 64/~100 complete
+- **Key Finding:** BDD10k→ACDC best (23.7%), gen_TSIT leads (+3.9% vs baseline)
+- **CSV:** `result_figures/domain_adaptation_analysis.csv`
+
+### 2. Ratio Ablation Study
+**Status:** 🔶 Partial Testing (46/187)
+
+- **Location:** `/scratch/aaa_exchange/AWARE/WEIGHTS_RATIO_ABLATION/`
 - **Ratios:** 0.00, 0.12, 0.25, 0.38, 0.50, 0.62, 0.75, 0.88
-- **Checkpoints:** 1,976
-- **Finding:** Optimal ratio ~0.50
+- **Checkpoints:** 187 (46 tested)
+- **Key Finding:** Lower ratios (0.00-0.25) slightly outperform higher ratios
+- **CSV:** `result_figures/ratio_ablation_analysis.csv`
 
-### 2. Extended Training Study
+### 3. Extended Training Study
 **Status:** ✅ Complete
 
-- **Location:** \`/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/\`
-- **Iterations:** 40k to 160k (in 20k increments) + 320k
+- **Location:** `/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/`
+- **Iterations:** 40k to 160k (20k increments) + 320k
 - **Checkpoints:** 959
-- **Finding:** Extended training provides marginal improvements (~1-2% mIoU)
+- **Key Finding:** 160k iterations = 75% of gains at 50% compute cost
+- **CSV:** `result_figures/extended_training_analysis.csv`
 
-### 3. Strategy Combinations Study
-**Status:** 🔶 Partial (by chge7185)
+### 4. Strategy Combinations Study
+**Status:** ✅ Complete (ALL TESTED)
 
-- **Location:** \`/scratch/aaa_exchange/AWARE/WEIGHTS_COMBINATIONS_chge7185/\`
-- **Checkpoints:** 293
-
-### 4. Domain Adaptation Ablation
-**Status:** ⏳ Ready to start
-
-- **Location:** \`/scratch/aaa_exchange/AWARE/WEIGHTS/domain_adaptation_ablation/\`
-- **Configs Ready:** 84
-- **Script:** \`./scripts/submit_domain_adaptation_ablation.sh --all-strategies\`
+- **Location:** `/scratch/aaa_exchange/AWARE/WEIGHTS_COMBINATIONS/`
+- **Checkpoints:** 53 (all IDD-AW, all tested)
+- **Key Finding:** photometric_distort combos dominate (45.1% avg vs ~40% others)
+- **CSV:** `result_figures/combinations_analysis.csv`
 
 ---
 
 ## Next Steps
 
-1. **Monitor MapillaryVistas Retest Jobs**
-   - 162 test jobs (81 Stage 1 + 81 Stage 2)
-   - ~4-5 hours per job
-   - Job IDs: 9681356-9681938
+1. **Domain Adaptation Testing** (Running Locally)
+   - 64/~100 tests complete
+   - gen_TSIT showing +3.9% improvement over baseline
 
-2. **Monitor std_cutmix Training Resume**
-   - Job 9675473: OUTSIDE15k/deeplabv3plus_r50 (40000→80000)
-   - After completion, submit test job
+2. **Monitor MapillaryVistas Stage 2 Retraining**
+   - 48/81 complete (59%)
+   - Job IDs: Check `bjobs -u mima2416 | grep rt_map`
 
-3. **After MapillaryVistas Retests Complete**
-   - Regenerate leaderboards with correct MapillaryVistas results
-   - Update `downstream_results.csv`
-   - Verify leaderboard rankings
+3. **After MapillaryVistas Stage 2 Completes**
+   - Run Stage 2 MapillaryVistas tests
+   - Regenerate Stage 2 leaderboard
 
-4. **Publication Preparation**
-   - Finalize figures with corrected MapillaryVistas data
+4. **Ratio Ablation Testing** (141 remaining)
+   - Priority: BDD10k checkpoints
+   - Remaining strategies: gen_TSIT, gen_step1x_new, gen_step1x_v1p2
+
+5. **Publication Preparation**
+   - Finalize ablation study figures
    - Run statistical significance tests
+   - Document in paper
