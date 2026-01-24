@@ -75,20 +75,26 @@ Labels: `*_gt_labelIds.png` (Cityscapes labelID format, converted to trainID)
 
 ### Training Configurations
 
-Two training configurations are compared against the Top 5 augmentation strategies:
+Two training configurations are compared:
 
-1. **Full Dataset Models** - Trained on all available data from each source dataset
+1. **Full Dataset Models** - Trained on all weather conditions from each source dataset
 2. **Clear Day Baseline Models** - Trained only on clear_day subset of each source dataset
 
-Using **baseline** checkpoints from 80k iterations:
+**Checkpoint Locations:**
 
 ```
-# Full dataset models
+# Full dataset models (trained on all weather conditions)
+# Location: WEIGHTS_STAGE_2
+/scratch/aaa_exchange/AWARE/WEIGHTS_STAGE_2/baseline/{dataset}/{model}/iter_80000.pth
+
+# Clear day baseline models (trained on clear_day only)
+# Location: WEIGHTS (original)
 /scratch/aaa_exchange/AWARE/WEIGHTS/baseline/{dataset}/{model}/iter_80000.pth
-
-# Clear day baseline models (trained only on clear_day subset)
-/scratch/aaa_exchange/AWARE/WEIGHTS/baseline/{dataset}/{model}_clear_day/iter_80000.pth
 ```
+
+> **Note:** The script automatically selects the correct weights directory based on the variant:
+> - Full dataset (no `_clear_day` suffix) → uses `WEIGHTS_STAGE_2/`
+> - Clear day only (`_clear_day` suffix) → uses `WEIGHTS/`
 
 ### Research Comparison
 
@@ -265,32 +271,74 @@ Results will be saved to:
 ## Script Usage
 
 ```bash
-# Submit all 12 evaluation jobs (6 full + 6 clear_day baseline)
+# List all available checkpoints and their status
+./scripts/submit_domain_adaptation_ablation.sh --list
+
+# Submit ALL jobs (baseline + top 15 strategies)
 ./scripts/submit_domain_adaptation_ablation.sh --all
 
-# Submit only the 6 full dataset model jobs
-./scripts/submit_domain_adaptation_ablation.sh --all-full
+# Submit only baseline models
+./scripts/submit_domain_adaptation_ablation.sh --all-full        # Full dataset models
+./scripts/submit_domain_adaptation_ablation.sh --all-clear-day   # Clear_day only models
 
-# Submit only the 6 clear_day baseline model jobs
-./scripts/submit_domain_adaptation_ablation.sh --all-clear-day
+# Submit only augmentation strategies (no baseline)
+./scripts/submit_domain_adaptation_ablation.sh --all-strategies
 
-# Submit single job (full dataset)
+# Submit single strategy
+./scripts/submit_domain_adaptation_ablation.sh --strategy gen_cyclediffusion
+
+# Submit single baseline job (full dataset)
 ./scripts/submit_domain_adaptation_ablation.sh \
     --source-dataset BDD10k \
     --model pspnet_r50
 
-# Submit single job (clear_day baseline)
+# Submit single baseline job (clear_day)
 ./scripts/submit_domain_adaptation_ablation.sh \
     --source-dataset BDD10k \
     --model pspnet_r50 \
     --variant _clear_day
 
-# Dry run
+# Dry run - show commands without executing
 ./scripts/submit_domain_adaptation_ablation.sh --all --dry-run
 
-# List all available checkpoints
-./scripts/submit_domain_adaptation_ablation.sh --list
+# Skip configurations that already have results
+./scripts/submit_domain_adaptation_ablation.sh --all --skip-existing
 ```
+
+### Baseline Checkpoint Availability
+
+| Dataset | Model | Full (WEIGHTS_STAGE_2) | Clear_day (WEIGHTS) |
+|---------|-------|:----------------------:|:-------------------:|
+| BDD10k | pspnet_r50 | ✅ | ✅ |
+| BDD10k | segformer_mit-b5 | ❌ | ✅ |
+| IDD-AW | pspnet_r50 | ✅ | ❌ |
+| IDD-AW | segformer_mit-b5 | ✅ | ❌ |
+| MapillaryVistas | pspnet_r50 | ✅ | ✅ |
+| MapillaryVistas | segformer_mit-b5 | ❌ | ✅ |
+
+### Top 15 Augmentation Strategies
+
+Models trained with these augmentation strategies will also be evaluated:
+
+| Strategy | BDD10k | IDD-AW | MapillaryVistas |
+|----------|:------:|:------:|:---------------:|
+| gen_cyclediffusion | ✅ | ✅ | ❌ |
+| gen_flux_kontext | ✅ | ✅ | ✅ |
+| gen_step1x_new | ✅ | partial | ✅ |
+| gen_step1x_v1p2 | ✅ | ✅ | ✅ |
+| gen_stargan_v2 | ✅ | ✅ | ✅ |
+| gen_cycleGAN | ✅ | ✅ | ✅ |
+| gen_automold | ✅ | ✅ | ✅ |
+| gen_albumentations_weather | ✅ | ✅ | ✅ |
+| gen_TSIT | ✅ | ✅ | ❌ |
+| gen_UniControl | ❌ | ✅ | ✅ |
+| std_randaugment | ✅ | partial | ✅ |
+| std_autoaugment | ✅ | ❌ | ✅ |
+| std_cutmix | ✅ | ❌ | ✅ |
+| std_mixup | ✅ | ❌ | ✅ |
+| photometric_distort | ✅ | ✅ | ✅ |
+
+> **Note:** Run `./scripts/submit_domain_adaptation_ablation.sh --list` to see the current status of all checkpoints.
 
 ## Analysis
 
