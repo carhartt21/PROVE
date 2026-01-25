@@ -135,7 +135,7 @@ python unified_training.py \\
     --real-gen-ratio {ratio} \\
     {native_flag} \\
     {domain_filter} \\
-    --output-dir {WEIGHTS_DIR}
+    --work-dir {WEIGHTS_DIR}
 
 echo "Training completed for {strategy} {dataset} {model} ratio={ratio}"
 '''
