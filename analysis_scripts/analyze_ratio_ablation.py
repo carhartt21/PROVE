@@ -78,6 +78,7 @@ class RatioResult:
     fwiou: float
     timestamp: float = 0.0
     checkpoint_iter: int = 0
+    stage: int = 0  # 1 = clear_day, 2 = all domains, 0 = unknown
     
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -90,7 +91,8 @@ class RatioResult:
             'aAcc': self.aacc,
             'fwIoU': self.fwiou,
             'timestamp': self.timestamp,
-            'checkpoint_iter': self.checkpoint_iter
+            'checkpoint_iter': self.checkpoint_iter,
+            'stage': self.stage
         }
 
 
@@ -120,7 +122,24 @@ class RatioAblationAnalyzer:
         
         # Scan ablation weights directory
         if self.weights_root.exists():
-            self._scan_directory(self.weights_root, verbose=verbose)
+            # Check for new stage-based structure (stage1/, stage2/)
+            stage1_dir = self.weights_root / "stage1"
+            stage2_dir = self.weights_root / "stage2"
+            
+            if stage1_dir.exists():
+                if verbose:
+                    print(f"Scanning Stage 1 directory: {stage1_dir}")
+                self._scan_directory(stage1_dir, verbose=verbose, stage=1)
+            
+            if stage2_dir.exists():
+                if verbose:
+                    print(f"Scanning Stage 2 directory: {stage2_dir}")
+                self._scan_directory(stage2_dir, verbose=verbose, stage=2)
+            
+            # Also scan for legacy flat structure (strategy/dataset/model)
+            # if neither stage1 nor stage2 exist
+            if not stage1_dir.exists() and not stage2_dir.exists():
+                self._scan_directory(self.weights_root, verbose=verbose, stage=None)
         else:
             print(f"Warning: Weights root not found: {self.weights_root}")
         
@@ -130,7 +149,7 @@ class RatioAblationAnalyzer:
         
         return len(self.results)
     
-    def _scan_directory(self, weights_root: Path, verbose: bool = False):
+    def _scan_directory(self, weights_root: Path, verbose: bool = False, stage: Optional[int] = None):
         """Scan a weights directory for ratio ablation results."""
         # Walk through directory structure: strategy/dataset/model_ratio*/test_results/
         for strategy_dir in sorted(weights_root.iterdir()):
@@ -138,6 +157,10 @@ class RatioAblationAnalyzer:
                 continue
             
             strategy = strategy_dir.name
+            
+            # Skip non-strategy directories
+            if strategy.startswith('_') or strategy in ['stage1', 'stage2', 'configs']:
+                continue
             
             for dataset_dir in sorted(strategy_dir.iterdir()):
                 if not dataset_dir.is_dir():
@@ -168,10 +191,12 @@ class RatioAblationAnalyzer:
                         result.dataset = dataset
                         result.model = base_model
                         result.ratio = ratio
+                        result.stage = stage if stage else 0
                         self.results.append(result)
                         
                         if verbose:
-                            print(f"Found: {strategy}/{dataset}/{base_model} ratio={ratio:.3f} mIoU={result.miou:.2f}")
+                            stage_str = f" [Stage {stage}]" if stage else ""
+                            print(f"Found: {strategy}/{dataset}/{base_model} ratio={ratio:.3f} mIoU={result.miou:.2f}{stage_str}")
         
         return len(self.results)
     
@@ -255,13 +280,27 @@ class RatioAblationAnalyzer:
     
     def _find_latest_test_result(self, model_dir: Path) -> Optional[RatioResult]:
         """Find the latest test result in a model directory."""
-        test_dir = model_dir / "test_results" / "test"
-        if not test_dir.exists():
-            return None
+        # Pattern 1: test_results_detailed/TIMESTAMP/results.json (fine_grained_test.py)
+        test_detailed_dir = model_dir / "test_results_detailed"
+        if test_detailed_dir.exists():
+            result = self._find_result_in_timestamped_dir(test_detailed_dir)
+            if result:
+                return result
         
+        # Pattern 2: test_results/test/TIMESTAMP/TIMESTAMP.json (MMEngine)
+        test_dir = model_dir / "test_results" / "test"
+        if test_dir.exists():
+            result = self._find_result_in_timestamped_dir(test_dir, mmengine_format=True)
+            if result:
+                return result
+        
+        return None
+    
+    def _find_result_in_timestamped_dir(self, base_dir: Path, mmengine_format: bool = False) -> Optional[RatioResult]:
+        """Find the latest test result in a directory with timestamp subdirs."""
         # Find latest timestamped directory
         timestamp_dirs = []
-        for item in test_dir.iterdir():
+        for item in base_dir.iterdir():
             if item.is_dir() and re.match(r'\d{8}_\d{6}', item.name):
                 timestamp_dirs.append(item)
         
@@ -270,28 +309,49 @@ class RatioAblationAnalyzer:
         
         latest_dir = max(timestamp_dirs, key=lambda x: x.name)
         
-        # Look for results JSON
-        for json_file in latest_dir.glob("*.json"):
+        # Look for results JSON based on format
+        if mmengine_format:
+            # MMEngine: TIMESTAMP/TIMESTAMP.json
+            json_files = list(latest_dir.glob("*.json"))
+        else:
+            # fine_grained_test.py: TIMESTAMP/results.json
+            json_files = [latest_dir / "results.json"]
+        
+        for json_file in json_files:
+            if not json_file.exists():
+                continue
             try:
                 with open(json_file, 'r') as f:
                     data = json.load(f)
                 
-                # Extract metrics (handle both 'mIoU' and 'test/mIoU' formats)
-                miou = data.get('mIoU') or data.get('test/mIoU')
-                if miou is not None:
+                # Handle fine_grained_test.py format with 'overall' key
+                if 'overall' in data:
+                    overall = data['overall']
+                    miou = overall.get('mIoU', 0.0)
+                    macc = overall.get('mAcc', 0.0)
+                    aacc = overall.get('aAcc', 0.0)
+                    fwiou = overall.get('fwIoU', 0.0)
+                else:
+                    # Extract metrics (handle both 'mIoU' and 'test/mIoU' formats)
+                    miou = data.get('mIoU') or data.get('test/mIoU', 0.0)
+                    macc = data.get('mAcc') or data.get('test/mAcc', 0.0)
+                    aacc = data.get('aAcc') or data.get('test/aAcc', 0.0)
+                    fwiou = data.get('fwIoU') or data.get('test/fwIoU', 0.0)
+                
+                if miou is not None and miou > 0:
                     return RatioResult(
                         strategy='',
                         dataset='',
                         model='',
                         ratio=0.0,
-                        miou=data.get('mIoU', 0.0) or data.get('test/mIoU', 0.0),
-                        macc=data.get('mAcc', 0.0) or data.get('test/mAcc', 0.0),
-                        aacc=data.get('aAcc', 0.0) or data.get('test/aAcc', 0.0),
-                        fwiou=data.get('fwIoU', 0.0) or data.get('test/fwIoU', 0.0),
+                        miou=float(miou),
+                        macc=float(macc) if macc else 0.0,
+                        aacc=float(aacc) if aacc else 0.0,
+                        fwiou=float(fwiou) if fwiou else 0.0,
                         timestamp=latest_dir.stat().st_mtime,
                         checkpoint_iter=self._get_checkpoint_iter(latest_dir)
                     )
-            except (json.JSONDecodeError, KeyError):
+            except (json.JSONDecodeError, KeyError, TypeError) as e:
                 continue
         
         return None

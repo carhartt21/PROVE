@@ -1,6 +1,6 @@
 # PROVE Project TODO List
 
-**Last Updated:** 2026-01-26 (13:00)
+**Last Updated:** 2026-01-26 (14:30)
 
 ## Current Job Status Summary
 
@@ -35,54 +35,53 @@
 
 **Conclusion:** Speedup is minimal (~5-12%), not worth changing existing experiments for comparability. **Continuing with batch_size=2**.
 
-**New features added:**
-- `--batch-size`, `--lr`, `--warmup-iters` CLI arguments for future experiments
-- `scripts/batch_size_ablation.py` script available if needed later
+### 🔄 Ratio Ablation Study - WEIGHTS_RATIO_ABLATION
 
-### 🔄 Ratio Ablation Study (TRAINING - 2026-01-25 01:09)
+**Last Updated:** 2026-01-26 14:28
 
-**Current Queue:** ~11 running, ~100+ pending (Stage 1 only)
+**Directory Structure (reorganized):**
+```
+WEIGHTS_RATIO_ABLATION/
+├── stage1/  # domain_filter=clear_day (51 models)
+│   ├── gen_cycleGAN/{idd-aw,outside15k}/
+│   ├── gen_cyclediffusion/idd-aw/
+│   └── gen_stargan_v2/idd-aw/
+└── stage2/  # no domain_filter (102 models)
+    ├── gen_step1x_new/{bdd10k,idd-aw,mapillaryvistas,outside15k}/
+    └── gen_step1x_v1p2/{bdd10k,idd-aw,mapillaryvistas,outside15k}/
+```
 
-| Stage | Strategies | Jobs | Status |
-|-------|------------|------|--------|
-| **Stage 1** | Top 5 mIoU | 140 | 🔄 Running (2 RUN, 118 PEND) |
-| **Stage 2** | Top 5 mIoU | 140 | ⏳ Not yet submitted |
+**Current Queue:** 52 pending (Stage 1 existing strategies)
 
-**Stage 1 Strategies:**
-1. gen_Attribute_Hallucination (39.83%)
-2. gen_cycleGAN (39.60%)
-3. gen_Img2Img (39.58%)
-4. gen_stargan_v2 (39.55%)
-5. gen_flux_kontext (39.54%)
+| Stage | Strategy Type | Trained | Missing | Jobs |
+|-------|--------------|---------|---------|------|
+| **Stage 1** | Existing (gen_cycleGAN, etc.) | 32 | 52 | 🔄 52 PEND (151089-151140) |
+| **Stage 1** | Top-5 (new strategies) | 23 | 117 | ⏳ Not submitted |
+| **Stage 2** | Existing (gen_step1x_*) | 56 | 0 | ✅ Complete |
+| **Stage 2** | Top-5 (new strategies) | 0 | 140 | ⏳ Not submitted |
 
-**Stage 2 Strategies (to be submitted):**
-1. gen_stargan_v2 (41.73%)
-2. gen_UniControl (41.70%)
-3. gen_CNetSeg (41.69%)
-4. gen_VisualCloze (41.67%)
-5. gen_cycleGAN (41.64%)
+**Existing Strategies (prior runs):**
+| Strategy | Stage | Models | Tested |
+|----------|-------|--------|--------|
+| gen_cycleGAN | 1 | 14 → 28 (🔄 +14 training) | 14 |
+| gen_cyclediffusion | 1 | 9 → 14 (🔄 +5 training) | 9 |
+| gen_stargan_v2 | 1 | 9 → 14 (🔄 +5 training) | 9 |
+| gen_step1x_new | 2 | 56 | 56 ✅ |
+| gen_step1x_v1p2 | 2 | 46 | 0 |
 
 **Configuration:** 7 ratios × 2 models × 2 datasets = 28 jobs per strategy
 - **Ratios:** 0.00, 0.12, 0.25, 0.38, 0.62, 0.75, 0.88
 - **Models:** pspnet_r50, segformer_mit-b5
 - **Datasets:** BDD10k, IDD-AW
 
-**Existing Ratio Ablation Models (prior runs):**
-| Strategy | Models |
-|----------|--------|
-| gen_cycleGAN | 28 |
-| gen_step1x_new | 56 |
-| gen_step1x_v1p2 | 46 |
-| gen_cyclediffusion | 9 |
-| gen_stargan_v2 | 9 |
-| **Total existing** | **148** |
-
-**Ratio Ablation Tests:** 102 results available
+**Training Locks:** Enabled (prevents parallel training of same config)
 
 **Monitor Progress:**
 ```bash
-bjobs -u mima2416 | wc -l
-find /scratch/aaa_exchange/AWARE/WEIGHTS_RATIO_ABLATION -name "iter_80000.pth" | wc -l
+bjobs -u mima2416 | wc -l  # Check queue
+find /scratch/aaa_exchange/AWARE/WEIGHTS_RATIO_ABLATION/stage1 -name "iter_80000.pth" | wc -l  # Stage 1
+find /scratch/aaa_exchange/AWARE/WEIGHTS_RATIO_ABLATION/stage2 -name "iter_80000.pth" | wc -l  # Stage 2
+python scripts/submit_ratio_ablation_training.py --stage 1 --existing-strategies --preflight  # Status
 ```
 
 ### Extended Training Study - WEIGHTS_EXTENDED
@@ -101,18 +100,19 @@ find /scratch/aaa_exchange/AWARE/WEIGHTS_RATIO_ABLATION -name "iter_80000.pth" |
 1. **Monitor Stage 1 Ratio Ablation** (~12-24 hours)
    ```bash
    bjobs -u mima2416 | grep -c "RUN\|PEND"
-   find /scratch/aaa_exchange/AWARE/WEIGHTS_RATIO_ABLATION -name "iter_80000.pth" | wc -l
+   python scripts/submit_ratio_ablation_training.py --stage 1 --existing-strategies --preflight
    ```
 
-2. **Submit Stage 2 Ratio Ablation** (when Stage 1 completes or queue opens)
+2. **Run Tests on Completed Ratio Ablation Models** (after training completes)
+   ```bash
+   python scripts/submit_ablation_tests.py --stage 1 --dry-run
+   python scripts/submit_ablation_tests.py --stage 2 --dry-run
+   ```
+
+3. **Submit Stage 2 New Strategies** (when queue opens)
    ```bash
    python scripts/submit_ratio_ablation_training.py --stage 2 --dry-run
    python scripts/submit_ratio_ablation_training.py --stage 2
-   ```
-
-3. **Run Tests on Completed Ratio Ablation Models**
-   ```bash
-   python scripts/auto_submit_tests.py --dry-run --root /scratch/aaa_exchange/AWARE/WEIGHTS_RATIO_ABLATION
    ```
 
 ### After Ratio Ablation Completes
