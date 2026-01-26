@@ -1,28 +1,17 @@
 # Evaluation Stage Status
 
-**Last Updated:** 2026-01-23 (18:15)
+**Last Updated:** 2026-01-26 (15:25)
 
 ## Overview
 
 | Stage | Training | Testing | Status |
 |-------|----------|---------|--------|
-| **Stage 1** | ✅ 405/405 (100%) | ✅ 405/405 (100%) | ✅ **COMPLETE** |
-| **Stage 2** | 🔄 291/324 (90%) | ✅ 243/243 (100% non-MV) | 🔄 MV Retraining |
+| **Stage 1** | ✅ 324/324 (100%) | ✅ 330/330 (100%) | ✅ **COMPLETE** |
+| **Stage 2** | ✅ 325/325 (100%) | ✅ 344/344 (100%) | ✅ **COMPLETE** |
 
 **📊 Comprehensive Ablation Analysis Report:** [ABLATION_STUDIES_ANALYSIS.md](ABLATION_STUDIES_ANALYSIS.md)
 
-
-**Retraining Status:**
-| Stage | Complete | Running | Pending | Total |
-|-------|----------|---------|---------|-------|
-| Stage 1 | ✅ 81/81 | 0 | 0 | 81 |
-| Stage 2 | 48/81 | 6 | ~27 | 81 |
-
-**Testing Status:**
-| Stage | Complete | Pending | Total |
-|-------|----------|---------|-------|
-| Stage 1 | ✅ 81/81 | 0 | 81 |
-| Stage 2 | 0/48 | 48 | 48 |
+✅ **Both Stage 1 and Stage 2 are FULLY COMPLETE!**
 
 
 ## Stage 1: Clear-Day Domain Training
@@ -258,12 +247,25 @@ python analysis_scripts/generate_stage2_leaderboard.py
 - **CSV:** `result_figures/domain_adaptation_analysis.csv`
 
 ### 2. Ratio Ablation Study
-**Status:** 🔶 Partial Testing (46/187)
+**Status:** � ACTIVE TRAINING
 
 - **Location:** `/scratch/aaa_exchange/AWARE/WEIGHTS_RATIO_ABLATION/`
-- **Ratios:** 0.00, 0.12, 0.25, 0.38, 0.50, 0.62, 0.75, 0.88
-- **Checkpoints:** 187 (46 tested)
-- **Key Finding:** Lower ratios (0.00-0.25) slightly outperform higher ratios
+- **Directory Structure:** Reorganized to `stage1/` and `stage2/` subdirectories
+- **Ratios:** 0.00, 0.12, 0.25, 0.38, 0.62, 0.75, 0.88
+- **Models:** pspnet_r50, segformer_mit-b5
+- **Datasets:** BDD10k, IDD-AW
+
+| Stage | Strategy Type | Trained | In Queue | Owner |
+|-------|--------------|---------|----------|-------|
+| Stage 1 | Existing | 32 | 52 (10 RUN, 42 PEND) | mima2416 |
+| Stage 1 | Top-5 New | ? | 117 | chge7185 |
+| Stage 2 | Existing | 56 | 0 | Complete |
+| Stage 2 | Top-5 New | 0 | Pending | - |
+
+**Training Locks:** ✅ Enabled (prevents duplicate training)
+**Archived Logs:** `_archived_logs_20260126/` - 117 dirs from buggy runs (validation logs only, no checkpoints, NOT USABLE)
+
+**Key Finding (preliminary):** Higher ratios (0.62-0.88) slightly outperform lower ratios
 - **CSV:** `result_figures/ratio_ablation_analysis.csv`
 
 ### 3. Extended Training Study
@@ -287,23 +289,28 @@ python analysis_scripts/generate_stage2_leaderboard.py
 
 ## Next Steps
 
-1. **Domain Adaptation Testing** (Running Locally)
-   - 64/~100 tests complete
-   - gen_TSIT showing +3.9% improvement over baseline
+1. **Monitor Ratio Ablation Training** (~12-24 hours)
+   - mima2416: 52 jobs (Stage 1 existing strategies)
+   - chge7185: 117 jobs (Stage 1 top-5 new strategies)
+   ```bash
+   bjobs -u mima2416 | grep -c "RUN\|PEND"
+   bjobs -u chge7185 | wc -l
+   ```
 
-2. **Monitor MapillaryVistas Stage 2 Retraining**
-   - 48/81 complete (59%)
-   - Job IDs: Check `bjobs -u mima2416 | grep rt_map`
+2. **After Training Completes**
+   - Run tests on completed models
+   - Generate ratio ablation analysis
+   ```bash
+   python analysis_scripts/analyze_ratio_ablation.py --verbose
+   python analysis_scripts/visualize_ratio_ablation.py
+   ```
 
-3. **After MapillaryVistas Stage 2 Completes**
-   - Run Stage 2 MapillaryVistas tests
-   - Regenerate Stage 2 leaderboard
+3. **Submit Stage 2 Ratio Ablation** (when queue opens)
+   ```bash
+   python scripts/submit_ratio_ablation_training.py --stage 2 --dry-run
+   ```
 
-4. **Ratio Ablation Testing** (141 remaining)
-   - Priority: BDD10k checkpoints
-   - Remaining strategies: gen_TSIT, gen_step1x_new, gen_step1x_v1p2
-
-5. **Publication Preparation**
+4. **Publication Preparation**
    - Finalize ablation study figures
    - Run statistical significance tests
    - Document in paper

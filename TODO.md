@@ -1,6 +1,6 @@
 # PROVE Project TODO List
 
-**Last Updated:** 2026-01-26 (14:30)
+**Last Updated:** 2026-01-26 (15:20)
 
 ## Current Job Status Summary
 
@@ -37,51 +37,61 @@
 
 ### 🔄 Ratio Ablation Study - WEIGHTS_RATIO_ABLATION
 
-**Last Updated:** 2026-01-26 14:28
+**Last Updated:** 2026-01-26 15:20
 
 **Directory Structure (reorganized):**
 ```
 WEIGHTS_RATIO_ABLATION/
-├── stage1/  # domain_filter=clear_day (51 models)
+├── _archived_logs_20260126/  # 117 dirs - validation logs only, no checkpoints (NOT USABLE)
+├── stage1/  # domain_filter=clear_day
 │   ├── gen_cycleGAN/{idd-aw,outside15k}/
 │   ├── gen_cyclediffusion/idd-aw/
-│   └── gen_stargan_v2/idd-aw/
+│   ├── gen_stargan_v2/idd-aw/
+│   └── gen_Attribute_Hallucination/ (chge7185 - permissions 700)
 └── stage2/  # no domain_filter (102 models)
     ├── gen_step1x_new/{bdd10k,idd-aw,mapillaryvistas,outside15k}/
     └── gen_step1x_v1p2/{bdd10k,idd-aw,mapillaryvistas,outside15k}/
 ```
 
-**Current Queue:** 52 pending (Stage 1 existing strategies)
+**⚠️ Archived Logs Investigation (2026-01-26):**
+- 117 timestamp directories from buggy parallel training runs
+- Contains: validation mIoU during training, per-class IoU tables, config info
+- **Missing:** checkpoints (`.pth`), test results (`results.json`)
+- **Verdict:** Cannot reuse - validation mIoU ≠ test mIoU, different evaluation protocols
+- **Action:** Keep for reference, continue with proper retraining
+
+**Current Queue (mima2416):** 52 jobs (10 RUN, 42 PEND)
+**Queue (chge7185):** 117 jobs (top-5 new strategies)
 
 | Stage | Strategy Type | Trained | Missing | Jobs |
 |-------|--------------|---------|---------|------|
-| **Stage 1** | Existing (gen_cycleGAN, etc.) | 32 | 52 | 🔄 52 PEND (151089-151140) |
-| **Stage 1** | Top-5 (new strategies) | 23 | 117 | ⏳ Not submitted |
+| **Stage 1** | Existing (gen_cycleGAN, etc.) | 32 | 52 | 🔄 52 (10 RUN, 42 PEND) |
+| **Stage 1** | Top-5 (new strategies) | ? | ? | 🔄 117 (chge7185) |
 | **Stage 2** | Existing (gen_step1x_*) | 56 | 0 | ✅ Complete |
 | **Stage 2** | Top-5 (new strategies) | 0 | 140 | ⏳ Not submitted |
 
 **Existing Strategies (prior runs):**
 | Strategy | Stage | Models | Tested |
 |----------|-------|--------|--------|
-| gen_cycleGAN | 1 | 14 → 28 (🔄 +14 training) | 14 |
-| gen_cyclediffusion | 1 | 9 → 14 (🔄 +5 training) | 9 |
-| gen_stargan_v2 | 1 | 9 → 14 (🔄 +5 training) | 9 |
+| gen_cycleGAN | 1 | 14 → 28 (🔄 training) | 14 |
+| gen_cyclediffusion | 1 | 9 → 28 (🔄 training) | 9 |
+| gen_stargan_v2 | 1 | 9 → 28 (🔄 training) | 9 |
 | gen_step1x_new | 2 | 56 | 56 ✅ |
-| gen_step1x_v1p2 | 2 | 46 | 0 |
+| gen_step1x_v1p2 | 2 | 46 | 0 (pending tests) |
 
 **Configuration:** 7 ratios × 2 models × 2 datasets = 28 jobs per strategy
 - **Ratios:** 0.00, 0.12, 0.25, 0.38, 0.62, 0.75, 0.88
 - **Models:** pspnet_r50, segformer_mit-b5
 - **Datasets:** BDD10k, IDD-AW
 
-**Training Locks:** Enabled (prevents parallel training of same config)
+**Training Locks:** ✅ Enabled and verified working (fcntl.flock)
 
 **Monitor Progress:**
 ```bash
-bjobs -u mima2416 | wc -l  # Check queue
-find /scratch/aaa_exchange/AWARE/WEIGHTS_RATIO_ABLATION/stage1 -name "iter_80000.pth" | wc -l  # Stage 1
-find /scratch/aaa_exchange/AWARE/WEIGHTS_RATIO_ABLATION/stage2 -name "iter_80000.pth" | wc -l  # Stage 2
-python scripts/submit_ratio_ablation_training.py --stage 1 --existing-strategies --preflight  # Status
+bjobs -u mima2416 | grep -c "RUN\|PEND"  # My queue
+bjobs -u chge7185 | wc -l  # chge7185 queue
+find /scratch/aaa_exchange/AWARE/WEIGHTS_RATIO_ABLATION/stage1 -name "iter_80000.pth" 2>/dev/null | wc -l
+python analysis_scripts/analyze_ratio_ablation.py --verbose
 ```
 
 ### Extended Training Study - WEIGHTS_EXTENDED
