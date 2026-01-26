@@ -162,13 +162,27 @@ class RatioAblationAnalyzer:
             if strategy.startswith('_') or strategy in ['stage1', 'stage2', 'configs']:
                 continue
             
-            for dataset_dir in sorted(strategy_dir.iterdir()):
+            try:
+                dataset_dirs = list(strategy_dir.iterdir())
+            except PermissionError:
+                if verbose:
+                    print(f"Warning: Permission denied for {strategy_dir}, skipping")
+                continue
+            
+            for dataset_dir in sorted(dataset_dirs):
                 if not dataset_dir.is_dir():
                     continue
                 
                 dataset = dataset_dir.name
                 
-                for model_dir in sorted(dataset_dir.iterdir()):
+                try:
+                    model_dirs = list(dataset_dir.iterdir())
+                except PermissionError:
+                    if verbose:
+                        print(f"Warning: Permission denied for {dataset_dir}, skipping")
+                    continue
+                
+                for model_dir in sorted(model_dirs):
                     if not model_dir.is_dir():
                         continue
                     
