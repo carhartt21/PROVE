@@ -84,6 +84,10 @@ python unified_training.py --dataset BDD10k --model deeplabv3plus_r50 \
 python unified_training.py --dataset MapillaryVistas --model deeplabv3plus_r50 \
     --strategy baseline --use-native-classes --domain-filter clear_day
 
+# Custom batch size and learning rate (for ablation studies)
+python unified_training.py --dataset BDD10k --model deeplabv3plus_r50 \
+    --strategy baseline --batch-size 4 --lr 0.02 --warmup-iters 500
+
 # Submit as LSF job instead of running locally
 python unified_training.py --dataset BDD10k --model deeplabv3plus_r50 \
     --strategy baseline --domain-filter clear_day --submit-job
@@ -138,8 +142,17 @@ python scripts/update_testing_tracker.py --stage 2
 |-------|-----------|---------|
 | Ratio Ablation | `WEIGHTS_RATIO_ABLATION/` | Real/gen ratios: 0.00, 0.12, 0.25, 0.38, 0.50, 0.62, 0.75, 0.88 |
 | Extended Training | `WEIGHTS_EXTENDED/` | Iterations: 40k→160k (20k steps) + 320k |
+| Batch Size Ablation | `WEIGHTS_BATCH_SIZE_ABLATION/` | Batch sizes: 2, 4, 8, 16 with LR scaling |
 
 Analysis scripts: `analysis_scripts/analyze_ratio_ablation.py`, `analysis_scripts/analyze_extended_training.py`
+
+### Batch Size Configuration
+Default batch size is 2. When increasing batch size, use linear learning rate scaling:
+- BS=4: LR=0.02, warmup=500
+- BS=8: LR=0.04, warmup=1000
+- BS=16: LR=0.08, warmup=1500
+
+Run batch size ablation: `python scripts/batch_size_ablation.py --analyze`
 
 ## Documentation Updates
 
