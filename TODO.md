@@ -1,6 +1,6 @@
 # PROVE Project TODO List
 
-**Last Updated:** 2026-01-26 (10:45)
+**Last Updated:** 2026-01-26 (13:00)
 
 ## Current Job Status Summary
 
@@ -21,36 +21,27 @@
 ✅ **Stage 2 FULLY COMPLETE (Training + Testing)**
 - **Top performer:** gen_stargan_v2 (41.73% mIoU)
 
-### 🔄 Batch Size Ablation Study (TRAINING - 2026-01-26)
+### ~~Batch Size Ablation Study~~ (CANCELLED - 2026-01-26)
 
-**Current Queue:** 4 jobs at top of pending queue
+**Status:** ❌ Cancelled after preliminary analysis
 
-| Batch Size | Learning Rate | Warmup | Job ID | Status |
-|------------|---------------|--------|--------|--------|
-| 2 (baseline) | 0.01 | 500 | 133150 | PEND |
-| 4 | 0.02 | 500 | 133251 | PEND |
-| 8 | 0.04 | 1000 | 133263 | PEND |
-| 16 | 0.08 | 1500 | 133267 | PEND |
+**Preliminary Results:**
+| BS | Time/Sample | Throughput | Speedup |
+|----|-------------|------------|---------|
+| 2 | 0.0408s | 24.5 img/s | 1.0x (baseline) |
+| 4 | 0.0389s | 25.7 img/s | 1.05x |
+| 8 | 0.0386s | 25.9 img/s | 1.06x |
+| 16 | 0.0365s | 27.4 img/s | 1.12x |
 
-**Configuration:**
-- Dataset: BDD10k
-- Model: deeplabv3plus_r50
-- Strategy: baseline
-- Max iterations: 40,000
-- Domain filter: clear_day
-- Output: `/scratch/aaa_exchange/AWARE/WEIGHTS_BATCH_SIZE_ABLATION/`
+**Conclusion:** Speedup is minimal (~5-12%), not worth changing existing experiments for comparability. **Continuing with batch_size=2**.
 
-**Purpose:** Quantify impact of batch size on training speed and mIoU performance.
-
-**Monitor:**
-```bash
-bjobs -w | grep bs_ablation
-python scripts/batch_size_ablation.py --analyze  # After completion
-```
+**New features added:**
+- `--batch-size`, `--lr`, `--warmup-iters` CLI arguments for future experiments
+- `scripts/batch_size_ablation.py` script available if needed later
 
 ### 🔄 Ratio Ablation Study (TRAINING - 2026-01-25 01:09)
 
-**Current Queue:** 3 running, ~115 pending (Stage 1 only)
+**Current Queue:** ~11 running, ~100+ pending (Stage 1 only)
 
 | Stage | Strategies | Jobs | Status |
 |-------|------------|------|--------|
