@@ -111,7 +111,7 @@ cd /home/mima2416/repositories/PROVE
 
 # Activate conda environment
 source ~/.bashrc
-conda activate mmseg
+conda activate prove
 
 # Create work directory
 mkdir -p {work_dir}
