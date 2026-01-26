@@ -5,6 +5,11 @@ Submit ratio ablation training jobs for top strategies.
 This script trains models with different real/generated ratios for the
 best-performing strategies from Stage 1 and Stage 2 evaluations.
 
+**Directory Structure (as of 2026-01-26):**
+  WEIGHTS_RATIO_ABLATION/
+  ├── stage1/{strategy}/{dataset}/{model}_ratio{ratio}/  # domain_filter=clear_day
+  └── stage2/{strategy}/{dataset}/{model}_ratio{ratio}/  # no domain_filter
+
 Top Strategies by mIoU:
 Stage 1 (domain_filter=clear_day):
   1. gen_Attribute_Hallucination (39.83%)
@@ -28,8 +33,13 @@ Datasets: BDD10k, IDD-AW (start with 2 for efficiency)
 import argparse
 import subprocess
 import os
+import sys
 from pathlib import Path
-from typing import List, Dict, Tuple, Set
+from typing import List, Dict, Tuple, Set, Optional
+
+# Add parent directory for training_lock import
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from training_lock import TrainingLock
 
 # Configuration
 RATIOS = [0.00, 0.12, 0.25, 0.38, 0.62, 0.75, 0.88]  # Exclude 0.50 (already in Stage 1/2)
@@ -54,14 +64,42 @@ STAGE2_STRATEGIES = [
     'gen_cycleGAN',                 # #5: 41.64%
 ]
 
-# Output directories
-WEIGHTS_DIR = Path('/scratch/aaa_exchange/AWARE/WEIGHTS_RATIO_ABLATION')
+# Existing strategies (from earlier ratio ablation work)
+EXISTING_STRATEGIES_STAGE1 = [
+    'gen_cycleGAN',
+    'gen_cyclediffusion',
+    'gen_stargan_v2',
+]
+
+EXISTING_STRATEGIES_STAGE2 = [
+    'gen_step1x_new',
+    'gen_step1x_v1p2',
+]
+
+# Output directories - now with stage separation
+WEIGHTS_ROOT = Path('/scratch/aaa_exchange/AWARE/WEIGHTS_RATIO_ABLATION')
 
 
-def get_existing_models(strategy: str) -> Set[Tuple[str, str, float]]:
+def get_stage_dir(stage: int) -> Path:
+    """Get the appropriate stage directory."""
+    return WEIGHTS_ROOT / f'stage{stage}'
+
+def normalize_dataset_name(name: str) -> str:
+    """Normalize dataset name for consistent path matching."""
+    name = name.lower()
+    # Remove _ad suffix
+    name = name.rstrip('_ad')
+    # Standardize idd variations
+    if name in ['iddaw', 'idd_aw']:
+        name = 'idd-aw'
+    return name
+
+
+def get_existing_models(strategy: str, stage: int) -> Set[Tuple[str, str, float]]:
     """Get set of (dataset, model, ratio) tuples that already have trained models."""
     existing = set()
-    strategy_dir = WEIGHTS_DIR / strategy
+    stage_dir = get_stage_dir(stage)
+    strategy_dir = stage_dir / strategy
     
     if not strategy_dir.exists():
         return existing
@@ -69,7 +107,7 @@ def get_existing_models(strategy: str) -> Set[Tuple[str, str, float]]:
     for dataset_dir in strategy_dir.iterdir():
         if not dataset_dir.is_dir():
             continue
-        dataset = dataset_dir.name
+        dataset = normalize_dataset_name(dataset_dir.name)
         
         for model_dir in dataset_dir.iterdir():
             if not model_dir.is_dir():
@@ -94,6 +132,12 @@ def get_existing_models(strategy: str) -> Set[Tuple[str, str, float]]:
     return existing
 
 
+def is_config_locked(strategy: str, dataset: str, model: str, ratio: float) -> bool:
+    """Check if a training configuration is locked."""
+    lock = TrainingLock(strategy, dataset, model, ratio)
+    return lock.is_locked()
+
+
 def generate_job_script(
     strategy: str,
     dataset: str,
@@ -101,10 +145,10 @@ def generate_job_script(
     ratio: float,
     stage: int
 ) -> str:
-    """Generate LSF job submission script."""
+    """Generate LSF job submission script with training lock."""
     
     ratio_str = f"{ratio:.2f}".replace('.', 'p')
-    job_name = f"ratio_{strategy}_{dataset}_{model}_{ratio_str}"
+    job_name = f"ratio_{strategy}_{dataset}_{model}_{ratio_str}_s{stage}"
     
     # Use native classes for MapillaryVistas and OUTSIDE15k
     native_flag = ""
@@ -113,6 +157,12 @@ def generate_job_script(
     
     # Stage 1 uses domain_filter=clear_day, Stage 2 does not
     domain_filter = "--domain-filter clear_day" if stage == 1 else ""
+    
+    # Build the proper nested work_dir path with stage separation
+    # Structure: WEIGHTS_RATIO_ABLATION/stage{N}/{strategy}/{dataset_lower}/{model}_ratio{ratio}
+    dataset_lower = normalize_dataset_name(dataset)
+    stage_dir = get_stage_dir(stage)
+    work_dir = f"{stage_dir}/{strategy}/{dataset_lower}/{model}_ratio{ratio_str}"
     
     script = f'''#!/bin/bash
 #BSUB -J {job_name}
@@ -128,6 +178,22 @@ cd /home/$USER/repositories/PROVE
 source ~/.bashrc
 mamba activate prove
 
+# Training lock to prevent parallel training of same configuration
+echo "Acquiring training lock for {strategy}/{dataset}/{model}/ratio={ratio}"
+python -c "
+import sys
+sys.path.insert(0, '/home/$USER/repositories/PROVE')
+from training_lock import TrainingLock
+
+lock = TrainingLock('{strategy}', '{dataset}', '{model}', {ratio})
+if not lock.acquire():
+    holder = lock.get_lock_holder()
+    print(f'Configuration locked by job {{holder.get(\"job_id\", \"unknown\")}} since {{holder.get(\"acquired_at\", \"unknown\")}}')
+    sys.exit(1)
+print('Lock acquired successfully')
+" || {{ echo "Failed to acquire lock, exiting"; exit 1; }}
+
+# Run training with explicit work-dir
 python unified_training.py \\
     --dataset {dataset} \\
     --model {model} \\
@@ -135,7 +201,19 @@ python unified_training.py \\
     --real-gen-ratio {ratio} \\
     {native_flag} \\
     {domain_filter} \\
-    --work-dir {WEIGHTS_DIR}
+    --work-dir {work_dir}
+
+# Release training lock
+python -c "
+import sys
+sys.path.insert(0, '/home/$USER/repositories/PROVE')
+from training_lock import TrainingLock
+
+lock = TrainingLock('{strategy}', '{dataset}', '{model}', {ratio})
+# The lock file should already exist from the first acquire
+lock.lock_file.unlink(missing_ok=True) if hasattr(lock.lock_file, 'unlink') else None
+print('Lock released')
+"
 
 echo "Training completed for {strategy} {dataset} {model} ratio={ratio}"
 '''
@@ -166,51 +244,55 @@ def submit_job(script: str, dry_run: bool = True) -> bool:
         return False
 
 
-def preflight_check(stage: int):
+def preflight_check(stage: int, use_existing: bool = False):
     """Comprehensive check for existing weights before starting training."""
     print("=" * 70)
     print(f"PREFLIGHT CHECK - Stage {stage} Ratio Ablation")
     print("=" * 70)
     
-    strategies = STAGE1_STRATEGIES if stage == 1 else STAGE2_STRATEGIES
+    if use_existing:
+        strategies = EXISTING_STRATEGIES_STAGE1 if stage == 1 else EXISTING_STRATEGIES_STAGE2
+        print(f"Using existing strategies: {strategies}")
+    else:
+        strategies = STAGE1_STRATEGIES if stage == 1 else STAGE2_STRATEGIES
+    stage_dir = get_stage_dir(stage)
     
     # Check existing weights
     print(f"\n{'='*70}")
-    print("EXISTING WEIGHTS IN WEIGHTS_RATIO_ABLATION/")
+    print(f"EXISTING WEIGHTS IN {stage_dir}/")
     print("=" * 70)
     
     total_existing = 0
+    total_locked = 0
     total_needed = len(strategies) * len(DATASETS) * len(MODELS) * len(RATIOS)
     
     for strategy in strategies:
-        existing = get_existing_models(strategy)
+        existing = get_existing_models(strategy, stage)
         print(f"\n{strategy}:")
         
         # Check each configuration
         for dataset in DATASETS:
+            ds_normalized = normalize_dataset_name(dataset)
             for model in MODELS:
                 found = []
                 missing = []
+                locked = []
                 for ratio in RATIOS:
-                    ds_lower = dataset.lower().replace('-', '')
-                    # Check various naming patterns
-                    matches = [
-                        (dataset, model, ratio),
-                        (dataset.lower(), model, ratio),
-                        (ds_lower, model, ratio),
-                        (f"{ds_lower}_ad", model, ratio),
-                        (f"{dataset.lower()}_ad", model, ratio),
-                        (dataset.lower().replace('-', '-'), model, ratio),  # idd-aw
-                    ]
-                    found_ratio = any(m in existing for m in matches)
-                    if found_ratio:
+                    # Check if already trained
+                    if (ds_normalized, model, ratio) in existing:
                         found.append(f"{ratio:.2f}")
                         total_existing += 1
+                    # Check if locked
+                    elif is_config_locked(strategy, dataset, model, ratio):
+                        locked.append(f"{ratio:.2f}")
+                        total_locked += 1
                     else:
                         missing.append(f"{ratio:.2f}")
                 
                 if found:
-                    print(f"  {dataset}/{model}: ✅ {len(found)} found ({', '.join(found[:3])}{'...' if len(found) > 3 else ''})")
+                    print(f"  {dataset}/{model}: ✅ {len(found)} trained ({', '.join(found[:3])}{'...' if len(found) > 3 else ''})")
+                if locked:
+                    print(f"  {dataset}/{model}: 🔒 {len(locked)} locked ({', '.join(locked[:3])}{'...' if len(locked) > 3 else ''})")
                 if missing:
                     print(f"  {dataset}/{model}: ❌ {len(missing)} missing ({', '.join(missing[:3])}{'...' if len(missing) > 3 else ''})")
     
@@ -242,20 +324,25 @@ def preflight_check(stage: int):
     print("=" * 70)
     print(f"  Total configurations needed: {total_needed}")
     print(f"  Already trained: {total_existing}")
-    print(f"  Need to train: {total_needed - total_existing}")
+    print(f"  Currently locked (in-progress): {total_locked}")
+    print(f"  Need to train: {total_needed - total_existing - total_locked}")
     print(f"\n  Strategies: {', '.join(strategies)}")
     print(f"  Datasets: {', '.join(DATASETS)}")
     print(f"  Models: {', '.join(MODELS)}")
     print(f"  Ratios: {', '.join([f'{r:.2f}' for r in RATIOS])}")
+    print(f"\n  Stage {stage} directory: {stage_dir}")
     
     # Recommendations
     print(f"\n{'='*70}")
     print("RECOMMENDATIONS")
     print("=" * 70)
+    remaining = total_needed - total_existing - total_locked
     if total_existing == total_needed:
         print("  ✅ All weights already exist! No submission needed.")
-    elif total_existing > 0:
-        print(f"  ⚠️ Partial weights exist. {total_needed - total_existing} jobs will be submitted.")
+    elif remaining == 0:
+        print(f"  🔒 All remaining jobs are locked (in-progress). Wait for completion.")
+    elif total_existing > 0 or total_locked > 0:
+        print(f"  ⚠️ Partial progress. {remaining} jobs will be submitted.")
         print(f"     Use --dry-run to see exactly what would be submitted.")
     else:
         print(f"  📝 No existing weights. {total_needed} jobs will be submitted.")
@@ -265,11 +352,29 @@ def preflight_check(stage: int):
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Submit ratio ablation training jobs')
+    parser = argparse.ArgumentParser(
+        description='Submit ratio ablation training jobs',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  # Check status for Stage 1 (top-5 strategies)
+  python submit_ratio_ablation_training.py --stage 1 --preflight
+
+  # Check status for existing Stage 2 strategies (gen_step1x_new, gen_step1x_v1p2)
+  python submit_ratio_ablation_training.py --stage 2 --existing-strategies --preflight
+
+  # Submit Stage 1 jobs with limit
+  python submit_ratio_ablation_training.py --stage 1 --dry-run --limit 10
+
+  # Submit for a specific strategy
+  python submit_ratio_ablation_training.py --stage 1 --strategy gen_cycleGAN
+""")
     parser.add_argument('--stage', type=int, choices=[1, 2], required=True,
                        help='Training stage (1=clear_day, 2=all domains)')
     parser.add_argument('--strategy', type=str, default=None,
-                       help='Specific strategy to train (default: all for stage)')
+                       help='Specific strategy to train (default: top-5 for stage)')
+    parser.add_argument('--existing-strategies', action='store_true',
+                       help='Use existing strategies (gen_step1x_*, gen_cyclediffusion) instead of top-5')
     parser.add_argument('--dataset', type=str, default=None,
                        help='Specific dataset (default: all)')
     parser.add_argument('--model', type=str, default=None,
@@ -286,14 +391,15 @@ def main():
     
     # Preflight check mode
     if args.preflight:
-        preflight_check(args.stage)
+        preflight_check(args.stage, use_existing=args.existing_strategies)
         return
     
-    # Select strategies based on stage
-    if args.stage == 1:
-        strategies = STAGE1_STRATEGIES
+    # Select strategies based on stage and --existing-strategies flag
+    if args.existing_strategies:
+        strategies = EXISTING_STRATEGIES_STAGE1 if args.stage == 1 else EXISTING_STRATEGIES_STAGE2
+        print(f"Using existing strategies: {strategies}")
     else:
-        strategies = STAGE2_STRATEGIES
+        strategies = STAGE1_STRATEGIES if args.stage == 1 else STAGE2_STRATEGIES
     
     if args.strategy:
         if args.strategy not in strategies:
@@ -310,28 +416,33 @@ def main():
     # Count jobs
     total_jobs = 0
     submitted = 0
-    skipped = 0
+    skipped_trained = 0
+    skipped_locked = 0
+    
+    stage_dir = get_stage_dir(args.stage)
+    print(f"\nStage {args.stage} weights directory: {stage_dir}")
     
     for strategy in strategies:
         print(f"\n=== Strategy: {strategy} (Stage {args.stage}) ===")
         
-        existing = get_existing_models(strategy)
+        existing = get_existing_models(strategy, args.stage)
         print(f"  Existing trained models: {len(existing)}")
         
         for dataset in datasets:
+            ds_normalized = normalize_dataset_name(dataset)
             for model in models:
                 for ratio in ratios:
                     total_jobs += 1
                     
                     # Check if already trained
-                    # Normalize dataset name for comparison
-                    ds_normalized = dataset.lower().replace('-', '')
-                    model_normalized = model
+                    if (ds_normalized, model, ratio) in existing:
+                        skipped_trained += 1
+                        continue
                     
-                    # Check both with and without _ad suffix
-                    if (dataset, model, ratio) in existing or \
-                       (ds_normalized, model_normalized, ratio) in existing:
-                        skipped += 1
+                    # Check if locked (another job is training)
+                    if is_config_locked(strategy, dataset, model, ratio):
+                        print(f"  🔒 {dataset}/{model}/ratio{ratio} (locked - skipping)")
+                        skipped_locked += 1
                         continue
                     
                     if args.limit and submitted >= args.limit:
@@ -353,7 +464,8 @@ def main():
     
     print(f"\n=== Summary ===")
     print(f"Total configurations: {total_jobs}")
-    print(f"Skipped (already trained): {skipped}")
+    print(f"Skipped (already trained): {skipped_trained}")
+    print(f"Skipped (locked/in-progress): {skipped_locked}")
     print(f"{'Would submit' if args.dry_run else 'Submitted'}: {submitted}")
 
 

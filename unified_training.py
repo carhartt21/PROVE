@@ -90,6 +90,10 @@ class UnifiedTrainer:
         deterministic: Whether to enable deterministic mode. Default: True
         early_stop: Whether to enable early stopping. Default: True
         early_stop_patience: Number of validations without improvement before stopping. Default: 5
+        max_iters: Maximum training iterations. Default: None (uses model default)
+        batch_size: Training batch size. Default: None (uses config default of 2)
+        lr: Learning rate. Default: None (uses model-specific default)
+        warmup_iters: Number of warmup iterations. Default: None (uses config default)
         gpu_ids: List of GPU IDs to use. Default: [0]
         distributed: Whether to use distributed training. Default: False
     """
@@ -112,6 +116,9 @@ class UnifiedTrainer:
         early_stop: bool = True,
         early_stop_patience: int = 5,
         max_iters: Optional[int] = None,
+        batch_size: Optional[int] = None,
+        lr: Optional[float] = None,
+        warmup_iters: Optional[int] = None,
         gpu_ids: List[int] = None,
         distributed: bool = False,
         use_native_classes: bool = True,
@@ -132,6 +139,9 @@ class UnifiedTrainer:
         self.early_stop = early_stop
         self.early_stop_patience = early_stop_patience
         self.max_iters = max_iters
+        self.batch_size = batch_size
+        self.lr = lr
+        self.warmup_iters = warmup_iters
         self.gpu_ids = gpu_ids or [0]
         self.distributed = distributed
         self.use_native_classes = use_native_classes
@@ -151,6 +161,10 @@ class UnifiedTrainer:
         }
         if self.max_iters is not None:
             custom_training_config['max_iters'] = self.max_iters
+        if self.batch_size is not None:
+            custom_training_config['batch_size'] = self.batch_size
+        if self.warmup_iters is not None:
+            custom_training_config['warmup_iters'] = self.warmup_iters
         
         config = self.config_builder.build(
             dataset=self.dataset,
@@ -179,6 +193,23 @@ class UnifiedTrainer:
         config['seed'] = self.seed
         config['deterministic'] = self.deterministic
         config['gpu_ids'] = self.gpu_ids
+        
+        # Override learning rate if specified
+        if self.lr is not None:
+            if 'optim_wrapper' in config:
+                config['optim_wrapper']['optimizer']['lr'] = self.lr
+        
+        # Override batch size in dataloader if specified
+        if self.batch_size is not None:
+            if 'train_dataloader' in config:
+                config['train_dataloader']['batch_size'] = self.batch_size
+        
+        # Override warmup iterations if specified
+        if self.warmup_iters is not None:
+            if 'param_scheduler' in config and isinstance(config['param_scheduler'], list):
+                for scheduler in config['param_scheduler']:
+                    if scheduler.get('type') == 'LinearLR':
+                        scheduler['end'] = self.warmup_iters
         
         return config
     
@@ -1002,6 +1033,12 @@ Examples:
                        help='Early stopping patience (number of validations without improvement)')
     parser.add_argument('--max-iters', type=int, default=None,
                        help='Maximum training iterations (default: 80000 for segmentation, 40000 for detection)')
+    parser.add_argument('--batch-size', type=int, default=None,
+                       help='Training batch size (default: 2). Larger batches may require LR adjustment.')
+    parser.add_argument('--lr', '--learning-rate', type=float, default=None, dest='lr',
+                       help='Learning rate (default: model-specific). Use linear scaling with batch size.')
+    parser.add_argument('--warmup-iters', type=int, default=None,
+                       help='Number of warmup iterations (default: 500). Increase for larger batch sizes.')
     parser.add_argument('--gpu-ids', type=int, nargs='+', default=[0],
                        help='GPU IDs to use')
     parser.add_argument('--distributed', action='store_true',
@@ -1230,6 +1267,9 @@ def main():
         early_stop=not args.no_early_stop,
         early_stop_patience=args.early_stop_patience,
         max_iters=args.max_iters,
+        batch_size=args.batch_size,
+        lr=args.lr,
+        warmup_iters=args.warmup_iters,
         gpu_ids=args.gpu_ids,
         distributed=args.distributed,
         use_native_classes=args.use_native_classes,

@@ -1,34 +1,141 @@
 # PROVE Project TODO List
 
-**Last Updated:** 2026-01-23 (18:00)
+**Last Updated:** 2026-01-26 (13:00)
 
 ## Current Job Status Summary
 
 ### Stage 1 (Clear Day Domain) - WEIGHTS directory
-| Category | Running | Pending | Complete | Total |
-|----------|--------:|--------:|---------:|------:|
-| Training | 0 | 0 | 405 | 405 |
-| Testing (non-MV) | 0 | 0 | ~324 | ~324 |
-| **MV Testing** | **0** | **0** | **81** | **81** |
+| Category | Complete | Notes |
+|----------|:--------:|-------|
+| Training | 324 | All models trained |
+| Testing | 330 | All tests complete |
 
-✅ **Stage 1 MapillaryVistas FULLY COMPLETE (Training + Testing)**
-- All 81 MapillaryVistas Stage 1 models trained ✅
-- All 81 MapillaryVistas Stage 1 tests completed ✅
-- Results available in `test_results_detailed/*/results.json`
+✅ **Stage 1 FULLY COMPLETE (Training + Testing)**
 
 ### Stage 2 (All Domains) - WEIGHTS_STAGE_2 directory
-| Category | Running | Pending | Complete | Total |
-|----------|--------:|--------:|---------:|------:|
-| Training (non-MV) | 0 | 0 | 243 | 243 |
-| Testing (non-MV) | 0 | 0 | 243 | 243 |
-| **MV Training** | **6** | **27** | **48** | **81** |
-| **MV Testing** | **0** | **48** | **0** | **48** |
+| Category | Complete | Notes |
+|----------|:--------:|-------|
+| Training | 325 | All models trained |
+| Testing | 344 | All tests complete |
 
-**Stage 2 Status (as of 2026-01-23 15:30):**
-- **Non-MV Training:** ✅ 243/243 complete
-- **Non-MV Testing:** ✅ 243/243 complete
-- **MapillaryVistas Training:** 🔄 48/81 complete (59%), 33 remaining
-- **Top performer:** gen_CNetSeg (+0.58 over baseline at 43.68% mIoU)
+✅ **Stage 2 FULLY COMPLETE (Training + Testing)**
+- **Top performer:** gen_stargan_v2 (41.73% mIoU)
+
+### ~~Batch Size Ablation Study~~ (CANCELLED - 2026-01-26)
+
+**Status:** ❌ Cancelled after preliminary analysis
+
+**Preliminary Results:**
+| BS | Time/Sample | Throughput | Speedup |
+|----|-------------|------------|---------|
+| 2 | 0.0408s | 24.5 img/s | 1.0x (baseline) |
+| 4 | 0.0389s | 25.7 img/s | 1.05x |
+| 8 | 0.0386s | 25.9 img/s | 1.06x |
+| 16 | 0.0365s | 27.4 img/s | 1.12x |
+
+**Conclusion:** Speedup is minimal (~5-12%), not worth changing existing experiments for comparability. **Continuing with batch_size=2**.
+
+**New features added:**
+- `--batch-size`, `--lr`, `--warmup-iters` CLI arguments for future experiments
+- `scripts/batch_size_ablation.py` script available if needed later
+
+### 🔄 Ratio Ablation Study (TRAINING - 2026-01-25 01:09)
+
+**Current Queue:** ~11 running, ~100+ pending (Stage 1 only)
+
+| Stage | Strategies | Jobs | Status |
+|-------|------------|------|--------|
+| **Stage 1** | Top 5 mIoU | 140 | 🔄 Running (2 RUN, 118 PEND) |
+| **Stage 2** | Top 5 mIoU | 140 | ⏳ Not yet submitted |
+
+**Stage 1 Strategies:**
+1. gen_Attribute_Hallucination (39.83%)
+2. gen_cycleGAN (39.60%)
+3. gen_Img2Img (39.58%)
+4. gen_stargan_v2 (39.55%)
+5. gen_flux_kontext (39.54%)
+
+**Stage 2 Strategies (to be submitted):**
+1. gen_stargan_v2 (41.73%)
+2. gen_UniControl (41.70%)
+3. gen_CNetSeg (41.69%)
+4. gen_VisualCloze (41.67%)
+5. gen_cycleGAN (41.64%)
+
+**Configuration:** 7 ratios × 2 models × 2 datasets = 28 jobs per strategy
+- **Ratios:** 0.00, 0.12, 0.25, 0.38, 0.62, 0.75, 0.88
+- **Models:** pspnet_r50, segformer_mit-b5
+- **Datasets:** BDD10k, IDD-AW
+
+**Existing Ratio Ablation Models (prior runs):**
+| Strategy | Models |
+|----------|--------|
+| gen_cycleGAN | 28 |
+| gen_step1x_new | 56 |
+| gen_step1x_v1p2 | 46 |
+| gen_cyclediffusion | 9 |
+| gen_stargan_v2 | 9 |
+| **Total existing** | **148** |
+
+**Ratio Ablation Tests:** 102 results available
+
+**Monitor Progress:**
+```bash
+bjobs -u mima2416 | wc -l
+find /scratch/aaa_exchange/AWARE/WEIGHTS_RATIO_ABLATION -name "iter_80000.pth" | wc -l
+```
+
+### Extended Training Study - WEIGHTS_EXTENDED
+
+| Category | Complete | Notes |
+|----------|:--------:|-------|
+| Training | 0 models | Owner: chge7185 |
+| Testing | 774 results | Initial checkpoints tested |
+
+---
+
+## 🎯 Next Steps
+
+### Immediate Actions
+
+1. **Monitor Stage 1 Ratio Ablation** (~12-24 hours)
+   ```bash
+   bjobs -u mima2416 | grep -c "RUN\|PEND"
+   find /scratch/aaa_exchange/AWARE/WEIGHTS_RATIO_ABLATION -name "iter_80000.pth" | wc -l
+   ```
+
+2. **Submit Stage 2 Ratio Ablation** (when Stage 1 completes or queue opens)
+   ```bash
+   python scripts/submit_ratio_ablation_training.py --stage 2 --dry-run
+   python scripts/submit_ratio_ablation_training.py --stage 2
+   ```
+
+3. **Run Tests on Completed Ratio Ablation Models**
+   ```bash
+   python scripts/auto_submit_tests.py --dry-run --root /scratch/aaa_exchange/AWARE/WEIGHTS_RATIO_ABLATION
+   ```
+
+### After Ratio Ablation Completes
+
+4. **Generate Ratio Ablation Analysis**
+   ```bash
+   python analysis_scripts/analyze_ratio_ablation.py
+   python analysis_scripts/visualize_ratio_ablation.py
+   ```
+
+5. **Update Final Leaderboards**
+   ```bash
+   python analysis_scripts/generate_stage1_leaderboard.py
+   python analysis_scripts/generate_stage2_leaderboard.py
+   ```
+
+---
+
+### ⏸️ Paused Tasks
+
+**Initial Checkpoint Tests (10k-80k iterations)**
+- **Status:** ~774 complete
+- **Purpose:** Complete learning curves for extended training analysis
 
 ---
 
@@ -72,21 +179,17 @@ b = seg_map[:, :, 0]  # B is channel 0
 **Files Modified:**
 - `custom_transforms.py`: Fixed channel indexing for BGR input
 
-### Retraining Status
+### Retraining Status - ✅ COMPLETE (Jan 24)
 
-| Stage | Jobs Submitted | Running | Pending | Job IDs |
-|-------|---------------|---------|---------|---------|
-| Stage 1 | 81 | ~4 | ~77 | 9739253-9739333 |
-| Stage 2 | 81 | ~4 | ~77 | 9739334-9739414 |
-| **Total** | **162** | **~8** | **~154** | 9739253-9739414 |
+All MapillaryVistas retraining is complete:
+
+| Stage | Status | Models |
+|-------|--------|--------|
+| Stage 1 | ✅ Complete | 81/81 |
+| Stage 2 | ✅ Complete | 81/81 (by user chge7185) |
+| **Total** | ✅ **COMPLETE** | 162/162 |
 
 **Backup Location:** `/scratch/aaa_exchange/AWARE/WEIGHTS_BACKUP_BUGGY_MAPILLARY/`
-
-**Monitor Progress:**
-```bash
-bjobs -u mima2416 -w | grep "rt_map" | wc -l  # Total jobs
-bjobs -u mima2416 -w | grep "rt_map" | grep " RUN "  # Running jobs
-```
 
 ---
 
@@ -153,39 +256,41 @@ WEIGHTS_STAGE_2/             # Stage 2 (all domains)
 
 ## Active Tasks
 
-### ✅ Stage 1 MapillaryVistas FULLY COMPLETE
+### ✅ Stage 1 FULLY COMPLETE
 
-All 81 MapillaryVistas Stage 1 models have completed:
-- ✅ Training after BGR/RGB bug fix
-- ✅ Fine-grained testing with per-domain/per-class metrics
+All Stage 1 training and testing is complete:
+- ✅ 405 models trained (81 per dataset × 5 datasets - but ACDC is test-only)
+- ✅ All fine-grained testing completed with per-domain/per-class metrics
+- ✅ MapillaryVistas 81/81 models retrained after BGR/RGB bug fix
 
-**Results Location:** `/scratch/aaa_exchange/AWARE/WEIGHTS/*/mapillaryvistas/*/test_results_detailed/*/results.json`
+**Results Location:** `/scratch/aaa_exchange/AWARE/WEIGHTS/*/*/test_results_detailed/*/results.json`
 
-### 🎯 IMMEDIATE: Generate Stage 1 Leaderboard with MapillaryVistas
+### ✅ Stage 2 FULLY COMPLETE
 
-Now that all Stage 1 tests are complete (including MV), generate the final leaderboard:
+All Stage 2 training and testing is complete:
+- ✅ 325 models trained (BDD: 82, IDD-AW: 81, MV: 81, OUTSIDE15k: 81)
+- ✅ 324 test results available (all strategies × all datasets)
+- ✅ MapillaryVistas 81/81 models retrained after BGR/RGB bug fix (completed by user chge7185)
+
+**Results Location:** `/scratch/aaa_exchange/AWARE/WEIGHTS_STAGE_2/*/*/test_results_detailed/*/results.json`
+
+### 🎯 IMMEDIATE: Generate Final Leaderboards
+
+Both stages are fully complete - generate comprehensive leaderboards:
 
 ```bash
+# Stage 1 Leaderboard
 python analysis_scripts/generate_stage1_leaderboard.py
+
+# Stage 2 Leaderboard  
+python analysis_scripts/generate_stage2_leaderboard.py
 ```
 
-### 🔄 Stage 2 MapillaryVistas Retraining (59% complete)
+### 🎯 NEXT: Stage Comparison Analysis
 
-**Status:** 48/81 complete, 6 running, ~27 pending
+Compare Stage 1 vs Stage 2 performance across all strategies and datasets.
 
-| Progress | Count |
-|----------|-------|
-| Complete | 48 |
-| Running | 6 |
-| Pending | ~27 |
-
-**Monitor:** `bjobs -u mima2416 | grep rt_map`
-
-**Test Script Ready:** `./scripts/run_stage2_mapillary_tests.sh`
-- Run after training completes for each model
-- Current script finds 48 models ready for testing
-
-### Stage 2 Non-MapillaryVistas (100% Complete)
+### ✅ Stage 2 Non-MapillaryVistas (100% Complete)
 
 - **Training:** ✅ 243/243 complete
 - **Testing:** ✅ 243/243 complete
@@ -194,42 +299,74 @@ python analysis_scripts/generate_stage1_leaderboard.py
 ### Ratio Ablation Study
 
 **Location:** `WEIGHTS_RATIO_ABLATION/`
-**Status:** ✅ Sufficient coverage (187 checkpoints)
+**Status:** 🔄 Training submitted (280 jobs - 2026-01-25 00:44)
 
-| Strategy | Stage 1 Rank | Checkpoints | Datasets |
-|----------|-------------|-------------|----------|
-| gen_cycleGAN | #2 (+1.13) | 28 | IDD-AW, OUTSIDE15k |
-| gen_stargan_v2 | #4 (+1.08) | 9 | IDD-AW |
-| gen_cyclediffusion | #6 (+1.05) | 9 | IDD-AW |
-| gen_step1x_new | #13 (+0.94) | 56 | BDD10k, IDD-AW, MV*, OUTSIDE15k |
-| gen_step1x_v1p2 | #21 (+0.69) | 46 | BDD10k, IDD-AW, MV*, OUTSIDE15k |
-| gen_TSIT | #22 (+0.63) | 39 | BDD10k, IDD-AW, OUTSIDE15k |
+#### Current Training Progress
+| Stage | Strategy | Jobs | Status |
+|-------|----------|------|--------|
+| **Stage 1** | gen_Attribute_Hallucination | 28 | 🔄 Submitted |
+| **Stage 1** | gen_cycleGAN | 28 | 🔄 Submitted |
+| **Stage 1** | gen_Img2Img | 28 | 🔄 Submitted |
+| **Stage 1** | gen_stargan_v2 | 28 | 🔄 Submitted |
+| **Stage 1** | gen_flux_kontext | 28 | 🔄 Submitted |
+| **Stage 2** | gen_stargan_v2 | 28 | 🔄 Submitted |
+| **Stage 2** | gen_UniControl | 28 | 🔄 Submitted |
+| **Stage 2** | gen_CNetSeg | 28 | 🔄 Submitted |
+| **Stage 2** | gen_VisualCloze | 28 | 🔄 Submitted |
+| **Stage 2** | gen_cycleGAN | 28 | 🔄 Submitted |
 
-*MV = MapillaryVistas (backed up - buggy)
+**Configuration:**
+- **Ratios:** 0.00, 0.12, 0.25, 0.38, 0.62, 0.75, 0.88 (7 values, excluding 0.50 from main training)
+- **Models:** pspnet_r50, segformer_mit-b5 (matching existing ablation pattern)
+- **Datasets:** BDD10k, IDD-AW
 
-**Ratios:** 0.00, 0.125, 0.25, 0.375, 0.625, 0.75, 0.875 (0.50 = standard training)
+**Existing Trained Models (prior runs):**
+| Strategy | Models | Notes |
+|----------|--------|-------|
+| gen_cycleGAN | 28 | Stage 1 idd-aw only |
+| gen_cyclediffusion | 9 | Stage 1 partial |
+| gen_stargan_v2 | 9 | Stage 1 partial |
+| gen_step1x_new | 56 | Stage 2 complete (all 4 datasets) |
+| gen_step1x_v1p2 | 46 | Partial |
 
-**Next Action:** Run analysis on existing data (`analysis_scripts/analyze_ratio_ablation.py`)
+**⚠️ Bug Fix (2026-01-25):** Moved corrupted gen_TSIT ratio ablation to backup:
+`/scratch/aaa_exchange/AWARE/WEIGHTS_BACKUP_BUGGY_TSIT_RATIO_ABLATION/`
+- Bug: `CityscapesLabelIdToTrainId` incorrectly applied to BDD10k trainIds
+- Impact: 13/19 classes corrupted (only 6 learned), ~0.2% mIoU on tests
+- Will retrain gen_TSIT with correct config after current batch completes
+
+**Monitor Progress:**
+```bash
+bjobs -u mima2416 | wc -l  # Total pending jobs
+find /scratch/aaa_exchange/AWARE/WEIGHTS_RATIO_ABLATION -name "iter_80000.pth" | wc -l  # Trained models
+```
+
+**Scripts:**
+- `scripts/submit_ratio_ablation_training.py` - Training submission script (updated 2026-01-25)
 
 ### Extended Training Study
 
 **Location:** `WEIGHTS_EXTENDED/`
-**Owner:** User chge7185
-**Status:** ✅ Sufficient coverage (~959 checkpoints)
+**Owner:** chge7185 + mima2416
+**Status:** 🔄 Testing in progress (714/1169 results = 61%)
 
-| Strategy | Stage 1 Rank | Checkpoints | Datasets |
-|----------|-------------|-------------|----------|
-| gen_cycleGAN | #2 (+1.13) | 96 | BDD10k, IDD-AW, OUTSIDE15k |
-| gen_flux_kontext | #5 (+1.07) | 96 | BDD10k, MV*, OUTSIDE15k |
-| gen_cyclediffusion | #6 (+1.05) | 192 | All 4 datasets |
-| gen_step1x_new | #13 (+0.94) | 120 | All 4 datasets |
-| std_randaugment | #25 (+0.45) | 72 | All 4 datasets |
-| gen_albumentations_weather | #16 (+0.84) | 96 | BDD10k, IDD-AW, OUTSIDE15k |
-| gen_TSIT | #22 (+0.63) | 96 | BDD10k, IDD-AW, OUTSIDE15k |
-| gen_UniControl | #19 (+0.71) | 96 | BDD10k, IDD-AW, OUTSIDE15k |
-| gen_automold | #12 (+0.96) | 95 | BDD10k, IDD-AW |
+| Phase | Iterations | Tests Complete | Tests Total | Coverage |
+|-------|------------|----------------|-------------|----------|
+| **Initial** | 10k-80k | 205 | 392 | 52% |
+| **Extended** | 90k-320k | 509 | 936 | 54% |
+| **Total** | 10k-320k | **714** | **1328** | **54%** |
 
-**Iterations:** 40k, 60k, 80k, 100k, 120k, 140k, 160k, 320k
+**Analysis Findings (Jan 24, 22:20):**
+- Learning curve: 37.7% (10k) → 45.0% (80k) → 49.8% (320k)
+- **77.4%** of configs improve beyond 80k baseline
+- **Mean improvement: +1.41 mIoU** with extended training
+- Most configs converge at 310k-320k iterations
+- Best strategy: gen_cyclediffusion (53.8% mIoU)
+
+**Currently Pending Jobs: 224** (192 initial + 32 DA)
+**Additional Tests Available:** 455 (90k-320k missing)
+
+**Iterations:** 10k, 20k, 30k, 40k, 50k, 60k, 70k, 80k, 90k-320k (every 10k)
 
 **Key Finding (Analysis Complete):**
 - **160k iterations** captures ~75% of gains at 50% compute cost
@@ -241,47 +378,51 @@ python analysis_scripts/generate_stage1_leaderboard.py
 
 ### High Priority
 
-1. **🎯 Domain Adaptation Ablation** (RUNNING - 64/~100 complete)
-   - **Status:** 🔄 Running locally
-   - **Results:** 64 tests complete
-   - **Key findings:**
+1. **🔄 Ablation Study Testing** (RUNNING - 180 jobs pending)
+   - **Ratio Ablation:** 141 jobs for gen_TSIT, gen_step1x_new, gen_step1x_v1p2
+   - **Extended Training:** 39 jobs for 320k iteration
+   - **Monitor:** `bjobs -u mima2416 | grep -E "abl_|ext_" | wc -l`
+   - **Est. Completion:** ~4 hours from submission (2026-01-24 14:35)
+
+2. **🎯 Domain Adaptation Ablation** (READY - no training needed)
+   - **Status:** ⏳ Ready to start
+   - **Partial Results:** 64 tests complete
+   - **Key findings so far:**
      - BDD10k→ACDC: 23.7% mIoU (best source dataset)
      - IDD-AW→ACDC: 13.8% mIoU 
      - gen_TSIT leads (+3.9% vs baseline at 21.4%)
      - SegFormer best model (24.0% on ACDC)
    - **Report:** [docs/ABLATION_STUDIES_ANALYSIS.md](docs/ABLATION_STUDIES_ANALYSIS.md)
 
-2. **Monitor Stage 2 MapillaryVistas Retraining**
-   - Current: 48/81 complete (59%)
-   - Monitor: `bjobs -u mima2416 | grep rt_map`
+### ✅ COMPLETED (Jan 24):
 
-3. **Run Stage 2 MapillaryVistas Tests** (as training completes)
-   - Script: `./scripts/run_stage2_mapillary_tests.sh`
+3. **Stage 2 MapillaryVistas Retraining** - ✅ Complete (81/81 by user chge7185)
+
+4. **Stage 2 MapillaryVistas Testing** - ✅ Complete (81/81)
+
+5. **Stage 1 & Stage 2 Leaderboards** - ✅ Generated
+
+6. **Stage Comparison Analysis** - ✅ 6 figures generated in `result_figures/stage_comparison/`
 
 ### Medium Priority
 
-4. **Ratio Ablation Testing** (141 checkpoints need testing)
-   - **Checkpoints:** 187 total, 46 tested
-   - **Tested results:**
-     - Lower ratios (0.00-0.25) slightly better
-     - gen_cycleGAN stable across ratios (41.1% avg)
-     - gen_cyclediffusion/gen_stargan_v2 degrade at higher ratios
-   - **Remaining:** gen_TSIT, gen_step1x_new, gen_step1x_v1p2
-   - **Priority datasets:** BDD10k (most validated)
+7. **Run Ablation Analysis Scripts** (after testing completes)
+   - `analysis_scripts/analyze_ratio_ablation.py` - Ratio study analysis
+   - `analysis_scripts/analyze_extended_training.py` - Extended training curves
+   - `analysis_scripts/visualize_ratio_ablation.py` - Generate figures
 
-5. **Extended Training Documentation** (Analysis Complete ✅)
-   - **Checkpoints:** 959 (9 strategies × 24 iterations × datasets)
-   - **Key finding:** 160k iterations = 75% of gains at 50% compute
-   - **Action:** Document convergence curves in paper
+8. **Top Strategy Ablation Gap** (OPTIONAL)
+   - gen_Attribute_Hallucination: No ratio/extended coverage
+   - gen_Img2Img: No ratio/extended coverage
+   - **Decision:** Only needed if paper requires deeper analysis of top performers
 
 ### Low Priority
 
-6. **Combination Strategies Analysis** (ALL TESTED ✅)
+9. **Combination Strategies Analysis** (ALL TESTED ✅)
    - **Checkpoints:** 53 (all IDD-AW)
    - **Key finding:** photometric_distort combos dominate (45.1% avg vs ~40% others)
    - **Best combo:** std_mixup + photometric_distort (45.2%)
    - **Action:** Analyze existing IDD-AW results
-   - **Future:** If results warrant, expand to BDD10k (most validated)
 
 ---
 
@@ -301,30 +442,50 @@ python analysis_scripts/generate_stage1_leaderboard.py
 | Study | Top Strategies Covered | Status |
 |-------|----------------------|--------|
 | **Ratio Ablation** | gen_cycleGAN, gen_stargan_v2, gen_cyclediffusion | ✅ Sufficient |
-| **Extended Training** | gen_cycleGAN, gen_cyclediffusion, gen_flux_kontext | ✅ Sufficient |
+| **Extended Training** | gen_cycleGAN, gen_cyclediffusion, gen_flux_kontext | 🔶 69% tested |
 | **Combinations** | Multiple gen_* + std_* | ✅ Sufficient (IDD-AW) |
-| **Domain Adaptation** | All 6 top strategies | ⏳ Ready (no training) |
+| **Domain Adaptation** | All 6 top strategies | 🔄 MV re-testing (32 jobs) |
 
 ### Recommendation: ZERO NEW TRAINING NEEDED
 - All ablation studies have sufficient coverage of top-performing strategies
 - Focus on **testing** and **analysis** of existing checkpoints
-- **Domain Adaptation is highest priority** (zero training cost, high value)
+- **Initial checkpoints (10k-80k)** - 192 tests remaining to complete learning curves
+- **Domain Adaptation MapillaryVistas** - 32 re-tests running after BGR/RGB bug fix
 
 ---
 
 ## Recently Completed
 
-7. **Extended Training Analysis Follow-up** (when chge7185 jobs complete)
-   - Analyze finer iteration granularity
-   - Update convergence curves
+### Jan 25, 2026 (01:30)
+- ✅ **Stage 1 Ratio Ablation Training Submitted** - 140 jobs for top 5 strategies
+  - Strategies: gen_Attribute_Hallucination, gen_cycleGAN, gen_Img2Img, gen_stargan_v2, gen_flux_kontext
+  - Configuration: 7 ratios × 2 models × 2 datasets = 28 jobs per strategy
+  - Status: 2 running, 118 pending
+- ✅ **Fixed ratio ablation submission script** - `scripts/submit_ratio_ablation_training.py`
+  - Fixed: `--output-dir` → `--work-dir` argument
+  - Fixed: LSF syntax for BatchGPU queue
+  - Added: `--preflight` option for checking existing weights
+- ✅ **Moved buggy gen_TSIT ratio ablation** to backup directory
+  - Bug: `CityscapesLabelIdToTrainId` incorrectly applied to BDD10k trainIds
+  - Location: `WEIGHTS_BACKUP_BUGGY_TSIT_RATIO_ABLATION/`
 
-8. **Augmentation Combination Training** (optional)
-   - Combine top std and gen strategies
-   - Script ready: `./scripts/submit_combination_training.sh`
+### Jan 24, 2026 (Evening Session - 22:10)
+- ✅ **Initial checkpoint tests (10k-80k)** - 269/392 complete (69%) for extended training curves
+- ✅ **Domain Adaptation MapillaryVistas cleanup** - Moved 28 buggy results to backup
+- ✅ **MapillaryVistas DA re-tests submitted** - 32 jobs using fixed models
+- ✅ **Fixed submit_initial_checkpoint_tests.py** - Now correctly detects timestamp-based result dirs
+- ✅ **Updated STUDY_COVERAGE_ANALYSIS.md** - Full ablation status documented
 
----
-
-## Recently Completed
+### Jan 24, 2026 (Earlier)
+- ✅ **Stage 1 & Stage 2 FULLY COMPLETE** - All 648 tests (324 + 324) finished
+- ✅ **Stage comparison analysis** - 6 figures generated in `result_figures/stage_comparison/`
+- ✅ **Stage 1 & Stage 2 Leaderboards** - Generated with full results
+- ✅ **Killed 80 duplicate jobs** - Work already completed by user chge7185
+- ✅ **MapillaryVistas Stage 2 retraining** - 81/81 complete (by user chge7185)
+- ✅ **Submitted ablation tests** - 180 jobs (141 ratio + 39 extended)
+- ✅ **Created ablation test scripts**:
+  - `scripts/submit_ablation_tests.py` - Ratio ablation tests
+  - `scripts/submit_extended_tests.py` - Extended training tests
 
 ### Jan 23, 2026
 - ✅ **Stage 1 Baseline Analysis (Publication)** - 4 figures + 4 tables
@@ -349,35 +510,8 @@ python analysis_scripts/generate_stage1_leaderboard.py
 - ✅ **Stage 1 MV retraining complete** (81/81)
 
 ### Jan 16, 2026
-
-### Directory Restructuring
 - ✅ **Created WEIGHTS_STAGE_2 directory** for Stage 2 (all_domains) training
 - ✅ **Moved all _ad directories** from WEIGHTS to WEIGHTS_STAGE_2 (62 directories)
 - ✅ **Removed _cd and _ad suffixes** from all dataset directories
 - ✅ **Updated scripts** for new directory structure
-- ✅ **Created separate tracker files**:
-  - `docs/TRAINING_TRACKER_STAGE1.md`
-  - `docs/TRAINING_TRACKER_STAGE2.md`
-
-### Bug Fixes (Morning)
-- ✅ **Fixed path naming issue** in `unified_training_config.py`
-  - Changed `dataset.lower().replace('-', '')` to `dataset.lower()` 
-  - Keeps hyphen in "idd-aw" for consistent folder naming
-
-### Data Migration (Earlier)
-- ✅ **Merged iddaw_cd folders** into idd-aw_cd
-  - 31 models moved/replaced across 11 strategies
-  - All iddaw_cd folders removed
-
-- ✅ **Moved test results** to correct location
-  - 28 test results moved from `results/` to `WEIGHTS/.../test_results_detailed/`
-  - Testing coverage jumped from 288 → 312 complete
-
-### Code Cleanup
-- ✅ **Updated tracker scripts**
-  - Removed iddaw fallback logic from `update_training_tracker.py`
-  - Updated Stage 2 to track all 3 models (DeepLabV3+, PSPNet, SegFormer)
-
-### Training
-- ✅ **gen_IP2P / IDD-AW / DeepLabV3+** - Job 9602408 (DONE)
 
