@@ -99,12 +99,116 @@ class RatioResult:
 class RatioAblationAnalyzer:
     """Analyzer for ratio ablation study results."""
     
+    # Dataset name normalization map
+    DATASET_ALIASES = {
+        'idd-aw': 'iddaw',
+        'IDD-AW': 'iddaw',
+        'bdd10k': 'bdd10k',
+        'BDD10k': 'bdd10k',
+        'outside15k': 'outside15k',
+        'OUTSIDE15k': 'outside15k',
+        'mapillaryvistas': 'mapillaryvistas',
+        'MapillaryVistas': 'mapillaryvistas',
+    }
+    
+    # Datasets to EXCLUDE from ratio comparison due to inconsistent configurations
+    # (e.g., MapillaryVistas uses different num_classes between WEIGHTS and WEIGHTS_RATIO_ABLATION)
+    INCONSISTENT_DATASETS = {'mapillaryvistas'}
+    
+    # Models that exist in the ratio ablation study (WEIGHTS_RATIO_ABLATION)
+    # deeplabv3plus_r50 only exists in WEIGHTS/ at ratio 0.5 and 1.0, not in ablation
+    CONSISTENT_MODELS = {'pspnet_r50', 'segformer_mit-b5'}
+    
+    # Strategies with stage mismatch: ratio ablation is stage 2 (all domains),
+    # but ratio 0.50 and 1.00 from WEIGHTS/ are stage 1 (clear_day only)
+    # These MUST be excluded from ratio comparison for valid apples-to-apples comparison
+    STAGE_MISMATCH_STRATEGIES = {'gen_step1x_new', 'gen_step1x_v1p2'}
+    
     def __init__(self, weights_root: str = DEFAULT_WEIGHTS_ROOT,
                  regular_weights_root: str = DEFAULT_REGULAR_WEIGHTS_ROOT):
         self.weights_root = Path(weights_root)
         self.regular_weights_root = Path(regular_weights_root)
         self.results: List[RatioResult] = []
         self.ratio_pattern = re.compile(r'_ratio(\d+)p(\d+)')
+    
+    def _normalize_dataset(self, dataset: str) -> str:
+        """Normalize dataset name for consistent comparison."""
+        return self.DATASET_ALIASES.get(dataset, dataset)
+    
+    def get_consistent_results(self) -> List[RatioResult]:
+        """Get results filtered to only include datasets and models with consistent configurations.
+        
+        Also excludes strategies with stage mismatch (e.g., step1x_* where ablation is stage 2
+        but ratio 0.50/1.00 are stage 1).
+        """
+        return [r for r in self.results 
+                if r.dataset not in self.INCONSISTENT_DATASETS 
+                and r.model in self.CONSISTENT_MODELS
+                and r.strategy not in self.STAGE_MISMATCH_STRATEGIES]
+    
+    def get_common_config_results(self) -> List[RatioResult]:
+        """Get results filtered to only include configurations that exist across ALL ratios.
+        
+        This ensures true apples-to-apples comparison by only including (strategy, dataset, model)
+        combinations that have results for every ratio value in the study.
+        """
+        # First filter by consistent datasets and models
+        consistent = self.get_consistent_results()
+        
+        # Group by ratio to find configs per ratio
+        from collections import defaultdict
+        ratio_configs: Dict[float, set] = defaultdict(set)
+        config_results: Dict[Tuple[float, str, str, str], RatioResult] = {}
+        
+        for result in consistent:
+            config = (result.strategy, result.dataset, result.model)
+            ratio_configs[result.ratio].add(config)
+            config_results[(result.ratio, result.strategy, result.dataset, result.model)] = result
+        
+        if not ratio_configs:
+            return []
+        
+        # Find intersection of all configs across all ratios
+        all_ratios = sorted(ratio_configs.keys())
+        common_configs = ratio_configs[all_ratios[0]].copy()
+        for ratio in all_ratios[1:]:
+            common_configs &= ratio_configs[ratio]
+        
+        # Return only results for common configs
+        common_results = []
+        for result in consistent:
+            config = (result.strategy, result.dataset, result.model)
+            if config in common_configs:
+                common_results.append(result)
+        
+        return common_results
+    
+    def get_globally_common_config_results(self) -> List[RatioResult]:
+        """Get results filtered to only include (dataset, model) pairs common to ALL strategies.
+        
+        This ensures truly fair comparison where the baseline (ratio 1.0) is the same
+        across all strategies, since they share the same (dataset, model) combinations.
+        """
+        # First get common configs per strategy
+        common = self.get_common_config_results()
+        
+        if not common:
+            return []
+        
+        # Group by strategy to find (dataset, model) pairs per strategy
+        from collections import defaultdict
+        strat_configs: Dict[str, set] = defaultdict(set)
+        for r in common:
+            strat_configs[r.strategy].add((r.dataset, r.model))
+        
+        # Find intersection of (dataset, model) across ALL strategies
+        strategies = list(strat_configs.keys())
+        global_common = strat_configs[strategies[0]].copy()
+        for strategy in strategies[1:]:
+            global_common &= strat_configs[strategy]
+        
+        # Filter to only results with globally common (dataset, model)
+        return [r for r in common if (r.dataset, r.model) in global_common]
         
     def scan_results(self, verbose: bool = False, include_regular: bool = True) -> int:
         """
@@ -112,7 +216,7 @@ class RatioAblationAnalyzer:
         
         Args:
             verbose: Print detailed progress information
-            include_regular: Also scan regular WEIGHTS folder for baseline (ratio=0)
+            include_regular: Also scan regular WEIGHTS folder for baseline (ratio=1.0 = 100% real)
                             and standard training (ratio=0.5)
         
         Returns:
@@ -143,7 +247,7 @@ class RatioAblationAnalyzer:
         else:
             print(f"Warning: Weights root not found: {self.weights_root}")
         
-        # Scan regular weights for baseline (ratio=0) and standard training (ratio=0.5)
+        # Scan regular weights for baseline (ratio=1.0) and standard training (ratio=0.5)
         if include_regular and self.regular_weights_root.exists():
             self._scan_regular_weights(verbose=verbose)
         
@@ -202,7 +306,7 @@ class RatioAblationAnalyzer:
                     result = self._find_latest_test_result(model_dir)
                     if result:
                         result.strategy = strategy
-                        result.dataset = dataset
+                        result.dataset = self._normalize_dataset(dataset)
                         result.model = base_model
                         result.ratio = ratio
                         result.stage = stage if stage else 0
@@ -210,32 +314,51 @@ class RatioAblationAnalyzer:
                         
                         if verbose:
                             stage_str = f" [Stage {stage}]" if stage else ""
-                            print(f"Found: {strategy}/{dataset}/{base_model} ratio={ratio:.3f} mIoU={result.miou:.2f}{stage_str}")
+                            print(f"Found: {strategy}/{result.dataset}/{base_model} ratio={ratio:.3f} mIoU={result.miou:.2f}{stage_str}")
         
         return len(self.results)
     
+    def _get_ablation_strategies(self) -> set:
+        """Get all strategies present in the ratio ablation directory."""
+        strategies = set()
+        for stage_dir in ['stage1', 'stage2']:
+            stage_path = self.weights_root / stage_dir
+            if stage_path.exists():
+                for strategy_dir in stage_path.iterdir():
+                    if strategy_dir.is_dir() and not strategy_dir.name.startswith('_'):
+                        strategies.add(strategy_dir.name)
+        # Also check flat structure (legacy)
+        if not (self.weights_root / 'stage1').exists() and not (self.weights_root / 'stage2').exists():
+            for strategy_dir in self.weights_root.iterdir():
+                if strategy_dir.is_dir() and strategy_dir.name.startswith('gen_'):
+                    strategies.add(strategy_dir.name)
+        return strategies
+
     def _scan_regular_weights(self, verbose: bool = False):
         """
         Scan regular WEIGHTS folder for baseline and standard training results.
         
-        - 'baseline' folder -> ratio=0.0 (no generated images, only real)
+        Ratio convention (real_gen_ratio = proportion of REAL images):
+        - 'baseline' folder -> ratio=1.0 (100% real images, 0% generated)
         - 'gen_*' folders -> ratio=0.5 (standard gen training with 50/50 split)
+          OR extracts ratio from model name suffix (e.g., _ratio0p50 -> 0.5)
         
-        Only scans for the top 5 strategies used in ratio ablation.
+        Scans all strategies present in WEIGHTS_RATIO_ABLATION, not just TOP_5.
         """
+        # Get all strategies from the ablation study
+        ablation_strategies = self._get_ablation_strategies()
+        if verbose:
+            print(f"Strategies in ablation study: {sorted(ablation_strategies)}")
+        
         for strategy_dir in sorted(self.regular_weights_root.iterdir()):
             if not strategy_dir.is_dir():
                 continue
             
             strategy = strategy_dir.name
             
-            # Determine ratio based on strategy type
-            if strategy == 'baseline':
-                ratio = 0.0
-            elif strategy in TOP_5_STRATEGIES:
-                ratio = 0.5  # Standard gen training is 50/50
-            else:
-                continue  # Skip strategies not in our ablation study
+            # Skip strategies not in our ablation study (except baseline)
+            if strategy != 'baseline' and strategy not in ablation_strategies:
+                continue
             
             for dataset_dir in sorted(strategy_dir.iterdir()):
                 if not dataset_dir.is_dir():
@@ -249,23 +372,37 @@ class RatioAblationAnalyzer:
                     
                     model_name = model_dir.name
                     
+                    # Extract ratio from model name if present
+                    extracted_ratio = self._extract_ratio(model_name)
+                    if extracted_ratio is not None:
+                        ratio = extracted_ratio
+                        base_model = self.ratio_pattern.sub('', model_name)
+                    else:
+                        # Default ratio based on strategy type
+                        if strategy == 'baseline':
+                            ratio = 1.0  # Baseline = 100% real
+                        else:
+                            ratio = 0.5  # Standard gen training = 50/50
+                        base_model = model_name
+                    
+                    # Normalize dataset name
+                    normalized_dataset = self._normalize_dataset(dataset)
+                    
                     # Look for test results
                     result = self._find_latest_test_result(model_dir)
                     if result:
-                        result.strategy = strategy if strategy != 'baseline' else 'baseline'
-                        result.dataset = dataset
-                        result.model = model_name
+                        result.dataset = normalized_dataset
+                        result.model = base_model
                         result.ratio = ratio
                         
-                        # Only add baseline results for the gen strategies we're studying
                         if strategy == 'baseline':
-                            # Add a result entry for each gen strategy (as their baseline)
-                            for gen_strategy in TOP_5_STRATEGIES:
+                            # Add baseline result for each gen strategy in the ablation study
+                            for gen_strategy in ablation_strategies:
                                 baseline_result = RatioResult(
                                     strategy=gen_strategy,
-                                    dataset=dataset,
-                                    model=model_name,
-                                    ratio=0.0,  # No generated images
+                                    dataset=normalized_dataset,
+                                    model=base_model,
+                                    ratio=1.0,  # 100% real images (baseline)
                                     miou=result.miou,
                                     macc=result.macc,
                                     aacc=result.aacc,
@@ -276,12 +413,13 @@ class RatioAblationAnalyzer:
                                 self.results.append(baseline_result)
                                 
                                 if verbose:
-                                    print(f"Found baseline for {gen_strategy}/{dataset}/{model_name} ratio=0.0 mIoU={result.miou:.2f}")
+                                    print(f"Found baseline for {gen_strategy}/{normalized_dataset}/{base_model} ratio=1.0 mIoU={result.miou:.2f}")
                         else:
+                            result.strategy = strategy
                             self.results.append(result)
                             
                             if verbose:
-                                print(f"Found: {strategy}/{dataset}/{model_name} ratio=0.5 mIoU={result.miou:.2f}")
+                                print(f"Found: {strategy}/{normalized_dataset}/{base_model} ratio={ratio:.2f} mIoU={result.miou:.2f}")
     
     def _extract_ratio(self, model_name: str) -> Optional[float]:
         """Extract ratio value from model directory name."""
@@ -294,19 +432,23 @@ class RatioAblationAnalyzer:
     
     def _find_latest_test_result(self, model_dir: Path) -> Optional[RatioResult]:
         """Find the latest test result in a model directory."""
-        # Pattern 1: test_results_detailed/TIMESTAMP/results.json (fine_grained_test.py)
-        test_detailed_dir = model_dir / "test_results_detailed"
-        if test_detailed_dir.exists():
-            result = self._find_result_in_timestamped_dir(test_detailed_dir)
-            if result:
-                return result
-        
-        # Pattern 2: test_results/test/TIMESTAMP/TIMESTAMP.json (MMEngine)
-        test_dir = model_dir / "test_results" / "test"
-        if test_dir.exists():
-            result = self._find_result_in_timestamped_dir(test_dir, mmengine_format=True)
-            if result:
-                return result
+        try:
+            # Pattern 1: test_results_detailed/TIMESTAMP/results.json (fine_grained_test.py)
+            test_detailed_dir = model_dir / "test_results_detailed"
+            if test_detailed_dir.exists():
+                result = self._find_result_in_timestamped_dir(test_detailed_dir)
+                if result:
+                    return result
+            
+            # Pattern 2: test_results/test/TIMESTAMP/TIMESTAMP.json (MMEngine)
+            test_dir = model_dir / "test_results" / "test"
+            if test_dir.exists():
+                result = self._find_result_in_timestamped_dir(test_dir, mmengine_format=True)
+                if result:
+                    return result
+        except PermissionError:
+            # Skip directories we don't have permission to read
+            pass
         
         return None
     
@@ -383,11 +525,29 @@ class RatioAblationAnalyzer:
                 pass
         return 0
     
-    def get_summary_by_ratio(self) -> Dict[float, Dict[str, float]]:
-        """Get average metrics for each ratio value."""
+    def get_summary_by_ratio(self, consistent_only: bool = True, common_only: bool = True, 
+                              globally_common: bool = False) -> Dict[float, Dict[str, float]]:
+        """Get average metrics for each ratio value.
+        
+        Args:
+            consistent_only: If True, exclude datasets with inconsistent configurations
+                           (e.g., MapillaryVistas with different num_classes)
+            common_only: If True, only include configurations present across ALL ratios
+            globally_common: If True, only include (dataset, model) pairs common to ALL strategies
+                           (ensures baseline is identical across strategies)
+        """
+        if globally_common:
+            results = self.get_globally_common_config_results()
+        elif common_only:
+            results = self.get_common_config_results()
+        elif consistent_only:
+            results = self.get_consistent_results()
+        else:
+            results = self.results
+            
         ratio_metrics = defaultdict(lambda: {'miou': [], 'macc': [], 'aacc': [], 'fwiou': []})
         
-        for result in self.results:
+        for result in results:
             ratio_metrics[result.ratio]['miou'].append(result.miou)
             ratio_metrics[result.ratio]['macc'].append(result.macc)
             ratio_metrics[result.ratio]['aacc'].append(result.aacc)
@@ -405,11 +565,22 @@ class RatioAblationAnalyzer:
         
         return summary
     
-    def get_summary_by_strategy(self) -> Dict[str, Dict[float, float]]:
-        """Get mIoU for each strategy at each ratio."""
+    def get_summary_by_strategy(self, consistent_only: bool = True, common_only: bool = True) -> Dict[str, Dict[float, float]]:
+        """Get mIoU for each strategy at each ratio.
+        
+        Args:
+            consistent_only: If True, exclude datasets with inconsistent configurations
+            common_only: If True, only include configurations present across ALL ratios
+        """
+        if common_only:
+            results = self.get_common_config_results()
+        elif consistent_only:
+            results = self.get_consistent_results()
+        else:
+            results = self.results
         strategy_ratios = defaultdict(lambda: defaultdict(list))
         
-        for result in self.results:
+        for result in results:
             strategy_ratios[result.strategy][result.ratio].append(result.miou)
         
         summary = {}
@@ -420,11 +591,16 @@ class RatioAblationAnalyzer:
         
         return summary
     
-    def get_optimal_ratios(self) -> Dict[Tuple[str, str, str], Tuple[float, float]]:
-        """Find optimal ratio for each strategy/dataset/model combination."""
+    def get_optimal_ratios(self, consistent_only: bool = True) -> Dict[Tuple[str, str, str], Tuple[float, float]]:
+        """Find optimal ratio for each strategy/dataset/model combination.
+        
+        Args:
+            consistent_only: If True, exclude datasets with inconsistent configurations
+        """
+        results = self.get_consistent_results() if consistent_only else self.results
         config_results = defaultdict(list)
         
-        for result in self.results:
+        for result in results:
             key = (result.strategy, result.dataset, result.model)
             config_results[key].append((result.ratio, result.miou))
         
@@ -451,10 +627,20 @@ class RatioAblationAnalyzer:
         print(f"\nWeights Root: {self.weights_root}")
         print(f"Total Results: {len(self.results)}")
         
-        # Summary by ratio
-        ratio_summary = self.get_summary_by_ratio()
+        # Note about consistent results
+        consistent_results = self.get_consistent_results()
+        common_results = self.get_common_config_results()
+        print(f"Consistent Results: {len(consistent_results)} (excluding {self.INCONSISTENT_DATASETS} and models not in {self.CONSISTENT_MODELS})")
+        print(f"Common Config Results: {len(common_results)} (configs present across ALL ratios)")
+        
+        # Calculate common configs count
+        configs_per_ratio = len(common_results) // len(set(r.ratio for r in common_results)) if common_results else 0
+        print(f"Common Configurations: {configs_per_ratio} (strategy, dataset, model) tuples")
+        
+        # Summary by ratio (using common configs only)
+        ratio_summary = self.get_summary_by_ratio(common_only=True)
         print("\n" + "-" * 50)
-        print("Average Metrics by Ratio")
+        print("Average Metrics by Ratio (Common Configs Only)")
         print("-" * 50)
         
         if HAS_TABULATE:
@@ -557,14 +743,14 @@ def main():
     parser.add_argument('--weights-root', type=str, default=DEFAULT_WEIGHTS_ROOT,
                        help=f'Weights root directory (default: {DEFAULT_WEIGHTS_ROOT})')
     parser.add_argument('--regular-weights-root', type=str, default=DEFAULT_REGULAR_WEIGHTS_ROOT,
-                       help=f'Regular weights root for baseline/0.5 results (default: {DEFAULT_REGULAR_WEIGHTS_ROOT})')
+                       help=f'Regular weights root for baseline (ratio 1.0) and standard (ratio 0.5) results (default: {DEFAULT_REGULAR_WEIGHTS_ROOT})')
     parser.add_argument('--output', type=str, help='Output file path')
     parser.add_argument('--format', choices=['csv', 'json'], default='csv',
                        help='Output format (default: csv)')
     parser.add_argument('--detailed', action='store_true',
                        help='Show detailed breakdown')
     parser.add_argument('--no-regular', action='store_true',
-                       help='Do not include baseline/standard (ratio 0/0.5) from regular WEIGHTS folder')
+                       help='Do not include baseline/standard (ratio 1.0/0.5) from regular WEIGHTS folder')
     parser.add_argument('--verbose', action='store_true',
                        help='Verbose output during scanning')
     
