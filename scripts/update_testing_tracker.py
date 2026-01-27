@@ -7,8 +7,9 @@ or test_results_detailed_fixed/*/results.json for backward compatibility)
 to get the latest mIoU values without needing to run the test_result_analyzer first.
 
 Usage:
-    python scripts/update_testing_tracker.py
-    python scripts/update_testing_tracker.py --verbose   # Show all status details
+    python scripts/update_testing_tracker.py              # Stage 1 (default)
+    python scripts/update_testing_tracker.py --stage 2    # Stage 2
+    python scripts/update_testing_tracker.py --verbose    # Show all status details
 """
 
 import os
@@ -93,7 +94,11 @@ def safe_exists(path):
 SCRIPT_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = SCRIPT_DIR.parent
 WEIGHTS_ROOT = Path(os.environ.get('PROVE_WEIGHTS_ROOT', '/scratch/aaa_exchange/AWARE/WEIGHTS'))
+WEIGHTS_ROOT_STAGE2 = Path(os.environ.get('PROVE_WEIGHTS_ROOT_STAGE2', '/scratch/aaa_exchange/AWARE/WEIGHTS_STAGE_2'))
 TRACKER_PATH = PROJECT_ROOT / 'docs' / 'TESTING_TRACKER.md'
+TRACKER_PATH_STAGE2 = PROJECT_ROOT / 'docs' / 'TESTING_TRACKER_STAGE2.md'
+COVERAGE_PATH = PROJECT_ROOT / 'docs' / 'TESTING_COVERAGE.md'
+COVERAGE_PATH_STAGE2 = PROJECT_ROOT / 'docs' / 'TESTING_COVERAGE_STAGE2.md'
 TEST_RESULTS_CSV = PROJECT_ROOT / 'test_results_summary.csv'
 
 DATASETS = ['bdd10k', 'idd-aw', 'mapillaryvistas', 'outside15k']
@@ -778,7 +783,7 @@ def job_matches_config(job_name, strategy, dataset, model):
     if (short_strategy in job_lower and 
         short_dataset in job_lower and 
         short_model in job_lower and
-        ('fg_' in job_lower or 'fgt_' in job_lower or 'test_' in job_lower)):
+        ('fg_' in job_lower or 'fg2_' in job_lower or 'test_' in job_lower)):
         return True
     
     return False
@@ -806,7 +811,7 @@ def get_per_model_test_status():
             parts = line.split()
             if len(parts) >= 2:
                 job_name, stat = parts[0], parts[1]
-                if 'fg_' in job_name or 'fgt_' in job_name or 'retest' in job_name:
+                if 'fg_' in job_name or 'fg2_' in job_name or 'retest' in job_name:
                     if stat == 'RUN':
                         running_jobs.add(job_name.lower())
                     elif stat == 'PEND':
@@ -902,6 +907,24 @@ def get_per_model_test_status():
                 try:
                     with open(results_json) as f:
                         data = json.load(f)
+                    
+                    # Check if checkpoint_path matches the expected weights root (Stage verification)
+                    config = data.get('config', {})
+                    checkpoint_path = config.get('checkpoint_path', '')
+                    weights_root_str = str(WEIGHTS_ROOT)
+                    
+                    # For Stage 2, checkpoint should point to WEIGHTS_STAGE_2
+                    # For Stage 1, checkpoint should point to WEIGHTS (not WEIGHTS_STAGE_2)
+                    if checkpoint_path and weights_root_str not in checkpoint_path:
+                        # Stale test - checkpoint doesn't match current stage
+                        results[(strategy, dataset, model)] = {
+                            'status': 'stale',
+                            'miou': data.get('overall', {}).get('mIoU'),
+                            'is_valid': False,
+                            'checkpoint_path': checkpoint_path
+                        }
+                        continue
+                    
                     miou = data.get('overall', {}).get('mIoU')
                     
                     if miou is None or miou < 5:  # Buggy test threshold
@@ -937,9 +960,16 @@ def get_per_model_test_status():
     return results
 
 
-def generate_testing_coverage():
-    """Generate detailed TESTING_COVERAGE.md report."""
+def generate_testing_coverage(coverage_path=None):
+    """Generate detailed TESTING_COVERAGE.md report.
+    
+    Args:
+        coverage_path: Path to write coverage report. Defaults to COVERAGE_PATH.
+    """
     from datetime import datetime
+    
+    if coverage_path is None:
+        coverage_path = COVERAGE_PATH
     
     per_model_status = get_per_model_test_status()
     
@@ -950,16 +980,18 @@ def generate_testing_coverage():
     total_buggy = 0
     total_missing = 0
     total_no_weights = 0
+    total_stale = 0
     
     per_dataset_stats = {ds: {
         'complete': 0, 'running': 0, 'pending': 0, 
-        'buggy': 0, 'missing': 0, 'no_weights': 0, 'total': 0
+        'buggy': 0, 'missing': 0, 'no_weights': 0, 'stale': 0, 'total': 0
     } for ds in DATASETS}
     
     running_configs = []
     pending_configs = []
     buggy_configs = []
     missing_configs = []
+    stale_configs = []
     
     for (strategy, dataset, model), info in per_model_status.items():
         # Skip non-standard models (ratio ablation, backups)
@@ -988,6 +1020,10 @@ def generate_testing_coverage():
             total_buggy += 1
             per_dataset_stats[dataset]['buggy'] += 1
             buggy_configs.append((strategy, dataset, model, miou))
+        elif status == 'stale':
+            total_stale += 1
+            per_dataset_stats[dataset]['stale'] += 1
+            stale_configs.append((strategy, dataset, model, info.get('checkpoint_path', 'unknown')))
         elif status == 'no_weights':
             total_no_weights += 1
             per_dataset_stats[dataset]['no_weights'] += 1
@@ -996,7 +1032,7 @@ def generate_testing_coverage():
             per_dataset_stats[dataset]['missing'] += 1
             missing_configs.append((strategy, dataset, model, status))
     
-    total = total_complete + total_running + total_pending + total_buggy + total_missing
+    total = total_complete + total_running + total_pending + total_buggy + total_missing + total_stale
     
     # Generate markdown
     lines = []
@@ -1015,6 +1051,7 @@ def generate_testing_coverage():
         lines.append(f"| 🔄 Running | {total_running} | {100*total_running/total:.1f}% |")
         lines.append(f"| ⏳ Pending (in queue) | {total_pending} | {100*total_pending/total:.1f}% |")
         lines.append(f"| ⚠️ Buggy (mIoU < 5%) | {total_buggy} | {100*total_buggy/total:.1f}% |")
+        lines.append(f"| 🔃 Stale (wrong checkpoint) | {total_stale} | {100*total_stale/total:.1f}% |")
         lines.append(f"| ❌ Missing (no results) | {total_missing} | {100*total_missing/total:.1f}% |")
         lines.append(f"| **Total** | **{total}** | **100%** |")
     else:
@@ -1089,6 +1126,30 @@ def generate_testing_coverage():
         lines.append("*No buggy configurations - all tests have valid mIoU.*")
     lines.append("")
     
+    # Stale configurations (tested with wrong checkpoint)
+    lines.append("## Stale Configurations (need retesting)")
+    lines.append("")
+    if stale_configs:
+        lines.append("These tests were run against checkpoints from a **different stage**. They need to be re-run against the correct checkpoints.")
+        lines.append("")
+        lines.append("| Strategy | Dataset | Model | Checkpoint Used |")
+        lines.append("|----------|---------|-------|-----------------|")
+        for strategy, dataset, model, ckpt_path in sorted(stale_configs)[:50]:
+            model_display = MODEL_DISPLAY.get(model.replace('_ratio0p50', ''), model)
+            # Shorten checkpoint path for display
+            if 'WEIGHTS_STAGE_2' in ckpt_path:
+                ckpt_short = "Stage 2 ✅"
+            elif 'WEIGHTS/' in ckpt_path:
+                ckpt_short = "Stage 1 ⚠️"
+            else:
+                ckpt_short = ckpt_path[-50:] if len(ckpt_path) > 50 else ckpt_path
+            lines.append(f"| {strategy} | {dataset} | {model_display} | {ckpt_short} |")
+        if len(stale_configs) > 50:
+            lines.append(f"| ... | ... | ... | ({len(stale_configs)-50} more) |")
+    else:
+        lines.append("*No stale configurations - all tests use correct checkpoints.*")
+    lines.append("")
+    
     # Missing configurations
     lines.append("## Missing Configurations (no test results)")
     lines.append("")
@@ -1139,8 +1200,7 @@ def generate_testing_coverage():
     
     lines.append("")
     
-    # Write to file
-    coverage_path = PROJECT_ROOT / 'docs' / 'TESTING_COVERAGE.md'
+    # Write to file using the passed coverage_path
     content = '\n'.join(lines)
     coverage_path.write_text(content)
     print(f"Coverage report updated: {coverage_path}")
@@ -1150,6 +1210,7 @@ def generate_testing_coverage():
         'running': total_running,
         'pending': total_pending,
         'buggy': total_buggy,
+        'stale': total_stale,
         'missing': total_missing,
         'total': total
     }
@@ -1160,18 +1221,39 @@ def main():
     parser = argparse.ArgumentParser(description='Update testing progress tracker')
     parser.add_argument('--verbose', '-v', action='store_true', help='Show detailed status')
     parser.add_argument('--coverage-only', action='store_true', help='Only generate TESTING_COVERAGE.md')
+    parser.add_argument('--stage', type=int, choices=[1, 2], default=1,
+                       help='Stage to check (1=clear_day training, 2=all_domains training)')
     args = parser.parse_args()
     
-    print("Collecting test status...")
+    # Declare global variables at the start of the function
+    global WEIGHTS_ROOT, TRACKER_PATH
+    
+    # Select paths based on stage
+    if args.stage == 2:
+        weights_root = WEIGHTS_ROOT_STAGE2
+        tracker_path = TRACKER_PATH_STAGE2
+        coverage_path = COVERAGE_PATH_STAGE2
+        print(f"Stage 2 mode: Using {weights_root}")
+    else:
+        weights_root = WEIGHTS_ROOT
+        tracker_path = TRACKER_PATH
+        coverage_path = COVERAGE_PATH
+        print(f"Stage 1 mode: Using {weights_root}")
+    
+    # Override global variables for functions that use them
+    WEIGHTS_ROOT = weights_root
+    TRACKER_PATH = tracker_path
+    
+    print("\nCollecting test status...")
     status_matrix, summary, retest_jobs, job_counts = collect_test_status(verbose=args.verbose)
     
     if not args.coverage_only:
-        print("\nUpdating TESTING_TRACKER.md...")
+        print(f"\nUpdating {tracker_path.name}...")
         update_tracker(status_matrix, summary, retest_jobs, job_counts)
     
     # Generate detailed coverage report
-    print("\nGenerating TESTING_COVERAGE.md...")
-    coverage_stats = generate_testing_coverage()
+    print(f"\nGenerating {coverage_path.name}...")
+    coverage_stats = generate_testing_coverage(coverage_path=coverage_path)
     
     # Print summary
     print("\n" + "=" * 60)
@@ -1182,6 +1264,7 @@ def main():
     print(f"🔄 Running: {coverage_stats['running']}")
     print(f"⏳ Pending: {coverage_stats['pending']}")
     print(f"⚠️ Buggy (mIoU < 5%): {coverage_stats['buggy']}")
+    print(f"🔃 Stale (wrong checkpoint): {coverage_stats['stale']}")
     print(f"❌ Missing: {coverage_stats['missing']}")
     print(f"\nTotal: {coverage_stats['total']}")
     

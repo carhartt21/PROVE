@@ -122,7 +122,7 @@ if [ "$NO_NATIVE_CLASSES" = true ]; then
 fi
 
 # Full command with environment setup
-FULL_CMD="source ~/.bashrc && conda activate prove && ${TRAIN_CMD}"
+FULL_CMD="source ~/.bashrc && mamba activate prove && ${TRAIN_CMD}"
 
 # Show what will be run
 echo "=== Training Job Submission ==="

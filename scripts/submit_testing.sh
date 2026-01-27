@@ -30,9 +30,9 @@ QUEUE="BatchGPU"
 GPU_MEM="24G"
 GPU_MODE="shared"
 NUM_CPUS=10
-WALL_TIME="0:30"
-BATCH_SIZE=8
-TEST_SPLIT="val"
+WALL_TIME="4:00" 
+BATCH_SIZE=16
+TEST_SPLIT="test"
 DRY_RUN=false
 
 # Parse arguments
@@ -64,7 +64,7 @@ while [[ $# -gt 0 ]]; do
             echo "  --config PATH         Path to config file (auto-detected if not specified)"
             echo "  --output-dir PATH     Output directory (auto-generated if not specified)"
             echo "  --batch-size N        Batch size for inference (default: 8)"
-            echo "  --test-split SPLIT    Test split: val or test (default: val)"
+            echo "  --test-split SPLIT    Test split: val or test (default: test)"
             echo "  --queue QUEUE         LSF queue (default: BatchGPU)"
             echo "  --gpu-mem SIZE        GPU memory (default: 24G)"
             echo "  --num-cpus N          Number of CPUs (default: 10)"
@@ -127,16 +127,10 @@ fi
 
 # Auto-generate output directory if not specified
 if [ -z "$OUTPUT_DIR" ]; then
-    # Extract path components from checkpoint path
-    # e.g., /path/to/WEIGHTS/strategy/dataset/model/iter_80000.pth
+    # Save results directly to the model's weights directory
+    # e.g., /path/to/WEIGHTS/strategy/dataset/model/test_results_detailed
     CKPT_DIR=$(dirname "$CHECKPOINT")
-    MODEL_NAME=$(basename "$CKPT_DIR")
-    DATASET_DIR=$(dirname "$CKPT_DIR")
-    DATASET_NAME=$(basename "$DATASET_DIR")
-    STRATEGY_DIR=$(dirname "$DATASET_DIR")
-    STRATEGY_NAME=$(basename "$STRATEGY_DIR")
-    
-    OUTPUT_DIR="results/${STRATEGY_NAME}/${DATASET_NAME}/${MODEL_NAME}"
+    OUTPUT_DIR="${CKPT_DIR}/test_results_detailed"
 fi
 
 # Create log directory
@@ -181,8 +175,8 @@ else
          -gpu "num=1:mode=${GPU_MODE}:gmem=${GPU_MEM}" \
          -n "${NUM_CPUS}" \
          -W "${WALL_TIME}" \
-         -o "${LOG_DIR}/${JOB_NAME}.log" \
-         -e "${LOG_DIR}/${JOB_NAME}.err" \
+         -o "${LOG_DIR}/${JOB_NAME}_%J.log" \
+         -e "${LOG_DIR}/${JOB_NAME}_%J.err" \
          "${FULL_CMD}"
     echo "Job submitted!"
 fi
