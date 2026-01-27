@@ -565,14 +565,19 @@ class RatioAblationAnalyzer:
         
         return summary
     
-    def get_summary_by_strategy(self, consistent_only: bool = True, common_only: bool = True) -> Dict[str, Dict[float, float]]:
+    def get_summary_by_strategy(self, consistent_only: bool = True, common_only: bool = True,
+                                 globally_common: bool = False) -> Dict[str, Dict[float, float]]:
         """Get mIoU for each strategy at each ratio.
         
         Args:
             consistent_only: If True, exclude datasets with inconsistent configurations
             common_only: If True, only include configurations present across ALL ratios
+            globally_common: If True, only include (dataset, model) pairs common to ALL strategies
+                           (ensures baseline is identical across strategies)
         """
-        if common_only:
+        if globally_common:
+            results = self.get_globally_common_config_results()
+        elif common_only:
             results = self.get_common_config_results()
         elif consistent_only:
             results = self.get_consistent_results()
@@ -630,17 +635,21 @@ class RatioAblationAnalyzer:
         # Note about consistent results
         consistent_results = self.get_consistent_results()
         common_results = self.get_common_config_results()
-        print(f"Consistent Results: {len(consistent_results)} (excluding {self.INCONSISTENT_DATASETS} and models not in {self.CONSISTENT_MODELS})")
+        global_common_results = self.get_globally_common_config_results()
+        print(f"Consistent Results: {len(consistent_results)} (excluding {self.INCONSISTENT_DATASETS}, models not in {self.CONSISTENT_MODELS}, and {self.STAGE_MISMATCH_STRATEGIES})")
         print(f"Common Config Results: {len(common_results)} (configs present across ALL ratios)")
+        print(f"Globally Common Results: {len(global_common_results)} (same (dataset,model) across ALL strategies)")
         
         # Calculate common configs count
         configs_per_ratio = len(common_results) // len(set(r.ratio for r in common_results)) if common_results else 0
+        global_configs_per_ratio = len(global_common_results) // len(set(r.ratio for r in global_common_results)) if global_common_results else 0
         print(f"Common Configurations: {configs_per_ratio} (strategy, dataset, model) tuples")
+        print(f"Globally Common: {global_configs_per_ratio // 6} (dataset, model) pairs × 6 strategies")
         
-        # Summary by ratio (using common configs only)
-        ratio_summary = self.get_summary_by_ratio(common_only=True)
+        # Summary by ratio (using globally common configs)
+        ratio_summary = self.get_summary_by_ratio(globally_common=True)
         print("\n" + "-" * 50)
-        print("Average Metrics by Ratio (Common Configs Only)")
+        print("Average Metrics by Ratio (Globally Common Configs)")
         print("-" * 50)
         
         if HAS_TABULATE:
@@ -670,9 +679,9 @@ class RatioAblationAnalyzer:
             print(f"\nBest Overall Ratio: {best_ratio[0]:.3f} (mIoU: {best_ratio[1]['mIoU']:.2f})")
         
         # Summary by strategy
-        strategy_summary = self.get_summary_by_strategy()
+        strategy_summary = self.get_summary_by_strategy(globally_common=True)
         print("\n" + "-" * 50)
-        print("mIoU by Strategy and Ratio")
+        print("mIoU by Strategy and Ratio (Globally Common)")
         print("-" * 50)
         
         if HAS_TABULATE and strategy_summary:

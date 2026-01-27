@@ -115,8 +115,9 @@ class RatioAblationVisualizer:
         """
         Line plot showing mIoU vs ratio for each strategy.
         Aggregated across all datasets and models.
+        Uses globally common configs to ensure fair comparison with identical baseline.
         """
-        strategy_summary = self.analyzer.get_summary_by_strategy()
+        strategy_summary = self.analyzer.get_summary_by_strategy(globally_common=True)
         
         if not strategy_summary:
             print("No data for mIoU vs ratio plot")
@@ -134,7 +135,7 @@ class RatioAblationVisualizer:
         
         ax.set_xlabel('Real/Generated Ratio', fontsize=12)
         ax.set_ylabel('Mean IoU (%)', fontsize=12)
-        ax.set_title('mIoU vs Real/Generated Ratio by Strategy', fontsize=14, fontweight='bold')
+        ax.set_title('mIoU vs Real/Generated Ratio by Strategy\n(Globally Common Configs)', fontsize=14, fontweight='bold')
         ax.legend(loc='best', fontsize=10)
         ax.set_xticks(RATIOS)
         ax.set_xlim(-0.05, 1.05)
@@ -145,8 +146,9 @@ class RatioAblationVisualizer:
     def plot_heatmap_strategy_ratio(self):
         """
         Heatmap showing mIoU for each strategy-ratio combination.
+        Uses globally common configs to ensure baseline is identical across strategies.
         """
-        strategy_summary = self.analyzer.get_summary_by_strategy()
+        strategy_summary = self.analyzer.get_summary_by_strategy(globally_common=True)
         
         if not strategy_summary:
             print("No data for heatmap")
@@ -392,12 +394,13 @@ class RatioAblationVisualizer:
     def plot_summary_dashboard(self):
         """
         Create a comprehensive dashboard with multiple plots.
+        Uses globally common configs for fair comparison.
         """
         fig = plt.figure(figsize=(20, 15))
         gs = GridSpec(3, 3, figure=fig, hspace=0.3, wspace=0.3)
         
-        strategy_summary = self.analyzer.get_summary_by_strategy()
-        ratio_summary = self.analyzer.get_summary_by_ratio()
+        strategy_summary = self.analyzer.get_summary_by_strategy(globally_common=True)
+        ratio_summary = self.analyzer.get_summary_by_ratio(globally_common=True)
         
         # 1. mIoU vs Ratio (main plot)
         ax1 = fig.add_subplot(gs[0, :2])
@@ -409,7 +412,7 @@ class RatioAblationVisualizer:
             ax1.plot(x, y, 'o-', label=strategy, color=color, markersize=6, linewidth=2)
         ax1.set_xlabel('Ratio')
         ax1.set_ylabel('mIoU (%)')
-        ax1.set_title('mIoU vs Ratio by Strategy', fontweight='bold')
+        ax1.set_title('mIoU vs Ratio by Strategy (Globally Common)', fontweight='bold')
         ax1.legend(loc='best', fontsize=8)
         ax1.grid(True, alpha=0.3)
         
