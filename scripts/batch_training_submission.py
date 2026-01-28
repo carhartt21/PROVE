@@ -131,9 +131,8 @@ class LSFConfig:
     """LSF job configuration"""
     queue: str = 'BatchGPU'
     time_limit: str = '24:00'
-    memory: str = '48G'
+    memory: int = 48000  # Memory in MB
     gpu_count: int = 8
-    gpu_memory: str = '24G'
 
 
 # ============================================================================
@@ -366,9 +365,7 @@ def generate_job_script(job: TrainingJob, lsf_config: LSFConfig) -> str:
 #BSUB -o {work_dir}/train_%J.out
 #BSUB -e {work_dir}/train_%J.err
 #BSUB -n {lsf_config.gpu_count}
-#BSUB -R "rusage[mem={lsf_config.memory}]"
-#BSUB -R "span[hosts=1]"
-#BSUB -gpu "num=1:mode=exclusive_process:gmem={lsf_config.gpu_memory}"
+#BSUB -gpu "num=1"
 #BSUB -W {lsf_config.time_limit}
 
 # ============================================================================
@@ -626,8 +623,8 @@ Examples:
                        help='LSF queue (default: BatchGPU)')
     parser.add_argument('--time-limit', default='24:00',
                        help='Job time limit (default: 24:00)')
-    parser.add_argument('--memory', default='48G',
-                       help='Memory per process (default: 48G)')
+    parser.add_argument('--memory', type=int, default=48000,
+                       help='Memory per process in MB (default: 48000)')
     
     # Execution options
     parser.add_argument('--dry-run', action='store_true',
