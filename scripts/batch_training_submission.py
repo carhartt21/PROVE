@@ -354,8 +354,8 @@ def generate_job_script(job: TrainingJob, lsf_config: LSFConfig) -> str:
         cmd_parts.extend(['--real-gen-ratio', str(job.ratio)])
     
     # Dataset-specific flags
-    if job.dataset in ['MapillaryVistas', 'OUTSIDE15k']:
-        cmd_parts.append('--use-native-classes')
+    # if job.dataset in ['MapillaryVistas', 'OUTSIDE15k']:
+    #     cmd_parts.append('--use-native-classes')
     
     training_cmd = ' '.join(cmd_parts)
     
