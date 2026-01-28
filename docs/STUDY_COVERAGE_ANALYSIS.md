@@ -19,7 +19,7 @@
 |----------|--------|-------|
 | `baseline` results | ✅ **VALID** | No generated images expected |
 | `std_*` strategy results | ✅ **VALID** | Use pipeline augmentation, not generative |
-| `photometric_distort` results | ✅ **VALID** | Pipeline augmentation only |
+| `std_photometric_distort` results | ✅ **VALID** | Pipeline augmentation only |
 | `gen_*` strategy results | ❌ **INVALID** | Generated images never loaded |
 | Ratio ablation results | ❌ **INVALID** | Ratio parameter had no effect |
 | gen_* vs baseline comparisons | ❌ **INVALID** | Compared PhotoMetricDistortion, not generative |
@@ -38,7 +38,7 @@ This document provides comprehensive coverage analysis and key findings from the
 | **Stage 2** | Gains compress when training includes all domains | gen_stargan_v2 | ❌ INVALID |
 | **Ratio Ablation** | Optimal synthetic ratio is 12–38% | 0.75 ratio (25% gen) | ❌ INVALID |
 | **Extended Training** | 77% configs benefit; baseline overfits | gen_cyclediffusion | ⚠️ Baseline only valid |
-| **Combinations** | photometric_distort combos dominate | std_mixup+photo | ⚠️ Partially valid |
+| **Combinations** | std_photometric_distort combos dominate | std_mixup+photo | ⚠️ Partially valid |
 | **Domain Adaptation** | ALL 15/15 strategies beat baseline | gen_stargan_v2 | ❌ INVALID |
 
 ---
@@ -217,8 +217,8 @@ python analysis_scripts/visualize_extended_training.py
 
 | Metric | Value |
 |--------|-------|
-| **Best combination** | std_mixup+photometric_distort (45.22% mIoU) |
-| **Photometric distort boost** | All +photometric_distort combos: 44.9-45.2% mIoU |
+| **Best combination** | std_mixup+std_photometric_distort (45.22% mIoU) |
+| **Photometric distort boost** | All +std_photometric_distort combos: 44.9-45.2% mIoU |
 | **Generative+Standard avg** | 40.1% mIoU |
 | **Standard+Standard avg** | 39.7% mIoU |
 
@@ -226,11 +226,11 @@ python analysis_scripts/visualize_extended_training.py
 
 | Combination | Mean mIoU |
 |-------------|-----------|
-| std_mixup+photometric_distort | 45.22% |
-| std_autoaugment+photometric_distort | 45.18% |
-| gen_step1x_new+photometric_distort | 45.18% |
-| gen_Attribute_Hallucination+photometric_distort | 45.17% |
-| gen_stargan_v2+photometric_distort | 45.17% |
+| std_mixup+std_photometric_distort | 45.22% |
+| std_autoaugment+std_photometric_distort | 45.18% |
+| gen_step1x_new+std_photometric_distort | 45.18% |
+| gen_Attribute_Hallucination+std_photometric_distort | 45.17% |
+| gen_stargan_v2+std_photometric_distort | 45.17% |
 
 **Insight:** Photometric distortion is the key booster for all strategy combinations.
 
@@ -238,7 +238,7 @@ python analysis_scripts/visualize_extended_training.py
 
 | Combination Type | Strategies | Checkpoints | Tests |
 |------------------|------------|-------------|-------|
-| gen_* + photometric_distort | 4 | 8 | 8 |
+| gen_* + std_photometric_distort | 4 | 8 | 8 |
 | gen_flux_kontext + std_* | 5 | 10 | 10 |
 | gen_Qwen_Image_Edit + std_* | 5 | 10 | 10 |
 | gen_step1x_new + std_* | 5 | 9 | 9 |
@@ -273,7 +273,7 @@ Using 4 consistent configurations for valid comparison (2 datasets × 2 models):
 | Rank | Strategy | Mean mIoU | Δ Baseline |
 |------|----------|-----------|------------|
 | 1 | gen_stargan_v2 | 26.94% | **+1.96%** |
-| 2 | photometric_distort | 26.87% | +1.88% |
+| 2 | std_photometric_distort | 26.87% | +1.88% |
 | 3 | gen_cycleGAN | 26.70% | +1.72% |
 | 4 | std_autoaugment | 26.64% | +1.66% |
 | 5 | gen_step1x_v1p2 | 26.61% | +1.62% |
@@ -294,7 +294,7 @@ Using 4 consistent configurations for valid comparison (2 datasets × 2 models):
 | Strategy | clear_day | foggy | night | rainy | snowy |
 |----------|-----------|-------|-------|-------|-------|
 | gen_stargan_v2 | 32.1% | 28.1% | 12.4% | 26.4% | 26.6% |
-| photometric_distort | 32.5% | 28.1% | 12.6% | 26.5% | 26.2% |
+| std_photometric_distort | 32.5% | 28.1% | 12.6% | 26.5% | 26.2% |
 | gen_cycleGAN | 31.8% | 28.3% | 13.0% | 26.6% | 26.7% |
 | std_autoaugment | 32.9% | 27.8% | 11.2% | 26.6% | 25.6% |
 | gen_step1x_v1p2 | 32.5% | 27.8% | 12.3% | 26.1% | 25.3% |
@@ -481,7 +481,7 @@ Publication-ready analysis available at `result_figures/baseline_consolidated/st
 | gen_stargan_v2 | ✅ 3/3 | ✅ 3/3 | ✅ 3/3 | ✅ 3/3 | 12 |
 | gen_step1x_new | ✅ 3/3 | ✅ 3/3 | ✅ 3/3 | ✅ 3/3 | 12 |
 | gen_step1x_v1p2 | ✅ 3/3 | ✅ 3/3 | ✅ 3/3 | ✅ 3/3 | 12 |
-| photometric_distort | ✅ 3/3 | ✅ 3/3 | ✅ 3/3 | ✅ 3/3 | 12 |
+| std_photometric_distort | ✅ 3/3 | ✅ 3/3 | ✅ 3/3 | ✅ 3/3 | 12 |
 | std_autoaugment | ✅ 3/3 | ✅ 3/3 | ✅ 3/3 | ✅ 3/3 | 12 |
 | std_cutmix | ✅ 3/3 | ✅ 3/3 | ✅ 3/3 | ✅ 3/3 | 12 |
 | std_mixup | ✅ 3/3 | ✅ 3/3 | ✅ 3/3 | ✅ 3/3 | 12 |
@@ -646,7 +646,7 @@ Evaluate **cross-dataset domain generalization** using Stage 1 models tested on 
 | std_randaugment | 3 | BDD10k, IDD-AW | ✅ |
 | gen_step1x_new | 3 | BDD10k, IDD-AW | ✅ |
 | gen_stargan_v2 | 4 | BDD10k, IDD-AW | ✅ |
-| photometric_distort | 4 | BDD10k, IDD-AW | ✅ |
+| std_photometric_distort | 4 | BDD10k, IDD-AW | ✅ |
 | gen_cycleGAN | 4 | BDD10k, IDD-AW | ✅ |
 | gen_step1x_v1p2 | 4 | BDD10k, IDD-AW | ✅ |
 | gen_cyclediffusion | 4 | BDD10k, IDD-AW | ✅ |
@@ -753,24 +753,24 @@ python analysis_scripts/analyze_domain_adaptation_ablation.py
 
 ### Combination Strategies Study (Strategy Stacking)
 
-**Summary:** Combinations with photometric_distort consistently dominate (~45 mIoU). Strategy stacking does not provide additive benefits—combined performance rarely exceeds best individual component.
+**Summary:** Combinations with std_photometric_distort consistently dominate (~45 mIoU). Strategy stacking does not provide additive benefits—combined performance rarely exceeds best individual component.
 
 **Key Findings:**
-- **Best combination:** std_mixup+photometric_distort (45.22% mIoU)
-- **All +photometric_distort combos:** 44.9-45.2% mIoU (regardless of partner strategy)
+- **Best combination:** std_mixup+std_photometric_distort (45.22% mIoU)
+- **All +std_photometric_distort combos:** 44.9-45.2% mIoU (regardless of partner strategy)
 - **Generative+Standard avg:** 40.1% mIoU (no synergy observed)
 - **Standard+Standard avg:** 39.7% mIoU
 
 **Top Combinations:**
 | Combination | mIoU |
 |-------------|------|
-| std_mixup+photometric_distort | 45.22% |
-| std_autoaugment+photometric_distort | 45.18% |
-| gen_step1x_new+photometric_distort | 45.18% |
-| gen_Attribute_Hallucination+photometric_distort | 45.17% |
-| gen_stargan_v2+photometric_distort | 45.17% |
+| std_mixup+std_photometric_distort | 45.22% |
+| std_autoaugment+std_photometric_distort | 45.18% |
+| gen_step1x_new+std_photometric_distort | 45.18% |
+| gen_Attribute_Hallucination+std_photometric_distort | 45.17% |
+| gen_stargan_v2+std_photometric_distort | 45.17% |
 
-**Insight:** The dominant factor is photometric_distort, not the generative component. Combining multiple augmentation strategies shows diminishing returns rather than synergistic improvement.
+**Insight:** The dominant factor is std_photometric_distort, not the generative component. Combining multiple augmentation strategies shows diminishing returns rather than synergistic improvement.
 
 ---
 

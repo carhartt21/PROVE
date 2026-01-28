@@ -4,12 +4,12 @@ Combination Strategy Ablation Study Report
 1. COMBINATION STRATEGIES
 ----------------------------------------
 
-gen_Attribute_Hallucination+photometric_distort:
+gen_Attribute_Hallucination+std_photometric_distort:
   Type: Other
   Results: 2
   Mean mIoU: 45.17
 
-gen_Qwen_Image_Edit+photometric_distort:
+gen_Qwen_Image_Edit+std_photometric_distort:
   Type: Other
   Results: 2
   Mean mIoU: 45.06
@@ -34,7 +34,7 @@ gen_Qwen_Image_Edit+std_randaugment:
   Results: 2
   Mean mIoU: 40.54
 
-gen_flux_kontext+photometric_distort:
+gen_flux_kontext+std_photometric_distort:
   Type: Other
   Results: 2
   Mean mIoU: 45.14
@@ -59,12 +59,12 @@ gen_flux_kontext+std_randaugment:
   Results: 2
   Mean mIoU: 40.27
 
-gen_stargan_v2+photometric_distort:
+gen_stargan_v2+std_photometric_distort:
   Type: Other
   Results: 2
   Mean mIoU: 45.17
 
-gen_step1x_new+photometric_distort:
+gen_step1x_new+std_photometric_distort:
   Type: Other
   Results: 2
   Mean mIoU: 45.18
@@ -89,12 +89,12 @@ gen_step1x_new+std_randaugment:
   Results: 2
   Mean mIoU: 40.04
 
-std_autoaugment+photometric_distort:
+std_autoaugment+std_photometric_distort:
   Type: Other
   Results: 2
   Mean mIoU: 45.18
 
-std_cutmix+photometric_distort:
+std_cutmix+std_photometric_distort:
   Type: Other
   Results: 2
   Mean mIoU: 44.94
@@ -104,7 +104,7 @@ std_cutmix+std_autoaugment:
   Results: 2
   Mean mIoU: 39.92
 
-std_mixup+photometric_distort:
+std_mixup+std_photometric_distort:
   Type: Other
   Results: 2
   Mean mIoU: 45.22
@@ -119,7 +119,7 @@ std_mixup+std_cutmix:
   Results: 2
   Mean mIoU: 39.41
 
-std_randaugment+photometric_distort:
+std_randaugment+std_photometric_distort:
   Type: Other
   Results: 2
   Mean mIoU: 45.05
@@ -143,15 +143,15 @@ std_randaugment+std_mixup:
 2. SUMMARY TABLE
 ----------------------------------------
                                        Strategy  N_Results  Mean_mIoU  Std_mIoU      Combination_Type                 Component_1         Component_2
-                  std_mixup+photometric_distort          2   45.22325  2.341160                 Other                   std_mixup photometric_distort
-            std_autoaugment+photometric_distort          2   45.18015  2.359545                 Other             std_autoaugment photometric_distort
-             gen_step1x_new+photometric_distort          2   45.17985  2.524442                 Other              gen_step1x_new photometric_distort
-gen_Attribute_Hallucination+photometric_distort          2   45.17015  2.520482                 Other gen_Attribute_Hallucination photometric_distort
-             gen_stargan_v2+photometric_distort          2   45.16770  2.378142                 Other              gen_stargan_v2 photometric_distort
-           gen_flux_kontext+photometric_distort          2   45.14175  2.544382                 Other            gen_flux_kontext photometric_distort
-        gen_Qwen_Image_Edit+photometric_distort          2   45.05935  2.646347                 Other         gen_Qwen_Image_Edit photometric_distort
-            std_randaugment+photometric_distort          2   45.05075  2.553292                 Other             std_randaugment photometric_distort
-                 std_cutmix+photometric_distort          2   44.94270  2.680642                 Other                  std_cutmix photometric_distort
+                  std_mixup+std_photometric_distort          2   45.22325  2.341160                 Other                   std_mixup std_photometric_distort
+            std_autoaugment+std_photometric_distort          2   45.18015  2.359545                 Other             std_autoaugment std_photometric_distort
+             gen_step1x_new+std_photometric_distort          2   45.17985  2.524442                 Other              gen_step1x_new std_photometric_distort
+gen_Attribute_Hallucination+std_photometric_distort          2   45.17015  2.520482                 Other gen_Attribute_Hallucination std_photometric_distort
+             gen_stargan_v2+std_photometric_distort          2   45.16770  2.378142                 Other              gen_stargan_v2 std_photometric_distort
+           gen_flux_kontext+std_photometric_distort          2   45.14175  2.544382                 Other            gen_flux_kontext std_photometric_distort
+        gen_Qwen_Image_Edit+std_photometric_distort          2   45.05935  2.646347                 Other         gen_Qwen_Image_Edit std_photometric_distort
+            std_randaugment+std_photometric_distort          2   45.05075  2.553292                 Other             std_randaugment std_photometric_distort
+                 std_cutmix+std_photometric_distort          2   44.94270  2.680642                 Other                  std_cutmix std_photometric_distort
                        gen_step1x_new+std_mixup          1   43.19400       NaN Generative + Standard              gen_step1x_new           std_mixup
             gen_Qwen_Image_Edit+std_autoaugment          2   40.75000  3.586163 Generative + Standard         gen_Qwen_Image_Edit     std_autoaugment
                gen_flux_kontext+std_autoaugment          2   40.73525  3.992678 Generative + Standard            gen_flux_kontext     std_autoaugment

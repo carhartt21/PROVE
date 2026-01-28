@@ -54,8 +54,8 @@ Submitted via \`auto_submit_tests_stage2.py\`:
 | gen_step1x_new | MapillaryVistas | pspnet | 9670327 |
 | gen_Weather_Effect_Generator | MapillaryVistas | pspnet | 9670328 |
 | baseline | MapillaryVistas | deeplabv3plus | 9670329 |
-| photometric_distort | MapillaryVistas | deeplabv3plus | 9670330 |
-| photometric_distort | MapillaryVistas | pspnet | 9670331 |
+| std_std_photometric_distort | MapillaryVistas | deeplabv3plus | 9670330 |
+| std_std_photometric_distort | MapillaryVistas | pspnet | 9670331 |
 
 ---
 
@@ -109,7 +109,7 @@ Submitted via \`auto_submit_tests_stage2.py\`:
 | Strategy | Training | Testing |
 |----------|:--------:|:-------:|
 | baseline | ✅ 12/12 | 🔄 11/12 |
-| photometric_distort | ✅ 12/12 | 🔄 10/12 |
+| std_std_photometric_distort | ✅ 12/12 | 🔄 10/12 |
 | std_autoaugment | ✅ 12/12 | ✅ 12/12 |
 | std_randaugment | ✅ 12/12 | ✅ 12/12 |
 | **std_cutmix** | ⏳ 0/12 | ⏳ 0/12 | **Training just submitted** |

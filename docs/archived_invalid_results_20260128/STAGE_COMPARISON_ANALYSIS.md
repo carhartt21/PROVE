@@ -161,7 +161,7 @@ Comparing per-class IoU between gen_step1x_new and baseline (Stage 2, deeplabv3p
 | gen_step1x_v1p2 | 19 | +0.89 | 17 | +0.23 | +2 ↑ | -0.66 |
 | gen_UniControl | 20 | +0.85 | 2 | +0.51 | +18 ↑ | -0.34 |
 | std_mixup | 21 | +0.77 | 27 | -0.25 | -6 ↓ | -1.02 |
-| photometric_distort | 22 | +0.73 | 23 | +0.01 | -1 ↓ | -0.72 |
+| std_std_photometric_distort | 22 | +0.73 | 23 | +0.01 | -1 ↓ | -0.72 |
 | gen_LANIT | 23 | +0.68 | 10 | +0.34 | +13 ↑ | -0.34 |
 | gen_augmenters | 24 | +0.63 | 7 | +0.44 | +17 ↑ | -0.19 |
 | std_randaugment | 25 | +0.50 | 13 | +0.29 | +12 ↑ | -0.21 |

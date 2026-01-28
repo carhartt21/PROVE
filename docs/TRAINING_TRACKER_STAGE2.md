@@ -57,7 +57,7 @@
 | Strategy | BDD10k | IDD-AW | MapillaryVistas | OUTSIDE15k | Notes |
 |----------|--------|--------|-----------------|------------|-------|
 | baseline | ✅ | ✅ | ✅ | ✅ |  |
-| photometric_distort | ✅ | ✅ | ✅ | ✅ |  |
+| std_std_photometric_distort | ✅ | ✅ | ✅ | ✅ |  |
 | std_autoaugment | ✅ | ✅ | ✅ | ✅ |  |
 | std_cutmix | ✅ | ✅ | ✅ | ✅ |  |
 | std_mixup | ✅ | ✅ | ✅ | ✅ |  |

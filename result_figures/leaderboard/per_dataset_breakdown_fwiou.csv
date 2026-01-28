@@ -15,7 +15,7 @@ gen_Qwen_Image_Edit,Generative,83.71,+0.60,74.17,+0.92,82.41,+0.15,64.34,+0.00
 gen_automold,Generative,83.70,+0.58,73.70,+0.45,82.35,+0.09,64.66,+0.32
 gen_UniControl,Generative,83.87,+0.75,73.53,+0.28,82.20,-0.06,64.74,+0.41
 gen_albumentations_weather,Generative,83.67,+0.55,73.91,+0.67,82.29,+0.03,64.43,+0.09
-photometric_distort,Augmentation,83.47,+0.35,74.67,+1.43,82.22,-0.04,63.85,-0.49
+std_photometric_distort,Augmentation,83.47,+0.35,74.67,+1.43,82.22,-0.04,63.85,-0.49
 gen_Weather_Effect_Generator,Generative,83.67,+0.55,73.34,+0.09,82.23,-0.03,64.82,+0.48
 gen_IP2P,Generative,83.67,+0.56,73.36,+0.12,82.42,+0.16,64.58,+0.24
 gen_step1x_new,Generative,83.77,+0.65,73.12,-0.13,82.22,-0.04,64.91,+0.57

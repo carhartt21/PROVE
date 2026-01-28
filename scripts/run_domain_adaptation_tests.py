@@ -99,7 +99,7 @@ ALL_STRATEGIES = [
     'std_cutmix',
     'std_mixup',
     'std_randaugment',
-    'photometric_distort',
+    'std_photometric_distort',
     # Generative strategies - GAN-based
     'gen_cycleGAN',
     'gen_CUT',

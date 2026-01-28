@@ -29,7 +29,7 @@ train_pipeline = [
 |----------|------------|------------|----------------------|
 | **baseline** | ❌ | ❌ | ❌ |
 | **std_minimal** | ✅ | ✅ | 1x |
-| **photometric_distort** | ✅ | ✅ | 2x |
+| **std_std_photometric_distort** | ✅ | ✅ | 2x |
 
 ## Purpose
 

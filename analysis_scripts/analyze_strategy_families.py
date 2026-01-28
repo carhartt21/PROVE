@@ -13,7 +13,7 @@ Strategy Families:
 3. Style Transfer (NST, LANIT, TSIT)
 4. Diffusion (Img2Img, IP2P, UniControl)
 5. Multimodal Diffusion (flux1_kontext, step1x_new, Qwen_Image_Edit)
-6. Standard Augmentation (autoaugment, randaugment, photometric_distort)
+6. Standard Augmentation (autoaugment, randaugment, std_photometric_distort)
 7. Standard Mixing (cutmix, mixup)
 
 Excluded methods (0/4 training dataset coverage): StyleID, EDICT, AOD-Net
@@ -51,7 +51,7 @@ STRATEGY_FAMILIES = {
         "gen_imgaug_weather",
         "gen_automold", 
         "gen_Weather_Effect_Generator",
-        "photometric_distort"
+        "std_photometric_distort"
     ],
     "CNN/GAN": [
         "gen_Attribute_Hallucination",
@@ -80,7 +80,7 @@ STRATEGY_FAMILIES = {
     "Standard Augmentation": [
         "std_autoaugment",
         "std_randaugment",
-        "photometric_distort"
+        "std_photometric_distort"
     ],
     "Standard Mixing": [
         "std_cutmix",

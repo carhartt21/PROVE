@@ -712,7 +712,7 @@ python analyze_baseline_miou.py
 | Strategy | Overall mIoU | Domain Gap | Δ Overall |
 |----------|--------------|------------|-----------|
 | **gen_StyleID** | 59.3% | -2.0% | +6.0% |
-| photometric_distort | 57.3% | -3.5% | +4.0% |
+| std_photometric_distort | 57.3% | -3.5% | +4.0% |
 | std_randaugment | 56.5% | -4.8% | +3.3% |
 | baseline_clear_day | 53.2% | +7.5% | - |
 
@@ -1380,7 +1380,7 @@ Automatically identify and submit test jobs for configurations that haven't been
 ./scripts/submit_untested_tests.sh --include-clear-day
 
 # Filter by strategy
-./scripts/submit_untested_tests.sh --strategy photometric_distort
+./scripts/submit_untested_tests.sh --strategy std_photometric_distort
 
 # Limit number of jobs to submit
 ./scripts/submit_untested_tests.sh --limit 10
@@ -1424,12 +1424,12 @@ Automatically identify and submit test jobs for configurations that haven't been
 Found 15 untested configurations to submit
 
 Summary by strategy:
-  photometric_distort: 15
+  std_photometric_distort: 15
 
 Configurations to test:
-  [  1] photometric_distort  | acdc      | deeplabv3plus_r50
-  [  2] photometric_distort  | acdc      | pspnet_r50
-  [  3] photometric_distort  | acdc      | segformer_mit-b5
+  [  1] std_photometric_distort  | acdc      | deeplabv3plus_r50
+  [  2] std_photometric_distort  | acdc      | pspnet_r50
+  [  3] std_photometric_distort  | acdc      | segformer_mit-b5
   ...
 ```
 

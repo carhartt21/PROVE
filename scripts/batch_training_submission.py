@@ -1,0 +1,675 @@
+#!/usr/bin/env python3
+"""
+Batch Training Submission System
+
+A robust, multi-user training submission system with:
+- Pre-flight checks for existing results
+- Training lock mechanism to prevent duplicate work
+- Configurable for different evaluation stages
+- LSF job submission with proper parameter handling
+
+Usage:
+    # Dry run to see what jobs would be submitted
+    python batch_training_submission.py --stage 1 --dry-run
+    
+    # Submit Stage 1 jobs (limit to 50)
+    python batch_training_submission.py --stage 1 --limit 50
+    
+    # Submit Stage 2 jobs with specific strategies
+    python batch_training_submission.py --stage 2 --strategies gen_cycleGAN gen_flux_kontext
+    
+    # Submit jobs for specific dataset/model
+    python batch_training_submission.py --stage 1 --datasets BDD10k --models deeplabv3plus_r50
+"""
+
+import os
+import sys
+import argparse
+import subprocess
+import time
+from pathlib import Path
+from datetime import datetime
+from typing import List, Optional, Dict, Set
+from dataclasses import dataclass
+import json
+
+# Add project root to path
+SCRIPT_DIR = Path(__file__).resolve().parent
+PROJECT_ROOT = SCRIPT_DIR.parent
+sys.path.insert(0, str(PROJECT_ROOT))
+
+from training_lock import TrainingLock
+
+
+# ============================================================================
+# Configuration
+# ============================================================================
+
+# Base paths
+WEIGHTS_ROOT_STAGE1 = Path('/scratch/aaa_exchange/AWARE/WEIGHTS')
+WEIGHTS_ROOT_STAGE2 = Path('/scratch/aaa_exchange/AWARE/WEIGHTS_STAGE_2')
+GENERATED_IMAGES_ROOT = Path('/scratch/aaa_exchange/AWARE/GENERATED_IMAGES')
+
+# All datasets
+ALL_DATASETS = ['BDD10k', 'IDD-AW', 'MapillaryVistas', 'OUTSIDE15k']
+
+# All models
+ALL_MODELS = ['deeplabv3plus_r50', 'pspnet_r50', 'segformer_mit-b5']
+
+# 19 gen_* strategies from generative_quality.csv + Weather_Effect_Generator
+# (excluding gen_EDICT and gen_StyleID - no generated images available)
+GEN_STRATEGIES = [
+    'gen_cycleGAN',
+    'gen_flux_kontext',
+    'gen_step1x_new',
+    'gen_LANIT',
+    'gen_albumentations_weather',
+    'gen_automold',
+    'gen_step1x_v1p2',
+    'gen_VisualCloze',
+    'gen_SUSTechGAN',
+    'gen_cyclediffusion',
+    'gen_IP2P',
+    'gen_Attribute_Hallucination',
+    'gen_UniControl',
+    'gen_CUT',
+    'gen_Img2Img',
+    'gen_Qwen_Image_Edit',
+    'gen_CNetSeg',
+    'gen_stargan_v2',
+    'gen_Weather_Effect_Generator',
+]
+
+# LSF Job Configuration
+@dataclass
+class LSFConfig:
+    """LSF job configuration"""
+    queue: str = 'BatchGPU'
+    time_limit: str = '24:00'
+    memory: str = '48G'
+    gpu_count: int = 8
+    gpu_memory: str = '24G'
+
+
+# ============================================================================
+# Pre-flight Checks
+# ============================================================================
+
+def get_checkpoint_path(weights_dir: Path, max_iters: int = 10000) -> Optional[Path]:
+    """Get the final checkpoint path if it exists."""
+    checkpoint = weights_dir / f'iter_{max_iters}.pth'
+    if checkpoint.exists():
+        return checkpoint
+    return None
+
+
+def has_valid_results(weights_dir: Path, max_iters: int = 10000) -> bool:
+    """Check if valid training results already exist."""
+    checkpoint = get_checkpoint_path(weights_dir, max_iters)
+    if checkpoint is None:
+        return False
+    
+    # Check if checkpoint is valid (not empty)
+    try:
+        if checkpoint.stat().st_size < 1000:  # Less than 1KB is suspicious
+            return False
+    except OSError:
+        return False
+    
+    return True
+
+
+def has_test_results(weights_dir: Path) -> bool:
+    """Check if test results exist."""
+    test_results_dir = weights_dir / 'test_results_detailed'
+    if not test_results_dir.exists():
+        return False
+    
+    # Check for any results.json file
+    for subdir in test_results_dir.iterdir():
+        if subdir.is_dir():
+            results_json = subdir / 'results.json'
+            if results_json.exists():
+                return True
+    
+    return False
+
+
+def strategy_to_dir_name(strategy: str) -> str:
+    """Convert strategy name to directory name (handle hyphens)."""
+    # Map underscores back to hyphens for specific directories
+    if strategy.startswith('gen_'):
+        gen_model = strategy[4:]  # Remove 'gen_' prefix
+        hyphen_dirs = {'Qwen_Image_Edit': 'Qwen-Image-Edit'}
+        return hyphen_dirs.get(gen_model, gen_model)
+    return strategy
+
+
+def has_generated_images(strategy: str, dataset: str) -> bool:
+    """Check if generated images exist for this strategy/dataset combination."""
+    if not strategy.startswith('gen_'):
+        return True  # Non-generative strategies don't need generated images
+    
+    gen_dir = strategy_to_dir_name(strategy)
+    gen_path = GENERATED_IMAGES_ROOT / gen_dir
+    
+    if not gen_path.exists():
+        return False
+    
+    # Check manifest for this dataset
+    manifest = gen_path / 'manifest.csv'
+    if manifest.exists():
+        try:
+            import csv
+            with open(manifest, 'r') as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    if row.get('dataset', '') == dataset:
+                        return True
+            return False
+        except Exception:
+            pass
+    
+    # Fallback: check for dataset subdirectory
+    dataset_path = gen_path / dataset
+    if dataset_path.exists():
+        # Check for any images
+        for subdir in dataset_path.rglob('*'):
+            if subdir.suffix.lower() in ['.png', '.jpg', '.jpeg']:
+                return True
+    
+    return False
+
+
+# ============================================================================
+# Job Generation
+# ============================================================================
+
+@dataclass
+class TrainingJob:
+    """Represents a training job to submit."""
+    strategy: str
+    dataset: str
+    model: str
+    stage: int
+    ratio: float = 0.5
+    weights_dir: Optional[Path] = None
+    skip_reason: Optional[str] = None
+    
+    @property
+    def job_name(self) -> str:
+        """Generate LSF job name."""
+        dataset_short = self.dataset.lower().replace('-', '')
+        model_short = self.model.split('_')[0]
+        return f'{self.strategy}_{dataset_short}_{model_short}'
+    
+    @property
+    def is_skipped(self) -> bool:
+        """Check if job should be skipped."""
+        return self.skip_reason is not None
+
+
+def get_weights_dir(strategy: str, dataset: str, model: str, stage: int, ratio: float = 0.5) -> Path:
+    """Get the weights directory for a training configuration."""
+    base_root = WEIGHTS_ROOT_STAGE1 if stage == 1 else WEIGHTS_ROOT_STAGE2
+    
+    # Dataset directory name (lowercase, handle hyphen)
+    dataset_dir = dataset.lower().replace('-', '-')  # Keep IDD-AW as idd-aw
+    
+    # Model directory name
+    model_dir = model
+    if strategy.startswith('gen_') and ratio != 1.0:
+        model_dir = f'{model}_ratio{ratio:.2f}'.replace('.', 'p')
+    
+    return base_root / strategy / dataset_dir / model_dir
+
+
+def generate_job_list(
+    stage: int,
+    strategies: Optional[List[str]] = None,
+    datasets: Optional[List[str]] = None,
+    models: Optional[List[str]] = None,
+    ratio: float = 0.5,
+    check_existing: bool = True,
+    check_locks: bool = True,
+) -> List[TrainingJob]:
+    """
+    Generate list of training jobs with pre-flight checks.
+    
+    Args:
+        stage: Training stage (1 or 2)
+        strategies: List of strategies (default: all gen_* strategies)
+        datasets: List of datasets (default: all)
+        models: List of models (default: all)
+        ratio: Real/gen ratio for generative strategies
+        check_existing: Skip jobs with existing results
+        check_locks: Skip jobs that are currently locked
+        
+    Returns:
+        List of TrainingJob objects
+    """
+    strategies = strategies or GEN_STRATEGIES
+    datasets = datasets or ALL_DATASETS
+    models = models or ALL_MODELS
+    
+    jobs = []
+    
+    for strategy in strategies:
+        for dataset in datasets:
+            for model in models:
+                job = TrainingJob(
+                    strategy=strategy,
+                    dataset=dataset,
+                    model=model,
+                    stage=stage,
+                    ratio=ratio,
+                )
+                
+                # Get weights directory
+                job.weights_dir = get_weights_dir(strategy, dataset, model, stage, ratio)
+                
+                # Pre-flight checks
+                if check_existing and has_valid_results(job.weights_dir):
+                    job.skip_reason = 'Results exist'
+                elif strategy.startswith('gen_') and not has_generated_images(strategy, dataset):
+                    job.skip_reason = 'No generated images'
+                elif check_locks:
+                    lock = TrainingLock(strategy, dataset, model, ratio if strategy.startswith('gen_') else None)
+                    if lock.is_locked():
+                        holder = lock.get_lock_holder()
+                        if holder:
+                            job.skip_reason = f"Locked by {holder.get('user', 'unknown')}@{holder.get('hostname', 'unknown')}"
+                        else:
+                            job.skip_reason = 'Locked'
+                
+                jobs.append(job)
+    
+    return jobs
+
+
+# ============================================================================
+# Job Submission
+# ============================================================================
+
+def generate_job_script(job: TrainingJob, lsf_config: LSFConfig) -> str:
+    """Generate LSF job script for a training job."""
+    work_dir = str(job.weights_dir)
+    
+    # Build training command
+    cmd_parts = [
+        'python', str(PROJECT_ROOT / 'unified_training.py'),
+        '--dataset', job.dataset,
+        '--model', job.model,
+        '--strategy', job.strategy,
+    ]
+    
+    if job.stage == 1:
+        cmd_parts.extend(['--domain-filter', 'clear_day'])
+    
+    if job.strategy.startswith('gen_'):
+        cmd_parts.extend(['--real-gen-ratio', str(job.ratio)])
+    
+    # Dataset-specific flags
+    if job.dataset in ['MapillaryVistas', 'OUTSIDE15k']:
+        cmd_parts.append('--use-native-classes')
+    
+    training_cmd = ' '.join(cmd_parts)
+    
+    script = f'''#!/bin/bash
+#BSUB -J {job.job_name}
+#BSUB -q {lsf_config.queue}
+#BSUB -o {work_dir}/train_%J.out
+#BSUB -e {work_dir}/train_%J.err
+#BSUB -n {lsf_config.gpu_count}
+#BSUB -R "rusage[mem={lsf_config.memory}]"
+#BSUB -R "span[hosts=1]"
+#BSUB -gpu "num=1:mode=exclusive_process:gmem={lsf_config.gpu_memory}"
+#BSUB -W {lsf_config.time_limit}
+
+# ============================================================================
+# Environment setup
+# ============================================================================
+
+# Set permissions: 775 for directories, 664 for files
+umask 002
+
+# ============================================================================
+# Pre-flight checks inside the job
+# ============================================================================
+
+echo "=========================================="
+echo "Job ID: $LSB_JOBID"
+echo "Host: $(hostname)"
+echo "User: $USER"
+echo "Started: $(date)"
+echo "Strategy: {job.strategy}"
+echo "Dataset: {job.dataset}"
+echo "Model: {job.model}"
+echo "Stage: {job.stage}"
+echo "Work Dir: {work_dir}"
+echo "=========================================="
+
+# Create work directory with proper permissions
+mkdir -p {work_dir}
+chmod 775 {work_dir}
+cd {work_dir}
+
+# Activate conda environment
+source /home/$USER/miniconda3/etc/profile.d/conda.sh
+conda activate prove
+
+# Pre-flight check: verify results don't already exist
+CHECKPOINT="{work_dir}/iter_10000.pth"
+if [ -f "$CHECKPOINT" ]; then
+    SIZE=$(stat -c%s "$CHECKPOINT" 2>/dev/null || echo 0)
+    if [ "$SIZE" -gt 1000 ]; then
+        echo "WARNING: Checkpoint already exists at $CHECKPOINT (size: $SIZE bytes)"
+        echo "Skipping training to avoid overwriting."
+        exit 0
+    fi
+fi
+
+# Acquire training lock
+LOCK_DIR="/scratch/aaa_exchange/AWARE/training_locks"
+mkdir -p $LOCK_DIR
+LOCK_FILE="$LOCK_DIR/{job.strategy}_{job.dataset.lower().replace('-', '_')}_{job.model}.lock"
+
+# Try to acquire lock (non-blocking)
+exec 200>"$LOCK_FILE"
+if ! flock -n 200; then
+    echo "ERROR: Another job is already training this configuration"
+    echo "Lock file: $LOCK_FILE"
+    cat "$LOCK_FILE" 2>/dev/null || true
+    exit 1
+fi
+
+# Write lock info
+cat > "$LOCK_FILE" << EOF
+{{
+  "job_id": "$LSB_JOBID",
+  "hostname": "$(hostname)",
+  "user": "$USER",
+  "strategy": "{job.strategy}",
+  "dataset": "{job.dataset}",
+  "model": "{job.model}",
+  "started": "$(date -Iseconds)"
+}}
+EOF
+
+echo "Lock acquired: $LOCK_FILE"
+
+# ============================================================================
+# Training
+# ============================================================================
+
+echo ""
+echo "Starting training..."
+echo "Command: {training_cmd}"
+echo ""
+
+{training_cmd}
+
+TRAIN_EXIT_CODE=$?
+
+# ============================================================================
+# Testing (if training succeeded)
+# ============================================================================
+
+if [ $TRAIN_EXIT_CODE -eq 0 ]; then
+    CHECKPOINT="{work_dir}/iter_10000.pth"
+    CONFIG="{work_dir}/training_config.py"
+    TEST_OUTPUT="{work_dir}/test_results_detailed"
+    
+    if [ -f "$CHECKPOINT" ] && [ -f "$CONFIG" ]; then
+        echo ""
+        echo "=========================================="
+        echo "Starting fine-grained testing..."
+        echo "=========================================="
+        
+        python {PROJECT_ROOT}/fine_grained_test.py \\
+            --config "$CONFIG" \\
+            --checkpoint "$CHECKPOINT" \\
+            --output-dir "$TEST_OUTPUT" \\
+            --dataset {job.dataset} \\
+            --data-root /scratch/aaa_exchange/AWARE/FINAL_SPLITS \\
+            --test-split test \\
+            --batch-size 10
+        
+        TEST_EXIT_CODE=$?
+        
+        if [ $TEST_EXIT_CODE -eq 0 ]; then
+            echo "Testing completed successfully"
+        else
+            echo "WARNING: Testing failed with exit code: $TEST_EXIT_CODE"
+        fi
+    else
+        echo "WARNING: Checkpoint or config not found, skipping testing"
+        echo "  Checkpoint: $CHECKPOINT"
+        echo "  Config: $CONFIG"
+    fi
+else
+    echo "Training failed, skipping testing"
+fi
+
+# ============================================================================
+# Cleanup and permissions
+# ============================================================================
+
+# Ensure all created files/directories have proper permissions (775/664)
+echo "Setting permissions on output files..."
+find {work_dir} -type d -exec chmod 775 {{}} \; 2>/dev/null || true
+find {work_dir} -type f -exec chmod 664 {{}} \; 2>/dev/null || true
+
+# Release lock
+flock -u 200
+rm -f "$LOCK_FILE" 2>/dev/null
+
+echo ""
+echo "=========================================="
+echo "Training completed with exit code: $TRAIN_EXIT_CODE"
+echo "Finished: $(date)"
+echo "=========================================="
+
+exit $TRAIN_EXIT_CODE
+'''
+    return script
+
+
+def submit_job(job: TrainingJob, lsf_config: LSFConfig, dry_run: bool = False) -> bool:
+    """
+    Submit a training job to LSF.
+    
+    Args:
+        job: TrainingJob to submit
+        lsf_config: LSF configuration
+        dry_run: If True, just print what would be done
+        
+    Returns:
+        True if job was submitted successfully
+    """
+    if job.is_skipped:
+        print(f"  SKIP: {job.job_name} - {job.skip_reason}")
+        return False
+    
+    # Ensure weights directory exists
+    if job.weights_dir:
+        job.weights_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Generate job script
+    script = generate_job_script(job, lsf_config)
+    script_path = job.weights_dir / 'submit_job.sh'
+    
+    if dry_run:
+        print(f"  SUBMIT: {job.job_name}")
+        print(f"    Dir: {job.weights_dir}")
+        return True
+    
+    # Write script
+    with open(script_path, 'w') as f:
+        f.write(script)
+    os.chmod(script_path, 0o755)
+    
+    # Submit job
+    result = subprocess.run(
+        f'bsub < {script_path}',
+        shell=True,
+        capture_output=True,
+        text=True
+    )
+    
+    if result.returncode == 0:
+        print(f"  SUBMIT: {job.job_name} - {result.stdout.strip()}")
+        return True
+    else:
+        print(f"  FAILED: {job.job_name} - {result.stderr.strip()}")
+        return False
+
+
+# ============================================================================
+# Main
+# ============================================================================
+
+def main():
+    parser = argparse.ArgumentParser(
+        description='Batch Training Submission System',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog='''
+Examples:
+    # Dry run to see what jobs would be submitted
+    python batch_training_submission.py --stage 1 --dry-run
+    
+    # Submit Stage 1 jobs (limit to 50)
+    python batch_training_submission.py --stage 1 --limit 50
+    
+    # Submit specific strategies
+    python batch_training_submission.py --stage 1 --strategies gen_cycleGAN gen_flux_kontext
+    
+    # Submit for specific dataset/model
+    python batch_training_submission.py --stage 1 --datasets BDD10k --models deeplabv3plus_r50
+'''
+    )
+    
+    # Required arguments
+    parser.add_argument('--stage', type=int, required=True, choices=[1, 2],
+                       help='Training stage (1: clear_day only, 2: all domains)')
+    
+    # Filtering options
+    parser.add_argument('--strategies', nargs='+', 
+                       help='Specific strategies to train (default: all gen_* strategies)')
+    parser.add_argument('--datasets', nargs='+', choices=ALL_DATASETS,
+                       help='Specific datasets (default: all)')
+    parser.add_argument('--models', nargs='+', choices=ALL_MODELS,
+                       help='Specific models (default: all)')
+    
+    # Job control
+    parser.add_argument('--limit', type=int, default=None,
+                       help='Maximum number of jobs to submit')
+    parser.add_argument('--ratio', type=float, default=0.5,
+                       help='Real/gen ratio for generative strategies (default: 0.5)')
+    
+    # Pre-flight options
+    parser.add_argument('--no-check-existing', action='store_true',
+                       help='Don\'t skip jobs with existing results')
+    parser.add_argument('--no-check-locks', action='store_true',
+                       help='Don\'t check for training locks')
+    
+    # LSF options
+    parser.add_argument('--queue', default='BatchGPU',
+                       help='LSF queue (default: BatchGPU)')
+    parser.add_argument('--time-limit', default='24:00',
+                       help='Job time limit (default: 24:00)')
+    parser.add_argument('--memory', default='48G',
+                       help='Memory per process (default: 48G)')
+    
+    # Execution options
+    parser.add_argument('--dry-run', action='store_true',
+                       help='Show what would be done without submitting')
+    parser.add_argument('--delay', type=float, default=0.5,
+                       help='Delay between job submissions in seconds (default: 0.5)')
+    
+    args = parser.parse_args()
+    
+    # Create LSF config
+    lsf_config = LSFConfig(
+        queue=args.queue,
+        time_limit=args.time_limit,
+        memory=args.memory,
+    )
+    
+    # Generate job list
+    print(f"\n{'='*60}")
+    print(f"Batch Training Submission - Stage {args.stage}")
+    print(f"{'='*60}")
+    print(f"\nGenerating job list...")
+    
+    jobs = generate_job_list(
+        stage=args.stage,
+        strategies=args.strategies,
+        datasets=args.datasets,
+        models=args.models,
+        ratio=args.ratio,
+        check_existing=not args.no_check_existing,
+        check_locks=not args.no_check_locks,
+    )
+    
+    # Summary
+    total = len(jobs)
+    skipped = sum(1 for j in jobs if j.is_skipped)
+    to_submit = total - skipped
+    
+    print(f"\nJob Summary:")
+    print(f"  Total configurations: {total}")
+    print(f"  Skipped: {skipped}")
+    print(f"  To submit: {to_submit}")
+    
+    if args.limit and to_submit > args.limit:
+        print(f"  Limited to: {args.limit}")
+    
+    # Skip reason breakdown
+    skip_reasons: Dict[str, int] = {}
+    for job in jobs:
+        if job.skip_reason:
+            skip_reasons[job.skip_reason] = skip_reasons.get(job.skip_reason, 0) + 1
+    
+    if skip_reasons:
+        print(f"\nSkip reasons:")
+        for reason, count in sorted(skip_reasons.items(), key=lambda x: -x[1]):
+            print(f"  - {reason}: {count}")
+    
+    # Confirm submission
+    if not args.dry_run and to_submit > 0:
+        print(f"\n{'='*60}")
+        response = input(f"Submit {min(to_submit, args.limit or to_submit)} jobs? [y/N]: ")
+        if response.lower() != 'y':
+            print("Aborted.")
+            return
+    
+    # Submit jobs
+    print(f"\n{'='*60}")
+    print("Submitting jobs..." if not args.dry_run else "Dry run - showing what would be submitted:")
+    print(f"{'='*60}\n")
+    
+    submitted = 0
+    for job in jobs:
+        if job.is_skipped:
+            continue
+        
+        if args.limit and submitted >= args.limit:
+            print(f"\nReached limit of {args.limit} jobs")
+            break
+        
+        if submit_job(job, lsf_config, dry_run=args.dry_run):
+            submitted += 1
+            if not args.dry_run and args.delay > 0:
+                time.sleep(args.delay)
+    
+    # Final summary
+    print(f"\n{'='*60}")
+    print(f"Summary:")
+    print(f"  {'Would submit' if args.dry_run else 'Submitted'}: {submitted} jobs")
+    print(f"  Skipped: {skipped}")
+    print(f"{'='*60}\n")
+
+
+if __name__ == '__main__':
+    main()

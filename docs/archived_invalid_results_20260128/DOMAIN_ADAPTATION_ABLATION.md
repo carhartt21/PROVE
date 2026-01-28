@@ -81,7 +81,7 @@ Labels: `*_gt_labelIds.png` (Cityscapes labelID format, converted to trainID)
 | Category | Strategies |
 |----------|------------|
 | **Baseline** | baseline |
-| **Standard Augmentation** | std_autoaugment, std_cutmix, std_mixup, std_randaugment, photometric_distort |
+| **Standard Augmentation** | std_autoaugment, std_cutmix, std_mixup, std_randaugment, std_std_photometric_distort |
 | **GAN-based** | gen_cycleGAN, gen_CUT, gen_LANIT, gen_stargan_v2, gen_TSIT, gen_SUSTechGAN |
 | **Diffusion-based** | gen_cyclediffusion, gen_flux_kontext, gen_Img2Img, gen_IP2P, gen_step1x_new, gen_step1x_v1p2 |
 | **Other Generative** | gen_Attribute_Hallucination, gen_CNetSeg, gen_Qwen_Image_Edit, gen_UniControl, gen_VisualCloze, gen_Weather_Effect_Generator |

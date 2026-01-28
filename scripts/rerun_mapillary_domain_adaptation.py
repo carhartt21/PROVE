@@ -33,7 +33,7 @@ STRATEGIES = [
     "gen_step1x_v1p2",
     "gen_TSIT",
     "gen_UniControl",
-    "photometric_distort",
+    "std_photometric_distort",
     "std_autoaugment",
     "std_cutmix",
     "std_mixup",

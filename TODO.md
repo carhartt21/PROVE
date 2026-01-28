@@ -1,213 +1,240 @@
-# PROVE Project TODO List
+# PROVE Project TODO
 
-**Last Updated:** 2026-01-28 (13:30)
-
-> **Note:** For detailed study results, analysis, and findings, see [docs/STUDY_COVERAGE_ANALYSIS.md](docs/STUDY_COVERAGE_ANALYSIS.md)
+**Last Updated:** 2026-01-28 (15:00)
 
 ---
 
-## ✅ RESOLVED: MixedDataLoader Bug (Jan 28)
+## 🔧 Current Status
 
-**Status: FIXED AND VERIFIED**
+### MixedDataLoader Bug - FIXED ✅
 
-The original "cross-dataset contamination bug" was a **FALSE POSITIVE**. Investigation revealed the real issue: Generated images were **NEVER** loaded during training - MixedDataLoader infrastructure existed but wasn't connected.
+The bug where generated images were never loaded has been fixed:
+- Each batch now contains exactly N real + M generated samples
+- Verified: Job 524893 running with 4 real + 4 generated per batch
+- Training loss decreasing normally (2.47 → 0.73)
 
-**Fix Implemented:**
-1. ✅ `_generate_mixed_training_script()` properly injects generated images into `data_list`
-2. ✅ Added `serialize_data=False` to allow data_list modification  
-3. ✅ Updated defaults: `batch_size=8`, `max_iters=10000` (80k samples), `lr_scale_factor=4.0`
-4. ✅ **Verified:** Job 517681 shows `4000 real + 10218 generated = 14218 total images`
-
-See [BUG_REPORT](docs/BUG_REPORT_CROSS_DATASET_CONTAMINATION.md) for full technical details.
-
-### ⚠️ IMPORTANT: Previous Results Invalid
-
-All `gen_*` strategy results are **INVALID** - generated images were never used. The only difference between `gen_*` and `baseline` was `PhotoMetricDistortion` in the training pipeline.
-
-| What | Impact |
-|------|--------|
-| gen_* vs baseline comparison | Invalid - both used only real images |
-| Ratio ablation (0.0→1.0) | Invalid - ratio parameter had NO EFFECT |
-| "Best strategy" findings | Invalid - measured pipeline aug, not generative aug |
-
-### Required Retraining
-- ⏳ All `gen_*` strategies need retraining with fixed MixedDataLoader
-- ⏳ Ratio ablation studies need full re-run
-- ⏳ Key findings cannot be cited until retraining completes
+**All previous gen_* results are INVALID and have been deleted (~4.5 TB).**
 
 ---
 
-## 🎯 Active Jobs
+## 📋 Evaluation Completion Checklist
 
-### Baseline Extended Training (Jan 28 07:08)
-| Job ID | Configuration | Status | Checkpoints |
-|--------|---------------|--------|-------------|
-| 443834 | ext_baseline_bdd10k_pspnet | **RUN** | 90k✓, 100k✓, 110k✓, 120k✓ |
-| 443835 | ext_baseline_bdd10k_segformer | **RUN** | 90k✓, 100k🔄 |
-| 443836 | ext_baseline_iddaw_pspnet | **RUN** | 90k✓, 100k✓, 110k✓, 120k✓ |
-| 443837 | ext_baseline_iddaw_segformer | **RUN** | 90k✓, 100k🔄 |
+### Phase 1: Verify Fix (In Progress)
+- [x] Implement batch-level ratio enforcement
+- [x] Submit test job (524893 - BDD10k/deeplabv3plus_r50/gen_cycleGAN)
+- [ ] Wait for job 524893 to complete (~45 min remaining)
+- [ ] Run test evaluation on trained model
+- [ ] Verify mIoU is reasonable
 
-**Baseline Tests:** 12 checkpoints, 10 tested, 2 testing (468661, 468662)  
+### Phase 2: Retrain gen_* Strategies
 
-### Blocked (Permission Issues - Need chge7185)
-5 checkpoints with `-rw-------` permissions:
-- `gen_flux_kontext/iddaw/segformer_mit-b5_ratio0p{00,25,62,75,88}`
+#### Stage 1 (Clear Day Training) - 19 gen_* strategies
+**19 strategies × 4 datasets × 3 models = 228 jobs**
 
----
+| Dataset | Models | Strategies | Total Jobs |
+|---------|--------|------------|------------|
+| BDD10k | 3 | 19 gen_* | 57 |
+| IDD-AW | 3 | 19 gen_* | 57 |
+| MapillaryVistas | 3 | 19 gen_* | 57 |
+| OUTSIDE15k | 3 | 19 gen_* | 57 |
+| **Total Stage 1** | | | **228** |
 
-## 📋 Pending Actions
+#### Stage 2 (All Domain Training) - TOP 10 strategies only
+**10 strategies × 4 datasets × 3 models = 120 jobs**
 
-### Priority 1: Extended Training Baseline
-- [x] First batch of tests submitted (8 jobs for 90k-110k checkpoints)
-- [x] All 8 tests completed successfully
-- [x] Fixed submission script to skip already-tested checkpoints
-- [x] 120k tests completed (465658, 465659)
-- [x] Submitted 100k segformer tests (468661, 468662)
-- [ ] Continue monitoring for more checkpoints (130k-320k)
+Top 10 strategies will be selected based on Stage 1 results:
+- Best performers per strategy family (CycleGAN, IP2P, FLUX, Step1X, etc.)
+- Aim to include at least 1-2 from each generator family
 
-### Priority 2: Ratio Ablation Completion
-- [x] Completed training jobs (291472, 291559, 291560)
-- [x] 9 test jobs (3 succeeded, 1 timeout, 5 permission)
-- [x] Timeout retest completed (467660) ✅
-- [ ] **BLOCKED**: Contact chge7185 to fix permissions on 5 checkpoints
+| Dataset | Models | Strategies | Total Jobs |
+|---------|--------|------------|------------|
+| BDD10k | 3 | 10 gen_* | 30 |
+| IDD-AW | 3 | 10 gen_* | 30 |
+| MapillaryVistas | 3 | 10 gen_* | 30 |
+| OUTSIDE15k | 3 | 10 gen_* | 30 |
+| **Total Stage 2** | | | **120** |
 
-### Priority 3: Documentation
-- [x] Analyzed STUDY_COVERAGE for mismatches
-- [x] Updated STUDY_COVERAGE_ANALYSIS.md with mismatch findings
-- [ ] Final paper figures after baseline extended training results
-- [x] All visualizations regenerated (11 plots including baseline comparison)
+**Grand Total: 348 training jobs** (228 Stage 1 + 120 Stage 2)
 
----
+### Phase 3: Ratio Ablation (After Phase 2)
+**Ratios: 0.00, 0.12, 0.25, 0.38, 0.50, 0.62, 0.75, 0.88 (8 values)**
 
-## 📊 Quick Status Overview
+Select subset for ablation:
+- 2-3 best gen_* strategies from Phase 2
+- 2 datasets (BDD10k, IDD-AW)
+- 2 models (deeplabv3plus_r50, segformer_mit-b5)
 
-| Study | Status | Checkpoints | Tests | Delta |
-|-------|--------|-------------|-------|-------|
-| **Stage 1** | ✅ COMPLETE | 324 | 324 | 0 |
-| **Stage 2** | ✅ COMPLETE | 325 | 325 | 0 |
-| **Ratio Ablation** | 🔄 98% | 284 | 279 | 5 (perm) |
-| **Extended Training** | 🔄 79% | 970 | 766 | 204 |
-| **Combinations** | ✅ COMPLETE | 53 | 53 | 0 |
-| **Domain Adaptation** | ✅ COMPLETE | N/A | 64 | N/A |
+**Estimated: 48-96 jobs**
 
-### Mismatch Details
-- **Ratio Ablation**: 5 permission issues (`chge7185` checkpoints), 1 timeout ✅ fixed
-- **Extended Training**: 204 = early checkpoints (10k-70k) + ongoing baseline training
+### Phase 4: Testing
+- Run `fine_grained_test.py` on all trained models
+- Generate per-domain metrics (JSON output)
+- Compile results into analysis CSVs
 
----
+**Estimated: 348+ test jobs (one per trained model)**
 
-## ✅ Recently Completed
-
-### Jan 28, 2026 (08:50)
-- ✅ Timeout retest (467660) **completed successfully**
-- ✅ 120k baseline tests completed (465658, 465659)
-- ✅ Submitted 2 new 100k segformer tests (468661, 468662)
-- ✅ Ratio Ablation: 279/284 complete (5 permission-blocked)
-- ✅ Extended Training: 766/970 complete (baseline progress)
-
-### Jan 28, 2026 (08:45)
-- ✅ **Mismatch Analysis Complete** - identified 5+1 ratio ablation issues, 206 extended training gaps
-- ✅ Cleaned up 6 empty test directories
-- ✅ Resubmitted timeout job (467660) with 2h wall time
-- ✅ Identified 5 permission-blocked checkpoints (need chge7185)
-
-### Jan 28, 2026 (08:35)
-- ✅ All 8 baseline extended tests completed (90k-110k checkpoints)
-- ✅ Fixed submission script to skip already-tested checkpoints  
-- ✅ 2 new test jobs submitted for 120k checkpoints (465658, 465659)
-
-### Jan 28, 2026 (08:30)
-- ✅ Fixed extended training analysis script to detect `test_results_detailed/iter_*/` pattern
-- ✅ Extended training analysis updated: 722 results total, baseline now included
-- ✅ **Key Finding**: Baseline degrades after 90k (46.11→43.47), generative strategies don't!
-- ✅ All 11 visualizations regenerated including baseline_comparison.png
-- ✅ Ratio ablation analysis: Best ratio = **0.75** (mIoU 41.46)
-- ✅ 9 ratio ablation test jobs submitted
-
-### Jan 28, 2026 (08:15)
-- ✅ Domain adaptation testing complete (64/64) - all 15/15 strategies beat baseline
-- ✅ Baseline extended training jobs submitted (4 jobs: 443834-443837)
-
-### Jan 26, 2026
-- ✅ Domain adaptation analysis - gen_stargan_v2 best (+1.96% vs baseline)
-- ✅ Archived logs investigation - 117 dirs NOT reusable (no checkpoints)
-
-### Jan 25, 2026
-- ✅ Stage 1 ratio ablation training submitted - 140 jobs
-- ✅ Fixed ratio ablation submission script
-- ✅ Moved buggy gen_TSIT ratio ablation to backup
-
-### Jan 24, 2026
-- ✅ Stage 1 & Stage 2 fully complete - 648 tests
-- ✅ Stage comparison analysis - 6 figures generated
-- ✅ Initial checkpoint tests (10k-80k) - 269/392 complete
-- ✅ Domain adaptation MV re-tests submitted
+### Phase 5: Analysis & Visualization
+- Run analysis scripts to generate leaderboards
+- Create visualizations for paper
+- Update documentation with new findings
 
 ---
 
-## ⚠️ Key Findings Summary (OUTDATED)
+## 🎯 gen_* Strategy List (19 active)
 
-> **WARNING:** These findings are from training runs where generated images were **NEVER USED**. 
-> The `gen_*` strategies only differed from baseline in pipeline augmentation (`PhotoMetricDistortion`).
-> **DO NOT CITE these results** - retraining with fixed MixedDataLoader is required.
+Strategies ranked by CQS (Composite Quality Score) from [results/generative_quality/generative_quality.csv](results/generative_quality/generative_quality.csv):
 
-| Study | Key Result | Status |
-|-------|------------|--------|
-| **Stage 1** | gen_Attribute_Hallucination best (+1.36%) | ❌ **INVALID** - no gen images used |
-| **Stage 2** | gen_stargan_v2 best (+0.38%) | ❌ **INVALID** - no gen images used |
-| **Ratio Ablation** | Best ratio = 0.75 | ❌ **INVALID** - ratio had NO EFFECT |
-| **Extended Training** | +12.09% mIoU improvement | ⚠️ Baseline valid, gen_* invalid |
-| **Extended (Baseline)** | Baseline degrades after 90k | ✅ **VALID** - uses real images only |
-| **Combinations** | std_mixup+photometric best | ⚠️ Partially valid (standard aug only) |
-| **Domain Adaptation** | ALL 15/15 beat baseline | ❌ **INVALID** - compared pipeline aug |
+| Rank | Strategy | CQS | FID↓ | mIoU↑ | Notes |
+|------|----------|-----|------|-------|-------|
+| 1 | gen_cycleGAN | -0.78 | 92.65 | 46.76 | Best overall |
+| 2 | gen_flux_kontext | -0.66 | 80.30 | 40.01 | Best FID |
+| 3 | gen_step1x_new | -0.47 | 86.64 | 35.92 | |
+| 4 | gen_LANIT | -0.29 | 106.24 | 44.48 | |
+| 5 | gen_albumentations_weather | 0.07 | 123.94 | 43.99 | |
+| 6 | gen_automold | 0.16 | 121.12 | 33.50 | |
+| 7 | gen_step1x_v1p2 | 0.18 | 91.63 | 24.61 | |
+| 8 | gen_VisualCloze | 0.26 | 99.34 | 24.02 | |
+| 9 | gen_SUSTechGAN | 0.36 | 147.49 | 49.13 | Best mIoU |
+| 10 | gen_cyclediffusion | 0.39 | 138.77 | 33.18 | |
+| 11 | gen_IP2P | 0.41 | 114.22 | 28.52 | |
+| 12 | gen_Attribute_Hallucination | 0.64 | 117.95 | 21.60 | |
+| 13 | gen_UniControl | 0.73 | 114.90 | 22.51 | |
+| 14 | gen_CUT | 0.78 | 119.38 | 18.11 | |
+| 15 | gen_Img2Img | 0.84 | 120.25 | 15.04 | |
+| 16 | gen_Qwen_Image_Edit | 0.85 | 111.41 | 17.18 | |
+| 17 | gen_CNetSeg | 1.43 | 120.77 | 13.00 | |
+| 18 | gen_stargan_v2 | 1.52 | 100.28 | 4.84 | Worst |
+| 19 | gen_Weather_Effect_Generator | - | - | - | Added manually |
 
-### Valid Results (Standard Augmentation Only)
-- `baseline` results are valid (no generated images expected)
-- `std_*` strategies are valid (use pipeline augmentation, not generative)
-- `photometric_distort` results are valid
+*Excluded: gen_EDICT, gen_StyleID (no generated images available)*
+
+**Top 10 Selection Criteria (after Stage 1):**
+1. Best mIoU improvement over baseline
+2. Best cross-domain robustness
+3. Consider CQS ranking as prior
 
 ---
 
-## 📁 Important Paths
+## 📊 Valid Results (Keep These)
 
+The following results remain valid (no generated images used):
+
+| Strategy | Stage 1 | Stage 2 | Notes |
+|----------|---------|---------|-------|
+| baseline | ✅ 12 configs | ✅ 12 configs | Real images only |
+| std_autoaugment | ✅ 12 configs | ✅ 12 configs | Pipeline augmentation |
+| std_cutmix | ✅ 12 configs | ✅ 12 configs | Pipeline augmentation |
+| std_mixup | ✅ 12 configs | ✅ 12 configs | Pipeline augmentation |
+| std_randaugment | ✅ 12 configs | ✅ 12 configs | Pipeline augmentation |
+| std_photometric_distort | ✅ 12 configs | ✅ 12 configs | Pipeline augmentation |
+
+**Total valid: 144 trained models**
+
+---
+
+## 🚀 Recommended Execution Plan
+
+### Step 1: Verify Current Test Job (Today)
+```bash
+# Monitor job 524893
+bjobs 524893
+tail -f /scratch/.../train_524893.out
+
+# When complete, run test
+python fine_grained_test.py --config ... --checkpoint iter_10000.pth
 ```
-# Main weights directories
-/scratch/aaa_exchange/AWARE/WEIGHTS/           # Stage 1
-/scratch/aaa_exchange/AWARE/WEIGHTS_STAGE_2/   # Stage 2
 
-# Ablation study directories
-/scratch/aaa_exchange/AWARE/WEIGHTS_RATIO_ABLATION/
-/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/
-/scratch/aaa_exchange/AWARE/WEIGHTS_COMBINATIONS/
+### Step 2: Create Batch Training Script
+```python
+# Generate all training jobs for Phase 2
+# Use existing unified_training.py with --submit-job
+```
 
-# Results figures
-result_figures/extended_training/
-result_figures/ratio_ablation/
-result_figures/domain_adaptation/
-result_figures/combination_ablation/
+### Step 3: Submit in Batches
+- Submit 50-100 jobs at a time
+- Monitor completion
+- Submit next batch
+
+### Step 4: Automated Testing
+```bash
+# Use auto_submit_tests.py when training completes
+python scripts/auto_submit_tests.py --dry-run
+python scripts/auto_submit_tests.py --limit 50
 ```
 
 ---
 
-## 🛠️ Useful Commands
+## 📁 File Organization
+
+```
+WEIGHTS/                    # Stage 1 (valid: baseline + std_*)
+WEIGHTS_STAGE_2/            # Stage 2 (valid: baseline + std_*)
+WEIGHTS_RATIO_ABLATION/     # Empty - needs re-run
+WEIGHTS_EXTENDED/           # baseline only valid
+WEIGHTS_COMBINATIONS/       # std_* combinations valid
+```
+
+---
+
+## ⏱️ Time Estimates
+
+| Phase | Jobs | Time per Job | Parallel Jobs | Total Time |
+|-------|------|--------------|---------------|------------|
+| Phase 2 Training | 348 | 1 hour | 20 | ~17 hours |
+| Phase 3 Ratio | 48-96 | 1 hour | 20 | ~5 hours |
+| Phase 4 Testing | 400+ | 15 min | 20 | ~5 hours |
+| **Total** | | | | **~27 hours** |
+
+*Assuming 20 GPU jobs can run concurrently on cluster*
+
+---
+
+## 📝 Commands Reference
 
 ```bash
-# Check job status
-bjobs -w -u mima2416
+# ============================================
+# Batch Training Submission (NEW)
+# ============================================
 
-# Run extended training analysis
-python analysis_scripts/analyze_extended_training.py
-python analysis_scripts/visualize_extended_training.py
+# Dry run - see what jobs would be submitted
+python scripts/batch_training_submission.py --stage 1 --dry-run
 
-# Submit baseline extended tests
-python scripts/submit_baseline_extended_tests.py --dry-run
-python scripts/submit_baseline_extended_tests.py --submit
+# Submit Stage 1 jobs (all gen_* strategies)
+python scripts/batch_training_submission.py --stage 1 --limit 50
 
-# Run ratio ablation analysis
-python analysis_scripts/analyze_ratio_ablation.py
-python analysis_scripts/visualize_ratio_ablation.py
+# Submit Stage 2 jobs (top 10 strategies)
+python scripts/batch_training_submission.py --stage 2 --strategies gen_cycleGAN gen_flux_kontext ...
 
-# Update trackers
+# Submit for specific dataset/model
+python scripts/batch_training_submission.py --stage 1 --datasets BDD10k --models deeplabv3plus_r50
+
+# ============================================
+# Single Training Submission
+# ============================================
+python unified_training.py --dataset BDD10k --model deeplabv3plus_r50 \
+    --strategy gen_cycleGAN --real-gen-ratio 0.5 --domain-filter clear_day --submit-job
+
+# ============================================
+# Testing
+# ============================================
+python fine_grained_test.py --config path/training_config.py \
+    --checkpoint path/iter_10000.pth --dataset BDD10k --output-dir path/test_results
+
+# Auto-submit tests
+python scripts/auto_submit_tests.py --dry-run
+python scripts/auto_submit_tests.py --limit 50
+
+# ============================================
+# Job Management (LSF)
+# ============================================
+bjobs -w -u mima2416 | grep RUN | wc -l
+bjobs -w -u mima2416 | head -30
+bkill <job_id>                  # Kill specific job
+bkill 0                         # Kill ALL your jobs
+
+# ============================================
+# Update Trackers
+# ============================================
 python scripts/update_training_tracker.py --stage 1
-python scripts/update_training_tracker.py --stage 2
+python scripts/update_testing_tracker.py --stage 1
 ```

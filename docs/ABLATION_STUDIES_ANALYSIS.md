@@ -9,7 +9,7 @@
 | **Domain Adaptation** | 64 | 64 | ✅ Complete | BDD10k→ACDC best (23.7%), gen_TSIT leads (+3.9% vs baseline) |
 | **Ratio Ablation** | 187 | 46 | 🔄 Partial | Ratio 0.00-0.25 optimal, higher ratios degrade |
 | **Extended Training** | 959 | N/A | ✅ Analyzed | 160k = 75% gains at 50% compute |
-| **Combinations** | 53 | 53 | ✅ Complete | photometric_distort combos dominate (45.2% mIoU) |
+| **Combinations** | 53 | 53 | ✅ Complete | std_photometric_distort combos dominate (45.2% mIoU) |
 
 ---
 
@@ -172,11 +172,11 @@
 #### Top Combinations (by mIoU)
 | Rank | Combination | mIoU |
 |------|-------------|------|
-| 1 | std_mixup + photometric_distort | 45.22% |
-| 2 | gen_step1x_new + photometric_distort | 45.18% |
-| 3 | std_autoaugment + photometric_distort | 45.18% |
-| 4 | gen_stargan_v2 + photometric_distort | 45.17% |
-| 5 | gen_Attribute_Hallucination + photometric_distort | 45.17% |
+| 1 | std_mixup + std_photometric_distort | 45.22% |
+| 2 | gen_step1x_new + std_photometric_distort | 45.18% |
+| 3 | std_autoaugment + std_photometric_distort | 45.18% |
+| 4 | gen_stargan_v2 + std_photometric_distort | 45.17% |
+| 5 | gen_Attribute_Hallucination + std_photometric_distort | 45.17% |
 
 #### Worst Combinations
 | Rank | Combination | mIoU |
@@ -187,21 +187,21 @@
 
 ### Key Finding
 
-**photometric_distort is the optimal combination partner**
+**std_photometric_distort is the optimal combination partner**
 
 | Combination Partner | Avg mIoU | Configs |
 |---------------------|----------|---------|
-| **photometric_distort** | **45.10%** | 18 |
+| **std_photometric_distort** | **45.10%** | 18 |
 | std_autoaugment | 40.76% | 12 |
 | std_cutmix | 40.32% | 10 |
 | std_mixup | 40.09% | 7 |
 | std_randaugment | 40.21% | 6 |
 
-**Finding:** Combining ANY strategy with photometric_distort yields ~5% improvement over other combinations.
+**Finding:** Combining ANY strategy with std_photometric_distort yields ~5% improvement over other combinations.
 
 ### Next Steps
 - [ ] Consider expanding to BDD10k if results warrant
-- [ ] Investigate why photometric_distort is so effective as combination partner
+- [ ] Investigate why std_photometric_distort is so effective as combination partner
 
 ---
 
@@ -232,7 +232,7 @@ All ablation studies have sufficient data for analysis:
 1. **Domain Adaptation:** Source dataset × strategy heatmap
 2. **Ratio Ablation:** Ratio vs mIoU curves per strategy
 3. **Extended Training:** Convergence curves (160k sweet spot)
-4. **Combinations:** photometric_distort effectiveness bar chart
+4. **Combinations:** std_photometric_distort effectiveness bar chart
 
 ---
 

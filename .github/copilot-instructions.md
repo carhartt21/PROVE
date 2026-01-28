@@ -151,7 +151,7 @@ python scripts/update_testing_tracker.py --stage 2
 | MapillaryVistas | 66 | RGB-encoded |
 | OUTSIDE15k | 24 | RGB-encoded |
 
-**Strategies:** `baseline`, `std_autoaugment`, `std_cutmix`, `std_mixup`, `std_randaugment`, `photometric_distort`, `gen_cycleGAN`, `gen_IP2P`, `gen_flux_kontext`, `gen_step1x_new`, etc.
+**Strategies:** `baseline`, `std_autoaugment`, `std_cutmix`, `std_mixup`, `std_randaugment`, `std_photometric_distort`, `gen_cycleGAN`, `gen_IP2P`, `gen_flux_kontext`, `gen_step1x_new`, etc.
 
 ## Ablation Studies
 

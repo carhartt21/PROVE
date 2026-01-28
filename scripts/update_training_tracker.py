@@ -79,7 +79,7 @@ GENERATIVE_STRATEGIES = [
 
 STANDARD_STRATEGIES = [
     'baseline',
-    'photometric_distort',
+    'std_std_photometric_distort',
     # 'std_minimal',  # REMOVED: Not useful as a strategy
     'std_autoaugment',
     'std_cutmix',
@@ -290,7 +290,7 @@ def get_running_jobs():
         'autoaug': 'std_autoaugment',
         'cutmix': 'std_cutmix',
         'mixup': 'std_mixup',
-        'photom': 'photometric_distort',
+        'photom': 'std_std_photometric_distort',
         'randaug': 'std_randaugment',
         'minimal': 'std_minimal',
         'WEG': 'gen_Weather_Effect_Generator',
@@ -572,7 +572,7 @@ def get_running_jobs_detailed(verbose=False):
         'autoaug': 'std_autoaugment',
         'cutmix': 'std_cutmix',
         'mixup': 'std_mixup',
-        'photom': 'photometric_distort',
+        'photom': 'std_std_photometric_distort',
         'randaug': 'std_randaugment',
         'minimal': 'std_minimal',
         'WEG': 'gen_Weather_Effect_Generator',

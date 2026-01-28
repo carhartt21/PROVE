@@ -95,7 +95,7 @@ This document tracks the progress of fine-grained testing for trained models.
 | Strategy | BDD10k | IDD-AW | MapillaryVistas | OUTSIDE15k | Avg |
 |----------|-------:|-------:|-------:|-------:|-------:|
 | baseline | 50.6 | 46.8 | 41.0 | 51.2 | 47.4 |
-| photometric_distort | 52.3 | 46.9 | 41.0 | 50.6 | 47.7 |
+| std_photometric_distort | 52.3 | 46.9 | 41.0 | 50.6 | 47.7 |
 | std_autoaugment | 52.0 | 46.9 | 41.0 | 50.8 | 47.7 |
 | std_cutmix | 51.9 | 46.9 | 41.6 | 50.5 | 47.7 |
 | std_mixup | 51.4 | 46.4 | 40.6 | 50.2 | 47.1 |
@@ -146,7 +146,7 @@ This document tracks the progress of fine-grained testing for trained models.
 | Strategy | BDD10k | IDD-AW | MapillaryVistas | OUTSIDE15k |
 |----------|--------|--------|--------|--------|
 | baseline | ✅ | ✅ | ✅ | ✅ |
-| photometric_distort | ✅ | ✅ | ✅ | ✅ |
+| std_photometric_distort | ✅ | ✅ | ✅ | ✅ |
 | std_autoaugment | ✅ | ✅ | ✅ | ✅ |
 | std_cutmix | ✅ | ✅ | ✅ | ✅ |
 | std_mixup | ✅ | ✅ | ✅ | ✅ |

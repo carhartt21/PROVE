@@ -50,7 +50,7 @@
 | Category | Count | Strategies |
 |----------|-------|------------|
 | Generative | 21 | gen_Attribute_Hallucination, gen_augmenters, gen_automold, gen_CNetSeg, gen_CUT, gen_cyclediffusion, gen_cycleGAN, gen_flux_kontext, gen_Img2Img, gen_IP2P, gen_LANIT, gen_Qwen_Image_Edit, gen_stargan_v2, gen_step1x_new, gen_step1x_v1p2, gen_SUSTechGAN, gen_TSIT, gen_UniControl, gen_VisualCloze, gen_Weather_Effect_Generator, gen_albumentations_weather |
-| Standard | 6 | baseline, photometric_distort, std_autoaugment, std_cutmix, std_mixup, std_randaugment |
+| Standard | 6 | baseline, std_photometric_distort, std_autoaugment, std_cutmix, std_mixup, std_randaugment |
 
 ### Leaderboard (Top 15) - Updated 2026-01-23 with MapillaryVistas
 | Rank | Strategy | mIoU | Gain |
@@ -142,7 +142,7 @@ Afterwards, update leaderboard.
 | gen_albumentations_weather | ✅ 12/12 | ✅ 12/12 | |
 | gen_augmenters | ✅ 12/12 | ✅ 12/12 | |
 | gen_automold | ✅ 12/12 | ✅ 12/12 | |
-| photometric_distort | ✅ 12/12 | ✅ 12/12 | |
+| std_photometric_distort | ✅ 12/12 | ✅ 12/12 | |
 | std_autoaugment | ✅ 12/12 | ✅ 12/12 | |
 | **std_cutmix** | 🔄 10/12 | ⏳ 10/12 | **2 jobs resuming** |
 | std_mixup | ✅ 12/12 | 🔄 Testing | MapillaryVistas test running |
@@ -295,7 +295,7 @@ python analysis_scripts/generate_stage2_leaderboard.py
 
 - **Location:** `/scratch/aaa_exchange/AWARE/WEIGHTS_COMBINATIONS/`
 - **Checkpoints:** 53 (all IDD-AW, all tested)
-- **Key Finding:** photometric_distort combos dominate (45.1% avg vs ~40% others)
+- **Key Finding:** std_photometric_distort combos dominate (45.1% avg vs ~40% others)
 - **CSV:** `result_figures/combinations_analysis.csv`
 
 ---

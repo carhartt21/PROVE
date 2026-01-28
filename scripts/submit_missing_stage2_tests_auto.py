@@ -40,7 +40,7 @@ STRATEGIES = [
     'gen_LANIT', 'gen_Qwen_Image_Edit', 'gen_stargan_v2', 'gen_step1x_new',
     'gen_step1x_v1p2', 'gen_SUSTechGAN', 'gen_TSIT', 'gen_UniControl',
     'gen_VisualCloze', 'gen_Weather_Effect_Generator', 'gen_albumentations_weather',
-    'baseline', 'photometric_distort', 'std_autoaugment', 'std_randaugment'
+    'baseline', 'std_photometric_distort', 'std_autoaugment', 'std_randaugment'
 ]
 
 

@@ -47,7 +47,7 @@ This document provides a structured summary of all available evaluation data fro
 #### Strategies WITH Detailed Results (10 strategies)
 
 - **gen_StyleID** [Generative] - Overall: 59.3% mIoU, Gap: -2.0%
-- **photometric_distort** [Other] - Overall: 57.3% mIoU, Gap: -3.5%
+- **std_std_photometric_distort** [Other] - Overall: 57.3% mIoU, Gap: -3.5%
 - **baseline** [Other] - Overall: 57.2% mIoU, Gap: -31.1%
 - **gen_CUT** [Generative] - Overall: 57.1% mIoU, Gap: -30.7%
 - **std_autoaugment** [Standard] - Overall: 57.1% mIoU, Gap: -31.2%
@@ -127,7 +127,7 @@ Models trained on clear_day data only, tested across all weather domains.
 | Rank | Strategy | Type | Overall mIoU | Normal mIoU | Adverse mIoU | Domain Gap |
 |------|----------|------|--------------|-------------|--------------|------------|
 | 1 | gen_StyleID | Gen | 59.3% | 58.7% | 60.7% | -2.0% |
-| 2 | photometric_distort | Other | 57.3% | 56.5% | 59.9% | -3.5% |
+| 2 | std_std_photometric_distort | Other | 57.3% | 56.5% | 59.9% | -3.5% |
 | 3 | std_cutmix | Std | 56.6% | 55.7% | 59.6% | -3.9% |
 | 4 | std_randaugment | Std | 56.5% | 55.4% | 60.3% | -4.8% |
 | 5 | std_mixup | Std | 56.5% | 55.5% | 59.8% | -4.3% |
@@ -139,7 +139,7 @@ Models trained on clear_day data only, tested across all weather domains.
 | Strategy | Δ Overall | Δ Normal | Δ Adverse | Gap Reduction |
 |----------|-----------|----------|-----------|---------------|
 | gen_StyleID | +6.0% | +3.8% | +13.2% | +9.4% |
-| photometric_distort | +4.0% | +1.5% | +12.4% | +10.9% |
+| std_std_photometric_distort | +4.0% | +1.5% | +12.4% | +10.9% |
 | std_cutmix | +3.4% | +0.8% | +12.1% | +11.3% |
 | std_randaugment | +3.3% | +0.5% | +12.8% | +12.3% |
 | std_mixup | +3.2% | +0.5% | +12.3% | +11.8% |
@@ -161,7 +161,7 @@ Models trained on clear_day data only, tested across all weather domains.
 | gen_cycleGAN | 35.4% | 60.0% | -24.6% |
 | std_cutmix | 35.4% | 59.7% | -24.3% |
 | gen_StyleID | 35.3% | 59.7% | -24.4% |
-| photometric_distort | 35.2% | 59.5% | -24.3% |
+| std_std_photometric_distort | 35.2% | 59.5% | -24.3% |
 
 #### BDD10K
 
@@ -169,7 +169,7 @@ Models trained on clear_day data only, tested across all weather domains.
 |----------|-------------|--------------|------------|
 | std_mixup | 62.4% | 57.3% | +5.1% |
 | std_randaugment | 62.2% | 57.6% | +4.6% |
-| photometric_distort | 61.9% | 55.7% | +6.2% |
+| std_std_photometric_distort | 61.9% | 55.7% | +6.2% |
 | gen_StyleID | 61.8% | 56.5% | +5.3% |
 | gen_cycleGAN | 61.3% | 54.9% | +6.4% |
 | std_cutmix | 60.2% | 54.7% | +5.5% |
@@ -181,7 +181,7 @@ Models trained on clear_day data only, tested across all weather domains.
 | std_cutmix | 78.0% | 72.3% | +5.7% |
 | gen_StyleID | 77.6% | 71.2% | +6.5% |
 | std_randaugment | 77.4% | 70.5% | +6.9% |
-| photometric_distort | 77.3% | 70.7% | +6.6% |
+| std_std_photometric_distort | 77.3% | 70.7% | +6.6% |
 | gen_cycleGAN | 77.0% | 70.7% | +6.3% |
 | std_mixup | 77.0% | 69.6% | +7.4% |
 
@@ -190,7 +190,7 @@ Models trained on clear_day data only, tested across all weather domains.
 | Strategy | Normal mIoU | Adverse mIoU | Domain Gap |
 |----------|-------------|--------------|------------|
 | gen_StyleID | 45.9% | 46.2% | -0.4% |
-| photometric_distort | 42.7% | 42.8% | -0.1% |
+| std_std_photometric_distort | 42.7% | 42.8% | -0.1% |
 | std_cutmix | 41.3% | 38.9% | +2.4% |
 | std_mixup | 40.3% | 40.7% | -0.4% |
 | std_randaugment | 39.5% | 40.6% | -1.1% |
@@ -200,7 +200,7 @@ Models trained on clear_day data only, tested across all weather domains.
 
 | Strategy | Normal mIoU | Adverse mIoU | Domain Gap |
 |----------|-------------|--------------|------------|
-| photometric_distort | 67.5% | 55.7% | +11.8% |
+| std_std_photometric_distort | 67.5% | 55.7% | +11.8% |
 | std_randaugment | 67.3% | 56.6% | +10.7% |
 | std_mixup | 67.1% | 54.6% | +12.5% |
 | std_cutmix | 66.4% | 55.2% | +11.2% |

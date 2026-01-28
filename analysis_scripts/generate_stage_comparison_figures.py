@@ -31,7 +31,7 @@ OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 # Strategy type mapping
 STRATEGY_TYPES = {
     'baseline': 'Baseline',
-    'photometric_distort': 'Augmentation',
+    'std_photometric_distort': 'Augmentation',
     'std_autoaugment': 'Standard Aug',
     'std_cutmix': 'Standard Aug',
     'std_mixup': 'Standard Aug',

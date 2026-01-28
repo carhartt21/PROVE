@@ -89,7 +89,7 @@ STRATEGY_COLORS = {
     'std_cutout': '#98df8a',
     'std_randaugment+std_mixup': '#ff9896',
     'std_randaugment+std_cutout': '#c5b0d5',
-    'photometric_distort': '#c49c94',  # Brown
+    'std_photometric_distort': '#c49c94',  # Brown
 }
 
 # Color palette for datasets

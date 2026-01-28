@@ -39,7 +39,7 @@ Rank  Strategy                           mIoU   Normal  Adverse      Gap
 20    gen_step1x_v1p2                   37.65    38.97    32.28    +6.69
 21    gen_TSIT                          37.63    39.00    32.04    +6.96
 22    gen_CUT                           37.59    38.88    32.35    +6.53
-23    photometric_distort               37.53    38.81    32.32    +6.49
+23    std_photometric_distort               37.53    38.81    32.32    +6.49
 24    std_mixup                         37.44    38.83    31.78    +7.05
 25    std_randaugment                   37.33    38.47    32.71    +5.76
 26    std_cutmix                        37.21    38.55    31.76    +6.79

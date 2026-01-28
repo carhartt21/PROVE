@@ -112,7 +112,7 @@ STRATEGY_TYPES = {
     'baseline': 'Baseline Full',  # Legacy name for full baseline
     'baseline_full': 'Baseline Full',  # Explicit full baseline name
     'baseline_clear_day': 'Baseline Clear Day',  # Reference baseline
-    'photometric_distort': 'Augmentation',
+    'std_photometric_distort': 'Augmentation',
     'std_cutmix': 'Standard Aug',
     'std_mixup': 'Standard Aug',
     'std_autoaugment': 'Standard Aug',

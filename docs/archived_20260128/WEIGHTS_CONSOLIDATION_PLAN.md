@@ -107,7 +107,7 @@ CONFLICT: gen_TSIT/outside15k (1 ckpts) → MERGE INTO gen_TSIT/outside15k_ad (1
 CONFLICT: gen_UniControl/bdd10k (1 ckpts) → MERGE INTO gen_UniControl/bdd10k_ad (1 ckpts)
 CONFLICT: gen_UniControl/iddaw_ad (2 ckpts) → CREATE gen_UniControl/idd-aw_ad
 CONFLICT: gen_VisualCloze/iddaw_ad (2 ckpts) → CREATE gen_VisualCloze/idd-aw_ad
-CONFLICT: photometric_distort/iddaw_cd (0 ckpts) → MERGE INTO photometric_distort/idd-aw_cd (5 ckpts)
+CONFLICT: std_std_photometric_distort/iddaw_cd (0 ckpts) → MERGE INTO std_std_photometric_distort/idd-aw_cd (5 ckpts)
 CONFLICT: std_minimal/iddaw_ad (2 ckpts) → CREATE std_minimal/idd-aw_ad
 ```
 

@@ -121,9 +121,9 @@
 | gen_step1x_v1p2 | mapillaryvistas | DeepLabV3+ (0.5) |
 | gen_step1x_v1p2 | mapillaryvistas | PSPNet (0.5) |
 | gen_step1x_v1p2 | mapillaryvistas | SegFormer (0.5) |
-| photometric_distort | mapillaryvistas | DeepLabV3+ |
-| photometric_distort | mapillaryvistas | PSPNet |
-| photometric_distort | mapillaryvistas | SegFormer |
+| std_photometric_distort | mapillaryvistas | DeepLabV3+ |
+| std_photometric_distort | mapillaryvistas | PSPNet |
+| std_photometric_distort | mapillaryvistas | SegFormer |
 | std_autoaugment | mapillaryvistas | DeepLabV3+ |
 | std_autoaugment | mapillaryvistas | PSPNet |
 | std_autoaugment | mapillaryvistas | SegFormer |
@@ -162,7 +162,7 @@
 | gen_Weather_Effect_Generator | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer | ⏳ | ✅ DeepLabV3+, PSPNet, SegFormer |
 | gen_albumentations_weather | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer | ⏳ | ✅ DeepLabV3+, PSPNet, SegFormer |
 | baseline | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer | ⏳ | ✅ DeepLabV3+, PSPNet, SegFormer |
-| photometric_distort | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer | ⏳ | ✅ DeepLabV3+, PSPNet, SegFormer |
+| std_photometric_distort | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer | ⏳ | ✅ DeepLabV3+, PSPNet, SegFormer |
 | std_autoaugment | ✅ DeepLabV3+, PSPNet, SegFormer | ✅ DeepLabV3+, PSPNet, SegFormer | ⏳ | ✅ DeepLabV3+, PSPNet, SegFormer |
 | std_cutmix | ⏳ | ⏳ | ⏳ | ⏳ |
 | std_mixup | ⏳ | ⏳ | ⏳ | ⏳ |

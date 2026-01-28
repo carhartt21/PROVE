@@ -61,7 +61,7 @@
 | **Stage 2** | gen_stargan_v2 (41.73%) | Domain gap shrinks 5-6× |
 | **Ratio Ablation** | 0.75 ratio (25% gen) | +1.56% mIoU optimal |
 | **Extended Training** | 77% configs improve | Baseline overfits after 90K |
-| **Combinations** | std_mixup+photometric (45.22%) | photometric_distort dominates |
+| **Combinations** | std_mixup+photometric (45.22%) | std_std_photometric_distort dominates |
 | **Domain Adaptation** | All 15/15 beat baseline | +1.03% to +1.96% |
 
 See [STUDY_COVERAGE_ANALYSIS.md](STUDY_COVERAGE_ANALYSIS.md) for detailed findings and recommended figures.

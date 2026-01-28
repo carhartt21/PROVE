@@ -147,7 +147,7 @@ def get_strategy_type(strategy: str) -> str:
         return 'Standard Aug'
     elif strategy.startswith('gen_'):
         return 'Generative'
-    elif strategy == 'photometric_distort':
+    elif strategy == 'std_photometric_distort':
         return 'Augmentation'
     else:
         return 'Other'

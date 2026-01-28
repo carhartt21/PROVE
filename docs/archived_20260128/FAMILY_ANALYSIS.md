@@ -13,7 +13,7 @@ The PROVE project evaluates multiple data augmentation strategies for semantic s
 | **Style Transfer** | Neural style transfer methods | gen_NST, gen_LANIT, gen_TSIT |
 | **Diffusion** | Standard diffusion models | gen_Img2Img, gen_IP2P, gen_UniControl |
 | **Multimodal Diffusion** | Large multimodal diffusion | gen_flux1_kontext, gen_step1x_new, gen_Qwen_Image_Edit |
-| **Standard Augmentation** | Traditional augmentation | std_autoaugment, std_randaugment, photometric_distort |
+| **Standard Augmentation** | Traditional augmentation | std_autoaugment, std_randaugment, std_std_photometric_distort |
 | **Standard Mixing** | Sample mixing methods | std_cutmix, std_mixup |
 | **Baseline** | No augmentation | baseline |
 

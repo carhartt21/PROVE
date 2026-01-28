@@ -72,7 +72,7 @@ The following methods are **excluded** from training due to insufficient trainin
 | Strategy | Description | Status |
 |----------|-------------|--------|
 | baseline | No augmentation | ✅ Running |
-| photometric_distort | Photometric distortion | ✅ Running |
+| std_std_photometric_distort | Photometric distortion | ✅ Running |
 
 ---
 

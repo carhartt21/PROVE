@@ -6,7 +6,7 @@ This module provides a centralized configuration system that eliminates
 redundant config files by parameterizing:
 - Base model (deeplabv3plus_r50, pspnet_r50, segformer_mit-b5, etc.)
 - Dataset (ACDC, BDD10k, BDD100k, IDD-AW, MapillaryVistas, OUTSIDE15k)
-- Augmentation strategy (baseline, photometric_distort, gen_<model>)
+- Augmentation strategy (baseline, std_photometric_distort, gen_<model>)
 - Real-to-generated image ratio for mixed training
 
 Usage:
@@ -804,15 +804,15 @@ AUGMENTATION_STRATEGIES = {
         type='none',
         transforms=[],
     ),
-    'photometric_distort': AugmentationStrategy(
-        name='photometric_distort',
+    'std_photometric_distort': AugmentationStrategy(
+        name='std_photometric_distort',
         type='standard',  # Changed from 'transform' to allow use as std_strategy in combinations
         transforms=[dict(type='PhotoMetricDistortion')],
     ),
     'std_minimal': AugmentationStrategy(
         # Minimal standard augmentation: RandomCrop, RandomFlip, 1x PhotoMetricDistortion
         # Created from gen_* models accidentally trained with real_gen_ratio=1.0
-        # Serves as ablation baseline between 'baseline' and 'photometric_distort'
+        # Serves as ablation baseline between 'baseline' and 'std_photometric_distort'
         name='std_minimal',
         type='transform',
         transforms=[],  # Uses default pipeline which includes 1x PhotoMetricDistortion

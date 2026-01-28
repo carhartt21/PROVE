@@ -471,22 +471,37 @@ def compute_metrics_from_areas(
 
 def load_and_preprocess_image(img_path: Path, label_path: Path, 
                                folder_name: str, model_num_classes: int,
-                               mean: np.ndarray, std: np.ndarray) -> Tuple[torch.Tensor, np.ndarray, Tuple[int, int]]:
+                               mean: np.ndarray, std: np.ndarray,
+                               target_size: Tuple[int, int] = (512, 512)) -> Tuple[torch.Tensor, np.ndarray, Tuple[int, int]]:
     """Load and preprocess a single image and its label.
+    
+    Args:
+        img_path: Path to input image
+        label_path: Path to label image
+        folder_name: Dataset folder name for label processing
+        model_num_classes: Number of classes in model
+        mean: Normalization mean
+        std: Normalization std
+        target_size: Target size (H, W) for resizing. Default: (512, 512)
     
     Returns:
         img_tensor: Preprocessed image tensor (CHW format)
         gt_seg_map: Ground truth segmentation map
-        original_size: Original image size (H, W)
+        original_size: Original image size (H, W) before resizing
     """
     # Load image
     img = cv2.imread(str(img_path))
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     original_size = (img.shape[0], img.shape[1])
     
+    # Resize image to target size (512x512 by default)
+    img = cv2.resize(img, (target_size[1], target_size[0]), interpolation=cv2.INTER_LINEAR)
+    
     # Load and process label
     gt_seg_map = cv2.imread(str(label_path), cv2.IMREAD_UNCHANGED)
     gt_seg_map = process_label_for_dataset(gt_seg_map, folder_name, model_num_classes)
+    # Resize label to target size using nearest neighbor (preserve class IDs)
+    gt_seg_map = cv2.resize(gt_seg_map, (target_size[1], target_size[0]), interpolation=cv2.INTER_NEAREST)
     
     # Normalize and convert to tensor
     img = (img.astype(np.float32) - mean) / std
@@ -505,7 +520,8 @@ class PrefetchBatchLoader:
     
     def __init__(self, image_pairs: List[Tuple[Path, Path]], 
                  batch_size: int, folder_name: str, model_num_classes: int,
-                 mean: np.ndarray, std: np.ndarray, num_workers: int = 4):
+                 mean: np.ndarray, std: np.ndarray, num_workers: int = 4,
+                 target_size: Tuple[int, int] = (512, 512)):
         """
         Args:
             image_pairs: List of (image_path, label_path) tuples
@@ -515,6 +531,7 @@ class PrefetchBatchLoader:
             mean: Normalization mean
             std: Normalization std
             num_workers: Number of parallel loading threads
+            target_size: Target size (H, W) for resizing. Default: (512, 512)
         """
         self.image_pairs = image_pairs
         self.batch_size = batch_size
@@ -523,6 +540,7 @@ class PrefetchBatchLoader:
         self.mean = mean
         self.std = std
         self.num_workers = num_workers
+        self.target_size = target_size
         
         self.num_batches = (len(image_pairs) + batch_size - 1) // batch_size
         self.current_batch_idx = 0
@@ -541,7 +559,8 @@ class PrefetchBatchLoader:
         try:
             return load_and_preprocess_image(
                 img_path, label_path, self.folder_name, 
-                self.model_num_classes, self.mean, self.std
+                self.model_num_classes, self.mean, self.std,
+                self.target_size
             )
         except Exception as e:
             return None
@@ -887,9 +906,10 @@ def run_fine_grained_test(
                 valid_pairs.append((img_path, label_path))
         
         # Create prefetch batch loader for parallel I/O
+        # All images are resized to 512x512 for consistent processing
         batch_loader = PrefetchBatchLoader(
             valid_pairs, batch_size, folder_name, model_num_classes,
-            mean, std, num_workers=4
+            mean, std, num_workers=4, target_size=(512, 512)
         )
         
         # Process batches with prefetching

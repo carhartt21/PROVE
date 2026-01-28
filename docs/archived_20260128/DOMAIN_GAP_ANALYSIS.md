@@ -158,7 +158,7 @@ The domain gap analysis requires **per-domain test results**, which are stored i
 ```
 
 **Strategies with DETAILED results (9, included in analysis):**
-- baseline, gen_CUT, gen_StyleID, gen_cycleGAN, photometric_distort
+- baseline, gen_CUT, gen_StyleID, gen_cycleGAN, std_std_photometric_distort
 - std_autoaugment, std_cutmix, std_mixup, std_randaugment
 
 **Strategies with BASIC results only (16, NOT included):**
@@ -205,7 +205,7 @@ Strategies with comprehensive dataset coverage (results from 5+ datasets across 
 | Strategy | Overall mIoU | Normal mIoU | Adverse mIoU | Domain Gap | Δ vs Baseline |
 |----------|--------------|-------------|--------------|------------|---------------|
 | **gen_StyleID** | 59.3% | 58.7% | 60.7% | -2.0% | +6.0% |
-| photometric_distort | 57.3% | 56.5% | 59.9% | -3.5% | +4.0% |
+| std_std_photometric_distort | 57.3% | 56.5% | 59.9% | -3.5% | +4.0% |
 | std_cutmix | 56.6% | 55.7% | 59.6% | -3.9% | +3.4% |
 | std_randaugment | 56.5% | 55.4% | 60.3% | -4.8% | +3.3% |
 | std_mixup | 56.5% | 55.5% | 59.8% | -4.3% | +3.2% |
@@ -267,7 +267,7 @@ The extreme negative domain gaps (-30%) are due to missing clear_day results fro
    - Gap reduced from +7.5% to -4.8%
    - Good overall performance (56.5%)
 
-3. **Budget-Friendly Option**: photometric_distort
+3. **Budget-Friendly Option**: std_std_photometric_distort
    - Good performance (57.3%)
    - No additional data generation required
    - +4.0% improvement over baseline

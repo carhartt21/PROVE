@@ -45,7 +45,7 @@ STRATEGY_FAMILIES = {
         "gen_imgaug_weather",
         "gen_automold", 
         "gen_Weather_Effect_Generator",
-        "photometric_distort"
+        "std_photometric_distort"
     ],
     "CNN/GAN": [
         "gen_Attribute_Hallucination",
@@ -74,7 +74,7 @@ STRATEGY_FAMILIES = {
     "Standard Augmentation": [
         "std_autoaugment",
         "std_randaugment",
-        "photometric_distort"
+        "std_photometric_distort"
     ],
     "Standard Mixing": [
         "std_cutmix",

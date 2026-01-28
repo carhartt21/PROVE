@@ -1,8 +1,8 @@
 strategy,dataset,model,mIoU,mAcc,combination_type,n_components,components,component_families,component_1,component_2
-gen_Attribute_Hallucination+photometric_distort,iddaw,pspnet_r50_ratio0p5,43.3879,,Other,2,gen_Attribute_Hallucination+photometric_distort,Unknown,gen_Attribute_Hallucination,photometric_distort
-gen_Attribute_Hallucination+photometric_distort,iddaw,segformer_mit-b5_ratio0p5,46.9524,,Other,2,gen_Attribute_Hallucination+photometric_distort,Unknown,gen_Attribute_Hallucination,photometric_distort
-gen_Qwen_Image_Edit+photometric_distort,iddaw,pspnet_r50_ratio0p5,43.1881,,Other,2,gen_Qwen_Image_Edit+photometric_distort,Unknown,gen_Qwen_Image_Edit,photometric_distort
-gen_Qwen_Image_Edit+photometric_distort,iddaw,segformer_mit-b5_ratio0p5,46.9306,,Other,2,gen_Qwen_Image_Edit+photometric_distort,Unknown,gen_Qwen_Image_Edit,photometric_distort
+gen_Attribute_Hallucination+std_photometric_distort,iddaw,pspnet_r50_ratio0p5,43.3879,,Other,2,gen_Attribute_Hallucination+std_photometric_distort,Unknown,gen_Attribute_Hallucination,std_photometric_distort
+gen_Attribute_Hallucination+std_photometric_distort,iddaw,segformer_mit-b5_ratio0p5,46.9524,,Other,2,gen_Attribute_Hallucination+std_photometric_distort,Unknown,gen_Attribute_Hallucination,std_photometric_distort
+gen_Qwen_Image_Edit+std_photometric_distort,iddaw,pspnet_r50_ratio0p5,43.1881,,Other,2,gen_Qwen_Image_Edit+std_photometric_distort,Unknown,gen_Qwen_Image_Edit,std_photometric_distort
+gen_Qwen_Image_Edit+std_photometric_distort,iddaw,segformer_mit-b5_ratio0p5,46.9306,,Other,2,gen_Qwen_Image_Edit+std_photometric_distort,Unknown,gen_Qwen_Image_Edit,std_photometric_distort
 gen_Qwen_Image_Edit+std_autoaugment,iddaw,pspnet_r50_ratio0p5,38.2142,,Generative + Standard,2,gen_Qwen_Image_Edit+std_autoaugment,Unknown+Standard Augmentation,gen_Qwen_Image_Edit,std_autoaugment
 gen_Qwen_Image_Edit+std_autoaugment,iddaw,segformer_mit-b5_ratio0p5,43.2858,,Generative + Standard,2,gen_Qwen_Image_Edit+std_autoaugment,Unknown+Standard Augmentation,gen_Qwen_Image_Edit,std_autoaugment
 gen_Qwen_Image_Edit+std_cutmix,iddaw,pspnet_r50_ratio0p5,37.3346,,Generative + Standard,2,gen_Qwen_Image_Edit+std_cutmix,Unknown+Standard Mixing,gen_Qwen_Image_Edit,std_cutmix
@@ -11,8 +11,8 @@ gen_Qwen_Image_Edit+std_mixup,iddaw,pspnet_r50_ratio0p5,36.1031,,Generative + St
 gen_Qwen_Image_Edit+std_mixup,iddaw,segformer_mit-b5_ratio0p5,43.061,,Generative + Standard,2,gen_Qwen_Image_Edit+std_mixup,Unknown+Standard Mixing,gen_Qwen_Image_Edit,std_mixup
 gen_Qwen_Image_Edit+std_randaugment,iddaw,pspnet_r50_ratio0p5,37.6486,,Generative + Standard,2,gen_Qwen_Image_Edit+std_randaugment,Unknown+Standard Augmentation,gen_Qwen_Image_Edit,std_randaugment
 gen_Qwen_Image_Edit+std_randaugment,iddaw,segformer_mit-b5_ratio0p5,43.4235,,Generative + Standard,2,gen_Qwen_Image_Edit+std_randaugment,Unknown+Standard Augmentation,gen_Qwen_Image_Edit,std_randaugment
-gen_flux_kontext+photometric_distort,iddaw,pspnet_r50_ratio0p5,43.3426,,Other,2,gen_flux_kontext+photometric_distort,Unknown,gen_flux_kontext,photometric_distort
-gen_flux_kontext+photometric_distort,iddaw,segformer_mit-b5_ratio0p5,46.9409,,Other,2,gen_flux_kontext+photometric_distort,Unknown,gen_flux_kontext,photometric_distort
+gen_flux_kontext+std_photometric_distort,iddaw,pspnet_r50_ratio0p5,43.3426,,Other,2,gen_flux_kontext+std_photometric_distort,Unknown,gen_flux_kontext,std_photometric_distort
+gen_flux_kontext+std_photometric_distort,iddaw,segformer_mit-b5_ratio0p5,46.9409,,Other,2,gen_flux_kontext+std_photometric_distort,Unknown,gen_flux_kontext,std_photometric_distort
 gen_flux_kontext+std_autoaugment,iddaw,pspnet_r50_ratio0p5,37.912,,Generative + Standard,2,gen_flux_kontext+std_autoaugment,Unknown+Standard Augmentation,gen_flux_kontext,std_autoaugment
 gen_flux_kontext+std_autoaugment,iddaw,segformer_mit-b5_ratio0p5,43.5585,,Generative + Standard,2,gen_flux_kontext+std_autoaugment,Unknown+Standard Augmentation,gen_flux_kontext,std_autoaugment
 gen_flux_kontext+std_cutmix,iddaw,pspnet_r50_ratio0p5,37.3051,,Generative + Standard,2,gen_flux_kontext+std_cutmix,Unknown+Standard Mixing,gen_flux_kontext,std_cutmix
@@ -21,10 +21,10 @@ gen_flux_kontext+std_mixup,iddaw,pspnet_r50_ratio0p5,35.4907,,Generative + Stand
 gen_flux_kontext+std_mixup,iddaw,segformer_mit-b5_ratio0p5,43.2108,,Generative + Standard,2,gen_flux_kontext+std_mixup,Unknown+Standard Mixing,gen_flux_kontext,std_mixup
 gen_flux_kontext+std_randaugment,iddaw,pspnet_r50_ratio0p5,37.3806,,Generative + Standard,2,gen_flux_kontext+std_randaugment,Unknown+Standard Augmentation,gen_flux_kontext,std_randaugment
 gen_flux_kontext+std_randaugment,iddaw,segformer_mit-b5_ratio0p5,43.1652,,Generative + Standard,2,gen_flux_kontext+std_randaugment,Unknown+Standard Augmentation,gen_flux_kontext,std_randaugment
-gen_stargan_v2+photometric_distort,iddaw,pspnet_r50_ratio0p5,43.4861,,Other,2,gen_stargan_v2+photometric_distort,Unknown,gen_stargan_v2,photometric_distort
-gen_stargan_v2+photometric_distort,iddaw,segformer_mit-b5_ratio0p5,46.8493,,Other,2,gen_stargan_v2+photometric_distort,Unknown,gen_stargan_v2,photometric_distort
-gen_step1x_new+photometric_distort,iddaw,pspnet_r50_ratio0p5,43.3948,,Other,2,gen_step1x_new+photometric_distort,Unknown,gen_step1x_new,photometric_distort
-gen_step1x_new+photometric_distort,iddaw,segformer_mit-b5_ratio0p5,46.9649,,Other,2,gen_step1x_new+photometric_distort,Unknown,gen_step1x_new,photometric_distort
+gen_stargan_v2+std_photometric_distort,iddaw,pspnet_r50_ratio0p5,43.4861,,Other,2,gen_stargan_v2+std_photometric_distort,Unknown,gen_stargan_v2,std_photometric_distort
+gen_stargan_v2+std_photometric_distort,iddaw,segformer_mit-b5_ratio0p5,46.8493,,Other,2,gen_stargan_v2+std_photometric_distort,Unknown,gen_stargan_v2,std_photometric_distort
+gen_step1x_new+std_photometric_distort,iddaw,pspnet_r50_ratio0p5,43.3948,,Other,2,gen_step1x_new+std_photometric_distort,Unknown,gen_step1x_new,std_photometric_distort
+gen_step1x_new+std_photometric_distort,iddaw,segformer_mit-b5_ratio0p5,46.9649,,Other,2,gen_step1x_new+std_photometric_distort,Unknown,gen_step1x_new,std_photometric_distort
 gen_step1x_new+std_autoaugment,iddaw,pspnet_r50_ratio0p5,37.7392,,Generative + Standard,2,gen_step1x_new+std_autoaugment,Unknown+Standard Augmentation,gen_step1x_new,std_autoaugment
 gen_step1x_new+std_autoaugment,iddaw,segformer_mit-b5_ratio0p5,43.6125,,Generative + Standard,2,gen_step1x_new+std_autoaugment,Unknown+Standard Augmentation,gen_step1x_new,std_autoaugment
 gen_step1x_new+std_cutmix,iddaw,pspnet_r50_ratio0p5,37.5696,,Generative + Standard,2,gen_step1x_new+std_cutmix,Unknown+Standard Mixing,gen_step1x_new,std_cutmix
@@ -32,20 +32,20 @@ gen_step1x_new+std_cutmix,iddaw,segformer_mit-b5_ratio0p5,43.2879,,Generative + 
 gen_step1x_new+std_mixup,iddaw,segformer_mit-b5_ratio0p5,43.194,,Generative + Standard,2,gen_step1x_new+std_mixup,Unknown+Standard Mixing,gen_step1x_new,std_mixup
 gen_step1x_new+std_randaugment,iddaw,pspnet_r50_ratio0p5,36.7124,,Generative + Standard,2,gen_step1x_new+std_randaugment,Unknown+Standard Augmentation,gen_step1x_new,std_randaugment
 gen_step1x_new+std_randaugment,iddaw,segformer_mit-b5_ratio0p5,43.3755,,Generative + Standard,2,gen_step1x_new+std_randaugment,Unknown+Standard Augmentation,gen_step1x_new,std_randaugment
-std_autoaugment+photometric_distort,iddaw,pspnet_r50,43.5117,,Other,2,std_autoaugment+photometric_distort,Standard Augmentation+Unknown,std_autoaugment,photometric_distort
-std_autoaugment+photometric_distort,iddaw,segformer_mit-b5,46.8486,,Other,2,std_autoaugment+photometric_distort,Standard Augmentation+Unknown,std_autoaugment,photometric_distort
-std_cutmix+photometric_distort,iddaw,pspnet_r50,43.0472,,Other,2,std_cutmix+photometric_distort,Standard Mixing+Unknown,std_cutmix,photometric_distort
-std_cutmix+photometric_distort,iddaw,segformer_mit-b5,46.8382,,Other,2,std_cutmix+photometric_distort,Standard Mixing+Unknown,std_cutmix,photometric_distort
+std_autoaugment+std_photometric_distort,iddaw,pspnet_r50,43.5117,,Other,2,std_autoaugment+std_photometric_distort,Standard Augmentation+Unknown,std_autoaugment,std_photometric_distort
+std_autoaugment+std_photometric_distort,iddaw,segformer_mit-b5,46.8486,,Other,2,std_autoaugment+std_photometric_distort,Standard Augmentation+Unknown,std_autoaugment,std_photometric_distort
+std_cutmix+std_photometric_distort,iddaw,pspnet_r50,43.0472,,Other,2,std_cutmix+std_photometric_distort,Standard Mixing+Unknown,std_cutmix,std_photometric_distort
+std_cutmix+std_photometric_distort,iddaw,segformer_mit-b5,46.8382,,Other,2,std_cutmix+std_photometric_distort,Standard Mixing+Unknown,std_cutmix,std_photometric_distort
 std_cutmix+std_autoaugment,iddaw,pspnet_r50,36.5285,,Standard + Standard,2,std_cutmix+std_autoaugment,Standard Mixing+Standard Augmentation,std_cutmix,std_autoaugment
 std_cutmix+std_autoaugment,iddaw,segformer_mit-b5,43.3018,,Standard + Standard,2,std_cutmix+std_autoaugment,Standard Mixing+Standard Augmentation,std_cutmix,std_autoaugment
-std_mixup+photometric_distort,iddaw,pspnet_r50,43.5678,,Other,2,std_mixup+photometric_distort,Standard Mixing+Unknown,std_mixup,photometric_distort
-std_mixup+photometric_distort,iddaw,segformer_mit-b5,46.8787,,Other,2,std_mixup+photometric_distort,Standard Mixing+Unknown,std_mixup,photometric_distort
+std_mixup+std_photometric_distort,iddaw,pspnet_r50,43.5678,,Other,2,std_mixup+std_photometric_distort,Standard Mixing+Unknown,std_mixup,std_photometric_distort
+std_mixup+std_photometric_distort,iddaw,segformer_mit-b5,46.8787,,Other,2,std_mixup+std_photometric_distort,Standard Mixing+Unknown,std_mixup,std_photometric_distort
 std_mixup+std_autoaugment,iddaw,pspnet_r50,35.0412,,Standard + Standard,2,std_mixup+std_autoaugment,Standard Mixing+Standard Augmentation,std_mixup,std_autoaugment
 std_mixup+std_autoaugment,iddaw,segformer_mit-b5,42.9591,,Standard + Standard,2,std_mixup+std_autoaugment,Standard Mixing+Standard Augmentation,std_mixup,std_autoaugment
 std_mixup+std_cutmix,iddaw,pspnet_r50,35.6904,,Standard + Standard,2,std_mixup+std_cutmix,Standard Mixing,std_mixup,std_cutmix
 std_mixup+std_cutmix,iddaw,segformer_mit-b5,43.1207,,Standard + Standard,2,std_mixup+std_cutmix,Standard Mixing,std_mixup,std_cutmix
-std_randaugment+photometric_distort,iddaw,pspnet_r50,43.2453,,Other,2,std_randaugment+photometric_distort,Standard Augmentation+Unknown,std_randaugment,photometric_distort
-std_randaugment+photometric_distort,iddaw,segformer_mit-b5,46.8562,,Other,2,std_randaugment+photometric_distort,Standard Augmentation+Unknown,std_randaugment,photometric_distort
+std_randaugment+std_photometric_distort,iddaw,pspnet_r50,43.2453,,Other,2,std_randaugment+std_photometric_distort,Standard Augmentation+Unknown,std_randaugment,std_photometric_distort
+std_randaugment+std_photometric_distort,iddaw,segformer_mit-b5,46.8562,,Other,2,std_randaugment+std_photometric_distort,Standard Augmentation+Unknown,std_randaugment,std_photometric_distort
 std_randaugment+std_autoaugment,iddaw,pspnet_r50,36.7091,,Standard + Standard,2,std_randaugment+std_autoaugment,Standard Augmentation,std_randaugment,std_autoaugment
 std_randaugment+std_autoaugment,iddaw,segformer_mit-b5,43.1014,,Standard + Standard,2,std_randaugment+std_autoaugment,Standard Augmentation,std_randaugment,std_autoaugment
 std_randaugment+std_cutmix,iddaw,pspnet_r50,37.2278,,Standard + Standard,2,std_randaugment+std_cutmix,Standard Augmentation+Standard Mixing,std_randaugment,std_cutmix

@@ -35,4 +35,4 @@ See [../BUG_REPORT_CROSS_DATASET_CONTAMINATION.md](../BUG_REPORT_CROSS_DATASET_C
 
 - `baseline` results (no generated images expected)
 - `std_*` strategy results (use pipeline augmentation only)
-- `photometric_distort` results
+- `std_std_std_photometric_distort` results
