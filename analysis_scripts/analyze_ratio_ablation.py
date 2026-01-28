@@ -55,7 +55,7 @@ except ImportError:
 # Default configuration
 DEFAULT_WEIGHTS_ROOT = "/scratch/aaa_exchange/AWARE/WEIGHTS_RATIO_ABLATION"
 DEFAULT_REGULAR_WEIGHTS_ROOT = "/scratch/aaa_exchange/AWARE/WEIGHTS"  # For baseline (0) and standard (0.5)
-RATIOS = [0.0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875, 1.0]
+RATIOS = [0.0, 0.12, 0.25, 0.38, 0.5, 0.62, 0.75, 0.88, 1.0]
 TOP_5_STRATEGIES = [
     "gen_LANIT",
     "gen_step1x_new", 
@@ -113,7 +113,8 @@ class RatioAblationAnalyzer:
     
     # Datasets to EXCLUDE from ratio comparison due to inconsistent configurations
     # (e.g., MapillaryVistas uses different num_classes between WEIGHTS and WEIGHTS_RATIO_ABLATION)
-    INCONSISTENT_DATASETS = {'mapillaryvistas'}
+    # outside15k is excluded to focus on the two main datasets (BDD10k and IDD-AW)
+    INCONSISTENT_DATASETS = {'mapillaryvistas', 'outside15k'}
     
     # Models that exist in the ratio ablation study (WEIGHTS_RATIO_ABLATION)
     # deeplabv3plus_r50 only exists in WEIGHTS/ at ratio 0.5 and 1.0, not in ablation

@@ -1,0 +1,345 @@
+[
+  {
+    "strategy": "baseline",
+    "source": "mapillaryvistas",
+    "model": "deeplabv3plus_r50",
+    "model_dir": "deeplabv3plus_r50",
+    "checkpoint": "/scratch/aaa_exchange/AWARE/WEIGHTS/baseline/mapillaryvistas/deeplabv3plus_r50/iter_80000.pth"
+  },
+  {
+    "strategy": "gen_Attribute_Hallucination",
+    "source": "mapillaryvistas",
+    "model": "deeplabv3plus_r50",
+    "model_dir": "deeplabv3plus_r50_ratio0p50",
+    "checkpoint": "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_Attribute_Hallucination/mapillaryvistas/deeplabv3plus_r50_ratio0p50/iter_80000.pth"
+  },
+  {
+    "strategy": "gen_Attribute_Hallucination",
+    "source": "mapillaryvistas",
+    "model": "pspnet_r50",
+    "model_dir": "pspnet_r50_ratio0p50",
+    "checkpoint": "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_Attribute_Hallucination/mapillaryvistas/pspnet_r50_ratio0p50/iter_80000.pth"
+  },
+  {
+    "strategy": "gen_Attribute_Hallucination",
+    "source": "mapillaryvistas",
+    "model": "segformer_mit-b5",
+    "model_dir": "segformer_mit-b5_ratio0p50",
+    "checkpoint": "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_Attribute_Hallucination/mapillaryvistas/segformer_mit-b5_ratio0p50/iter_80000.pth"
+  },
+  {
+    "strategy": "gen_CNetSeg",
+    "source": "mapillaryvistas",
+    "model": "deeplabv3plus_r50",
+    "model_dir": "deeplabv3plus_r50_ratio0p50",
+    "checkpoint": "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_CNetSeg/mapillaryvistas/deeplabv3plus_r50_ratio0p50/iter_80000.pth"
+  },
+  {
+    "strategy": "gen_CNetSeg",
+    "source": "mapillaryvistas",
+    "model": "pspnet_r50",
+    "model_dir": "pspnet_r50_ratio0p50",
+    "checkpoint": "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_CNetSeg/mapillaryvistas/pspnet_r50_ratio0p50/iter_80000.pth"
+  },
+  {
+    "strategy": "gen_CNetSeg",
+    "source": "mapillaryvistas",
+    "model": "segformer_mit-b5",
+    "model_dir": "segformer_mit-b5_ratio0p50",
+    "checkpoint": "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_CNetSeg/mapillaryvistas/segformer_mit-b5_ratio0p50/iter_80000.pth"
+  },
+  {
+    "strategy": "gen_CUT",
+    "source": "mapillaryvistas",
+    "model": "deeplabv3plus_r50",
+    "model_dir": "deeplabv3plus_r50_ratio0p50",
+    "checkpoint": "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_CUT/mapillaryvistas/deeplabv3plus_r50_ratio0p50/iter_80000.pth"
+  },
+  {
+    "strategy": "gen_CUT",
+    "source": "mapillaryvistas",
+    "model": "pspnet_r50",
+    "model_dir": "pspnet_r50_ratio0p50",
+    "checkpoint": "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_CUT/mapillaryvistas/pspnet_r50_ratio0p50/iter_80000.pth"
+  },
+  {
+    "strategy": "gen_CUT",
+    "source": "mapillaryvistas",
+    "model": "segformer_mit-b5",
+    "model_dir": "segformer_mit-b5_ratio0p50",
+    "checkpoint": "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_CUT/mapillaryvistas/segformer_mit-b5_ratio0p50/iter_80000.pth"
+  },
+  {
+    "strategy": "gen_IP2P",
+    "source": "mapillaryvistas",
+    "model": "deeplabv3plus_r50",
+    "model_dir": "deeplabv3plus_r50_ratio0p50",
+    "checkpoint": "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_IP2P/mapillaryvistas/deeplabv3plus_r50_ratio0p50/iter_80000.pth"
+  },
+  {
+    "strategy": "gen_IP2P",
+    "source": "mapillaryvistas",
+    "model": "pspnet_r50",
+    "model_dir": "pspnet_r50_ratio0p50",
+    "checkpoint": "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_IP2P/mapillaryvistas/pspnet_r50_ratio0p50/iter_80000.pth"
+  },
+  {
+    "strategy": "gen_IP2P",
+    "source": "mapillaryvistas",
+    "model": "segformer_mit-b5",
+    "model_dir": "segformer_mit-b5_ratio0p50",
+    "checkpoint": "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_IP2P/mapillaryvistas/segformer_mit-b5_ratio0p50/iter_80000.pth"
+  },
+  {
+    "strategy": "gen_Img2Img",
+    "source": "mapillaryvistas",
+    "model": "deeplabv3plus_r50",
+    "model_dir": "deeplabv3plus_r50_ratio0p50",
+    "checkpoint": "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_Img2Img/mapillaryvistas/deeplabv3plus_r50_ratio0p50/iter_80000.pth"
+  },
+  {
+    "strategy": "gen_Img2Img",
+    "source": "mapillaryvistas",
+    "model": "pspnet_r50",
+    "model_dir": "pspnet_r50_ratio0p50",
+    "checkpoint": "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_Img2Img/mapillaryvistas/pspnet_r50_ratio0p50/iter_80000.pth"
+  },
+  {
+    "strategy": "gen_Img2Img",
+    "source": "mapillaryvistas",
+    "model": "segformer_mit-b5",
+    "model_dir": "segformer_mit-b5_ratio0p50",
+    "checkpoint": "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_Img2Img/mapillaryvistas/segformer_mit-b5_ratio0p50/iter_80000.pth"
+  },
+  {
+    "strategy": "gen_LANIT",
+    "source": "mapillaryvistas",
+    "model": "deeplabv3plus_r50",
+    "model_dir": "deeplabv3plus_r50_ratio0p50",
+    "checkpoint": "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_LANIT/mapillaryvistas/deeplabv3plus_r50_ratio0p50/iter_80000.pth"
+  },
+  {
+    "strategy": "gen_LANIT",
+    "source": "mapillaryvistas",
+    "model": "pspnet_r50",
+    "model_dir": "pspnet_r50_ratio0p50",
+    "checkpoint": "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_LANIT/mapillaryvistas/pspnet_r50_ratio0p50/iter_80000.pth"
+  },
+  {
+    "strategy": "gen_LANIT",
+    "source": "mapillaryvistas",
+    "model": "segformer_mit-b5",
+    "model_dir": "segformer_mit-b5_ratio0p50",
+    "checkpoint": "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_LANIT/mapillaryvistas/segformer_mit-b5_ratio0p50/iter_80000.pth"
+  },
+  {
+    "strategy": "gen_Qwen_Image_Edit",
+    "source": "mapillaryvistas",
+    "model": "deeplabv3plus_r50",
+    "model_dir": "deeplabv3plus_r50_ratio0p50",
+    "checkpoint": "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_Qwen_Image_Edit/mapillaryvistas/deeplabv3plus_r50_ratio0p50/iter_80000.pth"
+  },
+  {
+    "strategy": "gen_Qwen_Image_Edit",
+    "source": "mapillaryvistas",
+    "model": "pspnet_r50",
+    "model_dir": "pspnet_r50_ratio0p50",
+    "checkpoint": "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_Qwen_Image_Edit/mapillaryvistas/pspnet_r50_ratio0p50/iter_80000.pth"
+  },
+  {
+    "strategy": "gen_Qwen_Image_Edit",
+    "source": "mapillaryvistas",
+    "model": "segformer_mit-b5",
+    "model_dir": "segformer_mit-b5_ratio0p50",
+    "checkpoint": "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_Qwen_Image_Edit/mapillaryvistas/segformer_mit-b5_ratio0p50/iter_80000.pth"
+  },
+  {
+    "strategy": "gen_SUSTechGAN",
+    "source": "mapillaryvistas",
+    "model": "deeplabv3plus_r50",
+    "model_dir": "deeplabv3plus_r50_ratio0p50",
+    "checkpoint": "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_SUSTechGAN/mapillaryvistas/deeplabv3plus_r50_ratio0p50/iter_80000.pth"
+  },
+  {
+    "strategy": "gen_SUSTechGAN",
+    "source": "mapillaryvistas",
+    "model": "pspnet_r50",
+    "model_dir": "pspnet_r50_ratio0p50",
+    "checkpoint": "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_SUSTechGAN/mapillaryvistas/pspnet_r50_ratio0p50/iter_80000.pth"
+  },
+  {
+    "strategy": "gen_SUSTechGAN",
+    "source": "mapillaryvistas",
+    "model": "segformer_mit-b5",
+    "model_dir": "segformer_mit-b5_ratio0p50",
+    "checkpoint": "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_SUSTechGAN/mapillaryvistas/segformer_mit-b5_ratio0p50/iter_80000.pth"
+  },
+  {
+    "strategy": "gen_TSIT",
+    "source": "mapillaryvistas",
+    "model": "deeplabv3plus_r50",
+    "model_dir": "deeplabv3plus_r50_ratio0p50",
+    "checkpoint": "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_TSIT/mapillaryvistas/deeplabv3plus_r50_ratio0p50/iter_80000.pth"
+  },
+  {
+    "strategy": "gen_UniControl",
+    "source": "mapillaryvistas",
+    "model": "deeplabv3plus_r50",
+    "model_dir": "deeplabv3plus_r50_ratio0p50",
+    "checkpoint": "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_UniControl/mapillaryvistas/deeplabv3plus_r50_ratio0p50/iter_80000.pth"
+  },
+  {
+    "strategy": "gen_VisualCloze",
+    "source": "mapillaryvistas",
+    "model": "deeplabv3plus_r50",
+    "model_dir": "deeplabv3plus_r50_ratio0p50",
+    "checkpoint": "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_VisualCloze/mapillaryvistas/deeplabv3plus_r50_ratio0p50/iter_80000.pth"
+  },
+  {
+    "strategy": "gen_VisualCloze",
+    "source": "mapillaryvistas",
+    "model": "pspnet_r50",
+    "model_dir": "pspnet_r50_ratio0p50",
+    "checkpoint": "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_VisualCloze/mapillaryvistas/pspnet_r50_ratio0p50/iter_80000.pth"
+  },
+  {
+    "strategy": "gen_VisualCloze",
+    "source": "mapillaryvistas",
+    "model": "segformer_mit-b5",
+    "model_dir": "segformer_mit-b5_ratio0p50",
+    "checkpoint": "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_VisualCloze/mapillaryvistas/segformer_mit-b5_ratio0p50/iter_80000.pth"
+  },
+  {
+    "strategy": "gen_Weather_Effect_Generator",
+    "source": "mapillaryvistas",
+    "model": "deeplabv3plus_r50",
+    "model_dir": "deeplabv3plus_r50_ratio0p50",
+    "checkpoint": "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_Weather_Effect_Generator/mapillaryvistas/deeplabv3plus_r50_ratio0p50/iter_80000.pth"
+  },
+  {
+    "strategy": "gen_Weather_Effect_Generator",
+    "source": "mapillaryvistas",
+    "model": "pspnet_r50",
+    "model_dir": "pspnet_r50_ratio0p50",
+    "checkpoint": "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_Weather_Effect_Generator/mapillaryvistas/pspnet_r50_ratio0p50/iter_80000.pth"
+  },
+  {
+    "strategy": "gen_Weather_Effect_Generator",
+    "source": "mapillaryvistas",
+    "model": "segformer_mit-b5",
+    "model_dir": "segformer_mit-b5_ratio0p50",
+    "checkpoint": "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_Weather_Effect_Generator/mapillaryvistas/segformer_mit-b5_ratio0p50/iter_80000.pth"
+  },
+  {
+    "strategy": "gen_albumentations_weather",
+    "source": "mapillaryvistas",
+    "model": "deeplabv3plus_r50",
+    "model_dir": "deeplabv3plus_r50_ratio0p50",
+    "checkpoint": "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_albumentations_weather/mapillaryvistas/deeplabv3plus_r50_ratio0p50/iter_80000.pth"
+  },
+  {
+    "strategy": "gen_augmenters",
+    "source": "mapillaryvistas",
+    "model": "deeplabv3plus_r50",
+    "model_dir": "deeplabv3plus_r50_ratio0p50",
+    "checkpoint": "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/mapillaryvistas/deeplabv3plus_r50_ratio0p50/iter_80000.pth"
+  },
+  {
+    "strategy": "gen_augmenters",
+    "source": "mapillaryvistas",
+    "model": "pspnet_r50",
+    "model_dir": "pspnet_r50_ratio0p50",
+    "checkpoint": "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/mapillaryvistas/pspnet_r50_ratio0p50/iter_80000.pth"
+  },
+  {
+    "strategy": "gen_augmenters",
+    "source": "mapillaryvistas",
+    "model": "segformer_mit-b5",
+    "model_dir": "segformer_mit-b5_ratio0p50",
+    "checkpoint": "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_augmenters/mapillaryvistas/segformer_mit-b5_ratio0p50/iter_80000.pth"
+  },
+  {
+    "strategy": "gen_automold",
+    "source": "mapillaryvistas",
+    "model": "deeplabv3plus_r50",
+    "model_dir": "deeplabv3plus_r50_ratio0p50",
+    "checkpoint": "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_automold/mapillaryvistas/deeplabv3plus_r50_ratio0p50/iter_80000.pth"
+  },
+  {
+    "strategy": "gen_cycleGAN",
+    "source": "mapillaryvistas",
+    "model": "deeplabv3plus_r50",
+    "model_dir": "deeplabv3plus_r50_ratio0p50",
+    "checkpoint": "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_cycleGAN/mapillaryvistas/deeplabv3plus_r50_ratio0p50/iter_80000.pth"
+  },
+  {
+    "strategy": "gen_cyclediffusion",
+    "source": "mapillaryvistas",
+    "model": "deeplabv3plus_r50",
+    "model_dir": "deeplabv3plus_r50_ratio0p50",
+    "checkpoint": "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_cyclediffusion/mapillaryvistas/deeplabv3plus_r50_ratio0p50/iter_80000.pth"
+  },
+  {
+    "strategy": "gen_flux_kontext",
+    "source": "mapillaryvistas",
+    "model": "deeplabv3plus_r50",
+    "model_dir": "deeplabv3plus_r50_ratio0p50",
+    "checkpoint": "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_flux_kontext/mapillaryvistas/deeplabv3plus_r50_ratio0p50/iter_80000.pth"
+  },
+  {
+    "strategy": "gen_stargan_v2",
+    "source": "mapillaryvistas",
+    "model": "deeplabv3plus_r50",
+    "model_dir": "deeplabv3plus_r50_ratio0p50",
+    "checkpoint": "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_stargan_v2/mapillaryvistas/deeplabv3plus_r50_ratio0p50/iter_80000.pth"
+  },
+  {
+    "strategy": "gen_step1x_new",
+    "source": "mapillaryvistas",
+    "model": "deeplabv3plus_r50",
+    "model_dir": "deeplabv3plus_r50_ratio0p50",
+    "checkpoint": "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_step1x_new/mapillaryvistas/deeplabv3plus_r50_ratio0p50/iter_80000.pth"
+  },
+  {
+    "strategy": "gen_step1x_v1p2",
+    "source": "mapillaryvistas",
+    "model": "deeplabv3plus_r50",
+    "model_dir": "deeplabv3plus_r50_ratio0p50",
+    "checkpoint": "/scratch/aaa_exchange/AWARE/WEIGHTS/gen_step1x_v1p2/mapillaryvistas/deeplabv3plus_r50_ratio0p50/iter_80000.pth"
+  },
+  {
+    "strategy": "photometric_distort",
+    "source": "mapillaryvistas",
+    "model": "deeplabv3plus_r50",
+    "model_dir": "deeplabv3plus_r50",
+    "checkpoint": "/scratch/aaa_exchange/AWARE/WEIGHTS/photometric_distort/mapillaryvistas/deeplabv3plus_r50/iter_80000.pth"
+  },
+  {
+    "strategy": "std_autoaugment",
+    "source": "mapillaryvistas",
+    "model": "deeplabv3plus_r50",
+    "model_dir": "deeplabv3plus_r50",
+    "checkpoint": "/scratch/aaa_exchange/AWARE/WEIGHTS/std_autoaugment/mapillaryvistas/deeplabv3plus_r50/iter_80000.pth"
+  },
+  {
+    "strategy": "std_cutmix",
+    "source": "mapillaryvistas",
+    "model": "deeplabv3plus_r50",
+    "model_dir": "deeplabv3plus_r50",
+    "checkpoint": "/scratch/aaa_exchange/AWARE/WEIGHTS/std_cutmix/mapillaryvistas/deeplabv3plus_r50/iter_80000.pth"
+  },
+  {
+    "strategy": "std_mixup",
+    "source": "mapillaryvistas",
+    "model": "deeplabv3plus_r50",
+    "model_dir": "deeplabv3plus_r50",
+    "checkpoint": "/scratch/aaa_exchange/AWARE/WEIGHTS/std_mixup/mapillaryvistas/deeplabv3plus_r50/iter_80000.pth"
+  },
+  {
+    "strategy": "std_randaugment",
+    "source": "mapillaryvistas",
+    "model": "deeplabv3plus_r50",
+    "model_dir": "deeplabv3plus_r50",
+    "checkpoint": "/scratch/aaa_exchange/AWARE/WEIGHTS/std_randaugment/mapillaryvistas/deeplabv3plus_r50/iter_80000.pth"
+  }
+]

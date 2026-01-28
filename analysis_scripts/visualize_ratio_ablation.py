@@ -145,8 +145,9 @@ class RatioAblationVisualizer:
     
     def plot_heatmap_strategy_ratio(self):
         """
-        Heatmap showing mIoU for each strategy-ratio combination.
+        Heatmap showing mIoU GAIN (vs baseline) for each strategy-ratio combination.
         Uses globally common configs to ensure baseline is identical across strategies.
+        Excludes ratio 1.0 (baseline) column and highlights best ratio per strategy.
         """
         strategy_summary = self.analyzer.get_summary_by_strategy(globally_common=True)
         
@@ -154,29 +155,50 @@ class RatioAblationVisualizer:
             print("No data for heatmap")
             return
         
-        # Build matrix
+        # Build matrix of mIoU GAINS (vs baseline at ratio 1.0)
         strategies = sorted(strategy_summary.keys())
-        ratios = sorted(set(r for s in strategy_summary.values() for r in s.keys()))
+        # Exclude ratio 1.0 from the visualization
+        ratios = sorted([r for r in set(r for s in strategy_summary.values() for r in s.keys()) if r != 1.0])
         
         matrix = np.zeros((len(strategies), len(ratios)))
+        best_ratio_idx = []  # Track best ratio index for each strategy
+        
         for i, strategy in enumerate(strategies):
+            baseline_miou = strategy_summary[strategy].get(1.0, 0)
+            best_gain = -float('inf')
+            best_j = 0
             for j, ratio in enumerate(ratios):
-                matrix[i, j] = strategy_summary[strategy].get(ratio, np.nan)
+                miou = strategy_summary[strategy].get(ratio, np.nan)
+                gain = miou - baseline_miou if not np.isnan(miou) else np.nan
+                matrix[i, j] = gain
+                if not np.isnan(gain) and gain > best_gain:
+                    best_gain = gain
+                    best_j = j
+            best_ratio_idx.append(best_j)
         
         fig, ax = plt.subplots(figsize=(12, 8))
         
+        # Create heatmap
         sns.heatmap(matrix, 
-                   xticklabels=[f"{r:.3f}" for r in ratios],
-                   yticklabels=strategies,
+                   xticklabels=[f"{r:.2f}" for r in ratios],
+                   yticklabels=[s.replace('gen_', '') for s in strategies],
                    annot=True, 
-                   fmt='.2f',
+                   fmt='+.2f',
                    cmap='RdYlGn',
-                   center=matrix[~np.isnan(matrix)].mean(),
+                   center=0,
+                   vmin=-1.5,
+                   vmax=2.5,
                    ax=ax)
         
-        ax.set_xlabel('Ratio', fontsize=12)
+        # Highlight best ratio for each strategy with a rectangle
+        for i, best_j in enumerate(best_ratio_idx):
+            ax.add_patch(plt.Rectangle((best_j, i), 1, 1, fill=False, 
+                                       edgecolor='blue', linewidth=3))
+        
+        ax.set_xlabel('Real/Generated Ratio', fontsize=12)
         ax.set_ylabel('Strategy', fontsize=12)
-        ax.set_title('mIoU Heatmap: Strategy × Ratio', fontsize=14, fontweight='bold')
+        ax.set_title('mIoU Gain vs Baseline (ratio=1.0)\nBlue box = Best ratio per strategy', 
+                    fontsize=14, fontweight='bold')
         
         plt.tight_layout()
         self._save_figure(fig, 'heatmap_strategy_ratio')

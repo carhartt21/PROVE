@@ -1,33 +1,40 @@
 # Training Tracker - Stage 1 (Clear Day)
 
-**Last Updated:** 2026-01-24 13:01
+**Last Updated:** 2026-01-28 13:30
 
-> ⚠️ **CRITICAL: MapillaryVistas BGR/RGB Bug (2026-01-21)**
-> All 81 MapillaryVistas models (Stage 1) have been INVALIDATED due to BGR/RGB channel mismatch in label loading.
-> - **Bug:** `mmcv.imfrombytes()` returns BGR, but `MapillaryRGBToClassId` expected RGB
-> - **Effect:** Models learned wrong class mappings (e.g., Sky trained as Phone Booth)
-> - **Fix:** Commit d7b2b99 - Swapped channel indices in `custom_transforms.py`
-> - **Retraining:** 81 jobs submitted (9739253-9739333), ~4-8 hours each
-> - **Backup:** Old models at `/scratch/aaa_exchange/AWARE/WEIGHTS_BACKUP_BUGGY_MAPILLARY/stage1/`
+---
 
-## Progress Summary
+## ⚠️ CRITICAL: gen_* Results Invalid (2026-01-28)
 
-| Category | Total | Complete | Partial | Running | Pending | Failed |
-|----------|-------|----------|---------|---------|---------|--------|
-| **Generative (gen_*)** | 83 | 84 | 0 | 0 | 0 | 0 |
-| **Standard (std_*)** | 24 | 24 | 0 | 0 | 0 | 0 |
-| **TOTAL** | 107 | 108 | 0 | 0 | 0 | 0 |
+> **MixedDataLoader was NEVER connected!** Generated images were never loaded during training.
+> 
+> - All `gen_*` models trained identically to baseline (only PhotoMetricDistortion differed)
+> - Ratio parameter had NO EFFECT on training
+> - **Bug Status:** ✅ FIXED | **Retraining:** ⏳ Required
+> 
+> See [BUG_REPORT](BUG_REPORT_CROSS_DATASET_CONTAMINATION.md) for details.
 
-> **Note:** MapillaryVistas column shows 🔄 for all strategies (retraining in progress).
+---
 
-### Generative Image Augmentation Strategies
+> ⚠️ **MapillaryVistas BGR/RGB Bug (2026-01-21) - RESOLVED**
+> All 81 MapillaryVistas models were retrained after BGR/RGB channel fix.
+
+## Progress Summary (⚠️ gen_* results INVALID)
+
+| Category | Total | Complete | Status |
+|----------|-------|----------|--------|
+| **Generative (gen_*)** | 83 | 84 | ❌ **INVALID** - needs retraining |
+| **Standard (std_*)** | 24 | 24 | ✅ **VALID** |
+| **TOTAL** | 107 | 108 | ⚠️ Partial |
+
+### Generative Image Augmentation Strategies (❌ INVALID)
 
 | Strategy | BDD10k | IDD-AW | MapillaryVistas | OUTSIDE15k | Notes |
 |----------|--------|--------|-----------------|------------|-------|
-| gen_Attribute_Hallucination | ✅ | ✅ | ✅ | ✅ |  |
-| gen_augmenters | ✅ | ✅ | ✅ | ✅ |  |
-| gen_automold | ✅ | ✅ | ✅ | ✅ |  |
-| gen_CNetSeg | ✅ | ✅ | ✅ | ✅ |  |
+| gen_Attribute_Hallucination | ❌ | ❌ | ❌ | ❌ | Needs retraining |
+| gen_augmenters | ❌ | ❌ | ❌ | ❌ | Needs retraining |
+| gen_automold | ❌ | ❌ | ❌ | ❌ | Needs retraining |
+| gen_CNetSeg | ❌ | ❌ | ❌ | ❌ | Needs retraining |
 | gen_CUT | ✅ | ✅ | ✅ | ✅ |  |
 | gen_cyclediffusion | ✅ | ✅ | ✅ | ✅ |  |
 | gen_cycleGAN | ✅ | ✅ | ✅ | ✅ |  |

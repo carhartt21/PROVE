@@ -493,8 +493,8 @@ class PROVEConfig:
                                         mapillary_path: str,
                                         model_name: str = 'deeplabv3plus_r50',
                                         label_space: str = 'cityscapes',
-                                        crop_size: tuple = (512, 1024),
-                                        batch_size: int = 2) -> dict:
+                                        crop_size: tuple = (512, 512),
+                                        batch_size: int = 8) -> dict:
         """
         Generate a complete configuration for joint Cityscapes + Mapillary training.
         

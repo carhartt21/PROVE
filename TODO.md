@@ -1,32 +1,39 @@
 # PROVE Project TODO List
 
-**Last Updated:** 2026-01-28 (12:30)
+**Last Updated:** 2026-01-28 (13:30)
 
 > **Note:** For detailed study results, analysis, and findings, see [docs/STUDY_COVERAGE_ANALYSIS.md](docs/STUDY_COVERAGE_ANALYSIS.md)
 
 ---
 
-## 🚨 CRITICAL BUG DISCOVERED (Jan 28)
+## ✅ RESOLVED: MixedDataLoader Bug (Jan 28)
 
-**Cross-Dataset Contamination in Generative Strategy Training**
+**Status: FIXED AND VERIFIED**
 
-See [docs/BUG_REPORT_CROSS_DATASET_CONTAMINATION.md](docs/BUG_REPORT_CROSS_DATASET_CONTAMINATION.md) for full details.
+The original "cross-dataset contamination bug" was a **FALSE POSITIVE**. Investigation revealed the real issue: Generated images were **NEVER** loaded during training - MixedDataLoader infrastructure existed but wasn't connected.
 
-- **865 models affected** (ALL generative strategy models)
-- Training loaded 187k images from ALL datasets instead of ~10k from target dataset
-- Results from generative strategies cannot be fairly compared to baselines
-- **FIX COMMITTED:** commit ecb9721
+**Fix Implemented:**
+1. ✅ `_generate_mixed_training_script()` properly injects generated images into `data_list`
+2. ✅ Added `serialize_data=False` to allow data_list modification  
+3. ✅ Updated defaults: `batch_size=8`, `max_iters=10000` (80k samples), `lr_scale_factor=4.0`
+4. ✅ **Verified:** Job 517681 shows `4000 real + 10218 generated = 14218 total images`
 
-### Impact Summary
-| Location | Affected Models |
-|----------|----------------|
-| Stage 1 & 2 | 505 |
-| Ratio Ablation | 288 |
-| Extended + Combinations | 72 |
-| **TOTAL** | **865** |
+See [BUG_REPORT](docs/BUG_REPORT_CROSS_DATASET_CONTAMINATION.md) for full technical details.
 
-### Recommended Action
-**Option C (Selective Retraining):** Retrain key configurations for paper figures only, use existing results as preliminary exploration with documented caveats.
+### ⚠️ IMPORTANT: Previous Results Invalid
+
+All `gen_*` strategy results are **INVALID** - generated images were never used. The only difference between `gen_*` and `baseline` was `PhotoMetricDistortion` in the training pipeline.
+
+| What | Impact |
+|------|--------|
+| gen_* vs baseline comparison | Invalid - both used only real images |
+| Ratio ablation (0.0→1.0) | Invalid - ratio parameter had NO EFFECT |
+| "Best strategy" findings | Invalid - measured pipeline aug, not generative aug |
+
+### Required Retraining
+- ⏳ All `gen_*` strategies need retraining with fixed MixedDataLoader
+- ⏳ Ratio ablation studies need full re-run
+- ⏳ Key findings cannot be cited until retraining completes
 
 ---
 
@@ -138,27 +145,26 @@ See [docs/BUG_REPORT_CROSS_DATASET_CONTAMINATION.md](docs/BUG_REPORT_CROSS_DATAS
 
 ---
 
-## 🔑 Key Findings Summary
+## ⚠️ Key Findings Summary (OUTDATED)
 
-| Study | Key Result |
-|-------|------------|
-| **Stage 1** | gen_Attribute_Hallucination best (+1.36% vs baseline at 39.83%), generative consistently outperforms standard aug |
-| **Stage 2** | gen_stargan_v2 best (+0.38% vs baseline at 41.73%), gains compress when training includes all domains |
-| **Ratio Ablation** | Best ratio = **0.75** (75% real + 25% gen) at 41.46% mIoU; optimal range is 12-38% synthetic |
-| **Extended Training** | +12.09% mIoU improvement (10k→320k), 77% configs improve, 75% gains by 160k iters |
-| **Extended (Baseline)** | ⚠️ Baseline degrades after 90k (46.11→43.47) - overfitting! |
-| **Combinations** | std_mixup+photometric_distort best at 45.22%; +photometric_distort combos dominate |
-| **Domain Adaptation** | ALL 15/15 strategies beat baseline (+1.03% to +1.96%), gen_stargan_v2 best |
+> **WARNING:** These findings are from training runs where generated images were **NEVER USED**. 
+> The `gen_*` strategies only differed from baseline in pipeline augmentation (`PhotoMetricDistortion`).
+> **DO NOT CITE these results** - retraining with fixed MixedDataLoader is required.
 
-### Recommended Paper Figures (3 per Study)
+| Study | Key Result | Status |
+|-------|------------|--------|
+| **Stage 1** | gen_Attribute_Hallucination best (+1.36%) | ❌ **INVALID** - no gen images used |
+| **Stage 2** | gen_stargan_v2 best (+0.38%) | ❌ **INVALID** - no gen images used |
+| **Ratio Ablation** | Best ratio = 0.75 | ❌ **INVALID** - ratio had NO EFFECT |
+| **Extended Training** | +12.09% mIoU improvement | ⚠️ Baseline valid, gen_* invalid |
+| **Extended (Baseline)** | Baseline degrades after 90k | ✅ **VALID** - uses real images only |
+| **Combinations** | std_mixup+photometric best | ⚠️ Partially valid (standard aug only) |
+| **Domain Adaptation** | ALL 15/15 beat baseline | ❌ **INVALID** - compared pipeline aug |
 
-| Study | Figure 1 | Figure 2 | Figure 3 |
-|-------|----------|----------|----------|
-| **Stage 1** | Strategy ranking bar chart | Domain gap scatter plot | Per-dataset heatmap |
-| **Stage 2** | Stage 1 vs 2 comparison | Domain gap reduction | Rank change chart |
-| **Ratio Ablation** | Ratio vs mIoU line plot | Optimal ratio heatmap | Performance variance boxplot |
-| **Extended Training** | Learning curves multi-panel | Convergence heatmap | Diminishing returns plot |
-| **Combinations** | Combination matrix heatmap | Component contribution | Combination type boxplot |
+### Valid Results (Standard Augmentation Only)
+- `baseline` results are valid (no generated images expected)
+- `std_*` strategies are valid (use pipeline augmentation, not generative)
+- `photometric_distort` results are valid
 
 ---
 

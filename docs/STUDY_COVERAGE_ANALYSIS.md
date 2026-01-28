@@ -1,31 +1,45 @@
 # Study Coverage Analysis
 
-**Last Updated:** 2026-01-28 (11:30)
+**Last Updated:** 2026-01-28 (13:30)
 
-## Executive Summary
+---
+
+## ⚠️ CRITICAL WARNING: gen_* Results Invalid
+
+> **MixedDataLoader Bug Discovered (Jan 28, 2026):** Generated images were **NEVER LOADED** during training.
+> All `gen_*` strategy comparisons below are **INVALID** - they compared pipeline augmentation only.
+> 
+> **Status:** Bug is **FIXED**. Retraining required to generate valid results.
+> 
+> See [BUG_REPORT](BUG_REPORT_CROSS_DATASET_CONTAMINATION.md) for details.
+
+### What's Valid vs Invalid
+
+| Category | Status | Notes |
+|----------|--------|-------|
+| `baseline` results | ✅ **VALID** | No generated images expected |
+| `std_*` strategy results | ✅ **VALID** | Use pipeline augmentation, not generative |
+| `photometric_distort` results | ✅ **VALID** | Pipeline augmentation only |
+| `gen_*` strategy results | ❌ **INVALID** | Generated images never loaded |
+| Ratio ablation results | ❌ **INVALID** | Ratio parameter had no effect |
+| gen_* vs baseline comparisons | ❌ **INVALID** | Compared PhotoMetricDistortion, not generative |
+
+---
+
+## Executive Summary (OUTDATED - DO NOT CITE)
 
 This document provides comprehensive coverage analysis and key findings from the PROVE semantic segmentation evaluation study. The study evaluates augmentation strategies for improving model robustness under adverse weather conditions using MMSegmentation across 4 datasets, 3 models, and 27 strategies.
 
-### High-Level Findings
+### High-Level Findings (⚠️ gen_* findings INVALID)
 
-| Study | Key Takeaway | Best Performer | Top Metric |
-|-------|--------------|----------------|------------|
-| **Stage 1** | Generative aug outperforms baseline by +1.4 mIoU when training on clear-day only | gen_Attribute_Hallucination | 39.83 mIoU |
-| **Stage 2** | Gains compress when training includes all domains; domain gap shrinks 5-6× | gen_stargan_v2 | 41.73 mIoU |
-| **Ratio Ablation** | Optimal synthetic ratio is 12–38%, not 50%; moderate mixing beats extremes | 0.75 ratio (25% gen) | +1.56 mIoU |
-| **Extended Training** | 77% configs benefit; 75% gains by 160k iters; baseline overfits | gen_cyclediffusion | 53.81 mIoU |
-| **Combinations** | photometric_distort combos dominate; stacking doesn't provide additive benefits | std_mixup+photo | 45.22 mIoU |
-| **Domain Adaptation** | ALL 15/15 strategies beat baseline for cross-dataset transfer | gen_stargan_v2 | +1.96 over baseline |
-
-### Recommended Paper Figures (3 per Study)
-
-| Study | Figure 1 | Figure 2 | Figure 3 |
-|-------|----------|----------|----------|
-| **Stage 1** | Strategy ranking bar chart (by mIoU, colored by type) | Domain gap scatter (mIoU vs Normal−Adverse) | Per-dataset heatmap (strategy × dataset) |
-| **Stage 2** | Stage 1 vs 2 side-by-side comparison | Domain gap reduction (before/after) | Rank change bump chart |
-| **Ratio Ablation** | Ratio vs mIoU line plot (multiple strategies) | Optimal ratio heatmap (strategy × dataset) | Performance variance boxplot by ratio |
-| **Extended Training** | Learning curves multi-panel (by model) | Convergence heatmap (strategy × iteration) | Diminishing returns plot (marginal gain) |
-| **Combinations** | Combination matrix heatmap (strategy A × B) | Component contribution bar chart | Combination type boxplot comparison |
+| Study | Key Takeaway | Best Performer | Status |
+|-------|--------------|----------------|--------|
+| **Stage 1** | gen_Attribute_Hallucination best (+1.4 mIoU) | gen_Attribute_Hallucination | ❌ INVALID |
+| **Stage 2** | Gains compress when training includes all domains | gen_stargan_v2 | ❌ INVALID |
+| **Ratio Ablation** | Optimal synthetic ratio is 12–38% | 0.75 ratio (25% gen) | ❌ INVALID |
+| **Extended Training** | 77% configs benefit; baseline overfits | gen_cyclediffusion | ⚠️ Baseline only valid |
+| **Combinations** | photometric_distort combos dominate | std_mixup+photo | ⚠️ Partially valid |
+| **Domain Adaptation** | ALL 15/15 strategies beat baseline | gen_stargan_v2 | ❌ INVALID |
 
 ---
 
@@ -33,12 +47,12 @@ This document provides comprehensive coverage analysis and key findings from the
 
 | Study | Path | Checkpoints | Test Results | Status |
 |-------|------|-------------|--------------|--------|
-| **Stage 1** | `WEIGHTS/` | 324 | 324 | ✅ **COMPLETE** |
-| **Stage 2** | `WEIGHTS_STAGE_2/` | 325 | 325 | ✅ **COMPLETE** |
-| **Ratio Ablation** | `WEIGHTS_RATIO_ABLATION/` | 284 | 279 (98%) | 🔄 5 permission-blocked |
-| **Extended Training** | `WEIGHTS_EXTENDED/` | 970 | 764 (79%) | 🔄 Baseline training + early ckpts |
-| **Combinations** | `WEIGHTS_COMBINATIONS/` | 53 | 53 | ✅ **COMPLETE** |
-| **Domain Adaptation** | `WEIGHTS/domain_adaptation_ablation/` | N/A (reuses S1) | 64 | ✅ **COMPLETE** |
+| **Stage 1** | `WEIGHTS/` | 324 | 324 | ⚠️ gen_* invalid |
+| **Stage 2** | `WEIGHTS_STAGE_2/` | 325 | 325 | ⚠️ gen_* invalid |
+| **Ratio Ablation** | `WEIGHTS_RATIO_ABLATION/` | 284 | 279 (98%) | ❌ **ALL INVALID** |
+| **Extended Training** | `WEIGHTS_EXTENDED/` | 970 | 764 (79%) | ⚠️ Baseline only valid |
+| **Combinations** | `WEIGHTS_COMBINATIONS/` | 53 | 53 | ⚠️ std_* only valid |
+| **Domain Adaptation** | `WEIGHTS/domain_adaptation_ablation/` | N/A (reuses S1) | 64 | ❌ **INVALID** |
 
 ### Mismatch Analysis (Jan 28, 2026)
 

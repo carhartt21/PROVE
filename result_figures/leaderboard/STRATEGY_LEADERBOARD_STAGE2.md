@@ -1,42 +1,42 @@
 # Stage 2 Strategy Leaderboard
 
 **Training:** All domains (not filtered to clear_day)
-**Last Updated:** 2026-01-22 16:40
-**Baseline mIoU:** 43.10%
-**Total Test Results:** 243
+**Last Updated:** 2026-01-27 15:25
+**Baseline mIoU:** 41.35%
+**Total Test Results:** 324
 **Strategies Evaluated:** 27
 
 ## Overall Rankings
 
 | Rank | Strategy | Type | mIoU | Gain | Normal | Adverse | Gap | Models |
 |------|----------|------|------|------|--------|---------|-----|--------|
-| 1 | gen_CNetSeg | Generative | 43.68 | +0.58 | 44.56 | 42.71 | 1.85 | 9 |
-| 2 | gen_stargan_v2 | Generative | 43.60 | +0.50 | 44.53 | 42.94 | 1.58 | 9 |
-| 3 | gen_UniControl | Generative | 43.59 | +0.49 | 44.58 | 42.77 | 1.81 | 9 |
-| 4 | gen_cyclediffusion | Generative | 43.56 | +0.47 | 44.58 | 42.70 | 1.88 | 9 |
-| 5 | std_autoaugment | Standard Aug | 43.55 | +0.46 | 44.38 | 42.88 | 1.50 | 9 |
-| 6 | gen_augmenters | Generative | 43.54 | +0.44 | 44.39 | 42.76 | 1.63 | 9 |
-| 7 | std_randaugment | Standard Aug | 43.53 | +0.43 | 44.39 | 42.67 | 1.72 | 9 |
-| 8 | gen_cycleGAN | Generative | 43.52 | +0.42 | 44.40 | 42.50 | 1.90 | 9 |
-| 9 | gen_CUT | Generative | 43.51 | +0.42 | 44.37 | 42.80 | 1.57 | 9 |
-| 10 | gen_VisualCloze | Generative | 43.48 | +0.38 | 44.41 | 42.73 | 1.68 | 9 |
-| 11 | gen_Attribute_Hallucination | Generative | 43.47 | +0.38 | 44.44 | 42.50 | 1.94 | 9 |
-| 12 | gen_LANIT | Generative | 43.46 | +0.37 | 44.42 | 42.41 | 2.01 | 9 |
-| 13 | gen_albumentations_weather | Generative | 43.44 | +0.34 | 44.44 | 42.52 | 1.92 | 9 |
-| 14 | gen_SUSTechGAN | Generative | 43.41 | +0.31 | 44.33 | 42.48 | 1.85 | 9 |
-| 15 | gen_IP2P | Generative | 43.39 | +0.29 | 44.29 | 42.65 | 1.64 | 9 |
-| 16 | gen_Img2Img | Generative | 43.35 | +0.26 | 44.29 | 42.53 | 1.77 | 9 |
-| 17 | gen_TSIT | Generative | 43.34 | +0.24 | 44.29 | 42.32 | 1.97 | 9 |
-| 18 | gen_step1x_v1p2 | Generative | 43.33 | +0.24 | 44.20 | 42.39 | 1.81 | 9 |
-| 19 | gen_automold | Generative | 43.33 | +0.23 | 44.33 | 42.42 | 1.91 | 9 |
-| 20 | std_mixup | Standard Aug | 43.27 | +0.17 | 44.29 | 41.46 | 2.83 | 9 |
-| 21 | photometric_distort | Augmentation | 43.19 | +0.10 | 44.09 | 42.46 | 1.64 | 9 |
-| 22 | gen_flux_kontext | Generative | 43.16 | +0.07 | 44.15 | 42.43 | 1.71 | 9 |
-| 23 | baseline | Baseline | 43.10 | - | 43.84 | 42.97 | 0.87 | 9 |
-| 24 | gen_step1x_new | Generative | 43.06 | -0.03 | 43.87 | 42.02 | 1.85 | 9 |
-| 25 | gen_Qwen_Image_Edit | Generative | 43.06 | -0.04 | 43.90 | 42.37 | 1.53 | 9 |
-| 26 | gen_Weather_Effect_Generator | Generative | 43.03 | -0.07 | 43.95 | 42.00 | 1.95 | 9 |
-| 27 | std_cutmix | Standard Aug | 42.80 | -0.29 | 43.91 | 41.79 | 2.12 | 9 |
+| 1 | gen_stargan_v2 | Generative | 41.73 | +0.38 | 42.37 | 41.16 | 1.21 | 12 |
+| 2 | gen_UniControl | Generative | 41.70 | +0.35 | 42.37 | 40.95 | 1.41 | 12 |
+| 3 | gen_CNetSeg | Generative | 41.69 | +0.34 | 42.26 | 40.97 | 1.29 | 12 |
+| 4 | gen_VisualCloze | Generative | 41.67 | +0.32 | 42.26 | 41.04 | 1.21 | 12 |
+| 5 | gen_cycleGAN | Generative | 41.64 | +0.29 | 42.26 | 40.81 | 1.45 | 12 |
+| 6 | gen_Attribute_Hallucination | Generative | 41.61 | +0.26 | 42.25 | 40.87 | 1.37 | 12 |
+| 7 | gen_cyclediffusion | Generative | 41.59 | +0.24 | 42.33 | 40.86 | 1.47 | 12 |
+| 8 | gen_CUT | Generative | 41.58 | +0.23 | 42.15 | 41.03 | 1.13 | 12 |
+| 9 | gen_augmenters | Generative | 41.58 | +0.23 | 42.09 | 41.01 | 1.08 | 12 |
+| 10 | gen_SUSTechGAN | Generative | 41.57 | +0.22 | 42.18 | 40.81 | 1.36 | 12 |
+| 11 | gen_LANIT | Generative | 41.55 | +0.19 | 42.20 | 40.77 | 1.43 | 12 |
+| 12 | gen_TSIT | Generative | 41.53 | +0.18 | 42.14 | 40.73 | 1.40 | 12 |
+| 13 | gen_step1x_v1p2 | Generative | 41.50 | +0.15 | 42.08 | 40.74 | 1.35 | 12 |
+| 14 | gen_albumentations_weather | Generative | 41.48 | +0.13 | 42.16 | 40.76 | 1.41 | 12 |
+| 15 | gen_Img2Img | Generative | 41.48 | +0.13 | 42.08 | 40.81 | 1.26 | 12 |
+| 16 | gen_flux_kontext | Generative | 41.42 | +0.07 | 42.09 | 40.91 | 1.18 | 12 |
+| 17 | std_autoaugment | Standard Aug | 41.38 | +0.03 | 41.97 | 40.87 | 1.10 | 12 |
+| 18 | gen_automold | Generative | 41.38 | +0.03 | 42.04 | 40.64 | 1.40 | 12 |
+| 19 | gen_IP2P | Generative | 41.36 | +0.01 | 41.97 | 40.85 | 1.12 | 12 |
+| 20 | baseline | Baseline | 41.35 | - | 41.85 | 41.18 | 0.66 | 12 |
+| 21 | photometric_distort | Augmentation | 41.32 | -0.03 | 41.92 | 40.75 | 1.17 | 12 |
+| 22 | gen_Qwen_Image_Edit | Generative | 41.26 | -0.09 | 41.79 | 40.76 | 1.03 | 12 |
+| 23 | gen_step1x_new | Generative | 41.24 | -0.11 | 41.82 | 40.41 | 1.41 | 12 |
+| 24 | std_mixup | Standard Aug | 41.16 | -0.20 | 41.85 | 39.64 | 2.21 | 12 |
+| 25 | std_randaugment | Standard Aug | 41.14 | -0.21 | 41.72 | 40.47 | 1.25 | 12 |
+| 26 | std_cutmix | Standard Aug | 40.81 | -0.54 | 41.62 | 39.96 | 1.66 | 12 |
+| 27 | gen_Weather_Effect_Generator | Generative | 40.71 | -0.64 | 41.36 | 39.94 | 1.42 | 12 |
 
 ## Per-Dataset Breakdown
 
@@ -103,6 +103,38 @@
 | gen_step1x_new | 44.28 | 3 |
 | std_mixup | 44.22 | 3 |
 | gen_Weather_Effect_Generator | 44.19 | 3 |
+
+### mapillaryvistas
+
+| Strategy | mIoU | Models |
+|----------|------|--------|
+| gen_VisualCloze | 36.24 | 3 |
+| gen_flux_kontext | 36.20 | 3 |
+| baseline | 36.12 | 3 |
+| gen_stargan_v2 | 36.11 | 3 |
+| gen_TSIT | 36.11 | 3 |
+| gen_SUSTechGAN | 36.06 | 3 |
+| gen_Attribute_Hallucination | 36.04 | 3 |
+| gen_UniControl | 36.03 | 3 |
+| gen_step1x_v1p2 | 36.01 | 3 |
+| gen_cycleGAN | 36.00 | 3 |
+| gen_Qwen_Image_Edit | 35.89 | 3 |
+| gen_Img2Img | 35.86 | 3 |
+| gen_LANIT | 35.79 | 3 |
+| gen_CUT | 35.79 | 3 |
+| gen_step1x_new | 35.76 | 3 |
+| gen_CNetSeg | 35.73 | 3 |
+| gen_augmenters | 35.72 | 3 |
+| photometric_distort | 35.70 | 3 |
+| gen_cyclediffusion | 35.68 | 3 |
+| gen_albumentations_weather | 35.61 | 3 |
+| gen_automold | 35.54 | 3 |
+| gen_IP2P | 35.29 | 3 |
+| std_autoaugment | 34.88 | 3 |
+| std_cutmix | 34.85 | 3 |
+| std_mixup | 34.82 | 3 |
+| std_randaugment | 33.98 | 3 |
+| gen_Weather_Effect_Generator | 33.75 | 3 |
 
 ### outside15k
 

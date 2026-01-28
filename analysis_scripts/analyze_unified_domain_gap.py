@@ -131,9 +131,17 @@ def load_strategy_domain_results(weights_root, strategy='baseline'):
             if any(d in model for d in WEATHER_DOMAINS):
                 continue
             
-            # Skip models with ratio suffix
+            # Handle models with ratio suffix (gen_* strategies use _ratio0p50)
+            # For domain gap analysis, we want to include these but normalize the model name
             if '_ratio' in model:
-                continue
+                # Only include _ratio0p50 (standard generative strategy ratio)
+                # Skip other ratios (e.g., _ratio0p25) as they're from ablation studies
+                if '_ratio0p50' not in model:
+                    continue
+                # Normalize model name by removing the ratio suffix
+                model_normalized = model.replace('_ratio0p50', '')
+            else:
+                model_normalized = model
             
             # Look for test_results_detailed
             detailed_dir = model_dir / "test_results_detailed"
@@ -153,7 +161,7 @@ def load_strategy_domain_results(weights_root, strategy='baseline'):
                         results.append({
                             'strategy': strategy,
                             'dataset': dataset,
-                            'model': model,
+                            'model': model_normalized,  # Use normalized name (without _ratio suffix)
                             'domain': domain,
                             'mIoU': metrics.get('mIoU', metrics.get('miou')),
                             'fwIoU': metrics.get('fwIoU', metrics.get('fwiou')),

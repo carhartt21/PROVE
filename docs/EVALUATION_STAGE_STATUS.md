@@ -1,17 +1,30 @@
 # Evaluation Stage Status
 
-**Last Updated:** 2026-01-26 (15:25)
+**Last Updated:** 2026-01-28 (13:30)
+
+---
+
+## ⚠️ CRITICAL WARNING: gen_* Results Invalid
+
+> **MixedDataLoader Bug (Jan 28, 2026):** Generated images were **NEVER LOADED** during training.
+> All `gen_*` strategy results below are **INVALID** - only pipeline augmentation was used.
+> 
+> **Bug Status:** ✅ FIXED | **Retraining:** ⏳ Required
+> 
+> See [BUG_REPORT](BUG_REPORT_CROSS_DATASET_CONTAMINATION.md) for details.
+
+---
 
 ## Overview
 
 | Stage | Training | Testing | Status |
 |-------|----------|---------|--------|
-| **Stage 1** | ✅ 324/324 (100%) | ✅ 330/330 (100%) | ✅ **COMPLETE** |
-| **Stage 2** | ✅ 325/325 (100%) | ✅ 344/344 (100%) | ✅ **COMPLETE** |
+| **Stage 1** | ✅ 324/324 (100%) | ✅ 330/330 (100%) | ⚠️ gen_* results **INVALID** |
+| **Stage 2** | ✅ 325/325 (100%) | ✅ 344/344 (100%) | ⚠️ gen_* results **INVALID** |
 
 **📊 Comprehensive Ablation Analysis Report:** [ABLATION_STUDIES_ANALYSIS.md](ABLATION_STUDIES_ANALYSIS.md)
 
-✅ **Both Stage 1 and Stage 2 are FULLY COMPLETE!**
+⚠️ **Training/Testing complete, but gen_* results require retraining with fixed MixedDataLoader!**
 
 
 ## Stage 1: Clear-Day Domain Training

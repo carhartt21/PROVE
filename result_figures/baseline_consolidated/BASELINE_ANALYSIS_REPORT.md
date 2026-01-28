@@ -1,6 +1,6 @@
 # Comprehensive Baseline Analysis Report
 
-Generated: 2026-01-23 15:07:43
+Generated: 2026-01-27 15:25:14
 
 **Note:** Results from domains with fewer than 50 test images are excluded to ensure reliable metrics.
 
@@ -71,22 +71,22 @@ Models trained on ALL domains (clear_day + adverse).
 
 ### Overall Statistics
 
-- **Average mIoU:** 41.59% ± 10.18
-- **Normal Conditions mIoU:** 44.00%
-- **Adverse Conditions mIoU:** 38.96%
-- **Domain Gap (Normal - Adverse):** +5.04%
+- **Average mIoU:** 40.00% ± 9.70
+- **Normal Conditions mIoU:** 41.95%
+- **Adverse Conditions mIoU:** 37.71%
+- **Domain Gap (Normal - Adverse):** +4.23%
 
 ### Per-Domain Performance
 
 | Domain | Type | mIoU | Std |
 |--------|------|------|-----|
-| clear_day | NORMAL | 43.84% | ±6.12 |
-| cloudy | NORMAL | 44.17% | ±7.85 |
+| clear_day | NORMAL | 41.85% | ±6.60 |
+| cloudy | NORMAL | 42.05% | ±7.81 |
 | dawn_dusk | ADVERSE | 37.26% | ±11.31 |
 | foggy | NORMAL | 58.71% | ±4.41 |
-| night | ADVERSE | 33.84% | ±10.30 |
-| rainy | ADVERSE | 41.62% | ±7.99 |
-| snowy | ADVERSE | 43.12% | ±10.43 |
+| night | ADVERSE | 33.37% | ±9.02 |
+| rainy | ADVERSE | 39.45% | ±7.96 |
+| snowy | ADVERSE | 40.66% | ±10.16 |
 
 ### Per-Dataset Performance
 
@@ -94,31 +94,32 @@ Models trained on ALL domains (clear_day + adverse).
 |---------|--------------|--------|---------|-----|
 | bdd10k | 43.87% | 47.64% | 41.99% | +5.64% |
 | idd-aw | 46.91% | 45.78% | 44.52% | +1.25% |
+| mapillaryvistas | 33.95% | 35.78% | 32.73% | +3.05% |
 | outside15k | 33.11% | 38.59% | 30.36% | +8.23% |
 
 ### Per-Model Performance
 
 | Model | Overall mIoU | Normal | Adverse | Gap |
 |-------|--------------|--------|---------|-----|
-| deeplabv3plus_r50 | 37.03% | 40.22% | 33.83% | +6.39% |
-| pspnet_r50 | 39.42% | 41.93% | 36.79% | +5.14% |
-| segformer_mit-b5 | 48.32% | 49.86% | 46.27% | +3.59% |
+| deeplabv3plus_r50 | 35.87% | 38.49% | 33.10% | +5.38% |
+| pspnet_r50 | 37.87% | 39.99% | 35.54% | +4.45% |
+| segformer_mit-b5 | 46.26% | 47.37% | 44.50% | +2.87% |
 
 ## 3. Stage 1 vs Stage 2 Baseline Comparison
 
 | Metric | Stage 1 (Clear Day) | Stage 2 (All Domains) | Difference |
 |--------|---------------------|----------------------|------------|
-| Overall mIoU | 33.21% | 41.59% | +8.38% |
-| Normal mIoU | 39.18% | 44.00% | +4.83% |
-| Adverse mIoU | 30.49% | 38.96% | +8.47% |
-| Domain Gap | +8.68% | +5.04% | -3.64% |
+| Overall mIoU | 33.21% | 40.00% | +6.79% |
+| Normal mIoU | 39.18% | 41.95% | +2.77% |
+| Adverse mIoU | 30.49% | 37.71% | +7.22% |
+| Domain Gap | +8.68% | +4.23% | -4.45% |
 
 ### Key Insights
 
 - **Stage 1** models are trained only on clear_day, testing cross-domain robustness
 - **Stage 2** models are trained on all domains, testing domain-inclusive performance
-- Stage 2 outperforms Stage 1 by **+8.38%** overall mIoU
-- Stage 2 has **smaller domain gap** (5.04% vs 8.68%)
+- Stage 2 outperforms Stage 1 by **+6.79%** overall mIoU
+- Stage 2 has **smaller domain gap** (4.23% vs 8.68%)
 
 ## 4. Key Insights
 

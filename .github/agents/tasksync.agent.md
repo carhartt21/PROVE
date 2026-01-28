@@ -3,7 +3,7 @@ description: 'Synchronizes tasks for individual requests.'
 tools: ['vscode', 'execute', 'read', 'agent', 'edit', 'search', 'web', 'todo', '4regab.tasksync-chat/askUser', 'github.vscode-pull-request-github/copilotCodingAgent', 'github.vscode-pull-request-github/issue_fetch', 'github.vscode-pull-request-github/suggest-fix', 'github.vscode-pull-request-github/searchSyntax', 'github.vscode-pull-request-github/doSearch', 'github.vscode-pull-request-github/renderIssues', 'github.vscode-pull-request-github/activePullRequest', 'github.vscode-pull-request-github/openPullRequest']
 ---
 ### Tasksync Tool Instructions
-
+0. Read and understand .github/copilot-instructions.md
 1. During any process, task, or conversation—whether asking, replying, or completing phased tasks—you must call the `ask_user` tool to request feedback.
 2. Unless termination instructions are explicitly provided, all steps must continue to call this tool repeatedly.
 3. Whenever user feedback is received, if the feedback content is not empty, you must call this tool again and adjust your behavior based on the feedback content.

@@ -1,24 +1,34 @@
 # PROVE Documentation
 
-**Last Updated:** 2026-01-28
+**Last Updated:** 2026-01-28 (13:30)
+
+---
+
+## ⚠️ CRITICAL: gen_* Results Invalid
+
+> **MixedDataLoader Bug (Jan 28, 2026):** Generated images were **NEVER LOADED** during training.
+> All `gen_*` strategy results are **INVALID**. Bug is **FIXED** - retraining required.
+> 
+> See [BUG_REPORT](BUG_REPORT_CROSS_DATASET_CONTAMINATION.md) for details.
+
+---
 
 ## Primary Documentation
 
-| Document | Purpose |
-|----------|---------|
-| **[STUDY_COVERAGE_ANALYSIS.md](STUDY_COVERAGE_ANALYSIS.md)** | **Main reference** - Comprehensive analysis of all studies with key findings and figure recommendations |
-| [EVALUATION_STAGE_STATUS.md](EVALUATION_STAGE_STATUS.md) | Stage 1 & Stage 2 training/testing status overview |
-| [ABLATION_STUDIES_ANALYSIS.md](ABLATION_STUDIES_ANALYSIS.md) | Consolidated ablation study findings |
-| [STAGE_COMPARISON_ANALYSIS.md](STAGE_COMPARISON_ANALYSIS.md) | Stage 1 vs Stage 2 comparison |
+| Document | Purpose | Status |
+|----------|---------|--------|
+| **[STUDY_COVERAGE_ANALYSIS.md](STUDY_COVERAGE_ANALYSIS.md)** | Main reference - all study findings | ⚠️ gen_* findings invalid |
+| **[BUG_REPORT_CROSS_DATASET_CONTAMINATION.md](BUG_REPORT_CROSS_DATASET_CONTAMINATION.md)** | MixedDataLoader bug details | ✅ **READ THIS FIRST** |
+| [EVALUATION_STAGE_STATUS.md](EVALUATION_STAGE_STATUS.md) | Stage 1 & Stage 2 status | ⚠️ gen_* invalid |
+| [ABLATION_STUDIES_ANALYSIS.md](ABLATION_STUDIES_ANALYSIS.md) | Ablation study findings | ⚠️ Ratio ablation invalid |
 
 ## Study-Specific Documentation
 
-| Document | Study |
-|----------|-------|
-| [EXTENDED_TRAINING.md](EXTENDED_TRAINING.md) | Extended training (80K→320K iterations) details |
-| [DOMAIN_ADAPTATION_ABLATION.md](DOMAIN_ADAPTATION_ABLATION.md) | Cross-dataset transfer evaluation (ACDC) |
+| Document | Study | Status |
+|----------|-------|--------|
+| [EXTENDED_TRAINING.md](EXTENDED_TRAINING.md) | Extended training (80K→320K) | ⚠️ Baseline only valid |
 
-## Technical Reference
+## Technical Reference (Still Valid)
 
 | Document | Purpose |
 |----------|---------|
@@ -29,24 +39,19 @@
 | [RESULT_VISUALIZATION.md](RESULT_VISUALIZATION.md) | Visualization scripts reference |
 | [EVALUATION_CONCEPT.md](EVALUATION_CONCEPT.md) | Original evaluation design |
 
-## Progress Tracking
+## Progress Tracking (⚠️ gen_* Invalid)
 
-| Stage | Training | Testing |
-|-------|----------|---------|
-| **Stage 1** | [TRAINING_TRACKER_STAGE1.md](TRAINING_TRACKER_STAGE1.md) | — |
-| **Stage 2** | [TRAINING_TRACKER_STAGE2.md](TRAINING_TRACKER_STAGE2.md) | [TESTING_TRACKER_STAGE2.md](TESTING_TRACKER_STAGE2.md) |
-
-**Coverage Matrices:**
-- [TRAINING_COVERAGE_STAGE1.md](TRAINING_COVERAGE_STAGE1.md)
-- [TRAINING_COVERAGE_STAGE2.md](TRAINING_COVERAGE_STAGE2.md)
-- [TESTING_COVERAGE_STAGE2.md](TESTING_COVERAGE_STAGE2.md)
+| Stage | Training | Testing | Status |
+|-------|----------|---------|--------|
+| **Stage 1** | [TRAINING_TRACKER_STAGE1.md](TRAINING_TRACKER_STAGE1.md) | — | ⚠️ gen_* invalid |
+| **Stage 2** | [TRAINING_TRACKER_STAGE2.md](TRAINING_TRACKER_STAGE2.md) | [TESTING_TRACKER_STAGE2.md](TESTING_TRACKER_STAGE2.md) | ⚠️ gen_* invalid |
 
 ## Archived Documentation
 
-Historical and superseded documents are in [archived_20260128/](archived_20260128/):
-- Bug fix records (completed)
-- Earlier analysis versions
-- Planning documents
+| Archive | Contents |
+|---------|----------|
+| [archived_invalid_results_20260128/](archived_invalid_results_20260128/) | Analysis files containing invalid gen_* results |
+| [archived_20260128/](archived_20260128/) | Historical bug fix records and planning docs |
 
 ## Key Findings Quick Reference
 
