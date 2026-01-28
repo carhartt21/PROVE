@@ -1,115 +1,142 @@
-# Bug Report: Cross-Dataset Contamination in Generative Strategy Training
+# Bug Report: MixedDataLoader Never Implemented - Generated Images Not Used
 
-**Date Discovered:** 2026-01-28
-**Severity:** CRITICAL
-**Status:** FIXED (commit ecb9721)
+**Date Discovered:** 2026-01-28  
+**Date Re-Analyzed:** 2026-01-28  
+**Severity:** **CRITICAL** (but different from original report)  
+**Status:** **UNFIXED - MixedDataLoader not connected**
 
-## Summary
+## Executive Summary
 
-A critical bug in `GeneratedAugmentedDataset` caused training for generative strategies to load ALL images from the manifest across ALL datasets, instead of filtering to the target dataset only.
+**The original "cross-dataset contamination bug" was a FALSE POSITIVE**, but the investigation revealed a **MUCH MORE SERIOUS ISSUE:**
 
-## Impact
+1. **Generated images are NEVER loaded during training** - the MixedDataLoader infrastructure exists but isn't wired up
+2. **The `real_gen_ratio` parameter has NO EFFECT** - all ratio ablation results are invalid
+3. **All "gen_*" strategies train identically** - the only difference is pipeline augmentations, not generative models
+4. **gen_* vs baseline comparison is invalid** - it compares augmentation strength, not generative methods
 
-- **865 trained models affected** (all generative strategy models)
-- Training data was **18x larger than intended**
-- Results from generative strategies **cannot be fairly compared** to baselines or non-generative strategies
+## Investigation Timeline
 
-### Affected Model Counts by Location
+### Initial Analysis (Incorrect)
 
-| Location | Affected Models |
-|----------|----------------|
-| Stage 1 (WEIGHTS) | 252 |
-| Stage 2 (WEIGHTS_STAGE_2) | 253 |
-| Ratio Ablation Stage 1 | 186 |
-| Ratio Ablation Stage 2 | 102 |
-| Extended Training | 37 |
-| Combinations | 35 |
-| **TOTAL AFFECTED** | **865** |
-| Total Unaffected (baseline, std_*) | 171 |
+The initial investigation found that `GeneratedAugmentedDataset.load_data_list()` had no dataset filtering, which **would** load all datasets from the manifest if it were used.
 
-## Root Cause
+### Re-Analysis (Correct)
 
-The `GeneratedAugmentedDataset.load_data_list()` method in `generated_images_dataset.py` was loading ALL entries from the manifest without filtering by dataset name.
-
-### Example: Training BDD10k with gen_stargan_v2
-
-**Expected behavior:**
-- Load ~10,218 generated images from BDD10k
-
-**Actual behavior (bug):**
-- Loaded 187,398 images from ALL datasets:
-  - ACDC: 4,206 (2.2%)
-  - BDD100k: 79,992 (42.7%)
-  - BDD10k: 10,218 (5.5%)  ← target dataset was only 5.5% of training!
-  - IDD-AW: 23,082 (12.3%)
-  - MapillaryVistas: 45,162 (24.1%)
-  - OUTSIDE15k: 24,738 (13.2%)
-
-## Affected Strategies
-
-All 24 generative strategies were affected:
-- gen_cycleGAN, gen_cyclediffusion, gen_IP2P, gen_flux_kontext
-- gen_stargan_v2, gen_LANIT, gen_step1x_new, gen_step1x_v1p2
-- gen_Attribute_Hallucination, gen_Img2Img, gen_CUT, gen_TSIT
-- gen_SUSTechGAN, gen_StyleID, gen_EDICT, gen_UniControl
-- gen_VisualCloze, gen_Qwen-Image-Edit, gen_albumentations_weather
-- gen_automold, gen_Weather_Effect_Generator, gen_augmenters
-- gen_CNetSeg, gen_flux2
-
-## Fix Applied
-
-Added `dataset_filter` parameter to `GeneratedAugmentedDataset`:
+Upon reviewing actual training configurations and logs:
 
 ```python
-# generated_images_dataset.py
-class GeneratedAugmentedDataset(BaseSegDataset):
-    def __init__(self, ..., dataset_filter: str = None, ...):
-        self.dataset_filter = dataset_filter
-    
-    def load_data_list(self):
-        for gen_path, original_path in condition_entries:
-            # CRITICAL: Filter by dataset if specified
-            if self.dataset_filter and self.dataset_filter not in original_path:
-                continue  # Skip cross-dataset entries
-            ...
+# ACTUAL train_dataloader in training_config.py
+train_dataloader = dict(
+    dataset=dict(
+        type='CityscapesDataset',  # NOT GeneratedAugmentedDataset!
+        data_prefix=dict(
+            img_path='train/images/BDD10k/clear_day',
+            seg_map_path='train/labels/BDD10k/clear_day'),
+        ...
+    ))
 ```
 
+The `mixed_dataloader` section in the config is **metadata only** - it describes intended behavior but MMEngine's `Runner.from_cfg()` uses `train_dataloader`, not `mixed_dataloader`.
+
+## Proof That Bug Doesn't Exist
+
+If cross-dataset contamination had occurred, training would have **crashed** due to:
+
+1. **MapillaryVistas labels** have RGB-encoded colors. When `ReduceToSingleChannel` extracts the R channel, values like 70, 128, 170 appear. These would cause:
+   ```
+   IndexError: Target 128 is out of bounds.
+   ```
+
+2. **ACDC labels** use Cityscapes labelIDs (0-33) not trainIDs (0-18). Values 20-33 would cause IndexErrors.
+
+3. **The training completed successfully** with reasonable mIoU (50.71%), proving only valid BDD10k labels were used.
+
+## What The Code Actually Does
+
+### Config Generation (`unified_training_config.py`)
+- Creates both `train_dataloader` (used) and `mixed_dataloader` (informational) sections
+- `train_dataloader` points directly to the target dataset's images and labels
+- `mixed_dataloader` was designed for future functionality that was never implemented
+
+### Training (`unified_training.py`)
+- Generates a simple training script: `Runner.from_cfg(cfg).train()`
+- MMEngine only uses `train_dataloader` from the config
+- The `mixed_dataloader` section is ignored by MMEngine
+
+### GeneratedAugmentedDataset (`generated_images_dataset.py`)
+- A valid dataset class that COULD mix generated images
+- **BUT it's never actually instantiated** during training
+- The `dataset_filter` parameter added in commit ecb9721 is dead code
+
+## The "Fix" Applied (Unnecessary)
+
+Commit `ecb9721` added `dataset_filter` to `GeneratedAugmentedDataset`, but since this class is never used, the fix has no effect on actual training.
+
+## Why gen_stargan_v2 Performs Well
+
+The original question was "why does gen_stargan_v2 perform well even at ratio 0.0?"
+
+**CRITICAL FINDING: Generated images are NEVER loaded!**
+
+After thorough investigation, the truth is:
+1. **MixedDataLoader is NOT connected** - `_setup_mixed_training()` only prints config values
+2. **`real_gen_ratio` has NO EFFECT** - the parameter only sets unused config metadata
+3. **gen_* strategies differ ONLY in the training pipeline:**
+
+| Strategy | Pipeline |
+|----------|----------|
+| `baseline` | `Resize(512,512)` → `PackSegInputs` |
+| `gen_*` | `Resize(1024,512)` → `RandomCrop` → `RandomFlip` → **`PhotoMetricDistortion`** → `PackSegInputs` |
+
+**The performance difference comes from `PhotoMetricDistortion`** - a standard color/brightness augmentation that simulates some weather-like effects. This is NOT generative augmentation - it's classical data augmentation!
+
+### Proof from Config Files
+
+**Baseline:**
 ```python
-# unified_training_config.py
-config['mixed_dataloader']['generated_dataset'] = {
-    ...
-    'dataset_filter': dataset_cfg.name,  # NEW: Filter to target dataset
-}
+train_dataloader.dataset.pipeline=[
+    dict(type='LoadImageFromFile'),
+    dict(type='LoadAnnotations'),
+    dict(type='ReduceToSingleChannel'),
+    dict(keep_ratio=False, scale=(512, 512), type='Resize'),
+    dict(type='PackSegInputs'),
+]
 ```
 
-## Verification
+**gen_stargan_v2 (and ALL gen_* strategies):**
+```python
+train_dataloader.dataset.pipeline=[
+    dict(type='LoadImageFromFile'),
+    dict(type='LoadAnnotations'),
+    dict(type='ReduceToSingleChannel'),
+    dict(keep_ratio=True, scale=(1024, 512), type='Resize'),
+    dict(cat_max_ratio=0.75, crop_size=(512, 512), type='RandomCrop'),
+    dict(prob=0.5, type='RandomFlip'),
+    dict(type='PhotoMetricDistortion'),  # ← THE REAL DIFFERENCE
+    dict(type='PackSegInputs'),
+]
+```
 
-After fix:
-- Loading for BDD10k now correctly loads only 10,218 images
-- Skips 177,180 cross-dataset images
-- Warning printed if no dataset_filter specified
+## Implications
 
-## Implications for Research
-
-1. **Unfair comparison**: Generative strategy models were trained on ~18x more data than baselines
-2. **Invalid ablation results**: Ratio ablation results (real_gen_ratio) don't reflect actual ratios
-3. **Unexpected performance**: Models like stargan_v2 performed well despite low semantic consistency because they were learning from high-quality images from other datasets (especially BDD100k)
+1. **ALL ratio ablation results are INVALID** - ratio 0.0 vs 0.5 vs 1.0 all trained identically
+2. **All "gen_*" strategy comparisons are INVALID** - they all get the same pipeline
+3. **gen_* vs baseline comparison is actually augmentation_strong vs augmentation_none**
+4. **No generated images were ever used in any training**
 
 ## Recommendations
 
-### Option A: Retrain All Affected Models
-- Most accurate but resource-intensive
-- Required for publication-quality results
+1. **URGENT: Implement MixedDataLoader properly** - wire it up in the training script
+2. **Re-run all ratio ablation studies** - current results are meaningless
+3. **Re-evaluate all gen_* strategy comparisons** - they're not comparing generative methods
+4. **Consider fair baseline** - add `PhotoMetricDistortion` to baseline for proper comparison
 
-### Option B: Interpret Results with Caveat
-- Document that generative models were trained on multi-dataset data
-- Can still analyze relative performance among generative strategies
-- Cannot fairly compare to baseline/std_* strategies
+## Lessons Learned
 
-### Option C: Selective Retraining
-- Retrain only key configurations for paper figures
-- Use existing results as preliminary exploration
+1. Always verify assumptions by checking actual runtime behavior, not just code analysis
+2. Check training logs and configs from completed runs
+3. Consider what errors would occur if a bug existed - crashes are evidence of absence
 
-## Related Investigation
+---
 
-This bug was discovered while investigating why `gen_stargan_v2` performed well at ratio 0.0 (100% generated images) despite having only 4.84% semantic consistency in quality pretests. The unexpected performance was due to the model actually training on diverse high-quality images from multiple datasets.
+*This bug report has been corrected based on thorough investigation of actual training behavior.*

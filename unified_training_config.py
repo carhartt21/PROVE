@@ -729,12 +729,16 @@ ALL_MODELS = {**SEGMENTATION_MODELS, **DETECTION_MODELS}
 
 @dataclass
 class TrainingConfig:
-    """Training hyperparameters"""
-    max_iters: int = 80000
-    batch_size: int = 2
+    """Training hyperparameters
+    
+    Note: With batch_size=8 and max_iters=10000, this processes 80,000 samples total.
+    Learning rates are scaled proportionally: lr = base_lr * batch_size / 2
+    """
+    max_iters: int = 10000  # 80k samples with batch_size=8
+    batch_size: int = 8
     workers_per_gpu: int = 4
-    checkpoint_interval: int = 10000
-    eval_interval: int = 6666
+    checkpoint_interval: int = 2000  # Save every 2k iters (was 10k for 80k iters)
+    eval_interval: int = 2000  # Eval every 2k iters (was 6666 for 80k iters)
     log_interval: int = 50
     warmup_iters: int = 500
     warmup_ratio: float = 0.001
@@ -744,26 +748,31 @@ class TrainingConfig:
     early_stop: bool = True
     early_stop_patience: int = 5
     early_stop_min_delta: float = 0.001
+    # Learning rate scaling factor (relative to batch_size=2)
+    # lr = base_lr * batch_size / 2
+    lr_scale_factor: float = 4.0  # batch_size=8 / base_batch_size=2
 
 
 TRAINING_CONFIGS = {
     'segmentation': TrainingConfig(
-        max_iters=80000,
-        batch_size=2,
-        checkpoint_interval=10000,
-        eval_interval=6666,
+        max_iters=10000,  # 80k samples with batch_size=8
+        batch_size=8,
+        checkpoint_interval=2000,
+        eval_interval=2000,
         early_stop=True,
         early_stop_patience=5,
         early_stop_min_delta=0.001,  # mIoU improvement threshold
+        lr_scale_factor=4.0,
     ),
     'detection': TrainingConfig(
-        max_iters=40000,
-        batch_size=2,
-        checkpoint_interval=5000,
-        eval_interval=3333,
+        max_iters=5000,  # 40k samples with batch_size=8
+        batch_size=8,
+        checkpoint_interval=1000,
+        eval_interval=1000,
         early_stop=True,
         early_stop_patience=5,
         early_stop_min_delta=0.001,  # mAP improvement threshold
+        lr_scale_factor=4.0,
     ),
 }
 
@@ -1186,7 +1195,8 @@ class UnifiedTrainingConfig:
         config['dataset_type'] = 'ConcatDataset'
         config['classes'] = dataset_cfgs[0].classes  # Use first dataset's classes
         
-        batch_size = 2
+        # Get batch_size from _prove_config which was set in _build_base_config
+        batch_size = config.get('_prove_config', {}).get('batch_size', 8)
         num_workers = 4
         
         # Datasets that need specific label transformations in UNIFIED mode:
@@ -1671,11 +1681,14 @@ class UnifiedTrainingConfig:
             model_def = self._update_pretrained_paths(model_def)
         
         # Build optimizer wrapper (new MMEngine format)
+        # Scale learning rate based on batch size: lr = base_lr * batch_size / 2
+        scaled_lr = model_cfg.lr * training_cfg.lr_scale_factor
+        
         optim_wrapper = dict(
             type='OptimWrapper',
             optimizer=dict(
                 type=model_cfg.optimizer,
-                lr=model_cfg.lr,
+                lr=scaled_lr,  # Scaled learning rate
                 weight_decay=model_cfg.weight_decay,
                 **(dict(momentum=0.9) if model_cfg.optimizer == 'SGD' else dict(betas=(0.9, 0.999))),
             ),
@@ -1720,6 +1733,9 @@ class UnifiedTrainingConfig:
                 'dataset': dataset_cfg.name,
                 'model': model_cfg.name,
                 'task': dataset_cfg.task,
+                'batch_size': training_cfg.batch_size,  # Store for dataloader config
+                'max_iters': training_cfg.max_iters,
+                'lr_scale_factor': training_cfg.lr_scale_factor,
             },
             
             # Model definition (inline, not inherited from _base_)
@@ -1866,7 +1882,8 @@ class UnifiedTrainingConfig:
             print(f"[INFO] Using train_ann_dir: {train_ann_dir}")
         
         # New MMEngine dataloader format
-        batch_size = 2
+        # Get batch_size from _prove_config which was set in _build_base_config
+        batch_size = config.get('_prove_config', {}).get('batch_size', 8)
         num_workers = 4
         
         # Determine the dataset type to use for dataloaders

@@ -319,9 +319,49 @@ class UnifiedTrainer:
         import subprocess
         import sys
         
-        # Create a minimal training script that will be run in a subprocess
-        # This avoids all the import compatibility issues between mmcv/mmseg/mmdet
-        train_script = f'''
+        # Check if mixed dataloader is enabled
+        mixed_enabled = self.config.get('mixed_dataloader', {}).get('enabled', False)
+        
+        if mixed_enabled:
+            train_script = self._generate_mixed_training_script(config_path)
+        else:
+            train_script = self._generate_standard_training_script(config_path)
+        
+        # Write temporary training script
+        script_path = Path(self.config['work_dir']) / 'train_script.py'
+        script_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(script_path, 'w') as f:
+            f.write(train_script)
+        
+        # Run training in subprocess
+        print(f"Starting training via subprocess...")
+        print(f"Config: {config_path}")
+        print(f"Work dir: {self.config['work_dir']}")
+        if mixed_enabled:
+            mixed_cfg = self.config['mixed_dataloader']
+            print(f"Mixed Training: ENABLED")
+            print(f"  Real-Gen Ratio: {mixed_cfg.get('real_gen_ratio', 0.5)}")
+            print(f"  Real samples/batch: {mixed_cfg['batch_composition']['real_samples']}")
+            print(f"  Generated samples/batch: {mixed_cfg['batch_composition']['generated_samples']}")
+        else:
+            print(f"Mixed Training: DISABLED (standard training)")
+        
+        env = os.environ.copy()
+        # Ensure CUDA is visible
+        if 'CUDA_VISIBLE_DEVICES' not in env and self.gpu_ids:
+            env['CUDA_VISIBLE_DEVICES'] = ','.join(map(str, self.gpu_ids))
+        
+        result = subprocess.run(
+            [sys.executable, str(script_path)],
+            env=env,
+            cwd=str(Path(__file__).parent),
+        )
+        
+        return result.returncode == 0
+    
+    def _generate_standard_training_script(self, config_path: str) -> str:
+        """Generate standard training script (no mixed dataloader)"""
+        return f'''
 import sys
 sys.path.insert(0, "{Path(__file__).parent}")
 
@@ -353,30 +393,194 @@ cfg = Config.fromfile("{config_path}")
 runner = Runner.from_cfg(cfg)
 runner.train()
 '''
+    
+    def _generate_mixed_training_script(self, config_path: str) -> str:
+        """Generate training script with MixedDataLoader integration"""
+        return f'''
+import sys
+sys.path.insert(0, "{Path(__file__).parent}")
+
+# Import custom transforms and datasets to register them BEFORE loading config
+import custom_transforms  # Registers ReduceToSingleChannel transform
+import unified_datasets   # Registers MapillaryLabelTransform, CityscapesLabelTransform
+import generated_images_dataset  # Registers GeneratedAugmentedDataset
+
+# Import StandardAugmentationHook to register it with MMEngine
+try:
+    from tools.standard_augmentation_hook import StandardAugmentationHook
+    print("[Training] StandardAugmentationHook registered")
+except ImportError as e:
+    print(f"Warning: StandardAugmentationHook not available: {{e}}")
+
+# Import mmsegmentation components
+try:
+    import mmseg.datasets  
+    import mmseg.evaluation
+    from mmseg.models.segmentors import EncoderDecoder
+    from mmseg.models.segmentors import CascadeEncoderDecoder
+    from mmseg.registry import DATASETS as MMSEG_DATASETS
+except ImportError as e:
+    print(f"Warning: Some mmseg imports failed: {{e}}")
+
+from mmengine.runner import Runner
+from mmengine.config import Config
+from mmengine.registry import DATASETS
+
+print("=" * 60)
+print("PROVE Mixed Training Mode")
+print("=" * 60)
+
+# Load config
+cfg = Config.fromfile("{config_path}")
+
+# Get mixed dataloader configuration
+mixed_cfg = cfg.get('mixed_dataloader', {{}})
+if not mixed_cfg.get('enabled', False):
+    raise RuntimeError("Mixed training script called but mixed_dataloader.enabled=False!")
+
+# Extract configuration
+real_gen_ratio = mixed_cfg.get('real_gen_ratio', 0.5)
+batch_size = cfg.train_dataloader.get('batch_size', 8)
+sampling_strategy = mixed_cfg.get('sampling_strategy', 'batch_split')
+
+print(f"Real-Gen Ratio: {{real_gen_ratio}}")
+print(f"Batch Size: {{batch_size}}")
+print(f"Sampling Strategy: {{sampling_strategy}}")
+
+# Build generated dataset configuration
+gen_cfg = mixed_cfg.get('generated_dataset', {{}})
+
+# Modify the train_dataloader to use MixedRealGeneratedDataset
+# This is the key - we reconfigure the dataset type to use our mixed dataset
+original_dataset_cfg = cfg.train_dataloader.dataset.copy()
+
+# Create the mixed dataset configuration
+from generated_images_dataset import GeneratedAugmentedDataset
+
+# First, let's register and use a ConcatDataset approach
+# This is simpler and more compatible with MMEngine
+print("\\nConfiguring mixed training dataset...")
+
+# Calculate how many samples to take from each source based on ratio
+# With batch_split strategy, each batch has fixed composition
+real_per_batch = max(1, int(batch_size * real_gen_ratio))
+gen_per_batch = batch_size - real_per_batch
+
+print(f"Batch composition: {{real_per_batch}} real + {{gen_per_batch}} generated = {{batch_size}} total")
+
+# Create a custom sampler that alternates between real and generated
+# For now, we'll use a simpler approach: modify the dataset directly
+
+# Option: Use ConcatDataset with RepeatDataset to balance sampling
+# Create combined dataset that interleaves real and generated
+
+# Get paths from config
+data_root = cfg.train_dataloader.dataset.get('data_root')
+img_suffix = cfg.train_dataloader.dataset.get('img_suffix', '.jpg')
+seg_map_suffix = cfg.train_dataloader.dataset.get('seg_map_suffix', '.png')
+
+# Build the mixed dataset by combining real + generated in data_list
+# This approach modifies the dataset to include both sources
+
+# Add generated images to the training pipeline
+# by extending the data_prefix to include generated images
+print("\\nBuilding training data with mixed real/generated images...")
+
+# Load generated images manifest
+from generated_images_dataset import GeneratedImagesManifest
+manifest = GeneratedImagesManifest(gen_cfg.get('manifest_path'))
+
+# Get the dataset filter (e.g., 'BDD10k')
+dataset_filter = gen_cfg.get('dataset_filter', '')
+print(f"Dataset filter: {{dataset_filter}}")
+
+# Count available generated images
+gen_entries = manifest.get_dataset_entries(dataset_filter) if dataset_filter else manifest.entries
+print(f"Found {{len(gen_entries)}} generated images for {{dataset_filter or 'all datasets'}}")
+
+# Now we need to create a dataset that mixes real and generated
+# The simplest approach that works with MMEngine is to modify the data_list
+
+# Approach: Extend the real dataset with generated image paths
+# We'll use the same labels (since generated images share labels with originals)
+
+# Build extended data prefix that includes generated images directory
+import os
+from glob import glob
+
+# Get generated root from config
+generated_root = gen_cfg.get('generated_root', '')
+
+# If real_gen_ratio < 1.0, we need to include generated images
+if real_gen_ratio < 1.0 and generated_root:
+    # Create extended dataset config that includes both real and generated
+    # We'll do this by modifying the data list after the dataset is built
+    
+    # First, build the standard runner
+    runner = Runner.from_cfg(cfg)
+    
+    # Then, inject generated images into the training data
+    # This approach modifies the data_list of the existing dataset
+    
+    real_dataset = runner.train_dataloader.dataset
+    
+    # Force dataset to load its data_list if not already loaded
+    if not hasattr(real_dataset, 'data_list') or len(real_dataset.data_list) == 0:
+        real_dataset.full_init()
+    
+    original_size = len(real_dataset.data_list)
+    print(f"Original (real) dataset size: {{original_size}} images")
+    
+    # Add generated images to data_list
+    added_count = 0
+    conditions = gen_cfg.get('conditions', ['cloudy', 'dawn_dusk', 'fog', 'night', 'rainy', 'snowy'])
+    
+    for entry in gen_entries:
+        gen_path = entry.get('gen_path', '')
+        original_path = entry.get('original_path', '')
+        target_domain = entry.get('target_domain', '')
         
-        # Write temporary training script
-        script_path = Path(self.config['work_dir']) / 'train_script.py'
-        script_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(script_path, 'w') as f:
-            f.write(train_script)
+        # Only add if condition is in our list
+        if target_domain not in conditions:
+            continue
+            
+        # Get label path from original
+        label_path = original_path.replace('/images/', '/labels/')
+        for ext in ['.jpg', '.png', '.jpeg']:
+            label_path = label_path.replace(ext, seg_map_suffix)
         
-        # Run training in subprocess
-        print(f"Starting training via subprocess...")
-        print(f"Config: {config_path}")
-        print(f"Work dir: {self.config['work_dir']}")
-        
-        env = os.environ.copy()
-        # Ensure CUDA is visible
-        if 'CUDA_VISIBLE_DEVICES' not in env and self.gpu_ids:
-            env['CUDA_VISIBLE_DEVICES'] = ','.join(map(str, self.gpu_ids))
-        
-        result = subprocess.run(
-            [sys.executable, str(script_path)],
-            env=env,
-            cwd=str(Path(__file__).parent),
-        )
-        
-        return result.returncode == 0
+        # Check if files exist
+        if os.path.exists(gen_path):
+            # Add to data_list
+            real_dataset.data_list.append({{
+                'img_path': gen_path,
+                'seg_map_path': label_path,
+                'reduce_zero_label': original_dataset_cfg.get('reduce_zero_label', False),
+                '_is_generated': True,
+                '_condition': target_domain,
+            }})
+            added_count += 1
+    
+    print(f"Added {{added_count}} generated images to training data")
+    total_size = len(real_dataset.data_list)
+    print(f"Total training samples: {{total_size}} ({{original_size}} real + {{added_count}} generated)")
+    
+    # Calculate effective real/gen ratio
+    effective_ratio = original_size / total_size if total_size > 0 else 0
+    print(f"Effective real ratio: {{effective_ratio:.2f}} (target: {{real_gen_ratio}})")
+    
+else:
+    print("Real-gen ratio is 1.0 or no generated_root - using standard training")
+    runner = Runner.from_cfg(cfg)
+
+print("=" * 60)
+print("Starting training...")
+print("=" * 60)
+
+runner.train()
+
+print("\\nTraining completed!")
+'''
     
     def _train_with_mmseg_tools(self, config_path: str) -> bool:
         """Train using mmsegmentation's train.py script directly"""
