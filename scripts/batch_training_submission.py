@@ -13,14 +13,14 @@ A robust, multi-user training submission system with:
 Strategies:
     - STD_STRATEGIES (7): baseline, std_minimal, std_photometric_distort,
                           std_autoaugment, std_cutmix, std_mixup, std_randaugment
-    - GEN_STRATEGIES (19): gen_cycleGAN, gen_flux_kontext, gen_step1x_new, ...
-    - ALL_STRATEGIES (26): STD_STRATEGIES + GEN_STRATEGIES
+    - GEN_STRATEGIES (21): gen_cycleGAN, gen_flux_kontext, gen_step1x_new, gen_TSIT, gen_augmenters, ...
+    - ALL_STRATEGIES (28): STD_STRATEGIES + GEN_STRATEGIES
 
 Usage:
     # Dry run to see what jobs would be submitted (ALWAYS do this first!)
     python scripts/batch_training_submission.py --stage 1 --dry-run
     
-    # Submit Stage 1 jobs (all 312 jobs: 26 strategies × 4 datasets × 3 models)
+    # Submit Stage 1 jobs (all 336 jobs: 28 strategies × 4 datasets × 3 models)
     python scripts/batch_training_submission.py --stage 1
     
     # Submit Stage 1 jobs with limit
@@ -85,8 +85,8 @@ ALL_DATASETS = ['BDD10k', 'IDD-AW', 'MapillaryVistas', 'OUTSIDE15k']
 # All models
 ALL_MODELS = ['deeplabv3plus_r50', 'pspnet_r50', 'segformer_mit-b5']
 
-# 19 gen_* strategies from generative_quality.csv + Weather_Effect_Generator
-# (excluding gen_EDICT and gen_StyleID - no generated images available)
+# 21 gen_* strategies with full dataset coverage
+# (excluding gen_EDICT, gen_StyleID, gen_flux2, gen_AOD-Net - no/insufficient coverage)
 GEN_STRATEGIES = [
     'gen_cycleGAN',
     'gen_flux_kontext',
@@ -107,6 +107,8 @@ GEN_STRATEGIES = [
     'gen_CNetSeg',
     'gen_stargan_v2',
     'gen_Weather_Effect_Generator',
+    'gen_TSIT',           # 191,400 images with full coverage
+    'gen_augmenters',     # 159,500 images with full coverage
 ]
 
 # Standard augmentation strategies
@@ -599,7 +601,7 @@ Examples:
     # Filtering options
     parser.add_argument('--strategy-type', choices=['all', 'std', 'gen'],
                        default='all',
-                       help='Strategy type: all (26), std (7 baseline+std_*), gen (19 gen_*)')
+                       help='Strategy type: all (28), std (7 baseline+std_*), gen (21 gen_*)')
     parser.add_argument('--strategies', nargs='+', 
                        help='Specific strategies to train (overrides --strategy-type)')
     parser.add_argument('--datasets', nargs='+', choices=ALL_DATASETS,
