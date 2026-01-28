@@ -517,6 +517,10 @@ if real_gen_ratio < 1.0 and generated_root:
     # Create extended dataset config that includes both real and generated
     # We'll do this by modifying the data list after the dataset is built
     
+    # CRITICAL: Disable serialization so we can modify data_list
+    # When serialize_data=True, data_list is converted to bytes and emptied
+    cfg.train_dataloader.dataset.serialize_data = False
+    
     # First, build the standard runner
     runner = Runner.from_cfg(cfg)
     
