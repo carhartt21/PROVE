@@ -3,23 +3,52 @@
 Batch Training Submission System
 
 A robust, multi-user training submission system with:
-- Pre-flight checks for existing results
-- Training lock mechanism to prevent duplicate work
+- Pre-flight checks for existing results (won't overwrite completed training)
+- Training lock mechanism to prevent duplicate work across multiple users/machines
+- Automatic testing after training completes
 - Configurable for different evaluation stages
 - LSF job submission with proper parameter handling
+- File permissions: 775 for directories, 664 for files
+
+Strategies:
+    - STD_STRATEGIES (7): baseline, std_minimal, std_photometric_distort,
+                          std_autoaugment, std_cutmix, std_mixup, std_randaugment
+    - GEN_STRATEGIES (19): gen_cycleGAN, gen_flux_kontext, gen_step1x_new, ...
+    - ALL_STRATEGIES (26): STD_STRATEGIES + GEN_STRATEGIES
 
 Usage:
-    # Dry run to see what jobs would be submitted
-    python batch_training_submission.py --stage 1 --dry-run
+    # Dry run to see what jobs would be submitted (ALWAYS do this first!)
+    python scripts/batch_training_submission.py --stage 1 --dry-run
     
-    # Submit Stage 1 jobs (limit to 50)
-    python batch_training_submission.py --stage 1 --limit 50
+    # Submit Stage 1 jobs (all 312 jobs: 26 strategies × 4 datasets × 3 models)
+    python scripts/batch_training_submission.py --stage 1
     
-    # Submit Stage 2 jobs with specific strategies
-    python batch_training_submission.py --stage 2 --strategies gen_cycleGAN gen_flux_kontext
+    # Submit Stage 1 jobs with limit
+    python scripts/batch_training_submission.py --stage 1 --limit 50
+    
+    # Submit ONLY baseline + std_* strategies (no generative)
+    python scripts/batch_training_submission.py --stage 1 --strategy-type std --dry-run
+    
+    # Submit ONLY generative strategies
+    python scripts/batch_training_submission.py --stage 1 --strategy-type gen --dry-run
+    
+    # Submit specific strategies
+    python scripts/batch_training_submission.py --stage 1 --strategies baseline std_minimal gen_cycleGAN
     
     # Submit jobs for specific dataset/model
-    python batch_training_submission.py --stage 1 --datasets BDD10k --models deeplabv3plus_r50
+    python scripts/batch_training_submission.py --stage 1 --datasets BDD10k --models deeplabv3plus_r50
+    
+    # Stage 2 (no domain filter, all weather conditions)
+    python scripts/batch_training_submission.py --stage 2 --dry-run
+
+Stages:
+    Stage 1: Train on clear_day only (--domain-filter clear_day), test cross-domain robustness
+    Stage 2: Train on all conditions, test domain-inclusive performance
+
+Pre-flight Checks:
+    - Skips if checkpoint already exists (iter_80000.pth or iter_10000.pth)
+    - Skips if training lock is held by another job
+    - Skips gen_* strategies if generated images don't exist for dataset
 """
 
 import os
@@ -568,8 +597,11 @@ Examples:
                        help='Training stage (1: clear_day only, 2: all domains)')
     
     # Filtering options
+    parser.add_argument('--strategy-type', choices=['all', 'std', 'gen'],
+                       default='all',
+                       help='Strategy type: all (26), std (7 baseline+std_*), gen (19 gen_*)')
     parser.add_argument('--strategies', nargs='+', 
-                       help='Specific strategies to train (default: all gen_* strategies)')
+                       help='Specific strategies to train (overrides --strategy-type)')
     parser.add_argument('--datasets', nargs='+', choices=ALL_DATASETS,
                        help='Specific datasets (default: all)')
     parser.add_argument('--models', nargs='+', choices=ALL_MODELS,
@@ -610,15 +642,27 @@ Examples:
         memory=args.memory,
     )
     
+    # Determine strategies based on --strategy-type or --strategies
+    strategies = args.strategies
+    if strategies is None:
+        if args.strategy_type == 'std':
+            strategies = STD_STRATEGIES
+        elif args.strategy_type == 'gen':
+            strategies = GEN_STRATEGIES
+        else:  # 'all'
+            strategies = ALL_STRATEGIES
+    
     # Generate job list
     print(f"\n{'='*60}")
     print(f"Batch Training Submission - Stage {args.stage}")
     print(f"{'='*60}")
+    print(f"\nStrategy type: {args.strategy_type}")
+    print(f"Strategies: {len(strategies)}")
     print(f"\nGenerating job list...")
     
     jobs = generate_job_list(
         stage=args.stage,
-        strategies=args.strategies,
+        strategies=strategies,
         datasets=args.datasets,
         models=args.models,
         ratio=args.ratio,
