@@ -74,8 +74,7 @@ DATA_ROOT = Path("/scratch/aaa_exchange/AWARE/FINAL_SPLITS")
 WEIGHTS_ROOT = Path("/scratch/aaa_exchange/AWARE/WEIGHTS")
 
 # Source datasets (models trained on these)
-# SOURCE_DATASETS = ['bdd10k', 'idd-aw', 'mapillaryvistas']
-SOURCE_DATASETS = ['bdd10k', 'idd-aw']
+SOURCE_DATASETS = ['bdd10k', 'idd-aw', 'mapillaryvistas']
 
 # Target domains for evaluation
 TARGET_DOMAINS = {
@@ -100,7 +99,7 @@ ALL_STRATEGIES = [
     'std_cutmix',
     'std_mixup',
     'std_randaugment',
-    'photometric_distort',
+    'std_photometric_distort',
     # Generative strategies - GAN-based
     'gen_cycleGAN',
     'gen_CUT',
@@ -593,6 +592,11 @@ def run_domain_adaptation_test(
     
     # Construct paths
     weights_dir = WEIGHTS_ROOT / strategy / source_dataset / model_name
+    if not weights_dir.exists():
+        weights_dir = WEIGHTS_ROOT / strategy / source_dataset.lower() / (model_name + '_ratio0p50')
+        if not weights_dir.exists():
+            print(f"  [SKIP] Weights directory not found: {weights_dir}")
+            return None
     config_path = weights_dir / "training_config.py"
     checkpoint_path = weights_dir / "iter_80000.pth"
     

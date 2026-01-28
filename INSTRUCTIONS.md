@@ -134,7 +134,7 @@ python scripts/auto_submit_tests.py --limit 20   # Submit up to 20
 
 ### Strategies
 - **Baseline:** `baseline`
-- **Standard Augmentation:** `std_minimal`, `std_autoaugment`, `std_cutmix`, `std_mixup`, `std_randaugment`, `photometric_distort`
+- **Standard Augmentation:** `std_minimal`, `std_autoaugment`, `std_cutmix`, `std_mixup`, `std_randaugment`, `std_photometric_distort`
 - **Generative:** `gen_cycleGAN`, `gen_cyclediffusion`, `gen_CUT`, `gen_IP2P`, `gen_step1x_new`, `gen_flux_kontext`, etc.
 
 ---

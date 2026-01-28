@@ -70,7 +70,7 @@ python unified_training.py --batch --datasets ACDC BDD10k --strategies baseline 
 |----------|-------------|
 | **Base Strategies** | |
 | `baseline` | No augmentation |
-| `photometric_distort` | Random brightness, contrast, saturation |
+| `std_std_photometric_distort` | Random brightness, contrast, saturation |
 | **Standard Augmentations** | |
 | `std_cutmix` | CutMix augmentation |
 | `std_mixup` | MixUp augmentation |

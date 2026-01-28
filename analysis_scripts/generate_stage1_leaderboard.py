@@ -72,7 +72,7 @@ ALL_DOMAINS = NORMAL_DOMAINS + TRANSITION_DOMAINS + ADVERSE_DOMAINS
 # Strategy type mapping
 STRATEGY_TYPES = {
     'baseline': 'Baseline',
-    'photometric_distort': 'Augmentation',
+    'std_photometric_distort': 'Augmentation',
     'std_cutmix': 'Standard Aug',
     'std_mixup': 'Standard Aug',
     'std_autoaugment': 'Standard Aug',

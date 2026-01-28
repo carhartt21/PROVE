@@ -1,0 +1,46 @@
+================================================================================
+UNIFIED DOMAIN GAP ANALYSIS REPORT - Stage 1
+Training: Clear Day Training
+Weights: /scratch/aaa_exchange/AWARE/WEIGHTS
+Generated: 2026-01-27 18:15:04
+================================================================================
+
+METHODOLOGY:
+----------------------------------------
+• Primary Metric: mIoU (mean Intersection over Union)
+• Data Filtering: ≥50 images per domain
+• Aggregation: Frequency-weighted average (by num_images)
+• Normal Domains: clear_day, cloudy
+• Adverse Domains: foggy, night, rainy, snowy, dawn_dusk
+
+STRATEGY RANKING (by Overall mIoU):
+--------------------------------------------------------------------------------
+Rank  Strategy                           mIoU   Normal  Adverse      Gap
+--------------------------------------------------------------------------------
+1     gen_Attribute_Hallucination       38.24    39.51    33.05    +6.46
+2     gen_Img2Img                       38.10    39.42    32.72    +6.71
+3     gen_CNetSeg                       38.09    39.44    32.61    +6.83
+4     gen_stargan_v2                    38.06    39.38    32.73    +6.65
+5     gen_cyclediffusion                38.02    39.35    32.62    +6.72
+6     gen_augmenters                    38.01    39.35    32.60    +6.74
+7     gen_cycleGAN                      38.00    39.32    32.66    +6.65
+8     gen_flux_kontext                  37.99    39.31    32.64    +6.67
+9     gen_IP2P                          37.99    39.33    32.54    +6.79
+10    gen_VisualCloze                   37.90    39.23    32.52    +6.72
+11    gen_Weather_Effect_Generator      37.87    39.20    32.45    +6.75
+12    gen_automold                      37.87    39.14    32.67    +6.47
+13    gen_SUSTechGAN                    37.85    39.10    32.78    +6.33
+14    gen_step1x_new                    37.81    39.10    32.55    +6.55
+15    gen_Qwen_Image_Edit               37.79    39.08    32.56    +6.52
+16    std_autoaugment                   37.79    38.96    33.03    +5.94
+17    gen_albumentations_weather        37.73    39.01    32.53    +6.48
+18    gen_LANIT                         37.73    39.12    32.09    +7.03
+19    gen_UniControl                    37.72    39.03    32.44    +6.59
+20    gen_step1x_v1p2                   37.65    38.97    32.28    +6.69
+21    gen_TSIT                          37.63    39.00    32.04    +6.96
+22    gen_CUT                           37.59    38.88    32.35    +6.53
+23    std_photometric_distort               37.53    38.81    32.32    +6.49
+24    std_mixup                         37.44    38.83    31.78    +7.05
+25    std_randaugment                   37.33    38.47    32.71    +5.76
+26    std_cutmix                        37.21    38.55    31.76    +6.79
+27    baseline                          37.12    38.56    31.28    +7.29

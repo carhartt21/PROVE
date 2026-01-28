@@ -129,7 +129,7 @@ For each strategy/dataset combination, we train **6 models** (3 architectures ×
 | Strategy | Description |
 |----------|-------------|
 | `baseline` | No augmentation (control) |
-| `photometric_distort` | Random brightness, contrast, saturation |
+| `std_photometric_distort` | Random brightness, contrast, saturation |
 
 #### Standard Augmentations
 | Strategy | Description |

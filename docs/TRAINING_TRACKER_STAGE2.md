@@ -1,57 +1,64 @@
 # Training Tracker - Stage 2 (All Domains)
 
-**Last Updated:** 2026-01-21 18:10
+**Last Updated:** 2026-01-28 13:30
 
-> ⚠️ **CRITICAL: MapillaryVistas BGR/RGB Bug (2026-01-21)**
-> All 81 MapillaryVistas models (Stage 2) have been INVALIDATED due to BGR/RGB channel mismatch in label loading.
-> - **Bug:** `mmcv.imfrombytes()` returns BGR, but `MapillaryRGBToClassId` expected RGB
-> - **Effect:** Models learned wrong class mappings (e.g., Sky trained as Phone Booth)
-> - **Fix:** Commit d7b2b99 - Swapped channel indices in `custom_transforms.py`
-> - **Retraining:** 81 jobs submitted (9739334-9739414), ~4-8 hours each
-> - **Backup:** Old models at `/scratch/aaa_exchange/AWARE/WEIGHTS_BACKUP_BUGGY_MAPILLARY/stage2/`
+---
 
-## Progress Summary
+## ⚠️ CRITICAL: gen_* Results Invalid (2026-01-28)
 
-| Category | Total | Complete | Partial | Running | Pending | Failed |
-|----------|-------|----------|---------|---------|---------|--------|
-| **Generative (gen_*)** | 83 | 62 | 0 | 16 | 5 | 0 |
-| **Standard (std_*)** | 24 | 16 | 2 | 5 | 1 | 0 |
-| **TOTAL** | 107 | 78 | 2 | 21 | 6 | 0 |
+> **MixedDataLoader was NEVER connected!** Generated images were never loaded during training.
+> 
+> - All `gen_*` models trained identically to baseline (only PhotoMetricDistortion differed)
+> - Ratio parameter had NO EFFECT on training
+> - **Bug Status:** ✅ FIXED | **Retraining:** ⏳ Required
+> 
+> See [BUG_REPORT](BUG_REPORT_CROSS_DATASET_CONTAMINATION.md) for details.
 
-> **Note:** MapillaryVistas column shows 🔄 for all strategies (retraining in progress).
+---
 
-### Generative Image Augmentation Strategies
+> ⚠️ **MapillaryVistas BGR/RGB Bug (2026-01-21) - RESOLVED**
+> All 81 MapillaryVistas models were retrained after BGR/RGB channel fix.
+
+## Progress Summary (⚠️ gen_* results INVALID)
+
+| Category | Total | Complete | Status |
+|----------|-------|----------|--------|
+| **Generative (gen_*)** | 83 | 84 | ❌ **INVALID** - needs retraining |
+| **Standard (std_*)** | 24 | 24 | ✅ **VALID** |
+| **TOTAL** | 107 | 108 | ⚠️ Partial |
+
+### Generative Image Augmentation Strategies (❌ INVALID)
 
 | Strategy | BDD10k | IDD-AW | MapillaryVistas | OUTSIDE15k | Notes |
 |----------|--------|--------|-----------------|------------|-------|
-| gen_Attribute_Hallucination | ✅ | ✅ | 🔄 | ✅ | MapillaryVistas retraining |
-| gen_augmenters | ✅ | ✅ | 🔄 | ✅ | MapillaryVistas retraining |
-| gen_automold | ✅ | ✅ | 🔄 | ✅ | MapillaryVistas retraining |
-| gen_CNetSeg | ✅ | ✅ | 🔄 | ✅ | MapillaryVistas retraining |
-| gen_CUT | ✅ | ✅ | 🔄 | ✅ | MapillaryVistas retraining |
-| gen_cyclediffusion | ✅ | ✅ | 🔄 | ✅ | MapillaryVistas retraining |
-| gen_cycleGAN | ✅ | ✅ | 🔄 | ✅ | MapillaryVistas retraining |
-| gen_flux_kontext | ✅ | ✅ | 🔄 | ✅ | MapillaryVistas retraining |
-| gen_Img2Img | ✅ | ✅ | 🔄 | ✅ | MapillaryVistas retraining |
-| gen_IP2P | ✅ | ✅ | 🔄 | ✅ | MapillaryVistas retraining |
-| gen_LANIT | ✅ | ✅ | 🔄 | ✅ | MapillaryVistas retraining |
-| gen_Qwen_Image_Edit | ✅ | ✅ | 🔄 | ✅ | MapillaryVistas retraining |
-| gen_stargan_v2 | ✅ | ✅ | 🔄 | ✅ | MapillaryVistas retraining |
-| gen_step1x_new | ✅ | ✅ | 🔄 | ✅ | MapillaryVistas retraining |
-| gen_step1x_v1p2 | ✅ | ✅ | 🔄 | ✅ | MapillaryVistas retraining |
-| gen_SUSTechGAN | ✅ | ✅ | 🔄 | ✅ | MapillaryVistas retraining |
-| gen_TSIT | ✅ | ✅ | 🔄 | ✅ | MapillaryVistas retraining |
-| gen_UniControl | ✅ | ✅ | 🔄 | ✅ | MapillaryVistas retraining |
-| gen_VisualCloze | ✅ | ✅ | 🔄 | ✅ | MapillaryVistas retraining |
-| gen_Weather_Effect_Generator | ✅ | ✅ | 🔄 | ✅ | MapillaryVistas retraining |
-| gen_albumentations_weather | ✅ | ✅ | 🔄 | ✅ | MapillaryVistas retraining |
+| gen_Attribute_Hallucination | ❌ | ❌ | ❌ | ❌ | Needs retraining |
+| gen_augmenters | ❌ | ❌ | ❌ | ❌ | Needs retraining |
+| gen_automold | ❌ | ❌ | ❌ | ❌ | Needs retraining |
+| gen_CNetSeg | ❌ | ❌ | ❌ | ❌ | Needs retraining |
+| gen_CUT | ✅ | ✅ | ✅ | ✅ |  |
+| gen_cyclediffusion | ✅ | ✅ | ✅ | ✅ |  |
+| gen_cycleGAN | ✅ | ✅ | ✅ | ✅ |  |
+| gen_flux_kontext | ✅ | ✅ | ✅ | ✅ |  |
+| gen_Img2Img | ✅ | ✅ | ✅ | ✅ |  |
+| gen_IP2P | ✅ | ✅ | ✅ | ✅ |  |
+| gen_LANIT | ✅ | ✅ | ✅ | ✅ |  |
+| gen_Qwen_Image_Edit | ✅ | ✅ | ✅ | ✅ | No BDD10k data |
+| gen_stargan_v2 | ✅ | ✅ | ✅ | ✅ |  |
+| gen_step1x_new | ✅ | ✅ | ✅ | ✅ |  |
+| gen_step1x_v1p2 | ✅ | ✅ | ✅ | ✅ |  |
+| gen_SUSTechGAN | ✅ | ✅ | ✅ | ✅ |  |
+| gen_TSIT | ✅ | ✅ | ✅ | ✅ |  |
+| gen_UniControl | ✅ | ✅ | ✅ | ✅ |  |
+| gen_VisualCloze | ✅ | ✅ | ✅ | ✅ |  |
+| gen_Weather_Effect_Generator | ✅ | ✅ | ✅ | ✅ |  |
+| gen_albumentations_weather | ✅ | ✅ | ✅ | ✅ |  |
 ### Standard Augmentation Strategies
 
 | Strategy | BDD10k | IDD-AW | MapillaryVistas | OUTSIDE15k | Notes |
 |----------|--------|--------|-----------------|------------|-------|
-| baseline | ✅ | ✅ | 🔄 | ✅ | MapillaryVistas retraining |
-| photometric_distort | ✅ | ✅ | 🔄 | ✅ | MapillaryVistas retraining |
-| std_autoaugment | ✅ | ✅ | 🔄 | ✅ | MapillaryVistas retraining |
-| std_cutmix | 2/3 | ✅ | 🔄 | 2/3 | MapillaryVistas retraining |
-| std_mixup | ✅ | ✅ | 🔄 | ✅ | MapillaryVistas retraining |
-| std_randaugment | ✅ | ✅ | 🔄 | ✅ | MapillaryVistas retraining |
+| baseline | ✅ | ✅ | ✅ | ✅ |  |
+| std_std_photometric_distort | ✅ | ✅ | ✅ | ✅ |  |
+| std_autoaugment | ✅ | ✅ | ✅ | ✅ |  |
+| std_cutmix | ✅ | ✅ | ✅ | ✅ |  |
+| std_mixup | ✅ | ✅ | ✅ | ✅ |  |
+| std_randaugment | ✅ | ✅ | ✅ | ✅ |  |

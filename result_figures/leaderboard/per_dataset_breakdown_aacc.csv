@@ -17,7 +17,7 @@ gen_step1x_new,Generative,90.78,+0.41,83.51,+0.08,89.20,+0.03,76.07,+0.51
 gen_albumentations_weather,Generative,90.71,+0.35,83.90,+0.47,89.24,+0.08,75.65,+0.09
 gen_Weather_Effect_Generator,Generative,90.70,+0.33,83.60,+0.17,89.18,+0.02,76.01,+0.45
 gen_UniControl,Generative,90.83,+0.46,83.43,-0.00,89.19,+0.03,76.02,+0.46
-photometric_distort,Augmentation,90.57,+0.20,84.43,+0.99,89.17,+0.00,75.27,-0.29
+std_photometric_distort,Augmentation,90.57,+0.20,84.43,+0.99,89.17,+0.00,75.27,-0.29
 gen_cyclediffusion,Generative,90.79,+0.42,83.41,-0.02,89.31,+0.15,75.80,+0.24
 gen_IP2P,Generative,90.71,+0.35,83.58,+0.15,89.29,+0.13,75.67,+0.11
 std_mixup,Standard Aug,90.28,-0.09,83.13,-0.31,89.08,-0.08,76.59,+1.03

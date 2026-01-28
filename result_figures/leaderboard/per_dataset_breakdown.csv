@@ -22,7 +22,7 @@ gen_CUT,Generative,45.91,+1.82,39.52,+0.94,34.11,-0.21,37.15,+0.25
 gen_step1x_v1p2,Generative,46.07,+1.98,39.69,+1.12,34.51,+0.19,36.36,-0.53
 gen_TSIT,Generative,45.81,+1.72,39.38,+0.81,34.49,+0.17,36.74,-0.16
 std_mixup,Standard Aug,45.56,+1.47,38.63,+0.06,34.12,-0.20,37.67,+0.77
-photometric_distort,Augmentation,45.75,+1.66,39.92,+1.35,34.59,+0.27,35.55,-1.35
+std_photometric_distort,Augmentation,45.75,+1.66,39.92,+1.35,34.59,+0.27,35.55,-1.35
 std_randaugment,Standard Aug,45.25,+1.17,39.55,+0.97,33.51,-0.81,37.38,+0.48
 std_cutmix,Standard Aug,44.50,+0.41,39.33,+0.75,33.84,-0.48,36.91,+0.01
 baseline,Baseline,44.09,-,38.58,-,34.32,-,36.90,-

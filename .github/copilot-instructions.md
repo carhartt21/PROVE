@@ -1,5 +1,22 @@
 # PROVE Repository Instructions
 
+## Environment Setup
+
+**Conda Environment:** `prove`
+
+```bash
+# Activate the environment
+conda activate prove
+
+# Or use mamba (faster)
+mamba activate prove
+
+# Full activation command for scripts
+source /home/mima2416/miniconda3/etc/profile.d/conda.sh && conda activate prove
+```
+
+**Required for all Python scripts** - training, testing, and analysis require the `prove` environment.
+
 ## Architecture Overview
 
 PROVE evaluates semantic segmentation models under adverse weather conditions using MMSegmentation. The pipeline has **two training stages**:
@@ -45,9 +62,9 @@ unified_training.py → unified_training_config.py → MMSegmentation training
 **Common mistake:** Forgetting `--domain-filter clear_day` for Stage 1 trains on ALL domains (wrong!).
 
 ### Directory Naming
-- Lowercase dataset dirs: `bdd10k`, `idd-aw`, `mapillaryvistas`, `outside15k`
-- Keep hyphen in `idd-aw` (not `iddaw`)
-- No `_cd`/`_ad` suffixes - stage determined by root directory
+- **Main directories** (`WEIGHTS/`, `WEIGHTS_STAGE_2/`): Use `idd-aw` (with hyphen)
+- **Ablation directories** (`WEIGHTS_RATIO_ABLATION/`, `WEIGHTS_EXTENDED/`, `WEIGHTS_COMBINATIONS/`): Use `iddaw` (no hyphen)
+- Lowercase: `bdd10k`, `mapillaryvistas`, `outside15k`
 
 ### Weights Structure
 ```
@@ -134,7 +151,7 @@ python scripts/update_testing_tracker.py --stage 2
 | MapillaryVistas | 66 | RGB-encoded |
 | OUTSIDE15k | 24 | RGB-encoded |
 
-**Strategies:** `baseline`, `std_autoaugment`, `std_cutmix`, `std_mixup`, `std_randaugment`, `photometric_distort`, `gen_cycleGAN`, `gen_IP2P`, `gen_flux_kontext`, `gen_step1x_new`, etc.
+**Strategies:** `baseline`, `std_autoaugment`, `std_cutmix`, `std_mixup`, `std_randaugment`, `std_photometric_distort`, `gen_cycleGAN`, `gen_IP2P`, `gen_flux_kontext`, `gen_step1x_new`, etc.
 
 ## Ablation Studies
 

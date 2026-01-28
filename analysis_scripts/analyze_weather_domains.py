@@ -217,21 +217,31 @@ def categorize_strategy(strategy: str) -> Tuple[str, str, str]:
     return strategy_type, gen_component, std_component
 
 
+def normalize_model_name(model: str) -> str:
+    """Normalize model name by removing ratio suffix for comparison."""
+    # Remove _ratio0pXX suffix if present
+    import re
+    return re.sub(r'_ratio\dp\d+', '', model)
+
+
 def analyze_domain_performance(df: pd.DataFrame) -> pd.DataFrame:
     """Analyze performance improvement per domain relative to baseline."""
-    # Get baseline performance per domain
-    baseline_df = df[df["strategy"] == "baseline"]
-    baseline_perf = baseline_df.groupby(["dataset", "model", "domain"])["mIoU"].mean().to_dict()
+    # First normalize model names for comparison
+    df = df.copy()
+    df["model_normalized"] = df["model"].apply(normalize_model_name)
     
-    # Calculate improvement for each entry
+    # Get baseline performance per domain (using normalized model names)
+    baseline_df = df[df["strategy"] == "baseline"]
+    baseline_perf = baseline_df.groupby(["dataset", "model_normalized", "domain"])["mIoU"].mean().to_dict()
+    
+    # Calculate improvement for each entry (using normalized model names)
     improvements = []
     for idx, row in df.iterrows():
-        key = (row["dataset"], row["model"], row["domain"])
+        key = (row["dataset"], row["model_normalized"], row["domain"])
         baseline_val = baseline_perf.get(key, 0)
         improvement = row["mIoU"] - baseline_val if baseline_val > 0 else 0
         improvements.append(improvement)
     
-    df = df.copy()
     df["improvement"] = improvements
     
     return df

@@ -1,0 +1,172 @@
+Combination Strategy Ablation Study Report
+============================================================
+
+1. COMBINATION STRATEGIES
+----------------------------------------
+
+gen_Attribute_Hallucination+std_photometric_distort:
+  Type: Other
+  Results: 2
+  Mean mIoU: 45.17
+
+gen_Qwen_Image_Edit+std_photometric_distort:
+  Type: Other
+  Results: 2
+  Mean mIoU: 45.06
+
+gen_Qwen_Image_Edit+std_autoaugment:
+  Type: Generative + Standard
+  Results: 2
+  Mean mIoU: 40.75
+
+gen_Qwen_Image_Edit+std_cutmix:
+  Type: Generative + Standard
+  Results: 2
+  Mean mIoU: 40.31
+
+gen_Qwen_Image_Edit+std_mixup:
+  Type: Generative + Standard
+  Results: 2
+  Mean mIoU: 39.58
+
+gen_Qwen_Image_Edit+std_randaugment:
+  Type: Generative + Standard
+  Results: 2
+  Mean mIoU: 40.54
+
+gen_flux_kontext+std_photometric_distort:
+  Type: Other
+  Results: 2
+  Mean mIoU: 45.14
+
+gen_flux_kontext+std_autoaugment:
+  Type: Generative + Standard
+  Results: 2
+  Mean mIoU: 40.74
+
+gen_flux_kontext+std_cutmix:
+  Type: Generative + Standard
+  Results: 2
+  Mean mIoU: 40.33
+
+gen_flux_kontext+std_mixup:
+  Type: Generative + Standard
+  Results: 2
+  Mean mIoU: 39.35
+
+gen_flux_kontext+std_randaugment:
+  Type: Generative + Standard
+  Results: 2
+  Mean mIoU: 40.27
+
+gen_stargan_v2+std_photometric_distort:
+  Type: Other
+  Results: 2
+  Mean mIoU: 45.17
+
+gen_step1x_new+std_photometric_distort:
+  Type: Other
+  Results: 2
+  Mean mIoU: 45.18
+
+gen_step1x_new+std_autoaugment:
+  Type: Generative + Standard
+  Results: 2
+  Mean mIoU: 40.68
+
+gen_step1x_new+std_cutmix:
+  Type: Generative + Standard
+  Results: 2
+  Mean mIoU: 40.43
+
+gen_step1x_new+std_mixup:
+  Type: Generative + Standard
+  Results: 1
+  Mean mIoU: 43.19
+
+gen_step1x_new+std_randaugment:
+  Type: Generative + Standard
+  Results: 2
+  Mean mIoU: 40.04
+
+std_autoaugment+std_photometric_distort:
+  Type: Other
+  Results: 2
+  Mean mIoU: 45.18
+
+std_cutmix+std_photometric_distort:
+  Type: Other
+  Results: 2
+  Mean mIoU: 44.94
+
+std_cutmix+std_autoaugment:
+  Type: Standard + Standard
+  Results: 2
+  Mean mIoU: 39.92
+
+std_mixup+std_photometric_distort:
+  Type: Other
+  Results: 2
+  Mean mIoU: 45.22
+
+std_mixup+std_autoaugment:
+  Type: Standard + Standard
+  Results: 2
+  Mean mIoU: 39.00
+
+std_mixup+std_cutmix:
+  Type: Standard + Standard
+  Results: 2
+  Mean mIoU: 39.41
+
+std_randaugment+std_photometric_distort:
+  Type: Other
+  Results: 2
+  Mean mIoU: 45.05
+
+std_randaugment+std_autoaugment:
+  Type: Standard + Standard
+  Results: 2
+  Mean mIoU: 39.91
+
+std_randaugment+std_cutmix:
+  Type: Standard + Standard
+  Results: 2
+  Mean mIoU: 40.26
+
+std_randaugment+std_mixup:
+  Type: Standard + Standard
+  Results: 2
+  Mean mIoU: 39.99
+
+
+2. SUMMARY TABLE
+----------------------------------------
+                                       Strategy  N_Results  Mean_mIoU  Std_mIoU      Combination_Type                 Component_1         Component_2
+                  std_mixup+std_photometric_distort          2   45.22325  2.341160                 Other                   std_mixup std_photometric_distort
+            std_autoaugment+std_photometric_distort          2   45.18015  2.359545                 Other             std_autoaugment std_photometric_distort
+             gen_step1x_new+std_photometric_distort          2   45.17985  2.524442                 Other              gen_step1x_new std_photometric_distort
+gen_Attribute_Hallucination+std_photometric_distort          2   45.17015  2.520482                 Other gen_Attribute_Hallucination std_photometric_distort
+             gen_stargan_v2+std_photometric_distort          2   45.16770  2.378142                 Other              gen_stargan_v2 std_photometric_distort
+           gen_flux_kontext+std_photometric_distort          2   45.14175  2.544382                 Other            gen_flux_kontext std_photometric_distort
+        gen_Qwen_Image_Edit+std_photometric_distort          2   45.05935  2.646347                 Other         gen_Qwen_Image_Edit std_photometric_distort
+            std_randaugment+std_photometric_distort          2   45.05075  2.553292                 Other             std_randaugment std_photometric_distort
+                 std_cutmix+std_photometric_distort          2   44.94270  2.680642                 Other                  std_cutmix std_photometric_distort
+                       gen_step1x_new+std_mixup          1   43.19400       NaN Generative + Standard              gen_step1x_new           std_mixup
+            gen_Qwen_Image_Edit+std_autoaugment          2   40.75000  3.586163 Generative + Standard         gen_Qwen_Image_Edit     std_autoaugment
+               gen_flux_kontext+std_autoaugment          2   40.73525  3.992678 Generative + Standard            gen_flux_kontext     std_autoaugment
+                 gen_step1x_new+std_autoaugment          2   40.67585  4.153050 Generative + Standard              gen_step1x_new     std_autoaugment
+            gen_Qwen_Image_Edit+std_randaugment          2   40.53605  4.083471 Generative + Standard         gen_Qwen_Image_Edit     std_randaugment
+                      gen_step1x_new+std_cutmix          2   40.42875  4.043449 Generative + Standard              gen_step1x_new          std_cutmix
+                    gen_flux_kontext+std_cutmix          2   40.33475  4.284572 Generative + Standard            gen_flux_kontext          std_cutmix
+                 gen_Qwen_Image_Edit+std_cutmix          2   40.30770  4.204598 Generative + Standard         gen_Qwen_Image_Edit          std_cutmix
+               gen_flux_kontext+std_randaugment          2   40.27290  4.090330 Generative + Standard            gen_flux_kontext     std_randaugment
+                     std_randaugment+std_cutmix          2   40.25685  4.283724   Standard + Standard             std_randaugment          std_cutmix
+                 gen_step1x_new+std_randaugment          2   40.04395  4.711523 Generative + Standard              gen_step1x_new     std_randaugment
+                      std_randaugment+std_mixup          2   39.99190  4.550091   Standard + Standard             std_randaugment           std_mixup
+                     std_cutmix+std_autoaugment          2   39.91515  4.789446   Standard + Standard                  std_cutmix     std_autoaugment
+                std_randaugment+std_autoaugment          2   39.90525  4.520039   Standard + Standard             std_randaugment     std_autoaugment
+                  gen_Qwen_Image_Edit+std_mixup          2   39.58205  4.919978 Generative + Standard         gen_Qwen_Image_Edit           std_mixup
+                           std_mixup+std_cutmix          2   39.40555  5.254016   Standard + Standard                   std_mixup          std_cutmix
+                     gen_flux_kontext+std_mixup          2   39.35075  5.458935 Generative + Standard            gen_flux_kontext           std_mixup
+                      std_mixup+std_autoaugment          2   39.00015  5.598801   Standard + Standard                   std_mixup     std_autoaugment

@@ -22,7 +22,7 @@ gen_CUT,Generative,39.17,6.98,0.7,40.0,33.4,6.59,12
 gen_step1x_v1p2,Generative,39.16,7.19,0.69,39.97,33.13,6.84,12
 gen_TSIT,Generative,39.11,7.18,0.63,39.87,33.03,6.84,12
 std_mixup,Standard Aug,38.99,6.91,0.52,39.8,32.91,6.89,12
-photometric_distort,Augmentation,38.96,7.36,0.48,39.83,33.13,6.7,12
+std_photometric_distort,Augmentation,38.96,7.36,0.48,39.83,33.13,6.7,12
 std_randaugment,Standard Aug,38.92,7.14,0.45,39.66,33.6,6.06,12
 std_cutmix,Standard Aug,38.64,7.07,0.17,39.6,33.04,6.57,12
 baseline,Baseline,38.47,6.78,,39.18,32.36,6.81,12

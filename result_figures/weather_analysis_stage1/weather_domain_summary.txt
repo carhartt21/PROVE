@@ -1,0 +1,30 @@
+WEATHER DOMAIN ANALYSIS SUMMARY
+================================================================================
+
+AVERAGE IMPROVEMENT BY STRATEGY TYPE:
+                   mean       std  count
+strategy_type                           
+baseline       0.000000  0.000000     84
+gen            1.100957  1.912529   1764
+other          0.726787  2.317101     84
+std            0.925654  2.482332    336
+
+AVERAGE IMPROVEMENT BY DOMAIN CATEGORY:
+domain_category   adverse    normal
+strategy_type                      
+baseline         0.000000  0.000000
+gen              1.120680  1.051650
+other            0.757521  0.649953
+std              1.054281  0.604087
+
+TOP 10 OVERALL STRATEGIES:
+  1. gen_Attribute_Hallucination: +1.61 mIoU
+  2. std_autoaugment: +1.58 mIoU
+  3. gen_stargan_v2: +1.34 mIoU
+  4. gen_augmenters: +1.32 mIoU
+  5. gen_cycleGAN: +1.29 mIoU
+  6. gen_CNetSeg: +1.25 mIoU
+  7. gen_flux_kontext: +1.24 mIoU
+  8. gen_Img2Img: +1.20 mIoU
+  9. gen_cyclediffusion: +1.18 mIoU
+  10. gen_VisualCloze: +1.16 mIoU

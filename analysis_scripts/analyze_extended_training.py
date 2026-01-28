@@ -234,6 +234,34 @@ class ExtendedTrainingAnalyzer:
                         self.results.append(result)
                         count += 1
         
+        # Pattern 6: test_results_detailed/iter_{N}/TIMESTAMP/results.json
+        # This is the structure used by submit_baseline_extended_tests.py
+        test_results_detailed_dir = model_dir / "test_results_detailed"
+        if test_results_detailed_dir.exists():
+            for iter_dir in test_results_detailed_dir.iterdir():
+                if not iter_dir.is_dir():
+                    continue
+                
+                # Extract iteration from directory name (iter_90000, iter_100000, etc.)
+                match = re.search(r"iter_(\d+)", iter_dir.name)
+                if not match:
+                    continue
+                iteration = int(match.group(1))
+                
+                # Look for TIMESTAMP/results.json inside
+                for ts_dir in iter_dir.iterdir():
+                    if not ts_dir.is_dir():
+                        continue
+                    
+                    result_file = ts_dir / "results.json"
+                    if result_file.exists():
+                        result = self._parse_fine_grained_result_file(
+                            result_file, strategy, dataset, model, iteration
+                        )
+                        if result:
+                            self.results.append(result)
+                            count += 1
+        
         return count
 
     def _extract_iteration_from_fine_grained_results(self, result_file: Path) -> Optional[int]:
@@ -435,6 +463,64 @@ class ExtendedTrainingAnalyzer:
         
         return summary
     
+    def get_baseline_comparison(self) -> Dict[str, Dict[int, float]]:
+        """
+        Compare each strategy against baseline at each iteration.
+        
+        Returns:
+            Dict mapping strategy -> {iteration -> delta_from_baseline}
+            Positive values mean strategy outperforms baseline.
+        """
+        strategy_summary = self.get_summary_by_strategy()
+        
+        if 'baseline' not in strategy_summary:
+            print("Warning: No baseline results found for comparison")
+            return {}
+        
+        baseline_iters = strategy_summary['baseline']
+        comparison = {}
+        
+        for strategy, iterations in strategy_summary.items():
+            if strategy == 'baseline':
+                continue
+            
+            deltas = {}
+            for iter_, miou in iterations.items():
+                if iter_ in baseline_iters:
+                    deltas[iter_] = miou - baseline_iters[iter_]
+            
+            if deltas:
+                comparison[strategy] = deltas
+        
+        return comparison
+    
+    def get_baseline_stats(self) -> Dict[str, Any]:
+        """
+        Get statistics about strategy performance vs baseline.
+        
+        Returns:
+            Dict with baseline comparison statistics per strategy.
+        """
+        comparison = self.get_baseline_comparison()
+        
+        if not comparison:
+            return {}
+        
+        stats = {}
+        for strategy, deltas in comparison.items():
+            delta_values = list(deltas.values())
+            stats[strategy] = {
+                'mean_delta': sum(delta_values) / len(delta_values),
+                'max_delta': max(delta_values),
+                'min_delta': min(delta_values),
+                'positive_count': sum(1 for d in delta_values if d > 0),
+                'total_iterations': len(delta_values),
+                'always_better': all(d > 0 for d in delta_values),
+                'always_worse': all(d < 0 for d in delta_values),
+            }
+        
+        return stats
+
     def get_convergence_analysis(self) -> List[ConvergenceInfo]:
         """
         Analyze convergence for each strategy-dataset-model configuration.
@@ -604,6 +690,35 @@ class ExtendedTrainingAnalyzer:
                 sorted_iters = sorted(iterations.items())
                 iter_str = ", ".join([f"{i}={m:.2f}" for i, m in sorted_iters])
                 print(f"  {strategy}: {iter_str}")
+        
+        # Baseline comparison (if baseline exists)
+        baseline_stats = self.get_baseline_stats()
+        if baseline_stats:
+            print("\n" + "-" * 50)
+            print("Strategy Performance vs Baseline:")
+            print("-" * 50)
+            
+            # Sort by mean delta (best first)
+            sorted_strategies = sorted(baseline_stats.items(), 
+                                      key=lambda x: x[1]['mean_delta'], reverse=True)
+            
+            if HAS_TABULATE:
+                table = [
+                    [strategy, 
+                     f"{stats['mean_delta']:+.2f}",
+                     f"{stats['max_delta']:+.2f}",
+                     f"{stats['positive_count']}/{stats['total_iterations']}",
+                     "✓" if stats['always_better'] else ("✗" if stats['always_worse'] else "-")]
+                    for strategy, stats in sorted_strategies
+                ]
+                print(tabulate(table, 
+                             headers=['Strategy', 'Mean Δ', 'Max Δ', 'Better', 'Status'], 
+                             tablefmt='simple'))
+            else:
+                for strategy, stats in sorted_strategies:
+                    status = "✓ always better" if stats['always_better'] else \
+                            ("✗ always worse" if stats['always_worse'] else "mixed")
+                    print(f"  {strategy}: Δ={stats['mean_delta']:+.2f} (max={stats['max_delta']:+.2f}) {status}")
         
         print("\n" + "=" * 70)
     

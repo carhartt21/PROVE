@@ -67,7 +67,7 @@ GENERATIVE_STRATEGIES = [
 
 STANDARD_STRATEGIES = [
     'baseline',
-    'photometric_distort',
+    'std_photometric_distort',
     'std_minimal',
     'std_autoaugment',
     'std_cutmix',

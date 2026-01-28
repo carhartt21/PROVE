@@ -1,0 +1,25 @@
+================================================================================
+UNIFIED DOMAIN GAP ANALYSIS REPORT - Stage 2
+Training: All Domains Training
+Weights: /scratch/aaa_exchange/AWARE/WEIGHTS_STAGE_2
+Generated: 2026-01-23 15:17:12
+================================================================================
+
+METHODOLOGY:
+----------------------------------------
+• Primary Metric: mIoU (mean Intersection over Union)
+• Data Filtering: ≥50 images per domain
+• Aggregation: Frequency-weighted average (by num_images)
+• Normal Domains: clear_day, cloudy
+• Adverse Domains: foggy, night, rainy, snowy, dawn_dusk
+
+STRATEGY RANKING (by Overall mIoU):
+--------------------------------------------------------------------------------
+Rank  Strategy                           mIoU   Normal  Adverse      Gap
+--------------------------------------------------------------------------------
+1     std_autoaugment                   43.78    43.99    43.24    +0.75
+2     std_randaugment                   43.77    44.09    42.94    +1.15
+3     baseline                          43.59    43.69    43.33    +0.36
+4     std_photometric_distort               43.44    43.78    42.53    +1.25
+5     std_mixup                         43.38    43.99    41.78    +2.21
+6     std_cutmix                        43.21    43.66    42.01    +1.66

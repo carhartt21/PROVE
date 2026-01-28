@@ -73,7 +73,7 @@ GENERATIVE_STRATEGIES = [
 
 STANDARD_STRATEGIES = [
     'baseline',
-    'photometric_distort',
+    'std_std_photometric_distort',
     'std_minimal',  # Minimal augmentation baseline (RandomCrop, RandomFlip, 1x PhotoMetricDistortion)
     'std_autoaugment',
     'std_cutmix',
@@ -226,7 +226,7 @@ def get_running_jobs():
         'autoaug': 'std_autoaugment',
         'cutmix': 'std_cutmix',
         'mixup': 'std_mixup',
-        'photom': 'photometric_distort',
+        'photom': 'std_std_photometric_distort',
         'randaug': 'std_randaugment',
     }
     

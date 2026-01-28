@@ -305,7 +305,8 @@ class UnifiedTrainer:
     
     def _setup_mixed_training(self):
         """Setup mixed dataloader for training"""
-        from mixed_dataloader import MixedDataLoader, build_mixed_dataloader_config
+        # Note: MixedDataLoader implementation is handled in _generate_mixed_training_script()
+        # This method just prints the configuration
         
         print("Setting up mixed dataloader...")
         
@@ -319,9 +320,49 @@ class UnifiedTrainer:
         import subprocess
         import sys
         
-        # Create a minimal training script that will be run in a subprocess
-        # This avoids all the import compatibility issues between mmcv/mmseg/mmdet
-        train_script = f'''
+        # Check if mixed dataloader is enabled
+        mixed_enabled = self.config.get('mixed_dataloader', {}).get('enabled', False)
+        
+        if mixed_enabled:
+            train_script = self._generate_mixed_training_script(config_path)
+        else:
+            train_script = self._generate_standard_training_script(config_path)
+        
+        # Write temporary training script
+        script_path = Path(self.config['work_dir']) / 'train_script.py'
+        script_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(script_path, 'w') as f:
+            f.write(train_script)
+        
+        # Run training in subprocess
+        print(f"Starting training via subprocess...")
+        print(f"Config: {config_path}")
+        print(f"Work dir: {self.config['work_dir']}")
+        if mixed_enabled:
+            mixed_cfg = self.config['mixed_dataloader']
+            print(f"Mixed Training: ENABLED")
+            print(f"  Real-Gen Ratio: {mixed_cfg.get('real_gen_ratio', 0.5)}")
+            print(f"  Real samples/batch: {mixed_cfg['batch_composition']['real_samples']}")
+            print(f"  Generated samples/batch: {mixed_cfg['batch_composition']['generated_samples']}")
+        else:
+            print(f"Mixed Training: DISABLED (standard training)")
+        
+        env = os.environ.copy()
+        # Ensure CUDA is visible
+        if 'CUDA_VISIBLE_DEVICES' not in env and self.gpu_ids:
+            env['CUDA_VISIBLE_DEVICES'] = ','.join(map(str, self.gpu_ids))
+        
+        result = subprocess.run(
+            [sys.executable, str(script_path)],
+            env=env,
+            cwd=str(Path(__file__).parent),
+        )
+        
+        return result.returncode == 0
+    
+    def _generate_standard_training_script(self, config_path: str) -> str:
+        """Generate standard training script (no mixed dataloader)"""
+        return f'''
 import sys
 sys.path.insert(0, "{Path(__file__).parent}")
 
@@ -353,30 +394,270 @@ cfg = Config.fromfile("{config_path}")
 runner = Runner.from_cfg(cfg)
 runner.train()
 '''
+    
+    def _generate_mixed_training_script(self, config_path: str) -> str:
+        """Generate training script with proper batch-level ratio enforcement using MixedDataLoader"""
+        return f'''
+import sys
+sys.path.insert(0, "{Path(__file__).parent}")
+
+# Import custom transforms and datasets to register them BEFORE loading config
+import custom_transforms  # Registers ReduceToSingleChannel transform
+import unified_datasets   # Registers MapillaryLabelTransform, CityscapesLabelTransform
+import generated_images_dataset  # Registers GeneratedAugmentedDataset
+
+# Import MixedDataLoader components
+from mixed_dataloader import MixedDataLoader, BatchSplitSampler
+
+# Import StandardAugmentationHook to register it with MMEngine
+try:
+    from tools.standard_augmentation_hook import StandardAugmentationHook
+    print("[Training] StandardAugmentationHook registered")
+except ImportError as e:
+    print(f"Warning: StandardAugmentationHook not available: {{e}}")
+
+# Import mmsegmentation components
+try:
+    import mmseg.datasets  
+    import mmseg.evaluation
+    from mmseg.models.segmentors import EncoderDecoder
+    from mmseg.models.segmentors import CascadeEncoderDecoder
+    from mmseg.registry import DATASETS as MMSEG_DATASETS
+except ImportError as e:
+    print(f"Warning: Some mmseg imports failed: {{e}}")
+
+from mmengine.runner import Runner
+from mmengine.config import Config
+from mmengine.registry import DATASETS
+
+print("=" * 60)
+print("PROVE Mixed Training Mode - Batch-Level Ratio Enforcement")
+print("=" * 60)
+
+# Load config
+cfg = Config.fromfile("{config_path}")
+
+# Get mixed dataloader configuration
+mixed_cfg = cfg.get('mixed_dataloader', {{}})
+if not mixed_cfg.get('enabled', False):
+    raise RuntimeError("Mixed training script called but mixed_dataloader.enabled=False!")
+
+# Extract configuration
+real_gen_ratio = mixed_cfg.get('real_gen_ratio', 0.5)
+batch_size = cfg.train_dataloader.get('batch_size', 8)
+sampling_strategy = mixed_cfg.get('sampling_strategy', 'batch_split')
+
+print(f"Real-Gen Ratio: {{real_gen_ratio}}")
+print(f"Batch Size: {{batch_size}}")
+print(f"Sampling Strategy: {{sampling_strategy}}")
+
+# Calculate batch composition
+real_per_batch = max(1, int(batch_size * real_gen_ratio))
+gen_per_batch = batch_size - real_per_batch
+print(f"\\nBatch Composition: {{real_per_batch}} real + {{gen_per_batch}} generated = {{batch_size}} total")
+
+# Get generated dataset configuration
+gen_cfg = mixed_cfg.get('generated_dataset', {{}})
+generated_root = gen_cfg.get('generated_root', '')
+
+if real_gen_ratio >= 1.0 or not generated_root:
+    print("\\nReal-gen ratio is 1.0 or no generated_root - using standard training")
+    runner = Runner.from_cfg(cfg)
+else:
+    import os
+    from glob import glob
+    
+    # CRITICAL: Disable serialization so we can modify data_list
+    cfg.train_dataloader.dataset.serialize_data = False
+    
+    # Build the runner first to get the real dataset initialized
+    runner = Runner.from_cfg(cfg)
+    
+    # Get the real dataset
+    real_dataset = runner.train_dataloader.dataset
+    
+    # Force dataset to load its data_list
+    if not hasattr(real_dataset, 'data_list') or len(real_dataset.data_list) == 0:
+        real_dataset.full_init()
+    
+    real_size = len(real_dataset.data_list)
+    print(f"\\nReal dataset size: {{real_size}} images")
+    
+    # Build generated images list
+    from generated_images_dataset import GeneratedImagesManifest
+    manifest = GeneratedImagesManifest(gen_cfg.get('manifest_path'))
+    
+    dataset_filter = gen_cfg.get('dataset_filter', '')
+    gen_entries = manifest.get_dataset_entries(dataset_filter) if dataset_filter else manifest.entries
+    print(f"Found {{len(gen_entries)}} generated images for {{dataset_filter or 'all datasets'}}")
+    
+    # Get label format info from config
+    seg_map_suffix = cfg.train_dataloader.dataset.get('seg_map_suffix', '.png')
+    original_dataset_cfg = cfg.train_dataloader.dataset.copy()
+    conditions = gen_cfg.get('conditions', ['cloudy', 'dawn_dusk', 'fog', 'night', 'rainy', 'snowy'])
+    
+    # Build generated data list
+    generated_data_list = []
+    for entry in gen_entries:
+        gen_path = entry.get('gen_path', '')
+        original_path = entry.get('original_path', '')
+        target_domain = entry.get('target_domain', '')
         
-        # Write temporary training script
-        script_path = Path(self.config['work_dir']) / 'train_script.py'
-        script_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(script_path, 'w') as f:
-            f.write(train_script)
+        if target_domain not in conditions:
+            continue
+            
+        # Get label path from original
+        label_path = original_path.replace('/images/', '/labels/')
+        for ext in ['.jpg', '.png', '.jpeg']:
+            label_path = label_path.replace(ext, seg_map_suffix)
         
-        # Run training in subprocess
-        print(f"Starting training via subprocess...")
-        print(f"Config: {config_path}")
-        print(f"Work dir: {self.config['work_dir']}")
+        if os.path.exists(gen_path):
+            generated_data_list.append({{
+                'img_path': gen_path,
+                'seg_map_path': label_path,
+                'reduce_zero_label': original_dataset_cfg.get('reduce_zero_label', False),
+                '_is_generated': True,
+                '_condition': target_domain,
+            }})
+    
+    gen_size = len(generated_data_list)
+    print(f"Valid generated images: {{gen_size}}")
+    
+    if gen_size == 0:
+        print("\\nWarning: No generated images found! Using real images only.")
+    else:
+        # Store original real data_list
+        real_data_list = list(real_dataset.data_list)
         
-        env = os.environ.copy()
-        # Ensure CUDA is visible
-        if 'CUDA_VISIBLE_DEVICES' not in env and self.gpu_ids:
-            env['CUDA_VISIBLE_DEVICES'] = ','.join(map(str, self.gpu_ids))
+        # Clear and rebuild with combined data
+        # Index 0 to real_size-1 = real images
+        # Index real_size to real_size+gen_size-1 = generated images
+        real_dataset.data_list = real_data_list + generated_data_list
         
-        result = subprocess.run(
-            [sys.executable, str(script_path)],
-            env=env,
-            cwd=str(Path(__file__).parent),
+        total_size = len(real_dataset.data_list)
+        print(f"\\nCombined dataset: {{total_size}} images ({{real_size}} real + {{gen_size}} generated)")
+        
+        # Create a mixed batch sampler using mmengine's Sampler interface
+        from mmengine.dataset import DefaultSampler
+        from torch.utils.data import Sampler
+        import itertools
+        
+        class MixedBatchSampler(Sampler):
+            """Sampler that returns indices with proper real/gen mixing per batch.
+            
+            Each batch contains exactly N real + M generated images, where
+            N = batch_size * real_gen_ratio
+            M = batch_size - N
+            """
+            def __init__(self, real_size, gen_size, batch_size, real_gen_ratio, shuffle=True, seed=42):
+                self.real_size = real_size
+                self.gen_size = gen_size
+                self.batch_size = batch_size
+                self.real_per_batch = max(1, int(batch_size * real_gen_ratio))
+                self.gen_per_batch = batch_size - self.real_per_batch
+                self.shuffle = shuffle
+                self.seed = seed
+                self.epoch = 0
+                
+                # Calculate number of batches based on iterations
+                # For 10000 iters with batch_size 8, we need 10000 batches
+                max_iters = cfg.train_cfg.get('max_iters', 10000)
+                self.num_batches = max_iters
+                
+                self._generate_indices()
+            
+            def _generate_indices(self):
+                import random
+                rng = random.Random(self.seed + self.epoch)
+                
+                real_indices = list(range(self.real_size))
+                # Generated indices start after real_size in combined list
+                gen_indices = list(range(self.real_size, self.real_size + self.gen_size))
+                
+                if self.shuffle:
+                    rng.shuffle(real_indices)
+                    rng.shuffle(gen_indices)
+                
+                # Create infinite cycle iterators
+                real_cycle = itertools.cycle(real_indices)
+                gen_cycle = itertools.cycle(gen_indices)
+                
+                # Generate all indices for all batches
+                self.indices = []
+                for _ in range(self.num_batches):
+                    # Add real samples
+                    for _ in range(self.real_per_batch):
+                        self.indices.append(next(real_cycle))
+                    # Add generated samples
+                    for _ in range(self.gen_per_batch):
+                        self.indices.append(next(gen_cycle))
+            
+            def __iter__(self):
+                return iter(self.indices)
+            
+            def __len__(self):
+                return len(self.indices)
+            
+            def set_epoch(self, epoch):
+                self.epoch = epoch
+                self._generate_indices()
+        
+        # Create our mixed sampler
+        mixed_sampler = MixedBatchSampler(
+            real_size=real_size,
+            gen_size=gen_size,
+            batch_size=batch_size,
+            real_gen_ratio=real_gen_ratio,
+            shuffle=True,
+            seed=42,
         )
         
-        return result.returncode == 0
+        print(f"\\nMixedBatchSampler created:")
+        print(f"  - Total batches: {{len(mixed_sampler) // batch_size}}")
+        print(f"  - Each batch: {{mixed_sampler.real_per_batch}} real + {{mixed_sampler.gen_per_batch}} gen")
+        
+        # Verify first few batches
+        print("\\nVerifying batch composition (first 3 batches):")
+        sample_iter = iter(mixed_sampler)
+        for i in range(3):
+            batch_indices = [next(sample_iter) for _ in range(batch_size)]
+            real_count = sum(1 for idx in batch_indices if idx < real_size)
+            gen_count = sum(1 for idx in batch_indices if idx >= real_size)
+            print(f"  Batch {{i+1}}: {{real_count}} real + {{gen_count}} gen = {{len(batch_indices)}} total")
+        
+        # Rebuild the dataloader with our sampler
+        # We need to rebuild the dataloader completely because we can't modify an existing one
+        from torch.utils.data import DataLoader
+        
+        # Get the original dataloader settings
+        orig_dl = runner.train_dataloader
+        
+        # Create new dataloader with our sampler
+        new_dataloader = DataLoader(
+            dataset=real_dataset,
+            batch_size=batch_size,
+            sampler=mixed_sampler,
+            num_workers=orig_dl.num_workers,
+            collate_fn=orig_dl.collate_fn,
+            pin_memory=getattr(orig_dl, 'pin_memory', False),
+            drop_last=True,
+            persistent_workers=True if orig_dl.num_workers > 0 else False,
+        )
+        
+        # Replace the train dataloader in the runner
+        runner._train_loop._dataloader = new_dataloader
+        
+        print(f"\\n✓ Train dataloader replaced with MixedBatchSampler")
+        print(f"  Batches per epoch: {{len(new_dataloader)}}")
+
+print("=" * 60)
+print("Starting training with batch-level ratio enforcement...")
+print("=" * 60)
+
+runner.train()
+
+print("\\nTraining completed!")
+'''
     
     def _train_with_mmseg_tools(self, config_path: str) -> bool:
         """Train using mmsegmentation's train.py script directly"""
@@ -716,48 +997,57 @@ def generate_lsf_script(
     model: str,
     strategy: str,
     real_gen_ratio: float = 1.0,
-    gpu_count: int = 1,
-    memory: str = '32GB',
+    gpu_count: int = 8,
+    memory: str = '48000',
     time_limit: str = '24:00',
-    queue: str = 'gpu',
+    queue: str = 'BatchGPU',
 ) -> str:
-    """Generate LSF job submission script"""
+    """Generate LSF job submission script for the HPC cluster"""
     
     job_name = f"prove_{dataset}_{model}_{strategy}"
     if real_gen_ratio < 1.0:
         job_name += f"_r{int(real_gen_ratio*100)}"
     
+    # Determine work directory based on strategy
+    if strategy == 'baseline' or not strategy.startswith('gen_'):
+        weights_base = "/scratch/aaa_exchange/AWARE/WEIGHTS_STAGE_2"
+    else:
+        weights_base = "/scratch/aaa_exchange/AWARE/WEIGHTS_STAGE_2"
+    
+    work_dir = f"{weights_base}/{strategy}/{dataset.lower()}/{model}_ratio{str(real_gen_ratio).replace('.', 'p')}"
+    
     script = f'''#!/bin/bash
 #BSUB -J {job_name}
 #BSUB -q {queue}
+#BSUB -o {work_dir}/train_%J.out
+#BSUB -e {work_dir}/train_%J.err
 #BSUB -n {gpu_count}
 #BSUB -R "rusage[mem={memory}]"
+#BSUB -R "span[hosts=1]"
+#BSUB -gpu "num=1:mode=exclusive_process:gmem=24G"
 #BSUB -W {time_limit}
-#BSUB -o logs/{job_name}_%J.out
-#BSUB -e logs/{job_name}_%J.err
 
-# PROVE Training Job
-# Generated: {datetime.now().isoformat()}
+source /home/mima2416/miniconda3/etc/profile.d/conda.sh
+conda activate prove
+cd /home/mima2416/repositories/PROVE
 
-# Load modules (adjust for your cluster)
-module load cuda/11.7
-module load python/3.9
+echo "=============================================="
+echo "PROVE Training: {dataset} / {model} / {strategy}"
+echo "Real-Gen Ratio: {real_gen_ratio}"
+echo "Batch size: 8 (new default)"
+echo "Max iterations: 10000 (80k samples)"
+echo "=============================================="
 
-# Activate environment
-mamba activate prove
-
-# Navigate to project
-cd $HOME/repositories/PROVE
-
-# Create log directory
-mkdir -p logs
+# Create output directory
+mkdir -p {work_dir}
 
 # Run training
 python unified_training.py \\
     --dataset {dataset} \\
     --model {model} \\
     --strategy {strategy} \\
-    --real-gen-ratio {real_gen_ratio}
+    --real-gen-ratio {real_gen_ratio} \\
+    --work-dir "{work_dir}"
 
 echo "Training completed: {job_name}"
 '''
@@ -1297,7 +1587,7 @@ def main():
         with open(script_name, 'w') as f:
             f.write(script)
         
-        result = subprocess.run(['bsub', '<', script_name], shell=True)
+        result = subprocess.run(f'bsub < {script_name}', shell=True)
         if result.returncode == 0:
             print("Job submitted successfully")
         else:

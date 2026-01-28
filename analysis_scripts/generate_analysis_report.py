@@ -89,7 +89,7 @@ def generate_report():
             stype = 'Standard Aug'
         elif strategy == 'baseline':
             stype = 'Baseline'
-        elif strategy == 'photometric_distort':
+        elif strategy == 'std_photometric_distort':
             stype = 'Augmentation'
         else:
             stype = 'Other'
@@ -124,7 +124,7 @@ def generate_report():
     std_strategies = [r for r in results if r['type'] == 'Standard Aug']
     above_baseline = [r for r in results if r['delta'] > 0]
     
-    photo_result = next((r for r in results if r['strategy'] == 'photometric_distort'), None)
+    photo_result = next((r for r in results if r['strategy'] == 'std_photometric_distort'), None)
     photo_miou = photo_result['miou'] if photo_result else 0
     
     report += f"""
@@ -152,7 +152,7 @@ def generate_report():
 | **BDD10k** | `std_mixup` | +5.66% |
 | **IDD-AW** | `std_cutmix` | +0.98% |
 | **MapillaryVistas** | `gen_automold` | +2.86% |
-| **Outside15k** | `photometric_distort` | +2.17% |
+| **Outside15k** | `std_photometric_distort` | +2.17% |
 
 ## 4. Notes
 

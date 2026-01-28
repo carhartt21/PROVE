@@ -62,8 +62,11 @@ if TYPE_CHECKING:
     from matplotlib.figure import Figure
 
 
-# Color palette for strategies (extended to 15)
+# Color palette for strategies (extended to include all current strategies)
 STRATEGY_COLORS = {
+    # Baseline reference
+    'baseline': '#000000',  # Black for baseline
+    # Generative strategies (blues/purples)
     'gen_LANIT': '#1f77b4',
     'gen_step1x_new': '#ff7f0e',
     'gen_automold': '#2ca02c',
@@ -74,11 +77,19 @@ STRATEGY_COLORS = {
     'gen_cycleGAN': '#7f7f7f',
     'gen_ControlNetSeg': '#bcbd22',
     'gen_HRDA': '#17becf',
+    'gen_cyclediffusion': '#636efa',  # Blue
+    'gen_albumentations_weather': '#00cc96',  # Teal
+    'gen_flux_kontext': '#ef553b',  # Red-orange
+    'gen_UniControl': '#ab63fa',  # Purple
+    'gen_IP2P': '#ffa15a',  # Orange
+    'gen_stargan_v2': '#19d3f3',  # Cyan
+    # Standard augmentation strategies
     'std_randaugment': '#aec7e8',
     'std_mixup': '#ffbb78',
     'std_cutout': '#98df8a',
     'std_randaugment+std_mixup': '#ff9896',
     'std_randaugment+std_cutout': '#c5b0d5',
+    'std_photometric_distort': '#c49c94',  # Brown
 }
 
 # Color palette for datasets
@@ -86,6 +97,7 @@ DATASET_COLORS = {
     'acdc': '#e41a1c',
     'bdd10k': '#377eb8',
     'idd-aw': '#4daf4a',
+    'iddaw': '#4daf4a',  # Also support lowercase without hyphen
     'mapillaryvistas': '#984ea3',
     'outside15k': '#ff7f00',
 }
@@ -547,6 +559,140 @@ class ExtendedTrainingVisualizer:
         
         self._save_figure(fig, 'extended_training_dashboard')
     
+    def plot_baseline_comparison(self):
+        """
+        Compare baseline performance against all strategies at each iteration.
+        Shows delta from baseline to highlight strategy effectiveness.
+        """
+        strategy_summary = self.analyzer.get_summary_by_strategy()
+        
+        if not strategy_summary:
+            print("No data for baseline comparison plot")
+            return
+        
+        # Check if baseline exists
+        if 'baseline' not in strategy_summary:
+            print("No baseline data found for comparison")
+            return
+        
+        baseline_iters = strategy_summary['baseline']
+        other_strategies = {k: v for k, v in strategy_summary.items() if k != 'baseline'}
+        
+        if not other_strategies:
+            print("No non-baseline strategies for comparison")
+            return
+        
+        fig, axes = plt.subplots(1, 2, figsize=(16, 7))
+        
+        # Plot 1: All strategies vs baseline
+        ax1 = axes[0]
+        baseline_sorted = sorted(baseline_iters.items())
+        base_x = [r[0] for r in baseline_sorted]
+        base_y = [r[1] for r in baseline_sorted]
+        
+        ax1.plot(base_x, base_y, 'o-', label='baseline', color='black', 
+                markersize=10, linewidth=3, zorder=10)
+        
+        for strategy, iterations in other_strategies.items():
+            sorted_iters = sorted(iterations.items())
+            x = [r[0] for r in sorted_iters]
+            y = [r[1] for r in sorted_iters]
+            color = STRATEGY_COLORS.get(strategy, None)
+            ax1.plot(x, y, 'o--', label=strategy, color=color, 
+                    markersize=5, linewidth=1.5, alpha=0.7)
+        
+        ax1.set_xlabel('Training Iterations', fontsize=12)
+        ax1.set_ylabel('Mean IoU (%)', fontsize=12)
+        ax1.set_title('Baseline vs All Strategies', fontsize=14, fontweight='bold')
+        ax1.legend(loc='best', fontsize=8, ncol=2)
+        ax1.grid(True, alpha=0.3)
+        ax1.xaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'{int(x/1000)}k'))
+        
+        # Plot 2: Delta from baseline
+        ax2 = axes[1]
+        for strategy, iterations in other_strategies.items():
+            # Calculate delta from baseline at each iteration
+            deltas = []
+            iter_points = []
+            for it, miou in sorted(iterations.items()):
+                if it in baseline_iters:
+                    delta = miou - baseline_iters[it]
+                    deltas.append(delta)
+                    iter_points.append(it)
+            
+            if deltas:
+                color = STRATEGY_COLORS.get(strategy, None)
+                ax2.plot(iter_points, deltas, 'o-', label=strategy, color=color,
+                        markersize=6, linewidth=2, alpha=0.8)
+        
+        ax2.axhline(y=0, color='black', linestyle='-', linewidth=2, label='Baseline')
+        ax2.set_xlabel('Training Iterations', fontsize=12)
+        ax2.set_ylabel('Δ mIoU vs Baseline (%)', fontsize=12)
+        ax2.set_title('Strategy Advantage Over Baseline', fontsize=14, fontweight='bold')
+        ax2.legend(loc='best', fontsize=8, ncol=2)
+        ax2.grid(True, alpha=0.3)
+        ax2.xaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'{int(x/1000)}k'))
+        
+        plt.tight_layout()
+        self._save_figure(fig, 'baseline_comparison')
+    
+    def plot_strategy_ranking_by_iteration(self):
+        """
+        Bar chart showing strategy rankings at different iteration checkpoints.
+        """
+        strategy_summary = self.analyzer.get_summary_by_strategy()
+        
+        if not strategy_summary:
+            print("No data for strategy ranking plot")
+            return
+        
+        # Select key iterations to show
+        all_iters = sorted(set(it for s in strategy_summary.values() for it in s.keys()))
+        key_iters = [it for it in all_iters if it in [80000, 160000, 240000, 320000] or it == max(all_iters)]
+        
+        if len(key_iters) < 2:
+            key_iters = all_iters[:4] if len(all_iters) >= 4 else all_iters
+        
+        n_plots = len(key_iters)
+        fig, axes = plt.subplots(1, n_plots, figsize=(5*n_plots, 8))
+        if n_plots == 1:
+            axes = [axes]
+        
+        for ax, iteration in zip(axes, key_iters):
+            # Get mIoU for each strategy at this iteration
+            strategy_miou = {}
+            for strategy, iters in strategy_summary.items():
+                if iteration in iters:
+                    strategy_miou[strategy] = iters[iteration]
+            
+            if not strategy_miou:
+                continue
+            
+            # Sort by mIoU
+            sorted_strategies = sorted(strategy_miou.items(), key=lambda x: x[1], reverse=True)
+            strategies = [s[0] for s in sorted_strategies]
+            mious = [s[1] for s in sorted_strategies]
+            
+            colors = [STRATEGY_COLORS.get(s, 'gray') for s in strategies]
+            y_pos = range(len(strategies))
+            
+            bars = ax.barh(y_pos, mious, color=colors, edgecolor='black', alpha=0.8)
+            ax.set_yticks(y_pos)
+            ax.set_yticklabels(strategies, fontsize=9)
+            ax.set_xlabel('mIoU (%)')
+            ax.set_title(f'{iteration//1000}k Iterations', fontweight='bold')
+            ax.grid(axis='x', alpha=0.3)
+            
+            # Add value labels
+            for bar, val in zip(bars, mious):
+                ax.text(val + 0.1, bar.get_y() + bar.get_height()/2, 
+                       f'{val:.1f}', va='center', fontsize=8)
+        
+        fig.suptitle('Strategy Ranking at Different Training Lengths', 
+                    fontsize=14, fontweight='bold', y=1.02)
+        plt.tight_layout()
+        self._save_figure(fig, 'strategy_ranking_by_iteration')
+    
     def generate_all_plots(self):
         """Generate all visualization plots."""
         print(f"\nGenerating extended training visualizations...")
@@ -561,6 +707,8 @@ class ExtendedTrainingVisualizer:
         self.plot_learning_curves_by_model()
         self.plot_heatmap_strategy_iteration()
         self.plot_diminishing_returns()
+        self.plot_baseline_comparison()  # New: baseline vs strategies
+        self.plot_strategy_ranking_by_iteration()  # New: rankings at different iterations
         self.plot_summary_dashboard()
         
         print("-" * 50)
@@ -582,7 +730,8 @@ def main():
                        help='Output directory for figures (default: result_figures/extended_training)')
     parser.add_argument('--plots', type=str, nargs='+',
                        choices=['learning', 'improvement', 'convergence', 'strategy', 
-                               'dataset', 'model', 'heatmap', 'diminishing', 'dashboard', 'all'],
+                               'dataset', 'model', 'heatmap', 'diminishing', 'dashboard', 
+                               'baseline', 'ranking', 'all'],
                        default=['all'],
                        help='Plot types to generate')
     parser.add_argument('--verbose', action='store_true',
@@ -623,6 +772,10 @@ def main():
             visualizer.plot_heatmap_strategy_iteration()
         if 'diminishing' in args.plots:
             visualizer.plot_diminishing_returns()
+        if 'baseline' in args.plots:
+            visualizer.plot_baseline_comparison()
+        if 'ranking' in args.plots:
+            visualizer.plot_strategy_ranking_by_iteration()
         if 'dashboard' in args.plots:
             visualizer.plot_summary_dashboard()
     

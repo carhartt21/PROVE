@@ -714,6 +714,8 @@ def main():
                         help='Base model architecture')
     parser.add_argument('--variant', type=str, default='', choices=['', '_clear_day'],
                         help='Model variant: "" for full dataset, "_clear_day" for clear_day only')
+    parser.add_argument('--strategy', type=str, default=None,
+                        help='Training strategy (e.g., baseline, gen_cycleGAN). If provided, outputs to ablation directory.')
     parser.add_argument('--checkpoint', type=str, default=None,
                         help='Path to checkpoint (auto-detected if not provided)')
     parser.add_argument('--all', action='store_true',
@@ -744,12 +746,13 @@ def main():
         include_variants = not args.no_variants
         run_all_evaluations(device=args.device, include_variants=include_variants)
     elif args.source_dataset and args.model:
-        run_evaluation(args.source_dataset, args.model, args.checkpoint, args.device, args.variant)
+        run_evaluation(args.source_dataset, args.model, args.checkpoint, args.device, args.variant, args.strategy)
     else:
         parser.print_help()
         print("\nExample usage:")
         print("  python evaluate_domain_adaptation.py --source-dataset BDD10k --model deeplabv3plus_r50")
         print("  python evaluate_domain_adaptation.py --source-dataset BDD10k --model deeplabv3plus_r50 --variant _clear_day")
+        print("  python evaluate_domain_adaptation.py --source-dataset BDD10k --model pspnet_r50 --strategy gen_cycleGAN --checkpoint /path/to/weights.pth")
         print("  python evaluate_domain_adaptation.py --all")
         print("  python evaluate_domain_adaptation.py --all --no-variants  # Skip _clear_day variants")
 

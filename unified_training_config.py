@@ -6,7 +6,7 @@ This module provides a centralized configuration system that eliminates
 redundant config files by parameterizing:
 - Base model (deeplabv3plus_r50, pspnet_r50, segformer_mit-b5, etc.)
 - Dataset (ACDC, BDD10k, BDD100k, IDD-AW, MapillaryVistas, OUTSIDE15k)
-- Augmentation strategy (baseline, photometric_distort, gen_<model>)
+- Augmentation strategy (baseline, std_photometric_distort, gen_<model>)
 - Real-to-generated image ratio for mixed training
 
 Usage:
@@ -729,12 +729,16 @@ ALL_MODELS = {**SEGMENTATION_MODELS, **DETECTION_MODELS}
 
 @dataclass
 class TrainingConfig:
-    """Training hyperparameters"""
-    max_iters: int = 80000
-    batch_size: int = 2
+    """Training hyperparameters
+    
+    Note: With batch_size=8 and max_iters=10000, this processes 80,000 samples total.
+    Learning rates are scaled proportionally: lr = base_lr * batch_size / 2
+    """
+    max_iters: int = 10000  # 80k samples with batch_size=8
+    batch_size: int = 8
     workers_per_gpu: int = 4
-    checkpoint_interval: int = 10000
-    eval_interval: int = 6666
+    checkpoint_interval: int = 2000  # Save every 2k iters (was 10k for 80k iters)
+    eval_interval: int = 2000  # Eval every 2k iters (was 6666 for 80k iters)
     log_interval: int = 50
     warmup_iters: int = 500
     warmup_ratio: float = 0.001
@@ -744,26 +748,31 @@ class TrainingConfig:
     early_stop: bool = True
     early_stop_patience: int = 5
     early_stop_min_delta: float = 0.001
+    # Learning rate scaling factor (relative to batch_size=2)
+    # lr = base_lr * batch_size / 2
+    lr_scale_factor: float = 4.0  # batch_size=8 / base_batch_size=2
 
 
 TRAINING_CONFIGS = {
     'segmentation': TrainingConfig(
-        max_iters=80000,
-        batch_size=2,
-        checkpoint_interval=10000,
-        eval_interval=6666,
+        max_iters=10000,  # 80k samples with batch_size=8
+        batch_size=8,
+        checkpoint_interval=2000,
+        eval_interval=2000,
         early_stop=True,
         early_stop_patience=5,
         early_stop_min_delta=0.001,  # mIoU improvement threshold
+        lr_scale_factor=4.0,
     ),
     'detection': TrainingConfig(
-        max_iters=40000,
-        batch_size=2,
-        checkpoint_interval=5000,
-        eval_interval=3333,
+        max_iters=5000,  # 40k samples with batch_size=8
+        batch_size=8,
+        checkpoint_interval=1000,
+        eval_interval=1000,
         early_stop=True,
         early_stop_patience=5,
         early_stop_min_delta=0.001,  # mAP improvement threshold
+        lr_scale_factor=4.0,
     ),
 }
 
@@ -795,18 +804,18 @@ AUGMENTATION_STRATEGIES = {
         type='none',
         transforms=[],
     ),
-    'photometric_distort': AugmentationStrategy(
-        name='photometric_distort',
-        type='standard',  # Changed from 'transform' to allow use as std_strategy in combinations
-        transforms=[dict(type='PhotoMetricDistortion')],
+    'std_photometric_distort': AugmentationStrategy(
+        name='std_photometric_distort',
+        type='standard',  # Uses default pipeline: RandomCrop + RandomFlip + PhotoMetricDistortion
+        transforms=[],  # No extra transforms - uses default pipeline with PhotoMetricDistortion
     ),
     'std_minimal': AugmentationStrategy(
-        # Minimal standard augmentation: RandomCrop, RandomFlip, 1x PhotoMetricDistortion
-        # Created from gen_* models accidentally trained with real_gen_ratio=1.0
-        # Serves as ablation baseline between 'baseline' and 'photometric_distort'
+        # Minimal standard augmentation: RandomCrop + RandomFlip ONLY (no PhotoMetricDistortion)
+        # Serves as ablation baseline between 'baseline' (no aug) and 'std_photometric_distort' (with color aug)
+        # This isolates the effect of geometric augmentation (crop/flip) from color augmentation
         name='std_minimal',
-        type='transform',
-        transforms=[],  # Uses default pipeline which includes 1x PhotoMetricDistortion
+        type='minimal',  # Special type: applies RandomCrop + RandomFlip but NOT PhotoMetricDistortion
+        transforms=[],  # No additional transforms - just RandomCrop and RandomFlip
     ),
 }
 
@@ -827,7 +836,7 @@ STANDARD_AUGMENTATION_METHODS = ['cutmix', 'mixup', 'autoaugment', 'randaugment'
 
 AUGMENTATION_STRATEGIES['std_cutmix'] = AugmentationStrategy(
     name='std_cutmix',
-    type='standard',
+    type='batch_augment',  # Batch-level augmentation via hooks (no pipeline augmentation)
     transforms=[],
     standard_method='cutmix',
     p_aug=0.5,
@@ -835,7 +844,7 @@ AUGMENTATION_STRATEGIES['std_cutmix'] = AugmentationStrategy(
 
 AUGMENTATION_STRATEGIES['std_mixup'] = AugmentationStrategy(
     name='std_mixup',
-    type='standard',
+    type='batch_augment',  # Batch-level augmentation via hooks (no pipeline augmentation)
     transforms=[],
     standard_method='mixup',
     p_aug=0.5,
@@ -843,7 +852,7 @@ AUGMENTATION_STRATEGIES['std_mixup'] = AugmentationStrategy(
 
 AUGMENTATION_STRATEGIES['std_autoaugment'] = AugmentationStrategy(
     name='std_autoaugment',
-    type='standard',
+    type='batch_augment',  # Batch-level augmentation via hooks (no pipeline augmentation)
     transforms=[],
     standard_method='autoaugment',
     p_aug=0.5,
@@ -851,7 +860,7 @@ AUGMENTATION_STRATEGIES['std_autoaugment'] = AugmentationStrategy(
 
 AUGMENTATION_STRATEGIES['std_randaugment'] = AugmentationStrategy(
     name='std_randaugment',
-    type='standard',
+    type='batch_augment',  # Batch-level augmentation via hooks (no pipeline augmentation)
     transforms=[],
     standard_method='randaugment',
     p_aug=0.5,
@@ -1186,7 +1195,8 @@ class UnifiedTrainingConfig:
         config['dataset_type'] = 'ConcatDataset'
         config['classes'] = dataset_cfgs[0].classes  # Use first dataset's classes
         
-        batch_size = 2
+        # Get batch_size from _prove_config which was set in _build_base_config
+        batch_size = config.get('_prove_config', {}).get('batch_size', 8)
         num_workers = 4
         
         # Datasets that need specific label transformations in UNIFIED mode:
@@ -1671,11 +1681,14 @@ class UnifiedTrainingConfig:
             model_def = self._update_pretrained_paths(model_def)
         
         # Build optimizer wrapper (new MMEngine format)
+        # Scale learning rate based on batch size: lr = base_lr * batch_size / 2
+        scaled_lr = model_cfg.lr * training_cfg.lr_scale_factor
+        
         optim_wrapper = dict(
             type='OptimWrapper',
             optimizer=dict(
                 type=model_cfg.optimizer,
-                lr=model_cfg.lr,
+                lr=scaled_lr,  # Scaled learning rate
                 weight_decay=model_cfg.weight_decay,
                 **(dict(momentum=0.9) if model_cfg.optimizer == 'SGD' else dict(betas=(0.9, 0.999))),
             ),
@@ -1720,6 +1733,9 @@ class UnifiedTrainingConfig:
                 'dataset': dataset_cfg.name,
                 'model': model_cfg.name,
                 'task': dataset_cfg.task,
+                'batch_size': training_cfg.batch_size,  # Store for dataloader config
+                'max_iters': training_cfg.max_iters,
+                'lr_scale_factor': training_cfg.lr_scale_factor,
             },
             
             # Model definition (inline, not inherited from _base_)
@@ -1866,7 +1882,8 @@ class UnifiedTrainingConfig:
             print(f"[INFO] Using train_ann_dir: {train_ann_dir}")
         
         # New MMEngine dataloader format
-        batch_size = 2
+        # Get batch_size from _prove_config which was set in _build_base_config
+        batch_size = config.get('_prove_config', {}).get('batch_size', 8)
         num_workers = 4
         
         # Determine the dataset type to use for dataloaders
@@ -2062,13 +2079,29 @@ class UnifiedTrainingConfig:
         
         pipeline.append(dict(type='Resize', scale=(512, 512), keep_ratio=False))
         
-        # Only add augmentations if not baseline
-        if not is_baseline:
+        # Augmentation logic - each type gets ONLY its specific augmentation for proper ablation:
+        # - baseline (type='none'): No augmentations at all
+        # - minimal (type='minimal'): RandomCrop + RandomFlip only (geometric augmentation)
+        # - standard (type='standard'): PhotoMetricDistortion only (color augmentation)
+        # - generated (type='generated'): No pipeline augmentations (just use generated images)
+        # - batch_augment (type='batch_augment'): No pipeline augmentations (use batch-level hooks)
+        #
+        # This design isolates each augmentation technique's effect for proper ablation
+        is_minimal = aug_strategy.type == 'minimal'
+        is_standard = aug_strategy.type == 'standard'  # std_photometric_distort only
+        
+        if is_minimal:
+            # std_minimal: ONLY geometric augmentation (crop + flip)
             pipeline.extend([
                 dict(type='RandomCrop', crop_size=crop_size, cat_max_ratio=0.75),
                 dict(type='RandomFlip', prob=0.5),
-                dict(type='PhotoMetricDistortion'),
             ])
+        elif is_standard:
+            # std_photometric_distort: ONLY color augmentation (no crop/flip)
+            pipeline.append(dict(type='PhotoMetricDistortion'))
+        # baseline, generated, batch_augment, transform: NO pipeline augmentations
+        # - generated: uses mixed data (real + synthetic images)
+        # - batch_augment: uses batch-level hooks (cutmix, mixup, autoaugment, randaugment)
         
         # Add augmentation transforms from strategy (non-baseline strategies may add more)
         pipeline.extend(aug_strategy.get_pipeline_transforms())
@@ -2262,6 +2295,9 @@ class UnifiedTrainingConfig:
                 'manifest_path': os.path.join(self.gen_root, gen_model_dir, 'manifest.csv'),
                 'conditions': aug_strategy.conditions,
                 'include_original': False,  # Only generated images
+                # CRITICAL: Filter by dataset name to avoid cross-dataset contamination
+                # Without this, ALL datasets from manifest would be loaded!
+                'dataset_filter': dataset_cfg.name,
             },
             'sampling_strategy': 'ratio',  # 'ratio', 'alternating', 'batch_split'
             'batch_composition': {

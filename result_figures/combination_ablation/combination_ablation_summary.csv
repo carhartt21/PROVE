@@ -1,0 +1,28 @@
+Strategy,N_Results,Mean_mIoU,Std_mIoU,Combination_Type,Component_1,Component_2
+std_mixup+std_photometric_distort,2,45.22325,2.341159841830543,Other,std_mixup,std_photometric_distort
+std_autoaugment+std_photometric_distort,2,45.18015,2.3595446181413906,Other,std_autoaugment,std_photometric_distort
+gen_step1x_new+std_photometric_distort,2,45.17985,2.524441919514096,Other,gen_step1x_new,std_photometric_distort
+gen_Attribute_Hallucination+std_photometric_distort,2,45.17015,2.5204821215394455,Other,gen_Attribute_Hallucination,std_photometric_distort
+gen_stargan_v2+std_photometric_distort,2,45.167699999999996,2.378141526486596,Other,gen_stargan_v2,std_photometric_distort
+gen_flux_kontext+std_photometric_distort,2,45.14175,2.5443823307435554,Other,gen_flux_kontext,std_photometric_distort
+gen_Qwen_Image_Edit+std_photometric_distort,2,45.059349999999995,2.646347128590654,Other,gen_Qwen_Image_Edit,std_photometric_distort
+std_randaugment+std_photometric_distort,2,45.05075,2.5532918761865053,Other,std_randaugment,std_photometric_distort
+std_cutmix+std_photometric_distort,2,44.9427,2.6806418074782044,Other,std_cutmix,std_photometric_distort
+gen_step1x_new+std_mixup,1,43.194,,Generative + Standard,gen_step1x_new,std_mixup
+gen_Qwen_Image_Edit+std_autoaugment,2,40.75,3.586162751465697,Generative + Standard,gen_Qwen_Image_Edit,std_autoaugment
+gen_flux_kontext+std_autoaugment,2,40.73525,3.992678439969843,Generative + Standard,gen_flux_kontext,std_autoaugment
+gen_step1x_new+std_autoaugment,2,40.67585,4.15305025794295,Generative + Standard,gen_step1x_new,std_autoaugment
+gen_Qwen_Image_Edit+std_randaugment,2,40.53605,4.08347095067419,Generative + Standard,gen_Qwen_Image_Edit,std_randaugment
+gen_step1x_new+std_cutmix,2,40.42875,4.043448706859034,Generative + Standard,gen_step1x_new,std_cutmix
+gen_flux_kontext+std_cutmix,2,40.33475,4.284572119243648,Generative + Standard,gen_flux_kontext,std_cutmix
+gen_Qwen_Image_Edit+std_cutmix,2,40.3077,4.204598342291447,Generative + Standard,gen_Qwen_Image_Edit,std_cutmix
+gen_flux_kontext+std_randaugment,2,40.2729,4.090329886451701,Generative + Standard,gen_flux_kontext,std_randaugment
+std_randaugment+std_cutmix,2,40.25685,4.283723591106221,Standard + Standard,std_randaugment,std_cutmix
+gen_step1x_new+std_randaugment,2,40.04395,4.7115231937240845,Generative + Standard,gen_step1x_new,std_randaugment
+std_randaugment+std_mixup,2,39.9919,4.550090715579193,Standard + Standard,std_randaugment,std_mixup
+std_cutmix+std_autoaugment,2,39.91515,4.7894463610108415,Standard + Standard,std_cutmix,std_autoaugment
+std_randaugment+std_autoaugment,2,39.905249999999995,4.520038677378767,Standard + Standard,std_randaugment,std_autoaugment
+gen_Qwen_Image_Edit+std_mixup,2,39.582049999999995,4.919978272817881,Generative + Standard,gen_Qwen_Image_Edit,std_mixup
+std_mixup+std_cutmix,2,39.40555,5.254015516250406,Standard + Standard,std_mixup,std_cutmix
+gen_flux_kontext+std_mixup,2,39.35075,5.458935061438267,Generative + Standard,gen_flux_kontext,std_mixup
+std_mixup+std_autoaugment,2,39.000150000000005,5.598800782756962,Standard + Standard,std_mixup,std_autoaugment
