@@ -546,10 +546,25 @@ def submit_job(job: TrainingJob, lsf_config: LSFConfig, dry_run: bool = False) -
         print(f"    Dir: {job.weights_dir}")
         return True
     
-    # Write script
-    with open(script_path, 'w') as f:
-        f.write(script)
-    os.chmod(script_path, 0o755)
+    # Write script - try weights dir first, fall back to temp file
+    import tempfile
+    use_temp = False
+    try:
+        with open(script_path, 'w') as f:
+            f.write(script)
+        # Try to set permissions - ignore if not owner
+        try:
+            os.chmod(script_path, 0o755)
+        except PermissionError:
+            pass  # File might be owned by another user, that's OK
+    except PermissionError:
+        # Can't write to weights dir (owned by another user), use temp file
+        use_temp = True
+        fd, temp_path = tempfile.mkstemp(suffix='.sh', prefix=f'{job.job_name}_')
+        script_path = Path(temp_path)
+        with os.fdopen(fd, 'w') as f:
+            f.write(script)
+        os.chmod(script_path, 0o755)
     
     # Submit job
     result = subprocess.run(
@@ -558,6 +573,13 @@ def submit_job(job: TrainingJob, lsf_config: LSFConfig, dry_run: bool = False) -
         capture_output=True,
         text=True
     )
+    
+    # Clean up temp file if used
+    if use_temp:
+        try:
+            script_path.unlink()
+        except:
+            pass
     
     if result.returncode == 0:
         print(f"  SUBMIT: {job.job_name} - {result.stdout.strip()}")
