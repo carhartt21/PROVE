@@ -305,7 +305,8 @@ class UnifiedTrainer:
     
     def _setup_mixed_training(self):
         """Setup mixed dataloader for training"""
-        from mixed_dataloader import MixedDataLoader, build_mixed_dataloader_config
+        # Note: MixedDataLoader implementation is handled in _generate_mixed_training_script()
+        # This method just prints the configuration
         
         print("Setting up mixed dataloader...")
         
@@ -920,48 +921,57 @@ def generate_lsf_script(
     model: str,
     strategy: str,
     real_gen_ratio: float = 1.0,
-    gpu_count: int = 1,
-    memory: str = '32GB',
+    gpu_count: int = 8,
+    memory: str = '48000',
     time_limit: str = '24:00',
-    queue: str = 'gpu',
+    queue: str = 'BatchGPU',
 ) -> str:
-    """Generate LSF job submission script"""
+    """Generate LSF job submission script for the HPC cluster"""
     
     job_name = f"prove_{dataset}_{model}_{strategy}"
     if real_gen_ratio < 1.0:
         job_name += f"_r{int(real_gen_ratio*100)}"
     
+    # Determine work directory based on strategy
+    if strategy == 'baseline' or not strategy.startswith('gen_'):
+        weights_base = "/scratch/aaa_exchange/AWARE/WEIGHTS_STAGE_2"
+    else:
+        weights_base = "/scratch/aaa_exchange/AWARE/WEIGHTS_STAGE_2"
+    
+    work_dir = f"{weights_base}/{strategy}/{dataset.lower()}/{model}_ratio{str(real_gen_ratio).replace('.', 'p')}"
+    
     script = f'''#!/bin/bash
 #BSUB -J {job_name}
 #BSUB -q {queue}
+#BSUB -o {work_dir}/train_%J.out
+#BSUB -e {work_dir}/train_%J.err
 #BSUB -n {gpu_count}
 #BSUB -R "rusage[mem={memory}]"
+#BSUB -R "span[hosts=1]"
+#BSUB -gpu "num=1:mode=exclusive_process:gmem=24G"
 #BSUB -W {time_limit}
-#BSUB -o logs/{job_name}_%J.out
-#BSUB -e logs/{job_name}_%J.err
 
-# PROVE Training Job
-# Generated: {datetime.now().isoformat()}
+source /home/mima2416/miniconda3/etc/profile.d/conda.sh
+conda activate prove
+cd /home/mima2416/repositories/PROVE
 
-# Load modules (adjust for your cluster)
-module load cuda/11.7
-module load python/3.9
+echo "=============================================="
+echo "PROVE Training: {dataset} / {model} / {strategy}"
+echo "Real-Gen Ratio: {real_gen_ratio}"
+echo "Batch size: 8 (new default)"
+echo "Max iterations: 10000 (80k samples)"
+echo "=============================================="
 
-# Activate environment
-mamba activate prove
-
-# Navigate to project
-cd $HOME/repositories/PROVE
-
-# Create log directory
-mkdir -p logs
+# Create output directory
+mkdir -p {work_dir}
 
 # Run training
 python unified_training.py \\
     --dataset {dataset} \\
     --model {model} \\
     --strategy {strategy} \\
-    --real-gen-ratio {real_gen_ratio}
+    --real-gen-ratio {real_gen_ratio} \\
+    --work-dir "{work_dir}"
 
 echo "Training completed: {job_name}"
 '''
@@ -1501,7 +1511,7 @@ def main():
         with open(script_name, 'w') as f:
             f.write(script)
         
-        result = subprocess.run(['bsub', '<', script_name], shell=True)
+        result = subprocess.run(f'bsub < {script_name}', shell=True)
         if result.returncode == 0:
             print("Job submitted successfully")
         else:
