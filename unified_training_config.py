@@ -836,7 +836,7 @@ STANDARD_AUGMENTATION_METHODS = ['cutmix', 'mixup', 'autoaugment', 'randaugment'
 
 AUGMENTATION_STRATEGIES['std_cutmix'] = AugmentationStrategy(
     name='std_cutmix',
-    type='standard',
+    type='batch_augment',  # Batch-level augmentation via hooks (no pipeline augmentation)
     transforms=[],
     standard_method='cutmix',
     p_aug=0.5,
@@ -844,7 +844,7 @@ AUGMENTATION_STRATEGIES['std_cutmix'] = AugmentationStrategy(
 
 AUGMENTATION_STRATEGIES['std_mixup'] = AugmentationStrategy(
     name='std_mixup',
-    type='standard',
+    type='batch_augment',  # Batch-level augmentation via hooks (no pipeline augmentation)
     transforms=[],
     standard_method='mixup',
     p_aug=0.5,
@@ -852,7 +852,7 @@ AUGMENTATION_STRATEGIES['std_mixup'] = AugmentationStrategy(
 
 AUGMENTATION_STRATEGIES['std_autoaugment'] = AugmentationStrategy(
     name='std_autoaugment',
-    type='standard',
+    type='batch_augment',  # Batch-level augmentation via hooks (no pipeline augmentation)
     transforms=[],
     standard_method='autoaugment',
     p_aug=0.5,
@@ -860,7 +860,7 @@ AUGMENTATION_STRATEGIES['std_autoaugment'] = AugmentationStrategy(
 
 AUGMENTATION_STRATEGIES['std_randaugment'] = AugmentationStrategy(
     name='std_randaugment',
-    type='standard',
+    type='batch_augment',  # Batch-level augmentation via hooks (no pipeline augmentation)
     transforms=[],
     standard_method='randaugment',
     p_aug=0.5,
@@ -2079,21 +2079,29 @@ class UnifiedTrainingConfig:
         
         pipeline.append(dict(type='Resize', scale=(512, 512), keep_ratio=False))
         
-        # Augmentation logic:
-        # - baseline: No augmentations at all
-        # - minimal: RandomCrop + RandomFlip only (no PhotoMetricDistortion)
-        # - all others: RandomCrop + RandomFlip + PhotoMetricDistortion
+        # Augmentation logic - each type gets ONLY its specific augmentation for proper ablation:
+        # - baseline (type='none'): No augmentations at all
+        # - minimal (type='minimal'): RandomCrop + RandomFlip only (geometric augmentation)
+        # - standard (type='standard'): PhotoMetricDistortion only (color augmentation)
+        # - generated (type='generated'): No pipeline augmentations (just use generated images)
+        # - batch_augment (type='batch_augment'): No pipeline augmentations (use batch-level hooks)
+        #
+        # This design isolates each augmentation technique's effect for proper ablation
         is_minimal = aug_strategy.type == 'minimal'
+        is_standard = aug_strategy.type == 'standard'  # std_photometric_distort only
         
-        if not is_baseline:
-            # Always add geometric augmentations for non-baseline
+        if is_minimal:
+            # std_minimal: ONLY geometric augmentation (crop + flip)
             pipeline.extend([
                 dict(type='RandomCrop', crop_size=crop_size, cat_max_ratio=0.75),
                 dict(type='RandomFlip', prob=0.5),
             ])
-            # Only add PhotoMetricDistortion if NOT minimal type
-            if not is_minimal:
-                pipeline.append(dict(type='PhotoMetricDistortion'))
+        elif is_standard:
+            # std_photometric_distort: ONLY color augmentation (no crop/flip)
+            pipeline.append(dict(type='PhotoMetricDistortion'))
+        # baseline, generated, batch_augment, transform: NO pipeline augmentations
+        # - generated: uses mixed data (real + synthetic images)
+        # - batch_augment: uses batch-level hooks (cutmix, mixup, autoaugment, randaugment)
         
         # Add augmentation transforms from strategy (non-baseline strategies may add more)
         pipeline.extend(aug_strategy.get_pipeline_transforms())
