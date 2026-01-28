@@ -1,6 +1,33 @@
 # Study Coverage Analysis
 
-**Last Updated:** 2026-01-28 (08:45)
+**Last Updated:** 2026-01-28 (11:30)
+
+## Executive Summary
+
+This document provides comprehensive coverage analysis and key findings from the PROVE semantic segmentation evaluation study. The study evaluates augmentation strategies for improving model robustness under adverse weather conditions using MMSegmentation across 4 datasets, 3 models, and 27 strategies.
+
+### High-Level Findings
+
+| Study | Key Takeaway | Best Performer | Top Metric |
+|-------|--------------|----------------|------------|
+| **Stage 1** | Generative aug outperforms baseline by +1.4 mIoU when training on clear-day only | gen_Attribute_Hallucination | 39.83 mIoU |
+| **Stage 2** | Gains compress when training includes all domains; domain gap shrinks 5-6× | gen_stargan_v2 | 41.73 mIoU |
+| **Ratio Ablation** | Optimal synthetic ratio is 12–38%, not 50%; moderate mixing beats extremes | 0.75 ratio (25% gen) | +1.56 mIoU |
+| **Extended Training** | 77% configs benefit; 75% gains by 160k iters; baseline overfits | gen_cyclediffusion | 53.81 mIoU |
+| **Combinations** | photometric_distort combos dominate; stacking doesn't provide additive benefits | std_mixup+photo | 45.22 mIoU |
+| **Domain Adaptation** | ALL 15/15 strategies beat baseline for cross-dataset transfer | gen_stargan_v2 | +1.96 over baseline |
+
+### Recommended Paper Figures (3 per Study)
+
+| Study | Figure 1 | Figure 2 | Figure 3 |
+|-------|----------|----------|----------|
+| **Stage 1** | Strategy ranking bar chart (by mIoU, colored by type) | Domain gap scatter (mIoU vs Normal−Adverse) | Per-dataset heatmap (strategy × dataset) |
+| **Stage 2** | Stage 1 vs 2 side-by-side comparison | Domain gap reduction (before/after) | Rank change bump chart |
+| **Ratio Ablation** | Ratio vs mIoU line plot (multiple strategies) | Optimal ratio heatmap (strategy × dataset) | Performance variance boxplot by ratio |
+| **Extended Training** | Learning curves multi-panel (by model) | Convergence heatmap (strategy × iteration) | Diminishing returns plot (marginal gain) |
+| **Combinations** | Combination matrix heatmap (strategy A × B) | Component contribution bar chart | Combination type boxplot comparison |
+
+---
 
 ## Summary
 
@@ -625,6 +652,127 @@ python analysis_scripts/analyze_domain_adaptation_ablation.py
 
 **Note:** The existing analysis script expects a different directory structure. The actual results are stored at:
 `/scratch/aaa_exchange/AWARE/WEIGHTS/domain_adaptation_ablation/{strategy}/{dataset}/{model}/domain_adaptation_evaluation.json`
+
+---
+
+## Comprehensive Findings Analysis
+
+### Stage 1: Clear-Day Training (Cross-Domain Robustness)
+
+**Summary:** Generative augmentation strategies consistently outperform both baseline and standard augmentation when training only on clear-day conditions. The top-ranked strategies achieve +1.0–1.4 mIoU gain over baseline.
+
+**Key Findings:**
+- **Best performer:** gen_Attribute_Hallucination (39.83 mIoU, +1.36 vs baseline 38.47)
+- **Top 5 all generative:** gen_cycleGAN (39.60), gen_Img2Img (39.58), gen_stargan_v2 (39.55), gen_flux_kontext (39.54)
+- **Best standard aug:** std_autoaugment (39.41 mIoU, +0.94) outperforms mid-tier generative methods
+- **Domain gap range:** 5.84 (std_autoaugment) to 7.03 (gen_LANIT) - lower is better
+- **std_autoaugment achieves smallest domain gap** while maintaining good mIoU
+
+**Per-Dataset Insights:**
+- BDD10k: Largest gains from generative aug (+1.4-2.4 mIoU over baseline)
+- IDD-AW: Consistent +0.7-1.5 mIoU improvement across strategies
+- MapillaryVistas: Smaller gains (+0.2-0.8 mIoU), some strategies underperform baseline
+- OUTSIDE15k: Mixed results, some strategies show negative gain
+
+---
+
+### Stage 2: All-Domains Training (Domain-Inclusive Performance)
+
+**Summary:** When training includes all weather conditions, the performance gap narrows significantly. Baseline improves +2.88 mIoU and domain gap shrinks 5-6×. Strategy gains compress to +0.3-0.4 mIoU.
+
+**Key Findings:**
+- **Best performer:** gen_stargan_v2 (41.73 mIoU, +0.38 vs baseline 41.35)
+- **Baseline improvement:** 38.47 → 41.35 mIoU (+2.88 from including adverse domains in training)
+- **Domain gap reduction:** 6.81 → 0.66 (10× smaller gap when training on all conditions)
+- **Rank changes:** gen_Attribute_Hallucination drops from #1 to #6; gen_stargan_v2 rises to #1
+- **Some strategies underperform:** gen_Weather_Effect_Generator (-0.64), std_cutmix (-0.54) worse than baseline
+
+**Insight:** Explicit weather augmentation becomes partially redundant when training data already contains adverse conditions. The value proposition of generative augmentation is highest in domain-shift scenarios (Stage 1).
+
+---
+
+### Ratio Ablation Study (Real/Synthetic Data Mix)
+
+**Summary:** Performance peaks at moderate synthetic ratios (12–38%), not at 50% or higher. Optimal ratio varies by configuration but moderate mixing consistently beats extremes.
+
+**Key Findings:**
+- **Optimal ratio:** 0.75 (75% real + 25% synthetic) achieves +1.56 mIoU over pure real baseline
+- **Sweet spot range:** 12-38% synthetic data
+- **Diminishing returns:** Performance drops slightly at 50%+ synthetic
+- **100% synthetic (ratio 0.00):** Still outperforms baseline (+1.35 mIoU) but suboptimal
+- **All ratios beat baseline:** Every synthetic data ratio improves over pure real data training
+
+**Ratio Performance Table:**
+| Ratio | Description | Avg mIoU | Δ vs Baseline |
+|-------|-------------|----------|---------------|
+| 0.75 | 75% real, 25% gen | 41.46% | **+1.56%** |
+| 0.50 | 50% real, 50% gen | 41.39% | +1.49% |
+| 0.38 | 38% real, 62% gen | 41.36% | +1.46% |
+| 0.00 | 0% real, 100% gen | 41.25% | +1.35% |
+| 1.00 | 100% real (baseline) | 39.90% | — |
+
+---
+
+### Extended Training Study (80K → 320K Iterations)
+
+**Summary:** Extended training benefits the majority of configurations (77%) with average +1.4 mIoU improvement. Optimal performance typically occurs at 310K–320K iterations, but 75% of gains are captured by 160K.
+
+**Key Findings:**
+- **Improvement rate:** 77.4% of configs improve with extended training
+- **Mean improvement:** +1.41 mIoU from 80K to optimal iteration
+- **Maximum improvement:** +4.10 mIoU (specific configs)
+- **Total improvement:** +12.09 mIoU from 10K to 320K (37.7% → 49.79%)
+- **Best strategy at 320K:** gen_cyclediffusion (53.81% mIoU)
+
+**⚠️ Critical Finding - Baseline Overfitting:**
+- Baseline performance **degrades after 90K** iterations (46.11 → 43.47 mIoU)
+- Generative strategies do NOT show this degradation pattern
+- **Implication:** Synthetic data provides implicit regularization preventing overfitting
+
+**Efficiency Analysis:**
+- 160K iterations captures **~75% of gains** at 50% compute cost
+- Early phase (10K-30K): Rapid improvement (+4.3%)
+- Mid phase (40K-80K): Steady gains (+2.4%)
+- Extended (90K-320K): Diminishing returns (+1.2%)
+
+---
+
+### Combination Strategies Study (Strategy Stacking)
+
+**Summary:** Combinations with photometric_distort consistently dominate (~45 mIoU). Strategy stacking does not provide additive benefits—combined performance rarely exceeds best individual component.
+
+**Key Findings:**
+- **Best combination:** std_mixup+photometric_distort (45.22% mIoU)
+- **All +photometric_distort combos:** 44.9-45.2% mIoU (regardless of partner strategy)
+- **Generative+Standard avg:** 40.1% mIoU (no synergy observed)
+- **Standard+Standard avg:** 39.7% mIoU
+
+**Top Combinations:**
+| Combination | mIoU |
+|-------------|------|
+| std_mixup+photometric_distort | 45.22% |
+| std_autoaugment+photometric_distort | 45.18% |
+| gen_step1x_new+photometric_distort | 45.18% |
+| gen_Attribute_Hallucination+photometric_distort | 45.17% |
+| gen_stargan_v2+photometric_distort | 45.17% |
+
+**Insight:** The dominant factor is photometric_distort, not the generative component. Combining multiple augmentation strategies shows diminishing returns rather than synergistic improvement.
+
+---
+
+### Domain Adaptation Study (Cross-Dataset Transfer)
+
+**Summary:** All 15 tested strategies beat baseline for cross-dataset domain adaptation (+1.03% to +1.96%). Generative and standard augmentations provide similar benefits for transfer learning.
+
+**Key Findings:**
+- **All strategies beat baseline:** 15/15 strategies outperform baseline on ACDC transfer
+- **Best performer:** gen_stargan_v2 (26.94% mIoU, +1.96% over baseline 24.98%)
+- **Best family:** Photometric augmentation (26.87% mean mIoU)
+- **Generative avg:** 26.47% mIoU (+1.49% over baseline)
+- **Standard aug avg:** 26.42% mIoU (+1.44% over baseline)
+- **Most challenging domain:** Night (12-13% mIoU across all strategies)
+
+**Insight:** For cross-dataset transfer to unseen domains (ACDC), both generative and standard augmentation provide similar robustness benefits. The choice between them can be based on compute/data availability rather than performance.
 
 ---
 

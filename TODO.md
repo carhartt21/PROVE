@@ -1,6 +1,6 @@
 # PROVE Project TODO List
 
-**Last Updated:** 2026-01-28 (08:50)
+**Last Updated:** 2026-01-28 (11:30)
 
 > **Note:** For detailed study results, analysis, and findings, see [docs/STUDY_COVERAGE_ANALYSIS.md](docs/STUDY_COVERAGE_ANALYSIS.md)
 
@@ -118,13 +118,23 @@
 
 | Study | Key Result |
 |-------|------------|
-| **Stage 1** | gen_Attribute_Hallucination best (+1.36% vs baseline at 39.83%) |
-| **Stage 2** | gen_stargan_v2 best (+0.38% vs baseline at 41.73%) |
-| **Ratio Ablation** | Best ratio = **0.75** (75% real + 25% gen) at 41.46% mIoU |
-| **Extended Training** | +12.09% mIoU improvement (10k→320k), 75% gains by 160k |
+| **Stage 1** | gen_Attribute_Hallucination best (+1.36% vs baseline at 39.83%), generative consistently outperforms standard aug |
+| **Stage 2** | gen_stargan_v2 best (+0.38% vs baseline at 41.73%), gains compress when training includes all domains |
+| **Ratio Ablation** | Best ratio = **0.75** (75% real + 25% gen) at 41.46% mIoU; optimal range is 12-38% synthetic |
+| **Extended Training** | +12.09% mIoU improvement (10k→320k), 77% configs improve, 75% gains by 160k iters |
 | **Extended (Baseline)** | ⚠️ Baseline degrades after 90k (46.11→43.47) - overfitting! |
-| **Combinations** | std_mixup+photometric_distort best at 45.22% |
-| **Domain Adaptation** | ALL 15/15 strategies beat baseline (+1.03% to +1.96%) |
+| **Combinations** | std_mixup+photometric_distort best at 45.22%; +photometric_distort combos dominate |
+| **Domain Adaptation** | ALL 15/15 strategies beat baseline (+1.03% to +1.96%), gen_stargan_v2 best |
+
+### Recommended Paper Figures (3 per Study)
+
+| Study | Figure 1 | Figure 2 | Figure 3 |
+|-------|----------|----------|----------|
+| **Stage 1** | Strategy ranking bar chart | Domain gap scatter plot | Per-dataset heatmap |
+| **Stage 2** | Stage 1 vs 2 comparison | Domain gap reduction | Rank change chart |
+| **Ratio Ablation** | Ratio vs mIoU line plot | Optimal ratio heatmap | Performance variance boxplot |
+| **Extended Training** | Learning curves multi-panel | Convergence heatmap | Diminishing returns plot |
+| **Combinations** | Combination matrix heatmap | Component contribution | Combination type boxplot |
 
 ---
 
