@@ -526,24 +526,6 @@ else:
     if gen_size == 0:
         print("\\nWarning: No generated images found! Using real images only.")
     else:
-        # Create BatchSplitSampler for proper ratio enforcement
-        sampler = BatchSplitSampler(
-            real_dataset_size=real_size,
-            generated_dataset_size=gen_size,
-            batch_size=batch_size,
-            real_gen_ratio=real_gen_ratio,
-            shuffle=True,
-            drop_last=True,
-            seed=42,
-        )
-        
-        print(f"\\nBatchSplitSampler created:")
-        print(f"  - Total batches: {{len(sampler)}}")
-        print(f"  - Each batch: {{sampler.real_per_batch}} real + {{sampler.gen_per_batch}} gen")
-        
-        # Now we need to combine real and generated into data_list
-        # BUT with proper ordering so BatchSplitSampler indices work
-        
         # Store original real data_list
         real_data_list = list(real_dataset.data_list)
         
@@ -555,24 +537,38 @@ else:
         total_size = len(real_dataset.data_list)
         print(f"\\nCombined dataset: {{total_size}} images ({{real_size}} real + {{gen_size}} generated)")
         
-        # Replace the dataloader's sampler with our BatchSplitSampler
-        # We need to create a custom sampler that maps batch indices correctly
+        # Create a mixed batch sampler using mmengine's Sampler interface
+        from mmengine.dataset import DefaultSampler
+        from torch.utils.data import Sampler
+        import itertools
         
-        class MixedBatchSampler:
-            """Sampler that returns batch indices with proper real/gen mixing"""
-            def __init__(self, real_size, gen_size, batch_size, real_gen_ratio, shuffle=True):
+        class MixedBatchSampler(Sampler):
+            """Sampler that returns indices with proper real/gen mixing per batch.
+            
+            Each batch contains exactly N real + M generated images, where
+            N = batch_size * real_gen_ratio
+            M = batch_size - N
+            """
+            def __init__(self, real_size, gen_size, batch_size, real_gen_ratio, shuffle=True, seed=42):
                 self.real_size = real_size
                 self.gen_size = gen_size
                 self.batch_size = batch_size
                 self.real_per_batch = max(1, int(batch_size * real_gen_ratio))
                 self.gen_per_batch = batch_size - self.real_per_batch
                 self.shuffle = shuffle
+                self.seed = seed
                 self.epoch = 0
-                self._generate_batches()
+                
+                # Calculate number of batches based on iterations
+                # For 10000 iters with batch_size 8, we need 10000 batches
+                max_iters = cfg.train_cfg.get('max_iters', 10000)
+                self.num_batches = max_iters
+                
+                self._generate_indices()
             
-            def _generate_batches(self):
+            def _generate_indices(self):
                 import random
-                rng = random.Random(42 + self.epoch)
+                rng = random.Random(self.seed + self.epoch)
                 
                 real_indices = list(range(self.real_size))
                 # Generated indices start after real_size in combined list
@@ -582,72 +578,77 @@ else:
                     rng.shuffle(real_indices)
                     rng.shuffle(gen_indices)
                 
-                self.batches = []
-                real_ptr = 0
-                gen_ptr = 0
+                # Create infinite cycle iterators
+                real_cycle = itertools.cycle(real_indices)
+                gen_cycle = itertools.cycle(gen_indices)
                 
-                # Create batches until we've seen enough data
-                total_samples_needed = max(self.real_size, self.gen_size) * 2  # ensure good coverage
-                samples_seen = 0
-                
-                while samples_seen < total_samples_needed:
-                    batch = []
-                    
+                # Generate all indices for all batches
+                self.indices = []
+                for _ in range(self.num_batches):
                     # Add real samples
                     for _ in range(self.real_per_batch):
-                        if real_ptr >= len(real_indices):
-                            real_ptr = 0
-                            if self.shuffle:
-                                rng.shuffle(real_indices)
-                        batch.append(real_indices[real_ptr])
-                        real_ptr += 1
-                    
+                        self.indices.append(next(real_cycle))
                     # Add generated samples
                     for _ in range(self.gen_per_batch):
-                        if gen_ptr >= len(gen_indices):
-                            gen_ptr = 0
-                            if self.shuffle:
-                                rng.shuffle(gen_indices)
-                        batch.append(gen_indices[gen_ptr])
-                        gen_ptr += 1
-                    
-                    self.batches.append(batch)
-                    samples_seen += self.batch_size
+                        self.indices.append(next(gen_cycle))
             
             def __iter__(self):
-                for batch in self.batches:
-                    yield batch
+                return iter(self.indices)
             
             def __len__(self):
-                return len(self.batches)
+                return len(self.indices)
             
             def set_epoch(self, epoch):
                 self.epoch = epoch
-                self._generate_batches()
+                self._generate_indices()
         
-        # Create the mixed sampler
+        # Create our mixed sampler
         mixed_sampler = MixedBatchSampler(
             real_size=real_size,
             gen_size=gen_size,
             batch_size=batch_size,
             real_gen_ratio=real_gen_ratio,
             shuffle=True,
+            seed=42,
         )
         
-        print(f"MixedBatchSampler: {{len(mixed_sampler)}} batches")
-        
-        # Replace the train dataloader's batch_sampler
-        # MMEngine uses train_dataloader.batch_sampler
-        runner.train_loop.dataloader._index_sampler = mixed_sampler
+        print(f"\\nMixedBatchSampler created:")
+        print(f"  - Total batches: {{len(mixed_sampler) // batch_size}}")
+        print(f"  - Each batch: {{mixed_sampler.real_per_batch}} real + {{mixed_sampler.gen_per_batch}} gen")
         
         # Verify first few batches
         print("\\nVerifying batch composition (first 3 batches):")
-        for i, batch_indices in enumerate(mixed_sampler):
-            if i >= 3:
-                break
+        sample_iter = iter(mixed_sampler)
+        for i in range(3):
+            batch_indices = [next(sample_iter) for _ in range(batch_size)]
             real_count = sum(1 for idx in batch_indices if idx < real_size)
             gen_count = sum(1 for idx in batch_indices if idx >= real_size)
             print(f"  Batch {{i+1}}: {{real_count}} real + {{gen_count}} gen = {{len(batch_indices)}} total")
+        
+        # Rebuild the dataloader with our sampler
+        # We need to rebuild the dataloader completely because we can't modify an existing one
+        from torch.utils.data import DataLoader
+        
+        # Get the original dataloader settings
+        orig_dl = runner.train_dataloader
+        
+        # Create new dataloader with our sampler
+        new_dataloader = DataLoader(
+            dataset=real_dataset,
+            batch_size=batch_size,
+            sampler=mixed_sampler,
+            num_workers=orig_dl.num_workers,
+            collate_fn=orig_dl.collate_fn,
+            pin_memory=getattr(orig_dl, 'pin_memory', False),
+            drop_last=True,
+            persistent_workers=True if orig_dl.num_workers > 0 else False,
+        )
+        
+        # Replace the train dataloader in the runner
+        runner._train_loop._dataloader = new_dataloader
+        
+        print(f"\\n✓ Train dataloader replaced with MixedBatchSampler")
+        print(f"  Batches per epoch: {{len(new_dataloader)}}")
 
 print("=" * 60)
 print("Starting training with batch-level ratio enforcement...")
