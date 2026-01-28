@@ -396,7 +396,7 @@ runner.train()
 '''
     
     def _generate_mixed_training_script(self, config_path: str) -> str:
-        """Generate training script with MixedDataLoader integration"""
+        """Generate training script with proper batch-level ratio enforcement using MixedDataLoader"""
         return f'''
 import sys
 sys.path.insert(0, "{Path(__file__).parent}")
@@ -405,6 +405,9 @@ sys.path.insert(0, "{Path(__file__).parent}")
 import custom_transforms  # Registers ReduceToSingleChannel transform
 import unified_datasets   # Registers MapillaryLabelTransform, CityscapesLabelTransform
 import generated_images_dataset  # Registers GeneratedAugmentedDataset
+
+# Import MixedDataLoader components
+from mixed_dataloader import MixedDataLoader, BatchSplitSampler
 
 # Import StandardAugmentationHook to register it with MMEngine
 try:
@@ -428,7 +431,7 @@ from mmengine.config import Config
 from mmengine.registry import DATASETS
 
 print("=" * 60)
-print("PROVE Mixed Training Mode")
+print("PROVE Mixed Training Mode - Batch-Level Ratio Enforcement")
 print("=" * 60)
 
 # Load config
@@ -448,104 +451,58 @@ print(f"Real-Gen Ratio: {{real_gen_ratio}}")
 print(f"Batch Size: {{batch_size}}")
 print(f"Sampling Strategy: {{sampling_strategy}}")
 
-# Build generated dataset configuration
-gen_cfg = mixed_cfg.get('generated_dataset', {{}})
-
-# Modify the train_dataloader to use MixedRealGeneratedDataset
-# This is the key - we reconfigure the dataset type to use our mixed dataset
-original_dataset_cfg = cfg.train_dataloader.dataset.copy()
-
-# Create the mixed dataset configuration
-from generated_images_dataset import GeneratedAugmentedDataset
-
-# First, let's register and use a ConcatDataset approach
-# This is simpler and more compatible with MMEngine
-print("\\nConfiguring mixed training dataset...")
-
-# Calculate how many samples to take from each source based on ratio
-# With batch_split strategy, each batch has fixed composition
+# Calculate batch composition
 real_per_batch = max(1, int(batch_size * real_gen_ratio))
 gen_per_batch = batch_size - real_per_batch
+print(f"\\nBatch Composition: {{real_per_batch}} real + {{gen_per_batch}} generated = {{batch_size}} total")
 
-print(f"Batch composition: {{real_per_batch}} real + {{gen_per_batch}} generated = {{batch_size}} total")
-
-# Create a custom sampler that alternates between real and generated
-# For now, we'll use a simpler approach: modify the dataset directly
-
-# Option: Use ConcatDataset with RepeatDataset to balance sampling
-# Create combined dataset that interleaves real and generated
-
-# Get paths from config
-data_root = cfg.train_dataloader.dataset.get('data_root')
-img_suffix = cfg.train_dataloader.dataset.get('img_suffix', '.jpg')
-seg_map_suffix = cfg.train_dataloader.dataset.get('seg_map_suffix', '.png')
-
-# Build the mixed dataset by combining real + generated in data_list
-# This approach modifies the dataset to include both sources
-
-# Add generated images to the training pipeline
-# by extending the data_prefix to include generated images
-print("\\nBuilding training data with mixed real/generated images...")
-
-# Load generated images manifest
-from generated_images_dataset import GeneratedImagesManifest
-manifest = GeneratedImagesManifest(gen_cfg.get('manifest_path'))
-
-# Get the dataset filter (e.g., 'BDD10k')
-dataset_filter = gen_cfg.get('dataset_filter', '')
-print(f"Dataset filter: {{dataset_filter}}")
-
-# Count available generated images
-gen_entries = manifest.get_dataset_entries(dataset_filter) if dataset_filter else manifest.entries
-print(f"Found {{len(gen_entries)}} generated images for {{dataset_filter or 'all datasets'}}")
-
-# Now we need to create a dataset that mixes real and generated
-# The simplest approach that works with MMEngine is to modify the data_list
-
-# Approach: Extend the real dataset with generated image paths
-# We'll use the same labels (since generated images share labels with originals)
-
-# Build extended data prefix that includes generated images directory
-import os
-from glob import glob
-
-# Get generated root from config
+# Get generated dataset configuration
+gen_cfg = mixed_cfg.get('generated_dataset', {{}})
 generated_root = gen_cfg.get('generated_root', '')
 
-# If real_gen_ratio < 1.0, we need to include generated images
-if real_gen_ratio < 1.0 and generated_root:
-    # Create extended dataset config that includes both real and generated
-    # We'll do this by modifying the data list after the dataset is built
+if real_gen_ratio >= 1.0 or not generated_root:
+    print("\\nReal-gen ratio is 1.0 or no generated_root - using standard training")
+    runner = Runner.from_cfg(cfg)
+else:
+    import os
+    from glob import glob
     
     # CRITICAL: Disable serialization so we can modify data_list
-    # When serialize_data=True, data_list is converted to bytes and emptied
     cfg.train_dataloader.dataset.serialize_data = False
     
-    # First, build the standard runner
+    # Build the runner first to get the real dataset initialized
     runner = Runner.from_cfg(cfg)
     
-    # Then, inject generated images into the training data
-    # This approach modifies the data_list of the existing dataset
-    
+    # Get the real dataset
     real_dataset = runner.train_dataloader.dataset
     
-    # Force dataset to load its data_list if not already loaded
+    # Force dataset to load its data_list
     if not hasattr(real_dataset, 'data_list') or len(real_dataset.data_list) == 0:
         real_dataset.full_init()
     
-    original_size = len(real_dataset.data_list)
-    print(f"Original (real) dataset size: {{original_size}} images")
+    real_size = len(real_dataset.data_list)
+    print(f"\\nReal dataset size: {{real_size}} images")
     
-    # Add generated images to data_list
-    added_count = 0
+    # Build generated images list
+    from generated_images_dataset import GeneratedImagesManifest
+    manifest = GeneratedImagesManifest(gen_cfg.get('manifest_path'))
+    
+    dataset_filter = gen_cfg.get('dataset_filter', '')
+    gen_entries = manifest.get_dataset_entries(dataset_filter) if dataset_filter else manifest.entries
+    print(f"Found {{len(gen_entries)}} generated images for {{dataset_filter or 'all datasets'}}")
+    
+    # Get label format info from config
+    seg_map_suffix = cfg.train_dataloader.dataset.get('seg_map_suffix', '.png')
+    original_dataset_cfg = cfg.train_dataloader.dataset.copy()
     conditions = gen_cfg.get('conditions', ['cloudy', 'dawn_dusk', 'fog', 'night', 'rainy', 'snowy'])
     
+    # Build generated data list
+    generated_data_list = []
     for entry in gen_entries:
         gen_path = entry.get('gen_path', '')
         original_path = entry.get('original_path', '')
         target_domain = entry.get('target_domain', '')
         
-        # Only add if condition is in our list
         if target_domain not in conditions:
             continue
             
@@ -554,32 +511,146 @@ if real_gen_ratio < 1.0 and generated_root:
         for ext in ['.jpg', '.png', '.jpeg']:
             label_path = label_path.replace(ext, seg_map_suffix)
         
-        # Check if files exist
         if os.path.exists(gen_path):
-            # Add to data_list
-            real_dataset.data_list.append({{
+            generated_data_list.append({{
                 'img_path': gen_path,
                 'seg_map_path': label_path,
                 'reduce_zero_label': original_dataset_cfg.get('reduce_zero_label', False),
                 '_is_generated': True,
                 '_condition': target_domain,
             }})
-            added_count += 1
     
-    print(f"Added {{added_count}} generated images to training data")
-    total_size = len(real_dataset.data_list)
-    print(f"Total training samples: {{total_size}} ({{original_size}} real + {{added_count}} generated)")
+    gen_size = len(generated_data_list)
+    print(f"Valid generated images: {{gen_size}}")
     
-    # Calculate effective real/gen ratio
-    effective_ratio = original_size / total_size if total_size > 0 else 0
-    print(f"Effective real ratio: {{effective_ratio:.2f}} (target: {{real_gen_ratio}})")
-    
-else:
-    print("Real-gen ratio is 1.0 or no generated_root - using standard training")
-    runner = Runner.from_cfg(cfg)
+    if gen_size == 0:
+        print("\\nWarning: No generated images found! Using real images only.")
+    else:
+        # Create BatchSplitSampler for proper ratio enforcement
+        sampler = BatchSplitSampler(
+            real_dataset_size=real_size,
+            generated_dataset_size=gen_size,
+            batch_size=batch_size,
+            real_gen_ratio=real_gen_ratio,
+            shuffle=True,
+            drop_last=True,
+            seed=42,
+        )
+        
+        print(f"\\nBatchSplitSampler created:")
+        print(f"  - Total batches: {{len(sampler)}}")
+        print(f"  - Each batch: {{sampler.real_per_batch}} real + {{sampler.gen_per_batch}} gen")
+        
+        # Now we need to combine real and generated into data_list
+        # BUT with proper ordering so BatchSplitSampler indices work
+        
+        # Store original real data_list
+        real_data_list = list(real_dataset.data_list)
+        
+        # Clear and rebuild with combined data
+        # Index 0 to real_size-1 = real images
+        # Index real_size to real_size+gen_size-1 = generated images
+        real_dataset.data_list = real_data_list + generated_data_list
+        
+        total_size = len(real_dataset.data_list)
+        print(f"\\nCombined dataset: {{total_size}} images ({{real_size}} real + {{gen_size}} generated)")
+        
+        # Replace the dataloader's sampler with our BatchSplitSampler
+        # We need to create a custom sampler that maps batch indices correctly
+        
+        class MixedBatchSampler:
+            """Sampler that returns batch indices with proper real/gen mixing"""
+            def __init__(self, real_size, gen_size, batch_size, real_gen_ratio, shuffle=True):
+                self.real_size = real_size
+                self.gen_size = gen_size
+                self.batch_size = batch_size
+                self.real_per_batch = max(1, int(batch_size * real_gen_ratio))
+                self.gen_per_batch = batch_size - self.real_per_batch
+                self.shuffle = shuffle
+                self.epoch = 0
+                self._generate_batches()
+            
+            def _generate_batches(self):
+                import random
+                rng = random.Random(42 + self.epoch)
+                
+                real_indices = list(range(self.real_size))
+                # Generated indices start after real_size in combined list
+                gen_indices = list(range(self.real_size, self.real_size + self.gen_size))
+                
+                if self.shuffle:
+                    rng.shuffle(real_indices)
+                    rng.shuffle(gen_indices)
+                
+                self.batches = []
+                real_ptr = 0
+                gen_ptr = 0
+                
+                # Create batches until we've seen enough data
+                total_samples_needed = max(self.real_size, self.gen_size) * 2  # ensure good coverage
+                samples_seen = 0
+                
+                while samples_seen < total_samples_needed:
+                    batch = []
+                    
+                    # Add real samples
+                    for _ in range(self.real_per_batch):
+                        if real_ptr >= len(real_indices):
+                            real_ptr = 0
+                            if self.shuffle:
+                                rng.shuffle(real_indices)
+                        batch.append(real_indices[real_ptr])
+                        real_ptr += 1
+                    
+                    # Add generated samples
+                    for _ in range(self.gen_per_batch):
+                        if gen_ptr >= len(gen_indices):
+                            gen_ptr = 0
+                            if self.shuffle:
+                                rng.shuffle(gen_indices)
+                        batch.append(gen_indices[gen_ptr])
+                        gen_ptr += 1
+                    
+                    self.batches.append(batch)
+                    samples_seen += self.batch_size
+            
+            def __iter__(self):
+                for batch in self.batches:
+                    yield batch
+            
+            def __len__(self):
+                return len(self.batches)
+            
+            def set_epoch(self, epoch):
+                self.epoch = epoch
+                self._generate_batches()
+        
+        # Create the mixed sampler
+        mixed_sampler = MixedBatchSampler(
+            real_size=real_size,
+            gen_size=gen_size,
+            batch_size=batch_size,
+            real_gen_ratio=real_gen_ratio,
+            shuffle=True,
+        )
+        
+        print(f"MixedBatchSampler: {{len(mixed_sampler)}} batches")
+        
+        # Replace the train dataloader's batch_sampler
+        # MMEngine uses train_dataloader.batch_sampler
+        runner.train_loop.dataloader._index_sampler = mixed_sampler
+        
+        # Verify first few batches
+        print("\\nVerifying batch composition (first 3 batches):")
+        for i, batch_indices in enumerate(mixed_sampler):
+            if i >= 3:
+                break
+            real_count = sum(1 for idx in batch_indices if idx < real_size)
+            gen_count = sum(1 for idx in batch_indices if idx >= real_size)
+            print(f"  Batch {{i+1}}: {{real_count}} real + {{gen_count}} gen = {{len(batch_indices)}} total")
 
 print("=" * 60)
-print("Starting training...")
+print("Starting training with batch-level ratio enforcement...")
 print("=" * 60)
 
 runner.train()
