@@ -806,16 +806,16 @@ AUGMENTATION_STRATEGIES = {
     ),
     'std_photometric_distort': AugmentationStrategy(
         name='std_photometric_distort',
-        type='standard',  # Changed from 'transform' to allow use as std_strategy in combinations
-        transforms=[dict(type='PhotoMetricDistortion')],
+        type='standard',  # Uses default pipeline: RandomCrop + RandomFlip + PhotoMetricDistortion
+        transforms=[],  # No extra transforms - uses default pipeline with PhotoMetricDistortion
     ),
     'std_minimal': AugmentationStrategy(
-        # Minimal standard augmentation: RandomCrop, RandomFlip, 1x PhotoMetricDistortion
-        # Created from gen_* models accidentally trained with real_gen_ratio=1.0
-        # Serves as ablation baseline between 'baseline' and 'std_photometric_distort'
+        # Minimal standard augmentation: RandomCrop + RandomFlip ONLY (no PhotoMetricDistortion)
+        # Serves as ablation baseline between 'baseline' (no aug) and 'std_photometric_distort' (with color aug)
+        # This isolates the effect of geometric augmentation (crop/flip) from color augmentation
         name='std_minimal',
-        type='transform',
-        transforms=[],  # Uses default pipeline which includes 1x PhotoMetricDistortion
+        type='minimal',  # Special type: applies RandomCrop + RandomFlip but NOT PhotoMetricDistortion
+        transforms=[],  # No additional transforms - just RandomCrop and RandomFlip
     ),
 }
 
@@ -2079,13 +2079,21 @@ class UnifiedTrainingConfig:
         
         pipeline.append(dict(type='Resize', scale=(512, 512), keep_ratio=False))
         
-        # Only add augmentations if not baseline
+        # Augmentation logic:
+        # - baseline: No augmentations at all
+        # - minimal: RandomCrop + RandomFlip only (no PhotoMetricDistortion)
+        # - all others: RandomCrop + RandomFlip + PhotoMetricDistortion
+        is_minimal = aug_strategy.type == 'minimal'
+        
         if not is_baseline:
+            # Always add geometric augmentations for non-baseline
             pipeline.extend([
                 dict(type='RandomCrop', crop_size=crop_size, cat_max_ratio=0.75),
                 dict(type='RandomFlip', prob=0.5),
-                dict(type='PhotoMetricDistortion'),
             ])
+            # Only add PhotoMetricDistortion if NOT minimal type
+            if not is_minimal:
+                pipeline.append(dict(type='PhotoMetricDistortion'))
         
         # Add augmentation transforms from strategy (non-baseline strategies may add more)
         pipeline.extend(aug_strategy.get_pipeline_transforms())
