@@ -1,8 +1,32 @@
 # PROVE Project TODO List
 
-**Last Updated:** 2026-01-28 (11:30)
+**Last Updated:** 2026-01-28 (12:30)
 
 > **Note:** For detailed study results, analysis, and findings, see [docs/STUDY_COVERAGE_ANALYSIS.md](docs/STUDY_COVERAGE_ANALYSIS.md)
+
+---
+
+## 🚨 CRITICAL BUG DISCOVERED (Jan 28)
+
+**Cross-Dataset Contamination in Generative Strategy Training**
+
+See [docs/BUG_REPORT_CROSS_DATASET_CONTAMINATION.md](docs/BUG_REPORT_CROSS_DATASET_CONTAMINATION.md) for full details.
+
+- **865 models affected** (ALL generative strategy models)
+- Training loaded 187k images from ALL datasets instead of ~10k from target dataset
+- Results from generative strategies cannot be fairly compared to baselines
+- **FIX COMMITTED:** commit ecb9721
+
+### Impact Summary
+| Location | Affected Models |
+|----------|----------------|
+| Stage 1 & 2 | 505 |
+| Ratio Ablation | 288 |
+| Extended + Combinations | 72 |
+| **TOTAL** | **865** |
+
+### Recommended Action
+**Option C (Selective Retraining):** Retrain key configurations for paper figures only, use existing results as preliminary exploration with documented caveats.
 
 ---
 
