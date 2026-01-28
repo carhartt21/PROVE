@@ -80,6 +80,20 @@ GEN_STRATEGIES = [
     'gen_Weather_Effect_Generator',
 ]
 
+# Standard augmentation strategies
+STD_STRATEGIES = [
+    'baseline',           # No augmentation at all
+    'std_minimal',        # RandomCrop + RandomFlip only
+    'std_photometric_distort',  # PhotoMetricDistortion only
+    'std_autoaugment',    # AutoAugment (batch-level)
+    'std_cutmix',         # CutMix (batch-level)
+    'std_mixup',          # MixUp (batch-level)
+    'std_randaugment',    # RandAugment (batch-level)
+]
+
+# All strategies combined
+ALL_STRATEGIES = STD_STRATEGIES + GEN_STRATEGIES
+
 # LSF Job Configuration
 @dataclass
 class LSFConfig:
@@ -238,7 +252,7 @@ def generate_job_list(
     
     Args:
         stage: Training stage (1 or 2)
-        strategies: List of strategies (default: all gen_* strategies)
+        strategies: List of strategies (default: all strategies - baseline, std_*, gen_*)
         datasets: List of datasets (default: all)
         models: List of models (default: all)
         ratio: Real/gen ratio for generative strategies
@@ -248,7 +262,7 @@ def generate_job_list(
     Returns:
         List of TrainingJob objects
     """
-    strategies = strategies or GEN_STRATEGIES
+    strategies = strategies or ALL_STRATEGIES  # Now includes baseline + std_* + gen_*
     datasets = datasets or ALL_DATASETS
     models = models or ALL_MODELS
     
