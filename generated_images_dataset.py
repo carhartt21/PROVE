@@ -169,6 +169,9 @@ if MMSEG_AVAILABLE:
             manifest_path: Path to manifest CSV mapping generated to original
             conditions: List of conditions to include (default: all 6)
             include_original: Whether to include original clear_day images
+            dataset_filter: Dataset name to filter by (e.g., 'BDD10k', 'ACDC').
+                            CRITICAL: Set this to avoid cross-dataset contamination!
+                            If not set, will load ALL datasets from manifest.
             img_suffix: Image file suffix
             seg_map_suffix: Segmentation map suffix
         """
@@ -187,6 +190,7 @@ if MMSEG_AVAILABLE:
             manifest_path: str,
             conditions: List[str] = None,
             include_original: bool = True,
+            dataset_filter: str = None,
             img_suffix: str = '.png',
             seg_map_suffix: str = '.png',
             **kwargs
@@ -197,6 +201,9 @@ if MMSEG_AVAILABLE:
                 'cloudy', 'dawn_dusk', 'fog', 'night', 'rainy', 'snowy'
             ]
             self.include_original = include_original
+            # Filter to only include generated images from a specific dataset
+            # This is CRITICAL to avoid loading cross-dataset images
+            self.dataset_filter = dataset_filter
             
             # Load manifest
             self.manifest = GeneratedImagesManifest(manifest_path)
@@ -220,10 +227,21 @@ if MMSEG_AVAILABLE:
                 print(f"Loaded {len(original_list)} original images")
             
             # Add generated images
+            loaded_count_by_condition = {}
+            skipped_count_by_condition = {}
+            
             for condition in self.conditions:
                 condition_entries = self.manifest.get_condition_paths(condition)
+                loaded_count = 0
+                skipped_count = 0
                 
                 for gen_path, original_path in condition_entries:
+                    # CRITICAL: Filter by dataset if specified
+                    # This prevents cross-dataset contamination
+                    if self.dataset_filter and self.dataset_filter not in original_path:
+                        skipped_count += 1
+                        continue
+                    
                     # Get label path from original
                     label_path = self._get_label_for_original(original_path)
                     
@@ -234,10 +252,24 @@ if MMSEG_AVAILABLE:
                             'condition': condition,
                             'is_generated': True,
                         })
+                        loaded_count += 1
                 
-                print(f"Added {len(condition_entries)} generated images for {condition}")
+                loaded_count_by_condition[condition] = loaded_count
+                skipped_count_by_condition[condition] = skipped_count
+                
+                if self.dataset_filter:
+                    print(f"Added {loaded_count} {self.dataset_filter} generated images for {condition} (skipped {skipped_count} from other datasets)")
+                else:
+                    print(f"Added {loaded_count} generated images for {condition}")
             
-            print(f"Total dataset size: {len(data_list)} images (7x augmentation)")
+            total_loaded = sum(loaded_count_by_condition.values())
+            total_skipped = sum(skipped_count_by_condition.values())
+            
+            if self.dataset_filter:
+                print(f"Total dataset size: {len(data_list)} images (dataset_filter={self.dataset_filter}, skipped {total_skipped} cross-dataset images)")
+            else:
+                print(f"WARNING: No dataset_filter specified! Loading {len(data_list)} images from ALL datasets. This may cause cross-dataset contamination.")
+            
             return data_list
         
         def _get_label_for_original(self, original_path: str) -> Optional[str]:

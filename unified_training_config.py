@@ -2262,6 +2262,9 @@ class UnifiedTrainingConfig:
                 'manifest_path': os.path.join(self.gen_root, gen_model_dir, 'manifest.csv'),
                 'conditions': aug_strategy.conditions,
                 'include_original': False,  # Only generated images
+                # CRITICAL: Filter by dataset name to avoid cross-dataset contamination
+                # Without this, ALL datasets from manifest would be loaded!
+                'dataset_filter': dataset_cfg.name,
             },
             'sampling_strategy': 'ratio',  # 'ratio', 'alternating', 'batch_split'
             'batch_composition': {
