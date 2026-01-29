@@ -244,7 +244,13 @@ class TrainingJob:
     
     @property
     def job_name(self) -> str:
-        """Generate LSF job name."""
+        """Generate LSF job name with stage prefix."""
+        # Stage prefix
+        if isinstance(self.stage, int):
+            stage_prefix = f's{self.stage}_'
+        else:
+            stage_prefix = f'{self.stage}_'  # e.g., 'ratio_'
+        
         dataset_short = self.dataset.lower().replace('-', '')
         model_short = self.model.split('_')[0]
         loss_tag = ''
@@ -257,7 +263,7 @@ class TrainingJob:
                 base = f'{self.strategy}_{dataset_short}_{model_short}'
         else:
             base = f'{self.strategy}_{dataset_short}_{model_short}'
-        return f'{base}{loss_tag}'
+        return f'{stage_prefix}{base}{loss_tag}'
     
     @property
     def is_skipped(self) -> bool:
