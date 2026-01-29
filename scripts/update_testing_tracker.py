@@ -136,7 +136,8 @@ GENERATIVE_STRATEGIES = [
 
 STANDARD_STRATEGIES = [
     'baseline',
-    'std_std_photometric_distort',
+    'std_minimal',
+    'std_photometric_distort',
     'std_autoaugment',
     'std_cutmix',
     'std_mixup',
@@ -835,8 +836,10 @@ def get_per_model_test_status():
                 
                 model = model_dir.name
                 
-                # Check if weights exist
-                weights_path = model_dir / 'iter_80000.pth'
+                # Check if weights exist (iter_10000.pth for Stage 1, iter_80000.pth for Stage 2)
+                weights_path = model_dir / 'iter_10000.pth'
+                if not safe_exists(weights_path):
+                    weights_path = model_dir / 'iter_80000.pth'  # Fallback for Stage 2
                 if not safe_exists(weights_path):
                     results[(strategy, dataset, model)] = {
                         'status': 'no_weights',

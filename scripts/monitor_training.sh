@@ -1,93 +1,67 @@
 #!/bin/bash
-# Monitor training progress for IDD-AW retrain and BDD10k retest jobs
-# Usage: ./monitor_training.sh [interval_seconds]
+# Compact Training Progress Monitor
+# Usage: ./monitor_training.sh [interval_seconds] [log_file]
 
 INTERVAL=${1:-60}
+LOG_FILE=${2:-"/home/mima2416/repositories/PROVE/logs/monitor_training.log"}
 WEIGHTS_ROOT="/scratch/aaa_exchange/AWARE/WEIGHTS"
 LOCKS_DIR="/scratch/aaa_exchange/AWARE/training_locks"
-LOGS_DIR="/home/chge7185/repositories/PROVE/logs/retrain"
-RETEST_LOGS="/scratch/aaa_exchange/AWARE/LOGS/retest_bdd10k"
 
-echo "=========================================="
-echo "Training Progress Monitor"
-echo "Interval: ${INTERVAL}s"
-echo "=========================================="
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+BOLD='\033[1m'
+NC='\033[0m' # No Color
+
+mkdir -p "$(dirname "$LOG_FILE")"
+echo "Monitor started: ${INTERVAL}s interval, logging to ${LOG_FILE}"
+
+# Log function - strips colors for file, keeps for terminal
+log_output() {
+    while IFS= read -r line; do
+        echo -e "$line"
+        echo "$line" | sed 's/\x1b\[[0-9;]*m//g' >> "$LOG_FILE"
+    done
+}
 
 while true; do
     clear
-    echo "========================================================"
-    echo "Training Progress Monitor - $(date)"
-    echo "========================================================"
+    {
+    echo -e "${BOLD}${CYAN}=== Training Monitor - $(date '+%Y-%m-%d %H:%M:%S') ===${NC}"
     
-    # Job status summary
+    # Compact job status
     echo ""
-    echo "=== JOB STATUS ==="
-    echo "Your (chge7185) jobs:"
-    bjobs -u chge7185 -o "stat" 2>/dev/null | tail -n +2 | sort | uniq -c | tr '\n' '  '
-    echo ""
-    echo "mima2416 jobs:"
-    bjobs -u mima2416 -o "stat" 2>/dev/null | tail -n +2 | sort | uniq -c | tr '\n' '  '
-    echo ""
+    echo -e "${BLUE}[JOBS]${NC} chge7185: $(bjobs -u chge7185 -o 'stat' 2>/dev/null | tail -n +2 | sort | uniq -c | tr '\n' ' ')"
+    echo -e "${BLUE}[JOBS]${NC} mima2416: $(bjobs -u mima2416 -o 'stat' 2>/dev/null | tail -n +2 | sort | uniq -c | tr '\n' ' ')"
     
-    # Active locks
+    # Recently finished - compact format
     echo ""
-    echo "=== ACTIVE TRAINING LOCKS ==="
-    if [ -d "$LOCKS_DIR" ] && [ "$(ls -A $LOCKS_DIR 2>/dev/null)" ]; then
-        for lock in "$LOCKS_DIR"/*.lock; do
-            if [ -f "$lock" ]; then
-                name=$(basename "$lock" .lock)
-                job_id=$(cat "$lock" 2>/dev/null | grep -o '"job_id": "[^"]*"' | cut -d'"' -f4)
-                host=$(cat "$lock" 2>/dev/null | grep -o '"hostname": "[^"]*"' | cut -d'"' -f4)
-                echo "  $name (Job: $job_id on $host)"
-            fi
-        done
-    else
-        echo "  No active locks"
-    fi
+    echo -e "${RED}[FAILED]${NC} chge7185:"
+    bjobs -a -u chge7185 -o "stat jobid exit_code finish_time job_name:40" 2>/dev/null | awk '$1=="EXIT" {$1=""; print}' | head -5
+    echo -e "${RED}[FAILED]${NC} mima2416:"
+    bjobs -a -u mima2416 -o "stat jobid exit_code finish_time job_name:40" 2>/dev/null | awk '$1=="EXIT" {$1=""; print}' | head -5
+    echo ""
+    echo -e "${GREEN}[DONE]${NC} chge7185:"
+    bjobs -a -u chge7185 -o "stat jobid finish_time job_name:40" 2>/dev/null | awk '$1=="DONE" {$1=""; print}' | head -5
+    echo -e "${GREEN}[DONE]${NC} mima2416:"
+    bjobs -a -u mima2416 -o "stat jobid finish_time job_name:40" 2>/dev/null | awk '$1=="DONE" {$1=""; print}' | head -5
     
-    # Recent IDD-AW checkpoints
+    # Active locks (compact)
+    LOCK_COUNT=$(ls -1 "$LOCKS_DIR"/*.lock 2>/dev/null | wc -l)
     echo ""
-    echo "=== RECENT IDD-AW CHECKPOINTS (last 30 min) ==="
-    find "$WEIGHTS_ROOT" -path "*idd-aw*" -name "*.pth" -mmin -30 2>/dev/null | head -10 | while read f; do
-        echo "  $(ls -lh "$f" 2>/dev/null | awk '{print $5, $6, $7, $8, $9}')"
-    done
-    if [ -z "$(find "$WEIGHTS_ROOT" -path "*idd-aw*" -name "*.pth" -mmin -30 2>/dev/null | head -1)" ]; then
-        echo "  None found"
-    fi
+    echo -e "${YELLOW}[LOCKS]${NC} $LOCK_COUNT active"
     
-    # Recent BDD10k test results
-    echo ""
-    echo "=== RECENT BDD10K TEST RESULTS (last 30 min) ==="
-    find "$WEIGHTS_ROOT" -path "*bdd10k*" -name "results.json" -mmin -30 2>/dev/null | head -10 | while read f; do
-        parent=$(dirname "$f")
-        echo "  $parent"
-    done
-    if [ -z "$(find "$WEIGHTS_ROOT" -path "*bdd10k*" -name "results.json" -mmin -30 2>/dev/null | head -1)" ]; then
-        echo "  None found"
-    fi
-    
-    # Recent log activity
-    echo ""
-    echo "=== RECENT LOG FILES ==="
-    echo "IDD-AW retrain logs:"
-    ls -lt "$LOGS_DIR"/*.out 2>/dev/null | head -5 | awk '{print "  " $9 " (" $6, $7, $8 ")"}'
-    echo "BDD10k retest logs:"
-    ls -lt "$RETEST_LOGS"/*.out 2>/dev/null | head -5 | awk '{print "  " $9 " (" $6, $7, $8 ")"}'
-    
-    # Check for errors in recent logs
-    echo ""
-    echo "=== ERRORS IN RECENT LOGS (last 5 min) ==="
-    find "$LOGS_DIR" -name "*.err" -mmin -5 -size +0 2>/dev/null | head -5 | while read f; do
-        echo "  ERROR in $f:"
-        tail -3 "$f" | head -3 | sed 's/^/    /'
-    done
-    if [ -z "$(find "$LOGS_DIR" -name "*.err" -mmin -5 -size +0 2>/dev/null | head -1)" ]; then
-        echo "  No recent errors"
-    fi
+    # Recent checkpoints (compact)
+    RECENT_CKPT=$(find "$WEIGHTS_ROOT" -name "*.pth" -mmin -30 2>/dev/null | wc -l)
+    echo -e "${YELLOW}[CHECKPOINTS]${NC} $RECENT_CKPT new in last 30 min"
     
     echo ""
-    echo "Press Ctrl+C to stop monitoring"
-    echo "Next update in ${INTERVAL}s..."
+    echo -e "${CYAN}Next: ${INTERVAL}s | Ctrl+C to stop${NC}"
+    } | log_output
     
     sleep $INTERVAL
+done
 done
