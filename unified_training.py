@@ -94,6 +94,7 @@ class UnifiedTrainer:
         batch_size: Training batch size. Default: None (uses config default of 2)
         lr: Learning rate. Default: None (uses model-specific default)
         warmup_iters: Number of warmup iterations. Default: None (uses config default)
+        seg_loss: Segmentation loss for decode/aux heads. Default: 'cross_entropy'
         gpu_ids: List of GPU IDs to use. Default: [0]
         distributed: Whether to use distributed training. Default: False
     """
@@ -119,6 +120,7 @@ class UnifiedTrainer:
         batch_size: Optional[int] = None,
         lr: Optional[float] = None,
         warmup_iters: Optional[int] = None,
+        seg_loss: str = 'cross_entropy',
         gpu_ids: List[int] = None,
         distributed: bool = False,
         use_native_classes: bool = True,
@@ -142,6 +144,7 @@ class UnifiedTrainer:
         self.batch_size = batch_size
         self.lr = lr
         self.warmup_iters = warmup_iters
+        self.seg_loss = seg_loss
         self.gpu_ids = gpu_ids or [0]
         self.distributed = distributed
         self.use_native_classes = use_native_classes
@@ -165,6 +168,8 @@ class UnifiedTrainer:
             custom_training_config['batch_size'] = self.batch_size
         if self.warmup_iters is not None:
             custom_training_config['warmup_iters'] = self.warmup_iters
+        if self.seg_loss is not None:
+            custom_training_config['seg_loss'] = self.seg_loss
         
         config = self.config_builder.build(
             dataset=self.dataset,
@@ -281,6 +286,7 @@ class UnifiedTrainer:
             # Import custom transforms and datasets to register them
             import custom_transforms
             import unified_datasets
+            import custom_losses
             
             # Import StandardAugmentationHook to register it with MMEngine
             try:
@@ -369,6 +375,7 @@ sys.path.insert(0, "{Path(__file__).parent}")
 # Import custom transforms and datasets to register them BEFORE loading config
 import custom_transforms  # Registers ReduceToSingleChannel transform
 import unified_datasets   # Registers MapillaryLabelTransform, CityscapesLabelTransform
+import custom_losses      # Registers custom loss wrappers
 
 # Import StandardAugmentationHook to register it with MMEngine
 try:
@@ -405,6 +412,7 @@ sys.path.insert(0, "{Path(__file__).parent}")
 import custom_transforms  # Registers ReduceToSingleChannel transform
 import unified_datasets   # Registers MapillaryLabelTransform, CityscapesLabelTransform
 import generated_images_dataset  # Registers GeneratedAugmentedDataset
+import custom_losses      # Registers custom loss wrappers
 
 # Import MixedDataLoader components
 from mixed_dataloader import MixedDataLoader, BatchSplitSampler
@@ -452,7 +460,9 @@ print(f"Batch Size: {{batch_size}}")
 print(f"Sampling Strategy: {{sampling_strategy}}")
 
 # Calculate batch composition
-real_per_batch = max(1, int(batch_size * real_gen_ratio))
+# When ratio=0.0, should have 0 real samples (100% generated)
+# When ratio=1.0, should have batch_size real samples (100% real)
+real_per_batch = int(batch_size * real_gen_ratio)
 gen_per_batch = batch_size - real_per_batch
 print(f"\\nBatch Composition: {{real_per_batch}} real + {{gen_per_batch}} generated = {{batch_size}} total")
 
@@ -553,7 +563,9 @@ else:
                 self.real_size = real_size
                 self.gen_size = gen_size
                 self.batch_size = batch_size
-                self.real_per_batch = max(1, int(batch_size * real_gen_ratio))
+                # When ratio=0.0, should have 0 real samples (100% generated)
+                # When ratio=1.0, should have batch_size real samples (100% real)
+                self.real_per_batch = int(batch_size * real_gen_ratio)
                 self.gen_per_batch = batch_size - self.real_per_batch
                 self.shuffle = shuffle
                 self.seed = seed
@@ -769,6 +781,7 @@ print("\\nTraining completed!")
             'strategy': self.strategy,
             'std_strategy': self.std_strategy,
             'real_gen_ratio': self.real_gen_ratio,
+            'seg_loss': self.seg_loss,
             'work_dir': self.config['work_dir'],
             'max_iters': max_iters,
             'batch_size': batch_size,
@@ -798,6 +811,7 @@ class UnifiedMultiTrainer:
         seed: Random seed for reproducibility. Default: 42
         early_stop: Whether to enable early stopping. Default: True
         early_stop_patience: Number of validations without improvement before stopping
+        seg_loss: Segmentation loss for decode/aux heads. Default: 'cross_entropy'
         gpu_ids: List of GPU IDs to use. Default: [0]
         distributed: Whether to use distributed training. Default: False
     """
@@ -816,6 +830,7 @@ class UnifiedMultiTrainer:
         seed: int = 42,
         early_stop: bool = True,
         early_stop_patience: int = 5,
+        seg_loss: str = 'cross_entropy',
         gpu_ids: List[int] = None,
         distributed: bool = False,
     ):
@@ -831,6 +846,7 @@ class UnifiedMultiTrainer:
         self.seed = seed
         self.early_stop = early_stop
         self.early_stop_patience = early_stop_patience
+        self.seg_loss = seg_loss
         self.gpu_ids = gpu_ids or [0]
         self.distributed = distributed
         
@@ -846,6 +862,8 @@ class UnifiedMultiTrainer:
             'early_stop': self.early_stop,
             'early_stop_patience': self.early_stop_patience,
         }
+        if self.seg_loss is not None:
+            custom_training_config['seg_loss'] = self.seg_loss
         
         config = self.config_builder.build_multi_dataset(
             datasets=self.datasets,
@@ -918,6 +936,7 @@ sys.path.insert(0, "{Path(__file__).parent}")
 # Import custom transforms and datasets to register them BEFORE loading config
 import custom_transforms
 import unified_datasets
+import custom_losses
 
 # Import StandardAugmentationHook to register it with MMEngine
 try:
@@ -974,6 +993,7 @@ runner.train()
             'strategy': self.strategy,
             'weights': self.weights,
             'real_gen_ratio': self.real_gen_ratio,
+            'seg_loss': self.seg_loss,
             'work_dir': self.config['work_dir'],
             'max_iters': max_iters,
             'batch_size': batch_size,
@@ -1329,6 +1349,9 @@ Examples:
                        help='Learning rate (default: model-specific). Use linear scaling with batch size.')
     parser.add_argument('--warmup-iters', type=int, default=None,
                        help='Number of warmup iterations (default: 500). Increase for larger batch sizes.')
+    parser.add_argument('--seg-loss', type=str, default='cross_entropy',
+                       choices=['cross_entropy', 'lovasz', 'boundary'],
+                       help='Segmentation loss for decode/aux heads (default: cross_entropy).')
     parser.add_argument('--gpu-ids', type=int, nargs='+', default=[0],
                        help='GPU IDs to use')
     parser.add_argument('--distributed', action='store_true',
@@ -1496,6 +1519,7 @@ def main():
             seed=args.seed,
             early_stop=not args.no_early_stop,
             early_stop_patience=args.early_stop_patience,
+            seg_loss=args.seg_loss,
             gpu_ids=args.gpu_ids,
             distributed=args.distributed,
         )
@@ -1560,6 +1584,7 @@ def main():
         batch_size=args.batch_size,
         lr=args.lr,
         warmup_iters=args.warmup_iters,
+        seg_loss=args.seg_loss,
         gpu_ids=args.gpu_ids,
         distributed=args.distributed,
         use_native_classes=args.use_native_classes,
