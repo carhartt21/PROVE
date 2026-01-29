@@ -1,10 +1,17 @@
 # PROVE Project TODO
 
-**Last Updated:** 2026-01-29 (16:30)
+**Last Updated:** 2026-01-30 (10:00)
 
 ---
 
 ## 🔧 Current Status
+
+### Active Jobs
+- **Total:** 204 jobs (9 running, 195 pending)
+- **Training Progress:** 34/111 complete (30.6%)
+  - STD strategies: 18/28 (64.3%)
+  - GEN strategies: 16/83 (19.3%)
+- **Testing Progress:** 100 tests complete
 
 ### Augmentation Pipeline - FIXED ✅
 
@@ -21,30 +28,45 @@ Each augmentation strategy now applies ONLY its specific augmentation technique:
 | **std_randaugment** | RandAugment (batch-level) | Batch hook |
 | **gen_*** | NONE (uses synthetic images) | Generated |
 
-**Previous models trained with INCORRECT augmentation (RandomCrop+RandomFlip+PhotoMetric on ALL strategies).**
-**All previous results need to be retrained.**
+---
+
+## ✅ Recently Completed
+
+### 2026-01-30
+- [x] Fixed batch_training_submission.py permission errors for multi-user support (temp file fallback)
+- [x] Fixed update_testing_tracker.py checkpoint detection (iter_10000.pth for Stage 1)
+- [x] Fixed update_training_tracker.py checkpoint detection
+- [x] Fixed strategy name typos (std_std_photometric_distort → std_photometric_distort)
+- [x] Added std_minimal to strategy lists in tracker scripts
+- [x] Updated monitor_training.sh with colorized output, DONE/EXIT sections, continuous logging
+- [x] Generated Stage 1 intermediate leaderboard (100 results, 15 strategies)
+- [x] Killed 120 failed MapillaryVistas/OUTSIDE15k jobs (--use-native-classes issue)
+- [x] Resubmitted 126 Stage 1 gen_* jobs for MapillaryVistas/OUTSIDE15k
+
+### 2026-01-29
+- [x] Fixed augmentation pipeline (strategies now apply only their specific augmentation)
+- [x] Submitted Stage 1 training jobs with corrected augmentation
 
 ---
 
 ## 📋 Evaluation Completion Checklist
 
-### Phase 1: Clear Old Data & Retrain From Scratch
-- [ ] Delete WEIGHTS/ (313 GB) - trained with incorrect augmentation
-- [ ] Delete WEIGHTS_STAGE_2/ (315 GB) - trained with incorrect augmentation
-- [ ] Submit Stage 1 training jobs (312 jobs)
-- [ ] Submit Stage 2 training jobs (312 jobs)
+### Phase 1: Clear Old Data & Retrain From Scratch ✅
+- [x] Delete old WEIGHTS/ - trained with incorrect augmentation
+- [x] Delete old WEIGHTS_STAGE_2/ - trained with incorrect augmentation
+- [x] Submit Stage 1 training jobs
 
-### Phase 2: Stage 1 Training (Clear Day Only)
+### Phase 2: Stage 1 Training (Clear Day Only) 🔄 IN PROGRESS
 
-**26 strategies × 4 datasets × 3 models = 312 jobs**
+**26 strategies × 4 datasets × 3 models = ~312 jobs (some gen_* unavailable)**
 
-| Type | Strategies | Jobs |
-|------|------------|------|
-| STD (7) | baseline, std_minimal, std_photometric_distort, std_autoaugment, std_cutmix, std_mixup, std_randaugment | 84 |
-| GEN (19) | gen_cycleGAN, gen_flux_kontext, gen_step1x_new, ... | 228 |
-| **Total** | **26** | **312** |
+| Type | Progress | Status |
+|------|----------|--------|
+| STD (7) | 18/28 (64.3%) | 🔄 Running |
+| GEN (19) | 16/83 (19.3%) | 🔄 Running |
+| **Total** | **34/111 (30.6%)** | 🔄 Running |
 
-### Phase 3: Stage 2 Training (All Domains)
+### Phase 3: Stage 2 Training (All Domains) ⏳ PENDING
 
 **Top 10 strategies × 4 datasets × 3 models = 120 jobs**
 
@@ -53,10 +75,43 @@ Selection criteria after Stage 1:
 - Best cross-domain robustness
 - At least 1-2 from each generator family
 
-### Phase 4: Testing & Analysis
-- Run fine_grained_test.py on all trained models
-- Generate per-domain metrics
-- Create visualizations for paper
+### Phase 4: Testing & Analysis 🔄 IN PROGRESS
+- [x] Run fine_grained_test.py on completed models (100 tests done)
+- [ ] Generate per-domain metrics (partial)
+- [ ] Create visualizations for paper
+
+---
+
+## 🎯 Proposed Next Steps
+
+### Immediate (Today)
+1. **Monitor Training Jobs** - 204 jobs in queue (9 running, 195 pending)
+   - Use `bash scripts/monitor_training.sh` for live monitoring
+   - Check logs in `logs/monitor_training_YYYYMMDD_HHMMSS.log`
+
+2. **Review Intermediate Leaderboard** - See `results/stage1_leaderboard_intermediate.md`
+   - Current top performer: gen_step1x_v1p2 (+3.64% over baseline)
+   - 100 test results available for analysis
+
+### Short-term (This Week)
+3. **Complete Stage 1 Training** - Estimated 70% remaining
+   - Resubmitted MapillaryVistas/OUTSIDE15k jobs running
+   - Expected completion: ~24-48 hours
+
+4. **Generate Analysis Figures** - After more results complete
+   - Per-domain performance breakdown
+   - Strategy comparison across datasets
+   - Domain gap analysis
+
+### After Stage 1 Complete
+5. **Select Top 10 Strategies for Stage 2**
+   - Based on mIoU improvement over baseline
+   - Cross-domain robustness scores
+   - Representative coverage of generator families
+
+6. **Submit Stage 2 Training Jobs**
+   - 10 strategies × 4 datasets × 3 models = 120 jobs
+   - Train on ALL weather conditions (no domain filter)
 
 ---
 

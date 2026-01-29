@@ -46,7 +46,7 @@ Stages:
     Stage 2: Train on all conditions, test domain-inclusive performance
 
 Pre-flight Checks:
-    - Skips if checkpoint already exists (iter_80000.pth or iter_10000.pth)
+    - Skips if checkpoint already exists (iter_10000.pth)
     - Skips if training lock is held by another job
     - Skips gen_* strategies if generated images don't exist for dataset
 """
@@ -77,6 +77,7 @@ from training_lock import TrainingLock
 # Base paths
 WEIGHTS_ROOT_STAGE1 = Path('/scratch/aaa_exchange/AWARE/WEIGHTS')
 WEIGHTS_ROOT_STAGE2 = Path('/scratch/aaa_exchange/AWARE/WEIGHTS_STAGE_2')
+WEIGHTS_ROOT_RATIO_ABLATION = Path('/scratch/aaa_exchange/AWARE/WEIGHTS_RATIO_ABLATION')
 GENERATED_IMAGES_ROOT = Path('/scratch/aaa_exchange/AWARE/GENERATED_IMAGES')
 
 # All datasets
@@ -235,8 +236,9 @@ class TrainingJob:
     strategy: str
     dataset: str
     model: str
-    stage: int
+    stage: int  # Can be 1, 2, or 'ratio' for ratio ablation
     ratio: float = 0.5
+    seg_loss: Optional[str] = None
     weights_dir: Optional[Path] = None
     skip_reason: Optional[str] = None
     
@@ -245,7 +247,17 @@ class TrainingJob:
         """Generate LSF job name."""
         dataset_short = self.dataset.lower().replace('-', '')
         model_short = self.model.split('_')[0]
-        return f'{self.strategy}_{dataset_short}_{model_short}'
+        loss_tag = ''
+        if self.seg_loss and self.seg_loss != 'cross_entropy':
+            loss_tag = f'_{self.seg_loss}'
+        if self.strategy.startswith('gen_'):
+            if self.ratio != 0.5:
+                base = f'{self.strategy}_{dataset_short}_{model_short}_{self.ratio:.2f}'.replace('.', 'p')
+            else:
+                base = f'{self.strategy}_{dataset_short}_{model_short}'
+        else:
+            base = f'{self.strategy}_{dataset_short}_{model_short}'
+        return f'{base}{loss_tag}'
     
     @property
     def is_skipped(self) -> bool:
@@ -253,17 +265,34 @@ class TrainingJob:
         return self.skip_reason is not None
 
 
-def get_weights_dir(strategy: str, dataset: str, model: str, stage: int, ratio: float = 0.5) -> Path:
+def get_weights_dir(
+    strategy: str,
+    dataset: str,
+    model: str,
+    stage: int,
+    ratio: float = 0.5,
+    seg_loss: Optional[str] = None,
+) -> Path:
     """Get the weights directory for a training configuration."""
-    base_root = WEIGHTS_ROOT_STAGE1 if stage == 1 else WEIGHTS_ROOT_STAGE2
+    # Determine base root based on stage
+    if stage == 1:
+        base_root = WEIGHTS_ROOT_STAGE1
+    elif stage == 2:
+        base_root = WEIGHTS_ROOT_STAGE2
+    elif stage == 'ratio':
+        base_root = WEIGHTS_ROOT_RATIO_ABLATION
+    else:
+        base_root = WEIGHTS_ROOT_STAGE1
     
     # Dataset directory name (lowercase, handle hyphen)
-    dataset_dir = dataset.lower().replace('-', '-')  # Keep IDD-AW as idd-aw
+    dataset_dir = dataset.lower().replace('-', '')  # IDD-AW → iddaw for ratio ablation
     
     # Model directory name
     model_dir = model
     if strategy.startswith('gen_') and ratio != 1.0:
         model_dir = f'{model}_ratio{ratio:.2f}'.replace('.', 'p')
+    if seg_loss and seg_loss != 'cross_entropy':
+        model_dir = f'{model_dir}_loss-{seg_loss}'
     
     return base_root / strategy / dataset_dir / model_dir
 
@@ -273,7 +302,8 @@ def generate_job_list(
     strategies: Optional[List[str]] = None,
     datasets: Optional[List[str]] = None,
     models: Optional[List[str]] = None,
-    ratio: float = 0.5,
+    ratios: Optional[List[float]] = None,
+    seg_loss: Optional[str] = None,
     check_existing: bool = True,
     check_locks: bool = True,
 ) -> List[TrainingJob]:
@@ -281,11 +311,11 @@ def generate_job_list(
     Generate list of training jobs with pre-flight checks.
     
     Args:
-        stage: Training stage (1 or 2)
+        stage: Training stage (1, 2, or 'ratio' for ratio ablation)
         strategies: List of strategies (default: all strategies - baseline, std_*, gen_*)
         datasets: List of datasets (default: all)
         models: List of models (default: all)
-        ratio: Real/gen ratio for generative strategies
+        ratios: List of real/gen ratios for generative strategies (default: [0.5])
         check_existing: Skip jobs with existing results
         check_locks: Skip jobs that are currently locked
         
@@ -295,38 +325,50 @@ def generate_job_list(
     strategies = strategies or ALL_STRATEGIES  # Now includes baseline + std_* + gen_*
     datasets = datasets or ALL_DATASETS
     models = models or ALL_MODELS
+    ratios = ratios or [0.5]  # Default to single ratio of 0.5
     
     jobs = []
     
     for strategy in strategies:
         for dataset in datasets:
             for model in models:
-                job = TrainingJob(
-                    strategy=strategy,
-                    dataset=dataset,
-                    model=model,
-                    stage=stage,
-                    ratio=ratio,
-                )
+                # For non-generative strategies, only use ratio=1.0 (ignored anyway)
+                strategy_ratios = ratios if strategy.startswith('gen_') else [1.0]
                 
-                # Get weights directory
-                job.weights_dir = get_weights_dir(strategy, dataset, model, stage, ratio)
-                
-                # Pre-flight checks
-                if check_existing and has_valid_results(job.weights_dir):
-                    job.skip_reason = 'Results exist'
-                elif strategy.startswith('gen_') and not has_generated_images(strategy, dataset):
-                    job.skip_reason = 'No generated images'
-                elif check_locks:
-                    lock = TrainingLock(strategy, dataset, model, ratio if strategy.startswith('gen_') else None)
-                    if lock.is_locked():
-                        holder = lock.get_lock_holder()
-                        if holder:
-                            job.skip_reason = f"Locked by {holder.get('user', 'unknown')}@{holder.get('hostname', 'unknown')}"
-                        else:
-                            job.skip_reason = 'Locked'
-                
-                jobs.append(job)
+                for ratio in strategy_ratios:
+                    job = TrainingJob(
+                        strategy=strategy,
+                        dataset=dataset,
+                        model=model,
+                        stage=stage,
+                        ratio=ratio,
+                        seg_loss=seg_loss,
+                    )
+                    
+                    # Get weights directory
+                    job.weights_dir = get_weights_dir(strategy, dataset, model, stage, ratio, seg_loss)
+                    
+                    # Pre-flight checks
+                    if check_existing and has_valid_results(job.weights_dir):
+                        job.skip_reason = 'Results exist'
+                    elif strategy.startswith('gen_') and not has_generated_images(strategy, dataset):
+                        job.skip_reason = 'No generated images'
+                    elif check_locks:
+                        lock = TrainingLock(
+                            strategy,
+                            dataset,
+                            model,
+                            ratio if strategy.startswith('gen_') else None,
+                            seg_loss=seg_loss,
+                        )
+                        if lock.is_locked():
+                            holder = lock.get_lock_holder()
+                            if holder:
+                                job.skip_reason = f"Locked by {holder.get('user', 'unknown')}@{holder.get('hostname', 'unknown')}"
+                            else:
+                                job.skip_reason = 'Locked'
+                    
+                    jobs.append(job)
     
     return jobs
 
@@ -335,7 +377,12 @@ def generate_job_list(
 # Job Submission
 # ============================================================================
 
-def generate_job_script(job: TrainingJob, lsf_config: LSFConfig) -> str:
+def generate_job_script(
+    job: TrainingJob,
+    lsf_config: LSFConfig,
+    max_iters: Optional[int] = None,
+    seg_loss: Optional[str] = None,
+) -> str:
     """Generate LSF job script for a training job."""
     work_dir = str(job.weights_dir)
     
@@ -347,17 +394,30 @@ def generate_job_script(job: TrainingJob, lsf_config: LSFConfig) -> str:
         '--strategy', job.strategy,
     ]
     
-    if job.stage == 1:
+    # Add domain filter for Stage 1 and ratio ablation (not Stage 2)
+    if job.stage in [1, 'ratio']:
         cmd_parts.extend(['--domain-filter', 'clear_day'])
     
+    # Add ratio parameter for generative strategies
     if job.strategy.startswith('gen_'):
         cmd_parts.extend(['--real-gen-ratio', str(job.ratio)])
     
-    # Dataset-specific flags
-    # if job.dataset in ['MapillaryVistas', 'OUTSIDE15k']:
-    #     cmd_parts.append('--use-native-classes')
+    # Add max iterations if specified
+    if max_iters is not None:
+        cmd_parts.extend(['--max-iters', str(max_iters)])
+
+    # Add segmentation loss if specified
+    if seg_loss:
+        cmd_parts.extend(['--seg-loss', seg_loss])
+    
+    # Add work-dir to ensure proper output location
+    cmd_parts.extend(['--work-dir', work_dir])
     
     training_cmd = ' '.join(cmd_parts)
+    
+    loss_suffix = ''
+    if seg_loss and seg_loss != 'cross_entropy':
+        loss_suffix = f"_loss-{seg_loss}"
     
     script = f'''#!/bin/bash
 #BSUB -J {job.job_name}
@@ -365,7 +425,7 @@ def generate_job_script(job: TrainingJob, lsf_config: LSFConfig) -> str:
 #BSUB -o {work_dir}/train_%J.out
 #BSUB -e {work_dir}/train_%J.err
 #BSUB -n {lsf_config.gpu_count}
-#BSUB -gpu "num=1"
+#BSUB -gpu "num=1:gmem=20GB"
 #BSUB -W {lsf_config.time_limit}
 
 # ============================================================================
@@ -374,6 +434,9 @@ def generate_job_script(job: TrainingJob, lsf_config: LSFConfig) -> str:
 
 # Set permissions: 775 for directories, 664 for files
 umask 002
+
+# Force Python to not use cached bytecode (always reimport fresh code)
+export PYTHONDONTWRITEBYTECODE=1
 
 # ============================================================================
 # Pre-flight checks inside the job
@@ -388,6 +451,7 @@ echo "Strategy: {job.strategy}"
 echo "Dataset: {job.dataset}"
 echo "Model: {job.model}"
 echo "Stage: {job.stage}"
+echo "Seg Loss: {seg_loss or 'default'}"
 echo "Work Dir: {work_dir}"
 echo "=========================================="
 
@@ -414,7 +478,7 @@ fi
 # Acquire training lock
 LOCK_DIR="/scratch/aaa_exchange/AWARE/training_locks"
 mkdir -p $LOCK_DIR
-LOCK_FILE="$LOCK_DIR/{job.strategy}_{job.dataset.lower().replace('-', '_')}_{job.model}.lock"
+LOCK_FILE="$LOCK_DIR/{job.strategy}_{job.dataset.lower().replace('-', '_')}_{job.model}{loss_suffix}.lock"
 
 # Try to acquire lock (non-blocking)
 exec 200>"$LOCK_FILE"
@@ -434,6 +498,7 @@ cat > "$LOCK_FILE" << EOF
   "strategy": "{job.strategy}",
   "dataset": "{job.dataset}",
   "model": "{job.model}",
+  "seg_loss": "{seg_loss or 'cross_entropy'}",
   "started": "$(date -Iseconds)"
 }}
 EOF
@@ -517,7 +582,13 @@ exit $TRAIN_EXIT_CODE
     return script
 
 
-def submit_job(job: TrainingJob, lsf_config: LSFConfig, dry_run: bool = False) -> bool:
+def submit_job(
+    job: TrainingJob,
+    lsf_config: LSFConfig,
+    dry_run: bool = False,
+    max_iters: Optional[int] = None,
+    seg_loss: Optional[str] = None,
+) -> bool:
     """
     Submit a training job to LSF.
     
@@ -525,6 +596,7 @@ def submit_job(job: TrainingJob, lsf_config: LSFConfig, dry_run: bool = False) -
         job: TrainingJob to submit
         lsf_config: LSF configuration
         dry_run: If True, just print what would be done
+        max_iters: Optional maximum training iterations
         
     Returns:
         True if job was submitted successfully
@@ -538,7 +610,7 @@ def submit_job(job: TrainingJob, lsf_config: LSFConfig, dry_run: bool = False) -
         job.weights_dir.mkdir(parents=True, exist_ok=True)
     
     # Generate job script
-    script = generate_job_script(job, lsf_config)
+    script = generate_job_script(job, lsf_config, max_iters=max_iters, seg_loss=seg_loss)
     script_path = job.weights_dir / 'submit_job.sh'
     
     if dry_run:
@@ -614,8 +686,8 @@ Examples:
     )
     
     # Required arguments
-    parser.add_argument('--stage', type=int, required=True, choices=[1, 2],
-                       help='Training stage (1: clear_day only, 2: all domains)')
+    parser.add_argument('--stage', required=True,
+                       help='Training stage: 1 (clear_day only), 2 (all domains), or "ratio" for ratio ablation study')
     
     # Filtering options
     parser.add_argument('--strategy-type', choices=['all', 'std', 'gen'],
@@ -631,8 +703,13 @@ Examples:
     # Job control
     parser.add_argument('--limit', type=int, default=None,
                        help='Maximum number of jobs to submit')
-    parser.add_argument('--ratio', type=float, default=0.5,
-                       help='Real/gen ratio for generative strategies (default: 0.5)')
+    parser.add_argument('--ratios', type=float, nargs='+', default=[0.5],
+                       help='Real/gen ratios for generative strategies (default: 0.5). Example: --ratios 0.0 0.25 0.5')
+    parser.add_argument('--max-iters', type=int, default=None,
+                       help='Maximum training iterations (default: use config default, usually 10000)')
+    parser.add_argument('--seg-loss', type=str, default=None,
+                       choices=['cross_entropy', 'lovasz', 'boundary'],
+                       help='Segmentation loss override for decode/aux heads')
     
     # Pre-flight options
     parser.add_argument('--no-check-existing', action='store_true',
@@ -651,6 +728,8 @@ Examples:
     # Execution options
     parser.add_argument('--dry-run', action='store_true',
                        help='Show what would be done without submitting')
+    parser.add_argument('-y', '--yes', action='store_true',
+                       help='Skip confirmation prompt and submit immediately')
     parser.add_argument('--delay', type=float, default=0.5,
                        help='Delay between job submissions in seconds (default: 0.5)')
     
@@ -662,6 +741,14 @@ Examples:
         time_limit=args.time_limit,
         memory=args.memory,
     )
+    
+    # Validate and parse stage
+    stage_map = {'1': 1, '2': 2, 'ratio': 'ratio'}
+    stage_input = str(args.stage).lower()
+    if stage_input not in stage_map and stage_input not in ['1', '2', 'ratio']:
+        print(f"Error: Invalid stage '{args.stage}'. Must be 1, 2, or 'ratio'")
+        return
+    stage = stage_map.get(stage_input, args.stage if isinstance(args.stage, int) else stage_input)
     
     # Determine strategies based on --strategy-type or --strategies
     strategies = args.strategies
@@ -675,18 +762,21 @@ Examples:
     
     # Generate job list
     print(f"\n{'='*60}")
-    print(f"Batch Training Submission - Stage {args.stage}")
+    print(f"Batch Training Submission - Stage {stage}")
+    if stage == 'ratio':
+        print(f"  Ratios: {args.ratios}")
     print(f"{'='*60}")
     print(f"\nStrategy type: {args.strategy_type}")
     print(f"Strategies: {len(strategies)}")
     print(f"\nGenerating job list...")
     
     jobs = generate_job_list(
-        stage=args.stage,
+        stage=stage,
         strategies=strategies,
         datasets=args.datasets,
         models=args.models,
-        ratio=args.ratio,
+        ratios=args.ratios,
+        seg_loss=args.seg_loss,
         check_existing=not args.no_check_existing,
         check_locks=not args.no_check_locks,
     )
@@ -716,7 +806,7 @@ Examples:
             print(f"  - {reason}: {count}")
     
     # Confirm submission
-    if not args.dry_run and to_submit > 0:
+    if not args.dry_run and to_submit > 0 and not args.yes:
         print(f"\n{'='*60}")
         response = input(f"Submit {min(to_submit, args.limit or to_submit)} jobs? [y/N]: ")
         if response.lower() != 'y':
@@ -737,7 +827,7 @@ Examples:
             print(f"\nReached limit of {args.limit} jobs")
             break
         
-        if submit_job(job, lsf_config, dry_run=args.dry_run):
+        if submit_job(job, lsf_config, dry_run=args.dry_run, max_iters=args.max_iters, seg_loss=args.seg_loss):
             submitted += 1
             if not args.dry_run and args.delay > 0:
                 time.sleep(args.delay)

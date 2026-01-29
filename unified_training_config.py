@@ -751,6 +751,8 @@ class TrainingConfig:
     # Learning rate scaling factor (relative to batch_size=2)
     # lr = base_lr * batch_size / 2
     lr_scale_factor: float = 4.0  # batch_size=8 / base_batch_size=2
+    # Segmentation loss for decode/aux heads
+    seg_loss: str = 'cross_entropy'
 
 
 TRAINING_CONFIGS = {
@@ -1004,6 +1006,10 @@ class UnifiedTrainingConfig:
             for key, value in custom_training_config.items():
                 if hasattr(training_cfg, key):
                     setattr(training_cfg, key, value)
+
+        # Ensure warmup_iters does not exceed max_iters
+        if training_cfg.max_iters <= training_cfg.warmup_iters:
+            training_cfg.warmup_iters = max(1, training_cfg.max_iters // 2)
         
         # Apply custom conditions if provided
         conditions = custom_conditions or aug_strategy.conditions
@@ -1134,6 +1140,10 @@ class UnifiedTrainingConfig:
             for key, value in custom_training_config.items():
                 if hasattr(training_cfg, key):
                     setattr(training_cfg, key, value)
+
+        # Ensure warmup_iters does not exceed max_iters
+        if training_cfg.max_iters <= training_cfg.warmup_iters:
+            training_cfg.warmup_iters = max(1, training_cfg.max_iters // 2)
         
         conditions = custom_conditions or aug_strategy.conditions
         
@@ -1651,6 +1661,66 @@ class UnifiedTrainingConfig:
             ))
         
         return hooks
+
+    def _get_segmentation_loss_config(self, seg_loss: str) -> Optional[Dict[str, Any]]:
+        """Return loss configuration for segmentation heads."""
+        if not seg_loss or seg_loss == 'cross_entropy':
+            return None
+        if seg_loss == 'lovasz':
+            return dict(
+                type='LovaszLoss',
+                loss_type='multi_class',
+                classes='present',
+                per_image=True,
+                reduction='mean',
+                loss_weight=1.0,
+            )
+        if seg_loss == 'boundary':
+            return dict(
+                type='SegBoundaryLoss',
+                loss_weight=1.0,
+                ignore_index=255,
+            )
+        raise ValueError(f"Unsupported segmentation loss: {seg_loss}")
+
+    def _apply_segmentation_loss(
+        self,
+        model_def: Dict[str, Any],
+        seg_loss: str,
+    ) -> Dict[str, Any]:
+        """Apply a segmentation loss override to decode/aux heads."""
+        loss_cfg = self._get_segmentation_loss_config(seg_loss)
+        if loss_cfg is None:
+            return model_def
+
+        def _replace_loss(head: Dict[str, Any]) -> None:
+            if not isinstance(head, dict) or 'loss_decode' not in head:
+                return
+            existing = head.get('loss_decode', {})
+            loss_weight = 1.0
+            if isinstance(existing, dict) and 'loss_weight' in existing:
+                loss_weight = existing['loss_weight']
+            new_loss = dict(loss_cfg)
+            new_loss['loss_weight'] = loss_weight
+            head['loss_decode'] = new_loss
+
+        if 'decode_head' in model_def:
+            decode_head = model_def['decode_head']
+            if isinstance(decode_head, dict):
+                _replace_loss(decode_head)
+            elif isinstance(decode_head, list):
+                for head in decode_head:
+                    _replace_loss(head)
+
+        if 'auxiliary_head' in model_def:
+            aux_head = model_def['auxiliary_head']
+            if isinstance(aux_head, dict):
+                _replace_loss(aux_head)
+            elif isinstance(aux_head, list):
+                for head in aux_head:
+                    _replace_loss(head)
+
+        return model_def
     
     def _build_base_config(
         self,
@@ -1679,6 +1749,10 @@ class UnifiedTrainingConfig:
             
             # Update pretrained paths with cache_dir
             model_def = self._update_pretrained_paths(model_def)
+
+            # Apply segmentation loss override if configured
+            if dataset_cfg.task == 'segmentation':
+                model_def = self._apply_segmentation_loss(model_def, training_cfg.seg_loss)
         
         # Build optimizer wrapper (new MMEngine format)
         # Scale learning rate based on batch size: lr = base_lr * batch_size / 2
@@ -1736,6 +1810,7 @@ class UnifiedTrainingConfig:
                 'batch_size': training_cfg.batch_size,  # Store for dataloader config
                 'max_iters': training_cfg.max_iters,
                 'lr_scale_factor': training_cfg.lr_scale_factor,
+                'seg_loss': training_cfg.seg_loss,
             },
             
             # Model definition (inline, not inherited from _base_)

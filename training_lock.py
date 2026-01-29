@@ -40,6 +40,7 @@ class TrainingLock:
     
     def __init__(self, strategy: str, dataset: str, model: str, 
                  ratio: Optional[float] = None,
+                 seg_loss: Optional[str] = None,
                  lock_dir: str = DEFAULT_LOCK_DIR):
         """
         Initialize a training lock.
@@ -55,12 +56,15 @@ class TrainingLock:
         self.dataset = dataset.lower().replace('-', '_')
         self.model = model
         self.ratio = ratio
+        self.seg_loss = seg_loss
         self.lock_dir = Path(lock_dir)
         
         # Build lock filename
         lock_name = f'{strategy}_{self.dataset}_{model}'
         if ratio is not None:
             lock_name += f'_ratio{ratio:.2f}'.replace('.', 'p')
+        if seg_loss and seg_loss != 'cross_entropy':
+            lock_name += f'_loss-{seg_loss}'
         self.lock_file = self.lock_dir / f'{lock_name}.lock'
         
         self._file_handle = None
@@ -76,6 +80,7 @@ class TrainingLock:
             'dataset': self.dataset,
             'model': self.model,
             'ratio': self.ratio,
+            'seg_loss': self.seg_loss,
             'job_id': os.environ.get('LSB_JOBID', 'unknown'),
             'hostname': socket.gethostname(),
             'pid': os.getpid(),
@@ -224,19 +229,21 @@ class TrainingLock:
 
 
 def check_training_lock(strategy: str, dataset: str, model: str, 
-                        ratio: Optional[float] = None) -> bool:
+                        ratio: Optional[float] = None,
+                        seg_loss: Optional[str] = None) -> bool:
     """
     Convenience function to check if a training configuration is locked.
     
     Returns:
         True if NOT locked (can proceed), False if locked (should skip)
     """
-    lock = TrainingLock(strategy, dataset, model, ratio)
+    lock = TrainingLock(strategy, dataset, model, ratio, seg_loss=seg_loss)
     return not lock.is_locked()
 
 
 def preflight_check(strategy: str, dataset: str, model: str,
-                   ratio: Optional[float] = None) -> bool:
+                   ratio: Optional[float] = None,
+                   seg_loss: Optional[str] = None) -> bool:
     """
     Pre-flight check before starting training.
     
@@ -251,7 +258,7 @@ def preflight_check(strategy: str, dataset: str, model: str,
     Returns:
         True if safe to proceed, False if should skip
     """
-    lock = TrainingLock(strategy, dataset, model, ratio)
+    lock = TrainingLock(strategy, dataset, model, ratio, seg_loss=seg_loss)
     
     if lock.is_locked():
         holder = lock.get_lock_holder()
@@ -262,6 +269,8 @@ def preflight_check(strategy: str, dataset: str, model: str,
         print(f"  Model: {model}", file=sys.stderr)
         if ratio:
             print(f"  Ratio: {ratio}", file=sys.stderr)
+        if seg_loss:
+            print(f"  Seg Loss: {seg_loss}", file=sys.stderr)
         if holder:
             print(f"  Held by: Job {holder.get('job_id')} on {holder.get('hostname')}", file=sys.stderr)
             print(f"  Since: {holder.get('acquired_at')}", file=sys.stderr)
@@ -348,6 +357,7 @@ if __name__ == '__main__':
     parser.add_argument('--dataset', help='Dataset name (for check)')
     parser.add_argument('--model', help='Model name (for check)')
     parser.add_argument('--ratio', type=float, help='Ratio (for check)')
+    parser.add_argument('--seg-loss', help='Segmentation loss (for check)')
     parser.add_argument('--no-dry-run', action='store_true',
                        help='Actually clear stale locks')
     
@@ -381,5 +391,5 @@ if __name__ == '__main__':
             print("Error: --strategy, --dataset, and --model required for check")
             sys.exit(1)
         
-        can_proceed = preflight_check(args.strategy, args.dataset, args.model, args.ratio)
+        can_proceed = preflight_check(args.strategy, args.dataset, args.model, args.ratio, args.seg_loss)
         sys.exit(0 if can_proceed else 1)

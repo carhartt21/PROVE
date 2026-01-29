@@ -79,8 +79,8 @@ GENERATIVE_STRATEGIES = [
 
 STANDARD_STRATEGIES = [
     'baseline',
-    'std_std_photometric_distort',
-    # 'std_minimal',  # REMOVED: Not useful as a strategy
+    'std_minimal',
+    'std_photometric_distort',
     'std_autoaugment',
     'std_cutmix',
     'std_mixup',
@@ -190,7 +190,10 @@ def check_weight_status(strategy, dataset, domain_filter='clear_day'):
         
         for d in dirs_to_try:
             weights_path = weights_root / strategy / d / model_dir
-            checkpoint = weights_path / "iter_80000.pth"
+            # Check for iter_10000.pth (Stage 1) or iter_80000.pth (fallback)
+            checkpoint = weights_path / "iter_10000.pth"
+            if not checkpoint.exists():
+                checkpoint = weights_path / "iter_80000.pth"
             lock_file = weights_path / ".training_lock"
             
             status = 'pending'
@@ -207,7 +210,7 @@ def check_weight_status(strategy, dataset, domain_filter='clear_day'):
                     if weights_path.exists():
                         files = os.listdir(weights_path)
                         if ".training_lock" in files: status = 'running'
-                        elif "iter_80000.pth" in files: status = 'complete'
+                        elif "iter_10000.pth" in files or "iter_80000.pth" in files: status = 'complete'
                 except: pass
                 
             if status == 'complete':
@@ -511,7 +514,10 @@ def check_model_weight_status(strategy, dataset, model, domain_filter='clear_day
         
     for d in dirs_to_try:
         weights_path = weights_root / strategy / d / model
-        checkpoint = weights_path / "iter_80000.pth"
+        # Check for iter_10000.pth (Stage 1) or iter_80000.pth (fallback)
+        checkpoint = weights_path / "iter_10000.pth"
+        if not checkpoint.exists():
+            checkpoint = weights_path / "iter_80000.pth"
         lock_file = weights_path / ".training_lock"
         
         try:
@@ -528,7 +534,7 @@ def check_model_weight_status(strategy, dataset, model, domain_filter='clear_day
                 if weights_path.exists():
                     files = os.listdir(weights_path)
                     if ".training_lock" in files: return 'running', weights_path
-                    if "iter_80000.pth" in files: return 'complete', weights_path
+                    if "iter_10000.pth" in files or "iter_80000.pth" in files: return 'complete', weights_path
             except: pass
             
     return 'pending', weights_path
