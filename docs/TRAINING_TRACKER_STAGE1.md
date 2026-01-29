@@ -1,6 +1,6 @@
 # Training Tracker - Stage 1 (Clear Day)
 
-**Last Updated:** 2026-01-28 13:30
+**Last Updated:** 2026-01-29 08:01
 
 ---
 
@@ -21,11 +21,11 @@
 
 ## Progress Summary (⚠️ gen_* results INVALID)
 
-| Category | Total | Complete | Status |
-|----------|-------|----------|--------|
-| **Generative (gen_*)** | 83 | 84 | ❌ **INVALID** - needs retraining |
-| **Standard (std_*)** | 24 | 24 | ✅ **VALID** |
-| **TOTAL** | 107 | 108 | ⚠️ Partial |
+| Category | Total | Complete | Partial | Running | Pending | Failed |
+|----------|-------|----------|---------|---------|---------|--------|
+| **Generative (gen_*)** | 83 | 54 | 0 | 0 | 30 | 0 |
+| **Standard (std_*)** | 28 | 28 | 0 | 0 | 0 | 0 |
+| **TOTAL** | 111 | 82 | 0 | 0 | 30 | 0 |
 
 ### Generative Image Augmentation Strategies (❌ INVALID)
 
@@ -57,6 +57,7 @@
 | Strategy | BDD10k | IDD-AW | MapillaryVistas | OUTSIDE15k | Notes |
 |----------|--------|--------|-----------------|------------|-------|
 | baseline | ✅ | ✅ | ✅ | ✅ |  |
+| std_minimal | ✅ | ✅ | ✅ | ✅ |  |
 | std_photometric_distort | ✅ | ✅ | ✅ | ✅ |  |
 | std_autoaugment | ✅ | ✅ | ✅ | ✅ |  |
 | std_cutmix | ✅ | ✅ | ✅ | ✅ |  |

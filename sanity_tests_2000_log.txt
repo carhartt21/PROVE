@@ -1,0 +1,1022 @@
+/home/mima2416/miniconda3/envs/prove/lib/python3.10/site-packages/torch/utils/cpp_extension.py:28: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import packaging  # type: ignore[attr-defined]
+01/29 15:48:16 - mmengine - INFO - 
+------------------------------------------------------------
+System environment:
+    sys.platform: linux
+    Python: 3.10.19 | packaged by conda-forge | (main, Oct 22 2025, 22:29:10) [GCC 14.3.0]
+    CUDA available: True
+    MUSA available: False
+    numpy_random_seed: 42
+    GPU 0: NVIDIA RTX A5000
+    CUDA_HOME: None
+    GCC: gcc (GCC) 8.5.0 20210514 (Red Hat 8.5.0-28)
+    PyTorch: 2.1.2.post304
+    PyTorch compiling details: PyTorch built with:
+  - GCC 11.4
+  - C++ Version: 201703
+  - Intel(R) oneAPI Math Kernel Library Version 2023.2-Product Build 20230613 for Intel(R) 64 architecture applications
+  - OpenMP 201511 (a.k.a. OpenMP 4.5)
+  - LAPACK is enabled (usually provided by MKL)
+  - NNPACK is enabled
+  - CPU capability usage: AVX512
+  - CUDA Runtime 11.8
+  - NVCC architecture flags: -gencode;arch=compute_35,code=sm_35;-gencode;arch=compute_50,code=sm_50;-gencode;arch=compute_60,code=sm_60;-gencode;arch=compute_61,code=sm_61;-gencode;arch=compute_70,code=sm_70;-gencode;arch=compute_75,code=sm_75;-gencode;arch=compute_80,code=sm_80;-gencode;arch=compute_86,code=sm_86;-gencode;arch=compute_89,code=sm_89;-gencode;arch=compute_89,code=compute_89
+  - CuDNN 8.9.7
+  - Magma 2.7.2
+  - Build settings: BLAS_INFO=mkl, BUILD_TYPE=Release, CUDA_VERSION=11.8, CUDNN_VERSION=8.9.7, CXX_COMPILER=/home/conda/feedstock_root/build_artifacts/libtorch_1715185017593/_build_env/bin/x86_64-conda-linux-gnu-c++, CXX_FLAGS=-fmessage-length=0 -march=nocona -mtune=haswell -ftree-vectorize -fPIC -fstack-protector-strong -fno-plt -O2 -ffunction-sections -pipe -isystem /home/conda/feedstock_root/build_artifacts/libtorch_1715185017593/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_pl/include -fdebug-prefix-map=/home/conda/feedstock_root/build_artifacts/libtorch_1715185017593/work=/usr/local/src/conda/libtorch-2.1.2 -fdebug-prefix-map=/home/conda/feedstock_root/build_artifacts/libtorch_1715185017593/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_pl=/usr/local/src/conda-prefix -isystem /usr/local/cuda/include -Wno-deprecated-declarations -Wno-error=maybe-uninitialized -D_GLIBCXX_USE_CXX11_ABI=1 -fvisibility-inlines-hidden -DUSE_PTHREADPOOL -DNDEBUG -DUSE_FBGEMM -DUSE_QNNPACK -DUSE_PYTORCH_QNNPACK -DUSE_XNNPACK -DSYMBOLICATE_MOBILE_DEBUG_HANDLE -O2 -fPIC -Wall -Wextra -Werror=return-type -Werror=non-virtual-dtor -Werror=range-loop-construct -Werror=bool-operation -Wnarrowing -Wno-missing-field-initializers -Wno-type-limits -Wno-array-bounds -Wno-unknown-pragmas -Wno-unused-parameter -Wno-unused-function -Wno-unused-result -Wno-strict-overflow -Wno-strict-aliasing -Wno-stringop-overflow -Wno-psabi -Wno-error=pedantic -Wno-error=old-style-cast -Wno-invalid-partial-specialization -Wno-unused-private-field -Wno-aligned-allocation-unavailable -Wno-missing-braces -fdiagnostics-color=always -faligned-new -Wno-unused-but-set-variable -Wno-maybe-uninitialized -fno-math-errno -fno-trapping-math -Werror=format -Werror=cast-function-type -Wno-stringop-overflow, LAPACK_INFO=mkl, PERF_WITH_AVX=1, PERF_WITH_AVX2=1, PERF_WITH_AVX512=1, TORCH_DISABLE_GPU_ASSERTS=ON, TORCH_VERSION=2.1.2, USE_CUDA=1, USE_CUDNN=ON, USE_EXCEPTION_PTR=1, USE_GFLAGS=OFF, USE_GLOG=OFF, USE_MKL=ON, USE_MKLDNN=OFF, USE_MPI=OFF, USE_NCCL=ON, USE_NNPACK=ON, USE_OPENMP=ON, USE_ROCM=OFF, 
+
+    TorchVision: 0.16.1+b88453f
+    OpenCV: 4.10.0
+    MMEngine: 0.10.7
+
+Runtime environment:
+    cudnn_benchmark: True
+    mp_cfg: {'mp_start_method': 'fork', 'opencv_num_threads': 0}
+    dist_cfg: {'backend': 'nccl'}
+    seed: 42
+    deterministic: False
+    Distributed launcher: none
+    Distributed training: False
+    GPU number: 1
+------------------------------------------------------------
+
+01/29 15:48:16 - mmengine - INFO - Config:
+classes = (
+    'road',
+    'sidewalk',
+    'building',
+    'wall',
+    'fence',
+    'pole',
+    'traffic light',
+    'traffic sign',
+    'vegetation',
+    'terrain',
+    'sky',
+    'person',
+    'rider',
+    'car',
+    'truck',
+    'bus',
+    'train',
+    'motorcycle',
+    'bicycle',
+)
+crop_size = (
+    512,
+    512,
+)
+custom_hooks = [
+    dict(
+        check_finite=True,
+        min_delta=0.001,
+        monitor='val/mIoU',
+        patience=5,
+        rule='greater',
+        strict=False,
+        type='EarlyStoppingHook'),
+]
+data_root = '/scratch/aaa_exchange/AWARE/FINAL_SPLITS'
+dataset_type = 'CityscapesDataset'
+default_hooks = dict(
+    checkpoint=dict(by_epoch=False, interval=2000, type='CheckpointHook'),
+    logger=dict(interval=100, type='LoggerHook'),
+    param_scheduler=dict(type='ParamSchedulerHook'),
+    sampler_seed=dict(type='DistSamplerSeedHook'),
+    timer=dict(type='IterTimerHook'))
+default_scope = 'mmseg'
+deterministic = True
+domain_filter = 'clear_day'
+env_cfg = dict(
+    cudnn_benchmark=True,
+    dist_cfg=dict(backend='nccl'),
+    mp_cfg=dict(mp_start_method='fork', opencv_num_threads=0))
+generated_augmentation = dict(
+    augmentation_multiplier=7,
+    conditions=[
+        'cloudy',
+        'dawn_dusk',
+        'fog',
+        'night',
+        'rainy',
+        'snowy',
+    ],
+    enabled=False,
+    gen_root='/scratch/aaa_exchange/AWARE/GENERATED_IMAGES/stargan_v2',
+    generative_model='stargan_v2',
+    manifest_path=
+    '/scratch/aaa_exchange/AWARE/GENERATED_IMAGES/stargan_v2/manifest.csv',
+    real_gen_ratio=0.0)
+gpu_ids = [
+    0,
+]
+img_norm_cfg = dict(
+    mean=[
+        123.675,
+        116.28,
+        103.53,
+    ],
+    std=[
+        58.395,
+        57.12,
+        57.375,
+    ],
+    to_rgb=True)
+log_processor = dict(by_epoch=False)
+mixed_dataloader = dict(
+    batch_composition=dict(
+        generated_samples=8, real_samples=0, total_batch_size=8),
+    domain_filter='clear_day',
+    enabled=False,
+    generated_dataset=dict(
+        conditions=[
+            'cloudy',
+            'dawn_dusk',
+            'fog',
+            'night',
+            'rainy',
+            'snowy',
+        ],
+        data_root='/scratch/aaa_exchange/AWARE/FINAL_SPLITS',
+        dataset_filter='IDD-AW',
+        generated_root=
+        '/scratch/aaa_exchange/AWARE/GENERATED_IMAGES/stargan_v2',
+        include_original=False,
+        manifest_path=
+        '/scratch/aaa_exchange/AWARE/GENERATED_IMAGES/stargan_v2/manifest.csv',
+        type='GeneratedAugmentedDataset'),
+    real_dataset=dict(
+        ann_dir='train/labels/IDD-AW/clear_day',
+        data_root='/scratch/aaa_exchange/AWARE/FINAL_SPLITS',
+        img_dir='train/images/IDD-AW/clear_day',
+        type='CityscapesDataset'),
+    real_gen_ratio=0.0,
+    sampling_strategy='ratio')
+model = dict(
+    auxiliary_head=dict(
+        align_corners=False,
+        channels=256,
+        concat_input=False,
+        dropout_ratio=0.1,
+        in_channels=1024,
+        in_index=2,
+        loss_decode=dict(
+            avg_non_ignore=True,
+            loss_weight=0.4,
+            type='CrossEntropyLoss',
+            use_sigmoid=False),
+        norm_cfg=dict(requires_grad=True, type='SyncBN'),
+        num_classes=19,
+        num_convs=1,
+        type='FCNHead'),
+    backbone=dict(
+        contract_dilation=True,
+        depth=50,
+        dilations=(
+            1,
+            1,
+            2,
+            4,
+        ),
+        init_cfg=dict(
+            checkpoint='open-mmlab://resnet50_v1c', type='Pretrained'),
+        norm_cfg=dict(requires_grad=True, type='SyncBN'),
+        norm_eval=False,
+        num_stages=4,
+        out_indices=(
+            0,
+            1,
+            2,
+            3,
+        ),
+        strides=(
+            1,
+            2,
+            1,
+            1,
+        ),
+        style='pytorch',
+        type='ResNetV1c'),
+    data_preprocessor=dict(
+        bgr_to_rgb=True,
+        mean=[
+            123.675,
+            116.28,
+            103.53,
+        ],
+        pad_val=0,
+        seg_pad_val=255,
+        size=(
+            512,
+            512,
+        ),
+        std=[
+            58.395,
+            57.12,
+            57.375,
+        ],
+        type='SegDataPreProcessor'),
+    decode_head=dict(
+        align_corners=False,
+        channels=512,
+        dropout_ratio=0.1,
+        in_channels=2048,
+        in_index=3,
+        loss_decode=dict(
+            avg_non_ignore=True,
+            loss_weight=1.0,
+            type='CrossEntropyLoss',
+            use_sigmoid=False),
+        norm_cfg=dict(requires_grad=True, type='SyncBN'),
+        num_classes=19,
+        pool_scales=(
+            1,
+            2,
+            3,
+            6,
+        ),
+        type='PSPHead'),
+    test_cfg=dict(mode='whole'),
+    train_cfg=dict(),
+    type='EncoderDecoder')
+optim_wrapper = dict(
+    optimizer=dict(lr=0.04, momentum=0.9, type='SGD', weight_decay=0.0005),
+    type='OptimWrapper')
+param_scheduler = [
+    dict(
+        begin=0, by_epoch=False, end=500, start_factor=0.001, type='LinearLR'),
+    dict(
+        begin=500,
+        by_epoch=False,
+        end=10000,
+        eta_min=1e-06,
+        power=0.9,
+        type='PolyLR'),
+]
+randomness = dict(deterministic=False, seed=42)
+seed = 42
+test_cfg = dict(type='TestLoop')
+test_dataloader = dict(
+    batch_size=1,
+    dataset=dict(
+        data_prefix=dict(
+            img_path='test/images/IDD-AW', seg_map_path='test/labels/IDD-AW'),
+        data_root='/scratch/aaa_exchange/AWARE/FINAL_SPLITS',
+        img_suffix='.png',
+        pipeline=[
+            dict(type='LoadImageFromFile'),
+            dict(type='LoadAnnotations'),
+            dict(type='ReduceToSingleChannel'),
+            dict(keep_ratio=False, scale=(
+                512,
+                512,
+            ), type='Resize'),
+            dict(type='PackSegInputs'),
+        ],
+        reduce_zero_label=False,
+        seg_map_suffix='.png',
+        type='CityscapesDataset'),
+    num_workers=4,
+    persistent_workers=True,
+    sampler=dict(shuffle=False, type='DefaultSampler'))
+test_evaluator = dict(
+    iou_metrics=[
+        'mIoU',
+        'fwIoU',
+    ], prefix='test', type='FWIoUMetric')
+test_pipeline = [
+    dict(type='LoadImageFromFile'),
+    dict(type='LoadAnnotations'),
+    dict(type='ReduceToSingleChannel'),
+    dict(keep_ratio=False, scale=(
+        512,
+        512,
+    ), type='Resize'),
+    dict(type='PackSegInputs'),
+]
+train_cfg = dict(max_iters=2000, type='IterBasedTrainLoop', val_interval=2000)
+train_dataloader = dict(
+    batch_size=8,
+    dataset=dict(
+        data_prefix=dict(
+            img_path='train/images/IDD-AW/clear_day',
+            seg_map_path='train/labels/IDD-AW/clear_day'),
+        data_root='/scratch/aaa_exchange/AWARE/FINAL_SPLITS',
+        img_suffix='.png',
+        pipeline=[
+            dict(type='LoadImageFromFile'),
+            dict(type='LoadAnnotations'),
+            dict(type='ReduceToSingleChannel'),
+            dict(keep_ratio=False, scale=(
+                512,
+                512,
+            ), type='Resize'),
+            dict(type='PackSegInputs'),
+        ],
+        reduce_zero_label=False,
+        seg_map_suffix='.png',
+        type='CityscapesDataset'),
+    num_workers=4,
+    persistent_workers=True,
+    sampler=dict(shuffle=True, type='InfiniteSampler'))
+train_pipeline = [
+    dict(type='LoadImageFromFile'),
+    dict(type='LoadAnnotations'),
+    dict(type='ReduceToSingleChannel'),
+    dict(keep_ratio=False, scale=(
+        512,
+        512,
+    ), type='Resize'),
+    dict(type='PackSegInputs'),
+]
+val_cfg = dict(type='ValLoop')
+val_dataloader = dict(
+    batch_size=1,
+    dataset=dict(
+        data_prefix=dict(
+            img_path='test/images/IDD-AW', seg_map_path='test/labels/IDD-AW'),
+        data_root='/scratch/aaa_exchange/AWARE/FINAL_SPLITS',
+        img_suffix='.png',
+        pipeline=[
+            dict(type='LoadImageFromFile'),
+            dict(type='LoadAnnotations'),
+            dict(type='ReduceToSingleChannel'),
+            dict(keep_ratio=False, scale=(
+                512,
+                512,
+            ), type='Resize'),
+            dict(type='PackSegInputs'),
+        ],
+        reduce_zero_label=False,
+        seg_map_suffix='.png',
+        type='CityscapesDataset'),
+    num_workers=4,
+    persistent_workers=True,
+    sampler=dict(shuffle=False, type='DefaultSampler'))
+val_evaluator = dict(
+    iou_metrics=[
+        'mIoU',
+        'fwIoU',
+    ], prefix='val', type='FWIoUMetric')
+vis_backends = [
+    dict(type='LocalVisBackend'),
+]
+visualizer = dict(
+    name='visualizer',
+    type='SegLocalVisualizer',
+    vis_backends=[
+        dict(type='LocalVisBackend'),
+    ])
+work_dir = '/home/mima2416/repositories/PROVE/local_debug_batches/noise_2000'
+
+/home/mima2416/miniconda3/envs/prove/lib/python3.10/site-packages/mmseg/models/builder.py:36: UserWarning: ``build_loss`` would be deprecated soon, please use ``mmseg.registry.MODELS.build()`` 
+  warnings.warn('``build_loss`` would be deprecated soon, please use '
+01/29 15:48:19 - mmengine - INFO - Distributed training is not used, all SyncBatchNorm (SyncBN) layers in the model will be automatically reverted to BatchNormXd layers if they are used.
+01/29 15:48:19 - mmengine - INFO - Hooks will be executed in the following order:
+before_run:
+(VERY_HIGH   ) RuntimeInfoHook                    
+(BELOW_NORMAL) LoggerHook                         
+(LOWEST      ) EarlyStoppingHook                  
+ -------------------- 
+before_train:
+(VERY_HIGH   ) RuntimeInfoHook                    
+(NORMAL      ) IterTimerHook                      
+(VERY_LOW    ) CheckpointHook                     
+ -------------------- 
+before_train_epoch:
+(VERY_HIGH   ) RuntimeInfoHook                    
+(NORMAL      ) IterTimerHook                      
+(NORMAL      ) DistSamplerSeedHook                
+ -------------------- 
+before_train_iter:
+(VERY_HIGH   ) RuntimeInfoHook                    
+(NORMAL      ) IterTimerHook                      
+ -------------------- 
+after_train_iter:
+(VERY_HIGH   ) RuntimeInfoHook                    
+(NORMAL      ) IterTimerHook                      
+(BELOW_NORMAL) LoggerHook                         
+(LOW         ) ParamSchedulerHook                 
+(VERY_LOW    ) CheckpointHook                     
+ -------------------- 
+after_train_epoch:
+(NORMAL      ) IterTimerHook                      
+(LOW         ) ParamSchedulerHook                 
+(VERY_LOW    ) CheckpointHook                     
+ -------------------- 
+before_val:
+(VERY_HIGH   ) RuntimeInfoHook                    
+ -------------------- 
+before_val_epoch:
+(NORMAL      ) IterTimerHook                      
+ -------------------- 
+before_val_iter:
+(NORMAL      ) IterTimerHook                      
+ -------------------- 
+after_val_iter:
+(NORMAL      ) IterTimerHook                      
+(BELOW_NORMAL) LoggerHook                         
+ -------------------- 
+after_val_epoch:
+(VERY_HIGH   ) RuntimeInfoHook                    
+(NORMAL      ) IterTimerHook                      
+(BELOW_NORMAL) LoggerHook                         
+(LOW         ) ParamSchedulerHook                 
+(VERY_LOW    ) CheckpointHook                     
+(LOWEST      ) EarlyStoppingHook                  
+ -------------------- 
+after_val:
+(VERY_HIGH   ) RuntimeInfoHook                    
+ -------------------- 
+after_train:
+(VERY_HIGH   ) RuntimeInfoHook                    
+(VERY_LOW    ) CheckpointHook                     
+ -------------------- 
+before_test:
+(VERY_HIGH   ) RuntimeInfoHook                    
+ -------------------- 
+before_test_epoch:
+(NORMAL      ) IterTimerHook                      
+ -------------------- 
+before_test_iter:
+(NORMAL      ) IterTimerHook                      
+ -------------------- 
+after_test_iter:
+(NORMAL      ) IterTimerHook                      
+(BELOW_NORMAL) LoggerHook                         
+ -------------------- 
+after_test_epoch:
+(VERY_HIGH   ) RuntimeInfoHook                    
+(NORMAL      ) IterTimerHook                      
+(BELOW_NORMAL) LoggerHook                         
+ -------------------- 
+after_test:
+(VERY_HIGH   ) RuntimeInfoHook                    
+ -------------------- 
+after_run:
+(BELOW_NORMAL) LoggerHook                         
+ -------------------- 
+
+============================================================
+Running: noise_2000
+Output: /home/mima2416/repositories/PROVE/local_debug_batches/noise_2000
+============================================================
+
+01/29 15:48:20 - mmengine - INFO - load model from: open-mmlab://resnet50_v1c
+01/29 15:48:20 - mmengine - INFO - Loads checkpoint by openmmlab backend from path: open-mmlab://resnet50_v1c
+01/29 15:48:20 - mmengine - WARNING - The model and loaded state dict do not match exactly
+
+unexpected key in source state_dict: fc.weight, fc.bias
+
+01/29 15:48:20 - mmengine - WARNING - "FileClient" will be deprecated in future. Please use io functions in https://mmengine.readthedocs.io/en/latest/api/fileio.html#file-io
+01/29 15:48:20 - mmengine - WARNING - "HardDiskBackend" is the alias of "LocalBackend" and the former will be deprecated in future.
+01/29 15:48:20 - mmengine - INFO - Checkpoints will be saved to /home/mima2416/repositories/PROVE/local_debug_batches/noise_2000.
+01/29 15:49:19 - mmengine - INFO - Iter(train) [ 100/2000]  lr: 7.9679e-03  eta: 0:18:36  time: 0.5205  data_time: 0.0064  memory: 22915  loss: 1.5016  decode.loss_ce: 1.0023  decode.acc_seg: 71.4366  aux.loss_ce: 0.4993  aux.acc_seg: 66.9830
+01/29 15:50:12 - mmengine - INFO - Iter(train) [ 200/2000]  lr: 1.5976e-02  eta: 0:16:42  time: 0.5301  data_time: 0.0065  memory: 11111  loss: 1.3171  decode.loss_ce: 0.8812  decode.acc_seg: 74.0733  aux.loss_ce: 0.4358  aux.acc_seg: 64.4759
+01/29 15:51:05 - mmengine - INFO - Iter(train) [ 300/2000]  lr: 2.3984e-02  eta: 0:15:31  time: 0.5290  data_time: 0.0061  memory: 11111  loss: 1.2366  decode.loss_ce: 0.8486  decode.acc_seg: 69.0059  aux.loss_ce: 0.3880  aux.acc_seg: 67.7847
+01/29 15:51:58 - mmengine - INFO - Iter(train) [ 400/2000]  lr: 3.1992e-02  eta: 0:14:29  time: 0.5322  data_time: 0.0067  memory: 11111  loss: 1.1631  decode.loss_ce: 0.7909  decode.acc_seg: 78.9624  aux.loss_ce: 0.3722  aux.acc_seg: 74.5904
+01/29 15:52:41 - mmengine - INFO - Exp name: training_config_20260129_154815
+01/29 15:52:51 - mmengine - INFO - Iter(train) [ 500/2000]  lr: 4.0000e-02  eta: 0:13:31  time: 0.5309  data_time: 0.0066  memory: 11111  loss: 1.1513  decode.loss_ce: 0.7713  decode.acc_seg: 74.0871  aux.loss_ce: 0.3801  aux.acc_seg: 65.6211
+01/29 15:53:44 - mmengine - INFO - Iter(train) [ 600/2000]  lr: 3.9625e-02  eta: 0:12:35  time: 0.5314  data_time: 0.0066  memory: 11111  loss: 1.0767  decode.loss_ce: 0.7333  decode.acc_seg: 79.1308  aux.loss_ce: 0.3435  aux.acc_seg: 78.4714
+01/29 15:54:37 - mmengine - INFO - Iter(train) [ 700/2000]  lr: 3.9245e-02  eta: 0:11:40  time: 0.5325  data_time: 0.0069  memory: 11111  loss: 0.9956  decode.loss_ce: 0.6739  decode.acc_seg: 79.0362  aux.loss_ce: 0.3217  aux.acc_seg: 76.4370
+01/29 15:55:31 - mmengine - INFO - Iter(train) [ 800/2000]  lr: 3.8865e-02  eta: 0:10:45  time: 0.5317  data_time: 0.0067  memory: 11111  loss: 0.9848  decode.loss_ce: 0.6676  decode.acc_seg: 78.2732  aux.loss_ce: 0.3172  aux.acc_seg: 75.4426
+01/29 15:56:24 - mmengine - INFO - Iter(train) [ 900/2000]  lr: 3.8485e-02  eta: 0:09:51  time: 0.5336  data_time: 0.0071  memory: 11111  loss: 0.9605  decode.loss_ce: 0.6456  decode.acc_seg: 77.7080  aux.loss_ce: 0.3149  aux.acc_seg: 73.7563
+01/29 15:57:17 - mmengine - INFO - Exp name: training_config_20260129_154815
+01/29 15:57:17 - mmengine - INFO - Iter(train) [1000/2000]  lr: 3.8104e-02  eta: 0:08:56  time: 0.5330  data_time: 0.0068  memory: 11111  loss: 0.9580  decode.loss_ce: 0.6511  decode.acc_seg: 79.4139  aux.loss_ce: 0.3068  aux.acc_seg: 77.1115
+01/29 15:58:11 - mmengine - INFO - Iter(train) [1100/2000]  lr: 3.7723e-02  eta: 0:08:02  time: 0.5323  data_time: 0.0069  memory: 11111  loss: 0.9538  decode.loss_ce: 0.6376  decode.acc_seg: 76.9128  aux.loss_ce: 0.3162  aux.acc_seg: 74.2248
+01/29 15:59:04 - mmengine - INFO - Iter(train) [1200/2000]  lr: 3.7341e-02  eta: 0:07:08  time: 0.5331  data_time: 0.0072  memory: 11111  loss: 0.8850  decode.loss_ce: 0.6012  decode.acc_seg: 78.8320  aux.loss_ce: 0.2838  aux.acc_seg: 76.0496
+01/29 15:59:57 - mmengine - INFO - Iter(train) [1300/2000]  lr: 3.6959e-02  eta: 0:06:15  time: 0.5327  data_time: 0.0070  memory: 11111  loss: 0.9572  decode.loss_ce: 0.6485  decode.acc_seg: 79.5461  aux.loss_ce: 0.3087  aux.acc_seg: 77.3673
+01/29 16:00:50 - mmengine - INFO - Iter(train) [1400/2000]  lr: 3.6576e-02  eta: 0:05:21  time: 0.5324  data_time: 0.0069  memory: 11111  loss: 0.9252  decode.loss_ce: 0.6226  decode.acc_seg: 80.3723  aux.loss_ce: 0.3026  aux.acc_seg: 76.0636
+01/29 16:01:44 - mmengine - INFO - Iter(train) [1500/2000]  lr: 3.6193e-02  eta: 0:04:27  time: 0.5333  data_time: 0.0071  memory: 11111  loss: 0.8677  decode.loss_ce: 0.5813  decode.acc_seg: 77.7478  aux.loss_ce: 0.2864  aux.acc_seg: 71.9884
+01/29 16:02:37 - mmengine - INFO - Iter(train) [1600/2000]  lr: 3.5810e-02  eta: 0:03:34  time: 0.5315  data_time: 0.0068  memory: 11111  loss: 0.8920  decode.loss_ce: 0.5877  decode.acc_seg: 82.9122  aux.loss_ce: 0.3043  aux.acc_seg: 77.9022
+01/29 16:03:30 - mmengine - INFO - Iter(train) [1700/2000]  lr: 3.5426e-02  eta: 0:02:40  time: 0.5324  data_time: 0.0068  memory: 11111  loss: 0.9068  decode.loss_ce: 0.6059  decode.acc_seg: 80.7067  aux.loss_ce: 0.3009  aux.acc_seg: 76.3157
+01/29 16:04:23 - mmengine - INFO - Iter(train) [1800/2000]  lr: 3.5042e-02  eta: 0:01:46  time: 0.5311  data_time: 0.0064  memory: 11111  loss: 0.9200  decode.loss_ce: 0.6166  decode.acc_seg: 80.3318  aux.loss_ce: 0.3034  aux.acc_seg: 75.2365
+01/29 16:05:16 - mmengine - INFO - Iter(train) [1900/2000]  lr: 3.4657e-02  eta: 0:00:53  time: 0.5314  data_time: 0.0065  memory: 11111  loss: 0.8311  decode.loss_ce: 0.5547  decode.acc_seg: 80.1967  aux.loss_ce: 0.2764  aux.acc_seg: 77.3786
+01/29 16:06:09 - mmengine - INFO - Exp name: training_config_20260129_154815
+01/29 16:06:09 - mmengine - INFO - Iter(train) [2000/2000]  lr: 3.4271e-02  eta: 0:00:00  time: 0.5304  data_time: 0.0066  memory: 11111  loss: 0.8888  decode.loss_ce: 0.5908  decode.acc_seg: 81.8418  aux.loss_ce: 0.2979  aux.acc_seg: 74.1275
+01/29 16:06:09 - mmengine - INFO - Saving checkpoint at 2000 iterations
+01/29 16:06:13 - mmengine - INFO - Iter(val) [ 100/2928]    eta: 0:01:08  time: 0.0172  data_time: 0.0009  memory: 723  
+01/29 16:06:15 - mmengine - INFO - Iter(val) [ 200/2928]    eta: 0:00:56  time: 0.0172  data_time: 0.0009  memory: 667  
+01/29 16:06:17 - mmengine - INFO - Iter(val) [ 300/2928]    eta: 0:00:51  time: 0.0173  data_time: 0.0009  memory: 667  
+01/29 16:06:19 - mmengine - INFO - Iter(val) [ 400/2928]    eta: 0:00:47  time: 0.0172  data_time: 0.0009  memory: 667  
+01/29 16:06:20 - mmengine - INFO - Iter(val) [ 500/2928]    eta: 0:00:45  time: 0.0174  data_time: 0.0010  memory: 667  
+01/29 16:06:22 - mmengine - INFO - Iter(val) [ 600/2928]    eta: 0:00:42  time: 0.0175  data_time: 0.0010  memory: 667  
+01/29 16:06:24 - mmengine - INFO - Iter(val) [ 700/2928]    eta: 0:00:40  time: 0.0177  data_time: 0.0011  memory: 667  
+01/29 16:06:26 - mmengine - INFO - Iter(val) [ 800/2928]    eta: 0:00:38  time: 0.0175  data_time: 0.0010  memory: 667  
+01/29 16:06:27 - mmengine - INFO - Iter(val) [ 900/2928]    eta: 0:00:36  time: 0.0176  data_time: 0.0011  memory: 667  
+01/29 16:06:29 - mmengine - INFO - Iter(val) [1000/2928]    eta: 0:00:34  time: 0.0175  data_time: 0.0010  memory: 667  
+01/29 16:06:31 - mmengine - INFO - Iter(val) [1100/2928]    eta: 0:00:32  time: 0.0175  data_time: 0.0010  memory: 667  
+01/29 16:06:33 - mmengine - INFO - Iter(val) [1200/2928]    eta: 0:00:31  time: 0.0177  data_time: 0.0011  memory: 667  
+01/29 16:06:34 - mmengine - INFO - Iter(val) [1300/2928]    eta: 0:00:29  time: 0.0176  data_time: 0.0010  memory: 667  
+01/29 16:06:36 - mmengine - INFO - Iter(val) [1400/2928]    eta: 0:00:27  time: 0.0178  data_time: 0.0011  memory: 667  
+01/29 16:06:38 - mmengine - INFO - Iter(val) [1500/2928]    eta: 0:00:25  time: 0.0176  data_time: 0.0011  memory: 667  
+01/29 16:06:40 - mmengine - INFO - Iter(val) [1600/2928]    eta: 0:00:23  time: 0.0177  data_time: 0.0011  memory: 667  
+01/29 16:06:42 - mmengine - INFO - Iter(val) [1700/2928]    eta: 0:00:21  time: 0.0175  data_time: 0.0010  memory: 667  
+01/29 16:06:43 - mmengine - INFO - Iter(val) [1800/2928]    eta: 0:00:20  time: 0.0174  data_time: 0.0010  memory: 667  
+01/29 16:06:45 - mmengine - INFO - Iter(val) [1900/2928]    eta: 0:00:18  time: 0.0178  data_time: 0.0011  memory: 667  
+01/29 16:06:47 - mmengine - INFO - Iter(val) [2000/2928]    eta: 0:00:16  time: 0.0179  data_time: 0.0012  memory: 667  
+01/29 16:06:49 - mmengine - INFO - Iter(val) [2100/2928]    eta: 0:00:14  time: 0.0173  data_time: 0.0009  memory: 667  
+01/29 16:06:50 - mmengine - INFO - Iter(val) [2200/2928]    eta: 0:00:12  time: 0.0173  data_time: 0.0009  memory: 667  
+01/29 16:06:52 - mmengine - INFO - Iter(val) [2300/2928]    eta: 0:00:11  time: 0.0173  data_time: 0.0009  memory: 667  
+01/29 16:06:54 - mmengine - INFO - Iter(val) [2400/2928]    eta: 0:00:09  time: 0.0172  data_time: 0.0009  memory: 667  
+01/29 16:06:56 - mmengine - INFO - Iter(val) [2500/2928]    eta: 0:00:07  time: 0.0173  data_time: 0.0009  memory: 667  
+01/29 16:06:57 - mmengine - INFO - Iter(val) [2600/2928]    eta: 0:00:05  time: 0.0173  data_time: 0.0009  memory: 667  
+01/29 16:06:59 - mmengine - INFO - Iter(val) [2700/2928]    eta: 0:00:04  time: 0.0173  data_time: 0.0009  memory: 667  
+01/29 16:07:01 - mmengine - INFO - Iter(val) [2800/2928]    eta: 0:00:02  time: 0.0173  data_time: 0.0009  memory: 667  
+01/29 16:07:02 - mmengine - INFO - Iter(val) [2900/2928]    eta: 0:00:00  time: 0.0172  data_time: 0.0009  memory: 667  
+01/29 16:07:03 - mmengine - INFO - per class results:
+01/29 16:07:03 - mmengine - INFO - 
++---------------+-------+-------+
+|     Class     |  IoU  |  Acc  |
++---------------+-------+-------+
+|      road     | 85.33 | 91.79 |
+|    sidewalk   |  46.0 | 65.83 |
+|    building   | 47.86 | 62.68 |
+|      wall     | 41.71 | 66.26 |
+|     fence     |  6.81 |  7.06 |
+|      pole     |  0.09 |  0.09 |
+| traffic light |  0.0  |  0.0  |
+|  traffic sign | 19.14 | 20.65 |
+|   vegetation  | 65.37 | 85.98 |
+|    terrain    | 25.15 |  33.5 |
+|      sky      | 81.31 | 86.72 |
+|     person    |  16.2 | 22.51 |
+|     rider     | 15.37 | 18.63 |
+|      car      | 51.58 |  76.3 |
+|     truck     | 37.57 | 49.06 |
+|      bus      |  46.0 | 66.24 |
+|     train     |  0.0  |  0.0  |
+|   motorcycle  | 25.71 | 36.54 |
+|    bicycle    |  0.0  |  0.0  |
++---------------+-------+-------+
+01/29 16:07:03 - mmengine - INFO - Iter(val) [2928/2928]    val/aAcc: 80.8600  val/mIoU: 32.1700  val/mAcc: 41.5700  val/fwIoU: 69.4800  data_time: 0.0010  time: 0.0177
+
+noise_2000: val/mIoU = 32.17
+01/29 16:07:03 - mmengine - INFO - 
+------------------------------------------------------------
+System environment:
+    sys.platform: linux
+    Python: 3.10.19 | packaged by conda-forge | (main, Oct 22 2025, 22:29:10) [GCC 14.3.0]
+    CUDA available: True
+    MUSA available: False
+    numpy_random_seed: 42
+    GPU 0: NVIDIA RTX A5000
+    CUDA_HOME: None
+    GCC: gcc (GCC) 8.5.0 20210514 (Red Hat 8.5.0-28)
+    PyTorch: 2.1.2.post304
+    PyTorch compiling details: PyTorch built with:
+  - GCC 11.4
+  - C++ Version: 201703
+  - Intel(R) oneAPI Math Kernel Library Version 2023.2-Product Build 20230613 for Intel(R) 64 architecture applications
+  - OpenMP 201511 (a.k.a. OpenMP 4.5)
+  - LAPACK is enabled (usually provided by MKL)
+  - NNPACK is enabled
+  - CPU capability usage: AVX512
+  - CUDA Runtime 11.8
+  - NVCC architecture flags: -gencode;arch=compute_35,code=sm_35;-gencode;arch=compute_50,code=sm_50;-gencode;arch=compute_60,code=sm_60;-gencode;arch=compute_61,code=sm_61;-gencode;arch=compute_70,code=sm_70;-gencode;arch=compute_75,code=sm_75;-gencode;arch=compute_80,code=sm_80;-gencode;arch=compute_86,code=sm_86;-gencode;arch=compute_89,code=sm_89;-gencode;arch=compute_89,code=compute_89
+  - CuDNN 8.9.7
+  - Magma 2.7.2
+  - Build settings: BLAS_INFO=mkl, BUILD_TYPE=Release, CUDA_VERSION=11.8, CUDNN_VERSION=8.9.7, CXX_COMPILER=/home/conda/feedstock_root/build_artifacts/libtorch_1715185017593/_build_env/bin/x86_64-conda-linux-gnu-c++, CXX_FLAGS=-fmessage-length=0 -march=nocona -mtune=haswell -ftree-vectorize -fPIC -fstack-protector-strong -fno-plt -O2 -ffunction-sections -pipe -isystem /home/conda/feedstock_root/build_artifacts/libtorch_1715185017593/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_pl/include -fdebug-prefix-map=/home/conda/feedstock_root/build_artifacts/libtorch_1715185017593/work=/usr/local/src/conda/libtorch-2.1.2 -fdebug-prefix-map=/home/conda/feedstock_root/build_artifacts/libtorch_1715185017593/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_pl=/usr/local/src/conda-prefix -isystem /usr/local/cuda/include -Wno-deprecated-declarations -Wno-error=maybe-uninitialized -D_GLIBCXX_USE_CXX11_ABI=1 -fvisibility-inlines-hidden -DUSE_PTHREADPOOL -DNDEBUG -DUSE_FBGEMM -DUSE_QNNPACK -DUSE_PYTORCH_QNNPACK -DUSE_XNNPACK -DSYMBOLICATE_MOBILE_DEBUG_HANDLE -O2 -fPIC -Wall -Wextra -Werror=return-type -Werror=non-virtual-dtor -Werror=range-loop-construct -Werror=bool-operation -Wnarrowing -Wno-missing-field-initializers -Wno-type-limits -Wno-array-bounds -Wno-unknown-pragmas -Wno-unused-parameter -Wno-unused-function -Wno-unused-result -Wno-strict-overflow -Wno-strict-aliasing -Wno-stringop-overflow -Wno-psabi -Wno-error=pedantic -Wno-error=old-style-cast -Wno-invalid-partial-specialization -Wno-unused-private-field -Wno-aligned-allocation-unavailable -Wno-missing-braces -fdiagnostics-color=always -faligned-new -Wno-unused-but-set-variable -Wno-maybe-uninitialized -fno-math-errno -fno-trapping-math -Werror=format -Werror=cast-function-type -Wno-stringop-overflow, LAPACK_INFO=mkl, PERF_WITH_AVX=1, PERF_WITH_AVX2=1, PERF_WITH_AVX512=1, TORCH_DISABLE_GPU_ASSERTS=ON, TORCH_VERSION=2.1.2, USE_CUDA=1, USE_CUDNN=ON, USE_EXCEPTION_PTR=1, USE_GFLAGS=OFF, USE_GLOG=OFF, USE_MKL=ON, USE_MKLDNN=OFF, USE_MPI=OFF, USE_NCCL=ON, USE_NNPACK=ON, USE_OPENMP=ON, USE_ROCM=OFF, 
+
+    TorchVision: 0.16.1+b88453f
+    OpenCV: 4.10.0
+    MMEngine: 0.10.7
+
+Runtime environment:
+    cudnn_benchmark: True
+    mp_cfg: {'mp_start_method': 'fork', 'opencv_num_threads': 0}
+    dist_cfg: {'backend': 'nccl'}
+    seed: 42
+    deterministic: False
+    Distributed launcher: none
+    Distributed training: False
+    GPU number: 1
+------------------------------------------------------------
+
+01/29 16:07:43 - mmengine - INFO - Config:
+classes = (
+    'road',
+    'sidewalk',
+    'building',
+    'wall',
+    'fence',
+    'pole',
+    'traffic light',
+    'traffic sign',
+    'vegetation',
+    'terrain',
+    'sky',
+    'person',
+    'rider',
+    'car',
+    'truck',
+    'bus',
+    'train',
+    'motorcycle',
+    'bicycle',
+)
+crop_size = (
+    512,
+    512,
+)
+custom_hooks = [
+    dict(
+        check_finite=True,
+        min_delta=0.001,
+        monitor='val/mIoU',
+        patience=5,
+        rule='greater',
+        strict=False,
+        type='EarlyStoppingHook'),
+]
+data_root = '/scratch/aaa_exchange/AWARE/FINAL_SPLITS'
+dataset_type = 'CityscapesDataset'
+default_hooks = dict(
+    checkpoint=dict(by_epoch=False, interval=2000, type='CheckpointHook'),
+    logger=dict(interval=100, type='LoggerHook'),
+    param_scheduler=dict(type='ParamSchedulerHook'),
+    sampler_seed=dict(type='DistSamplerSeedHook'),
+    timer=dict(type='IterTimerHook'))
+default_scope = 'mmseg'
+deterministic = True
+domain_filter = 'clear_day'
+env_cfg = dict(
+    cudnn_benchmark=True,
+    dist_cfg=dict(backend='nccl'),
+    mp_cfg=dict(mp_start_method='fork', opencv_num_threads=0))
+generated_augmentation = dict(
+    augmentation_multiplier=7,
+    conditions=[
+        'cloudy',
+        'dawn_dusk',
+        'fog',
+        'night',
+        'rainy',
+        'snowy',
+    ],
+    enabled=False,
+    gen_root='/scratch/aaa_exchange/AWARE/GENERATED_IMAGES/stargan_v2',
+    generative_model='stargan_v2',
+    manifest_path=
+    '/scratch/aaa_exchange/AWARE/GENERATED_IMAGES/stargan_v2/manifest.csv',
+    real_gen_ratio=0.0)
+gpu_ids = [
+    0,
+]
+img_norm_cfg = dict(
+    mean=[
+        123.675,
+        116.28,
+        103.53,
+    ],
+    std=[
+        58.395,
+        57.12,
+        57.375,
+    ],
+    to_rgb=True)
+log_processor = dict(by_epoch=False)
+mixed_dataloader = dict(
+    batch_composition=dict(
+        generated_samples=8, real_samples=0, total_batch_size=8),
+    domain_filter='clear_day',
+    enabled=False,
+    generated_dataset=dict(
+        conditions=[
+            'cloudy',
+            'dawn_dusk',
+            'fog',
+            'night',
+            'rainy',
+            'snowy',
+        ],
+        data_root='/scratch/aaa_exchange/AWARE/FINAL_SPLITS',
+        dataset_filter='IDD-AW',
+        generated_root=
+        '/scratch/aaa_exchange/AWARE/GENERATED_IMAGES/stargan_v2',
+        include_original=False,
+        manifest_path=
+        '/scratch/aaa_exchange/AWARE/GENERATED_IMAGES/stargan_v2/manifest.csv',
+        type='GeneratedAugmentedDataset'),
+    real_dataset=dict(
+        ann_dir='train/labels/IDD-AW/clear_day',
+        data_root='/scratch/aaa_exchange/AWARE/FINAL_SPLITS',
+        img_dir='train/images/IDD-AW/clear_day',
+        type='CityscapesDataset'),
+    real_gen_ratio=0.0,
+    sampling_strategy='ratio')
+model = dict(
+    auxiliary_head=dict(
+        align_corners=False,
+        channels=256,
+        concat_input=False,
+        dropout_ratio=0.1,
+        in_channels=1024,
+        in_index=2,
+        loss_decode=dict(
+            avg_non_ignore=True,
+            loss_weight=0.4,
+            type='CrossEntropyLoss',
+            use_sigmoid=False),
+        norm_cfg=dict(requires_grad=True, type='SyncBN'),
+        num_classes=19,
+        num_convs=1,
+        type='FCNHead'),
+    backbone=dict(
+        contract_dilation=True,
+        depth=50,
+        dilations=(
+            1,
+            1,
+            2,
+            4,
+        ),
+        init_cfg=dict(
+            checkpoint='open-mmlab://resnet50_v1c', type='Pretrained'),
+        norm_cfg=dict(requires_grad=True, type='SyncBN'),
+        norm_eval=False,
+        num_stages=4,
+        out_indices=(
+            0,
+            1,
+            2,
+            3,
+        ),
+        strides=(
+            1,
+            2,
+            1,
+            1,
+        ),
+        style='pytorch',
+        type='ResNetV1c'),
+    data_preprocessor=dict(
+        bgr_to_rgb=True,
+        mean=[
+            123.675,
+            116.28,
+            103.53,
+        ],
+        pad_val=0,
+        seg_pad_val=255,
+        size=(
+            512,
+            512,
+        ),
+        std=[
+            58.395,
+            57.12,
+            57.375,
+        ],
+        type='SegDataPreProcessor'),
+    decode_head=dict(
+        align_corners=False,
+        channels=512,
+        dropout_ratio=0.1,
+        in_channels=2048,
+        in_index=3,
+        loss_decode=dict(
+            avg_non_ignore=True,
+            loss_weight=1.0,
+            type='CrossEntropyLoss',
+            use_sigmoid=False),
+        norm_cfg=dict(requires_grad=True, type='SyncBN'),
+        num_classes=19,
+        pool_scales=(
+            1,
+            2,
+            3,
+            6,
+        ),
+        type='PSPHead'),
+    test_cfg=dict(mode='whole'),
+    train_cfg=dict(),
+    type='EncoderDecoder')
+optim_wrapper = dict(
+    optimizer=dict(lr=0.04, momentum=0.9, type='SGD', weight_decay=0.0005),
+    type='OptimWrapper')
+param_scheduler = [
+    dict(
+        begin=0, by_epoch=False, end=500, start_factor=0.001, type='LinearLR'),
+    dict(
+        begin=500,
+        by_epoch=False,
+        end=10000,
+        eta_min=1e-06,
+        power=0.9,
+        type='PolyLR'),
+]
+randomness = dict(deterministic=False, seed=42)
+seed = 42
+test_cfg = dict(type='TestLoop')
+test_dataloader = dict(
+    batch_size=1,
+    dataset=dict(
+        data_prefix=dict(
+            img_path='test/images/IDD-AW', seg_map_path='test/labels/IDD-AW'),
+        data_root='/scratch/aaa_exchange/AWARE/FINAL_SPLITS',
+        img_suffix='.png',
+        pipeline=[
+            dict(type='LoadImageFromFile'),
+            dict(type='LoadAnnotations'),
+            dict(type='ReduceToSingleChannel'),
+            dict(keep_ratio=False, scale=(
+                512,
+                512,
+            ), type='Resize'),
+            dict(type='PackSegInputs'),
+        ],
+        reduce_zero_label=False,
+        seg_map_suffix='.png',
+        type='CityscapesDataset'),
+    num_workers=4,
+    persistent_workers=True,
+    sampler=dict(shuffle=False, type='DefaultSampler'))
+test_evaluator = dict(
+    iou_metrics=[
+        'mIoU',
+        'fwIoU',
+    ], prefix='test', type='FWIoUMetric')
+test_pipeline = [
+    dict(type='LoadImageFromFile'),
+    dict(type='LoadAnnotations'),
+    dict(type='ReduceToSingleChannel'),
+    dict(keep_ratio=False, scale=(
+        512,
+        512,
+    ), type='Resize'),
+    dict(type='PackSegInputs'),
+]
+train_cfg = dict(max_iters=2000, type='IterBasedTrainLoop', val_interval=2000)
+train_dataloader = dict(
+    batch_size=8,
+    dataset=dict(
+        data_prefix=dict(
+            img_path='train/images/IDD-AW/clear_day',
+            seg_map_path='train/labels/IDD-AW/clear_day'),
+        data_root='/scratch/aaa_exchange/AWARE/FINAL_SPLITS',
+        img_suffix='.png',
+        pipeline=[
+            dict(type='LoadImageFromFile'),
+            dict(type='LoadAnnotations'),
+            dict(type='ReduceToSingleChannel'),
+            dict(keep_ratio=False, scale=(
+                512,
+                512,
+            ), type='Resize'),
+            dict(type='PackSegInputs'),
+        ],
+        reduce_zero_label=False,
+        seg_map_suffix='.png',
+        type='CityscapesDataset'),
+    num_workers=4,
+    persistent_workers=True,
+    sampler=dict(shuffle=True, type='InfiniteSampler'))
+train_pipeline = [
+    dict(type='LoadImageFromFile'),
+    dict(type='LoadAnnotations'),
+    dict(type='ReduceToSingleChannel'),
+    dict(keep_ratio=False, scale=(
+        512,
+        512,
+    ), type='Resize'),
+    dict(type='PackSegInputs'),
+]
+val_cfg = dict(type='ValLoop')
+val_dataloader = dict(
+    batch_size=1,
+    dataset=dict(
+        data_prefix=dict(
+            img_path='test/images/IDD-AW', seg_map_path='test/labels/IDD-AW'),
+        data_root='/scratch/aaa_exchange/AWARE/FINAL_SPLITS',
+        img_suffix='.png',
+        pipeline=[
+            dict(type='LoadImageFromFile'),
+            dict(type='LoadAnnotations'),
+            dict(type='ReduceToSingleChannel'),
+            dict(keep_ratio=False, scale=(
+                512,
+                512,
+            ), type='Resize'),
+            dict(type='PackSegInputs'),
+        ],
+        reduce_zero_label=False,
+        seg_map_suffix='.png',
+        type='CityscapesDataset'),
+    num_workers=4,
+    persistent_workers=True,
+    sampler=dict(shuffle=False, type='DefaultSampler'))
+val_evaluator = dict(
+    iou_metrics=[
+        'mIoU',
+        'fwIoU',
+    ], prefix='val', type='FWIoUMetric')
+vis_backends = [
+    dict(type='LocalVisBackend'),
+]
+visualizer = dict(
+    name='visualizer',
+    type='SegLocalVisualizer',
+    vis_backends=[
+        dict(type='LocalVisBackend'),
+    ])
+work_dir = '/home/mima2416/repositories/PROVE/local_debug_batches/stargan_v2_2000'
+
+/home/mima2416/miniconda3/envs/prove/lib/python3.10/site-packages/mmengine/utils/manager.py:113: UserWarning: <class 'mmseg.visualization.local_visualizer.SegLocalVisualizer'> instance named of visualizer has been created, the method `get_instance` should not accept any other arguments
+  warnings.warn(
+/home/mima2416/miniconda3/envs/prove/lib/python3.10/site-packages/mmseg/models/builder.py:36: UserWarning: ``build_loss`` would be deprecated soon, please use ``mmseg.registry.MODELS.build()`` 
+  warnings.warn('``build_loss`` would be deprecated soon, please use '
+01/29 16:07:44 - mmengine - INFO - Distributed training is not used, all SyncBatchNorm (SyncBN) layers in the model will be automatically reverted to BatchNormXd layers if they are used.
+01/29 16:07:44 - mmengine - INFO - Hooks will be executed in the following order:
+before_run:
+(VERY_HIGH   ) RuntimeInfoHook                    
+(BELOW_NORMAL) LoggerHook                         
+(LOWEST      ) EarlyStoppingHook                  
+ -------------------- 
+before_train:
+(VERY_HIGH   ) RuntimeInfoHook                    
+(NORMAL      ) IterTimerHook                      
+(VERY_LOW    ) CheckpointHook                     
+ -------------------- 
+before_train_epoch:
+(VERY_HIGH   ) RuntimeInfoHook                    
+(NORMAL      ) IterTimerHook                      
+(NORMAL      ) DistSamplerSeedHook                
+ -------------------- 
+before_train_iter:
+(VERY_HIGH   ) RuntimeInfoHook                    
+(NORMAL      ) IterTimerHook                      
+ -------------------- 
+after_train_iter:
+(VERY_HIGH   ) RuntimeInfoHook                    
+(NORMAL      ) IterTimerHook                      
+(BELOW_NORMAL) LoggerHook                         
+(LOW         ) ParamSchedulerHook                 
+(VERY_LOW    ) CheckpointHook                     
+ -------------------- 
+after_train_epoch:
+(NORMAL      ) IterTimerHook                      
+(LOW         ) ParamSchedulerHook                 
+(VERY_LOW    ) CheckpointHook                     
+ -------------------- 
+before_val:
+(VERY_HIGH   ) RuntimeInfoHook                    
+ -------------------- 
+before_val_epoch:
+(NORMAL      ) IterTimerHook                      
+ -------------------- 
+before_val_iter:
+(NORMAL      ) IterTimerHook                      
+ -------------------- 
+after_val_iter:
+(NORMAL      ) IterTimerHook                      
+(BELOW_NORMAL) LoggerHook                         
+ -------------------- 
+after_val_epoch:
+(VERY_HIGH   ) RuntimeInfoHook                    
+(NORMAL      ) IterTimerHook                      
+(BELOW_NORMAL) LoggerHook                         
+(LOW         ) ParamSchedulerHook                 
+(VERY_LOW    ) CheckpointHook                     
+(LOWEST      ) EarlyStoppingHook                  
+ -------------------- 
+after_val:
+(VERY_HIGH   ) RuntimeInfoHook                    
+ -------------------- 
+after_train:
+(VERY_HIGH   ) RuntimeInfoHook                    
+(VERY_LOW    ) CheckpointHook                     
+ -------------------- 
+before_test:
+(VERY_HIGH   ) RuntimeInfoHook                    
+ -------------------- 
+before_test_epoch:
+(NORMAL      ) IterTimerHook                      
+ -------------------- 
+before_test_iter:
+(NORMAL      ) IterTimerHook                      
+ -------------------- 
+after_test_iter:
+(NORMAL      ) IterTimerHook                      
+(BELOW_NORMAL) LoggerHook                         
+ -------------------- 
+after_test_epoch:
+(VERY_HIGH   ) RuntimeInfoHook                    
+(NORMAL      ) IterTimerHook                      
+(BELOW_NORMAL) LoggerHook                         
+ -------------------- 
+after_test:
+(VERY_HIGH   ) RuntimeInfoHook                    
+ -------------------- 
+after_run:
+(BELOW_NORMAL) LoggerHook                         
+ -------------------- 
+Traceback (most recent call last):
+  File "/home/mima2416/repositories/PROVE/run_2000_sanity_tests.py", line 225, in <module>
+    mIoU = run_sanity_test(test_name, output_dir, cfg_path, setup_fn)
+  File "/home/mima2416/repositories/PROVE/run_2000_sanity_tests.py", line 55, in run_sanity_test
+    setup_fn(runner)
+  File "/home/mima2416/repositories/PROVE/run_2000_sanity_tests.py", line 118, in setup_stargan_v2
+    from unified_datasets import GeneratedAugmentedDataset
+ImportError: cannot import name 'GeneratedAugmentedDataset' from 'unified_datasets' (/home/mima2416/repositories/PROVE/unified_datasets.py)

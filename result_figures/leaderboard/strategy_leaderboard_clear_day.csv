@@ -1,0 +1,2 @@
+Strategy,Type,Overall mIoU,Gain vs Clear Day,Normal mIoU,Normal Gain,Adverse mIoU,Adverse Gain,Domain Gap (Δ),Gap Reduction vs Clear Day,Num Results
+baseline_clear_day,Baseline Clear Day,,,,,,,,,0

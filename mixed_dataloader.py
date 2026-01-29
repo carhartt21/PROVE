@@ -164,7 +164,9 @@ class BatchSplitSampler:
         self.epoch = 0
         
         # Calculate samples per batch
-        self.real_per_batch = max(1, int(batch_size * real_gen_ratio))
+        # When ratio=0.0, should have 0 real samples (100% generated)
+        # When ratio=1.0, should have batch_size real samples (100% real)
+        self.real_per_batch = int(batch_size * real_gen_ratio)
         self.gen_per_batch = batch_size - self.real_per_batch
         
         self._generate_batches()
@@ -208,7 +210,11 @@ class BatchSplitSampler:
             self.batches.append(batch)
             
             # Check if we've covered all data
-            if real_ptr >= len(real_indices) and gen_ptr >= len(gen_indices):
+            # When real_per_batch=0 (ratio=0.0), only check generated
+            # When gen_per_batch=0 (ratio=1.0), only check real
+            real_done = (self.real_per_batch == 0) or (real_ptr >= len(real_indices))
+            gen_done = (self.gen_per_batch == 0) or (gen_ptr >= len(gen_indices))
+            if real_done and gen_done:
                 break
             
             # Limit batches to avoid infinite loop

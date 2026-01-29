@@ -347,6 +347,77 @@ def format_markdown_table(df: pd.DataFrame, title: str, description: str = "") -
     return "\n".join(lines)
 
 
+def filter_to_complete_configs(df: pd.DataFrame, verbose: bool = False) -> pd.DataFrame:
+    """Filter DataFrame to only include dataset+model configurations where ALL strategies have results.
+    
+    This ensures fair comparison by requiring equal coverage across all strategies.
+    
+    Args:
+        df: DataFrame with test results
+        verbose: Print details about filtering
+        
+    Returns:
+        Filtered DataFrame with only complete configurations
+    """
+    all_strategies = set(df['strategy'].unique())
+    
+    # Normalize model names by stripping ratio suffix (e.g., "_ratio0p50")
+    # This ensures baseline/std_* and gen_* strategies are grouped together
+    df = df.copy()
+    df['model_normalized'] = df['model'].str.replace(r'_ratio\d+p\d+$', '', regex=True)
+    
+    # Find all configs using normalized model names
+    configs = df.groupby(['dataset', 'model_normalized']).apply(
+        lambda x: set(x['strategy'].unique())
+    ).to_dict()
+    
+    # Identify complete configs (have all strategies)
+    complete_configs = [
+        config for config, strategies in configs.items()
+        if strategies == all_strategies
+    ]
+    
+    if verbose or True:  # Always show this info
+        print(f"\n{'='*70}")
+        print(f"FAIR COMPARISON MODE - Filtering to Complete Configurations")
+        print(f"{'='*70}")
+        print(f"Total strategies: {len(all_strategies)}")
+        print(f"Total configurations: {len(configs)}")
+        print(f"Complete configurations: {len(complete_configs)}")
+        
+        if complete_configs:
+            print(f"\nUsing configurations:")
+            for i, (dataset, model) in enumerate(sorted(complete_configs), 1):
+                print(f"  {i}. {dataset} + {model}")
+        else:
+            print("\n⚠️  WARNING: No configurations have complete strategy coverage!")
+            print("    Showing coverage for each configuration:")
+            for (dataset, model), strategies in sorted(configs.items()):
+                coverage = len(strategies) / len(all_strategies) * 100
+                missing = all_strategies - strategies
+                print(f"    {dataset} + {model}: {len(strategies)}/{len(all_strategies)} ({coverage:.0f}%)")
+                if missing and verbose:
+                    print(f"      Missing: {', '.join(sorted(missing)[:5])}" + 
+                          (f" + {len(missing)-5} more" if len(missing) > 5 else ""))
+        print(f"{'='*70}\n")
+    
+    if not complete_configs:
+        print("ERROR: Cannot create fair leaderboard - no complete configurations found")
+        print("Recommendation: Wait for all MapillaryVistas/OUTSIDE15k tests to complete")
+        return pd.DataFrame()
+    
+    # Filter to complete configs using normalized model names
+    filtered_df = df[df.apply(lambda r: (r['dataset'], r['model_normalized']) in complete_configs, axis=1)]
+    
+    # Drop the temporary normalized column
+    filtered_df = filtered_df.drop(columns=['model_normalized'])
+    
+    print(f"Filtered {len(df)} → {len(filtered_df)} test results")
+    print(f"Each strategy has exactly {len(complete_configs)} test results\n")
+    
+    return filtered_df
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Generate Stage 1 Strategy Leaderboard",
@@ -370,6 +441,8 @@ Examples:
                        help='Override WEIGHTS directory path')
     parser.add_argument('--metric', type=str, default='mIoU', choices=VALID_METRICS,
                        help='Metric to use for ranking (default: mIoU)')
+    parser.add_argument('--fair', action='store_true',
+                       help='Use only configurations with complete strategy coverage for fair comparison')
     parser.add_argument('--verbose', action='store_true',
                        help='Verbose output')
     
@@ -405,6 +478,12 @@ Examples:
     print(f"Strategies: {len(df['strategy'].unique())}")
     print(f"Datasets: {sorted(df['dataset'].unique())}")
     
+    # Apply fair filtering if requested
+    if args.fair:
+        df = filter_to_complete_configs(df, verbose=args.verbose)
+        if df.empty:
+            return
+    
     # Generate leaderboard
     print(f"\n1. Generating main leaderboard by {metric}...")
     leaderboard_df = generate_leaderboard(df, metric)
@@ -432,11 +511,18 @@ Examples:
     per_domain_df = generate_per_domain_table(df, metric)
     
     # Save markdown
-    output_file = OUTPUT_DIR / f'STRATEGY_LEADERBOARD_{metric.upper()}.md'
+    mode_suffix = '_FAIR' if args.fair else ''
+    output_file = OUTPUT_DIR / f'STRATEGY_LEADERBOARD_{metric.upper()}{mode_suffix}.md'
     with open(output_file, 'w') as f:
-        f.write(f"# Stage 1 Strategy Leaderboard (by {metric})\n\n")
+        title_mode = " (Fair Comparison)" if args.fair else ""
+        f.write(f"# Stage 1 Strategy Leaderboard{title_mode} (by {metric})\n\n")
         f.write("**Stage 1**: All models trained with `clear_day` domain filter only.\n\n")
         f.write(f"**Metric**: {metric} ({METRIC_DESCRIPTIONS.get(metric, '')})\n\n")
+        
+        if args.fair:
+            f.write("**Fair Comparison Mode**: Only includes dataset+model configurations where ALL strategies have test results.\n")
+            f.write("This ensures equal coverage and prevents incomplete results from skewing rankings.\n\n")
+        
         f.write(f"**Total Results**: {len(df)} test results from {len(df['strategy'].unique())} strategies\n\n")
         f.write("---\n\n")
         
