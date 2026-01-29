@@ -1,117 +1,104 @@
 # PROVE Project TODO
 
-**Last Updated:** 2026-01-30 (10:00)
+**Last Updated:** 2026-01-29 (22:30)
 
 ---
 
 ## 🔧 Current Status
 
 ### Active Jobs
-- **Total:** 204 jobs (9 running, 195 pending)
-- **Training Progress:** 34/111 complete (30.6%)
-  - STD strategies: 18/28 (64.3%)
-  - GEN strategies: 16/83 (19.3%)
-- **Testing Progress:** 100 tests complete
+- **Total:** 12 jobs (0 running, 12 pending)
+- **Training:** Stage 1 baseline with Lovasz loss
 
-### Augmentation Pipeline - FIXED ✅
+### New Training Configuration (2026-01-29)
+| Setting | Value |
+|---------|-------|
+| **Batch Size** | 16 |
+| **Max Iterations** | 80,000 |
+| **Warmup Iterations** | 1,000 |
+| **Loss Function** | Lovasz |
+| **Checkpoint Interval** | 10,000 |
+| **Eval Interval** | 10,000 |
+| **LR Scale Factor** | 8.0 (batch_size=16 / base=2) |
+| **Best Checkpoint** | Saved based on val/mIoU |
+| **Keep Checkpoints** | ALL |
 
-Each augmentation strategy now applies ONLY its specific augmentation technique:
-
-| Strategy | Pipeline Augmentations | Type |
-|----------|----------------------|------|
-| **baseline** | NONE | Baseline (no augmentation) |
-| **std_minimal** | RandomCrop + RandomFlip | Geometric only |
-| **std_photometric_distort** | PhotoMetricDistortion | Color only |
-| **std_autoaugment** | AutoAugment (batch-level) | Batch hook |
-| **std_cutmix** | CutMix (batch-level) | Batch hook |
-| **std_mixup** | MixUp (batch-level) | Batch hook |
-| **std_randaugment** | RandAugment (batch-level) | Batch hook |
-| **gen_*** | NONE (uses synthetic images) | Generated |
+### Optimizer & Scheduler
+| Model Type | Optimizer | Base LR | Scaled LR (BS=16) |
+|------------|-----------|---------|-------------------|
+| DeepLabV3+/PSPNet (CNN) | SGD (momentum=0.9) | 0.01 | 0.08 |
+| SegFormer (Transformer) | AdamW | 0.00006 | 0.00048 |
 
 ---
 
 ## ✅ Recently Completed
 
-### 2026-01-30
-- [x] Fixed batch_training_submission.py permission errors for multi-user support (temp file fallback)
-- [x] Fixed update_testing_tracker.py checkpoint detection (iter_10000.pth for Stage 1)
-- [x] Fixed update_training_tracker.py checkpoint detection
-- [x] Fixed strategy name typos (std_std_photometric_distort → std_photometric_distort)
-- [x] Added std_minimal to strategy lists in tracker scripts
-- [x] Updated monitor_training.sh with colorized output, DONE/EXIT sections, continuous logging
-- [x] Generated Stage 1 intermediate leaderboard (100 results, 15 strategies)
-- [x] Killed 120 failed MapillaryVistas/OUTSIDE15k jobs (--use-native-classes issue)
-- [x] Resubmitted 126 Stage 1 gen_* jobs for MapillaryVistas/OUTSIDE15k
-
 ### 2026-01-29
-- [x] Fixed augmentation pipeline (strategies now apply only their specific augmentation)
-- [x] Submitted Stage 1 training jobs with corrected augmentation
+- [x] **Cleared all old weights** (996 GB removed)
+  - WEIGHTS/: 955 GB cleared
+  - WEIGHTS_STAGE_2/: 41 GB cleared
+- [x] **Killed all running/pending jobs** (54 jobs terminated)
+- [x] **Updated training configuration:**
+  - batch_size: 8 → 16
+  - max_iters: 10,000 → 80,000
+  - warmup_iters: 500 → 1,000
+  - lr_scale_factor: 4.0 → 8.0
+- [x] **Added best checkpoint saving logic:**
+  - save_best='val/mIoU' with rule='greater'
+  - max_keep_ckpts=-1 (keep all)
+- [x] **Aligned checkpoint/eval intervals:**
+  - Both at 10,000 iterations for proper best checkpoint selection
+- [x] **Submitted Stage 1 baseline jobs with Lovasz loss:**
+  - 12 jobs: 4 datasets × 3 models
+  - Job IDs: 895295-895306
 
 ---
 
 ## 📋 Evaluation Completion Checklist
 
-### Phase 1: Clear Old Data & Retrain From Scratch ✅
-- [x] Delete old WEIGHTS/ - trained with incorrect augmentation
-- [x] Delete old WEIGHTS_STAGE_2/ - trained with incorrect augmentation
-- [x] Submit Stage 1 training jobs
+### Phase 1: Clear Old Data ✅
+- [x] Delete old WEIGHTS/ (955 GB cleared)
+- [x] Delete old WEIGHTS_STAGE_2/ (41 GB cleared)
+- [x] Kill all old jobs (54 jobs terminated)
 
 ### Phase 2: Stage 1 Training (Clear Day Only) 🔄 IN PROGRESS
 
-**26 strategies × 4 datasets × 3 models = ~312 jobs (some gen_* unavailable)**
+**New Configuration: batch_size=16, max_iters=80,000, warmup=1,000, Lovasz loss**
 
-| Type | Progress | Status |
-|------|----------|--------|
-| STD (7) | 18/28 (64.3%) | 🔄 Running |
-| GEN (19) | 16/83 (19.3%) | 🔄 Running |
-| **Total** | **34/111 (30.6%)** | 🔄 Running |
+| Strategy | Progress | Status |
+|----------|----------|--------|
+| baseline | 0/12 (0%) | 🔄 12 jobs pending |
+| std_* | 0/42 | ⏳ Pending |
+| gen_* | 0/57+ | ⏳ Pending |
+
+**Submitted Jobs (2026-01-29):**
+- baseline_bdd10k_* (895295-895297)
+- baseline_iddaw_* (895298-895300)
+- baseline_mapillaryvistas_* (895301-895303)
+- baseline_outside15k_* (895304-895306)
 
 ### Phase 3: Stage 2 Training (All Domains) ⏳ PENDING
 
-**Top 10 strategies × 4 datasets × 3 models = 120 jobs**
-
-Selection criteria after Stage 1:
-- Best mIoU improvement over baseline
-- Best cross-domain robustness
-- At least 1-2 from each generator family
-
-### Phase 4: Testing & Analysis 🔄 IN PROGRESS
-- [x] Run fine_grained_test.py on completed models (100 tests done)
-- [ ] Generate per-domain metrics (partial)
-- [ ] Create visualizations for paper
+After Stage 1 completes, select top strategies for Stage 2.
 
 ---
 
 ## 🎯 Proposed Next Steps
 
-### Immediate (Today)
-1. **Monitor Training Jobs** - 204 jobs in queue (9 running, 195 pending)
-   - Use `bash scripts/monitor_training.sh` for live monitoring
-   - Check logs in `logs/monitor_training_YYYYMMDD_HHMMSS.log`
+### Immediate
+1. **Monitor baseline training** - 12 jobs pending
+   - Expected duration: ~24-48 hours per job
+   - Use `bjobs -w -u mima2416` to check status
 
-2. **Review Intermediate Leaderboard** - See `results/stage1_leaderboard_intermediate.md`
-   - Current top performer: gen_step1x_v1p2 (+3.64% over baseline)
-   - 100 test results available for analysis
+2. **Submit remaining std_* strategies** after baseline completes
+   - `python scripts/batch_training_submission.py --stage 1 --strategy-type std --seg-loss lovasz`
 
-### Short-term (This Week)
-3. **Complete Stage 1 Training** - Estimated 70% remaining
-   - Resubmitted MapillaryVistas/OUTSIDE15k jobs running
-   - Expected completion: ~24-48 hours
+### After Baseline Complete
+3. **Submit gen_* strategies**
+   - `python scripts/batch_training_submission.py --stage 1 --strategy-type gen --seg-loss lovasz`
 
-4. **Generate Analysis Figures** - After more results complete
-   - Per-domain performance breakdown
-   - Strategy comparison across datasets
-   - Domain gap analysis
-
-### After Stage 1 Complete
-5. **Select Top 10 Strategies for Stage 2**
-   - Based on mIoU improvement over baseline
-   - Cross-domain robustness scores
-   - Representative coverage of generator families
-
-6. **Submit Stage 2 Training Jobs**
-   - 10 strategies × 4 datasets × 3 models = 120 jobs
-   - Train on ALL weather conditions (no domain filter)
+4. **Run testing on completed models**
+   - `python scripts/auto_submit_tests.py --stage 1 --dry-run`
 
 ---
 
@@ -214,10 +201,12 @@ python scripts/batch_training_submission.py --stage 1 \\
 
 | Phase | Jobs | Time/Job | Parallel | Total |
 |-------|------|----------|----------|-------|
-| Stage 1 Training | 312 | ~1 hour | 20 | ~16 hours |
-| Stage 2 Training | 120 | ~1 hour | 20 | ~6 hours |
-| Testing | 432 | ~15 min | 20 | ~6 hours |
-| **Total** | | | | **~28 hours** |
+| Stage 1 Training | ~100 | ~24-48 hours | 6-10 | ~1-2 weeks |
+| Stage 2 Training | ~60 | ~24-48 hours | 6-10 | ~3-5 days |
+| Testing | ~160 | ~15 min | 20 | ~2 hours |
+| **Total** | | | | **~2 weeks** |
+
+**Note:** Training time increased due to batch_size=16, max_iters=80,000 (vs previous 10,000)
 
 ---
 

@@ -1671,8 +1671,8 @@ class UnifiedTrainingConfig:
             return dict(
                 type='LovaszLoss',
                 loss_type='multi_class',
-                classes='present',
-                per_image=True,
+                classes='all',  # Use all classes to avoid tensor size mismatch
+                per_image=False,  # Compute loss across batch to avoid stacking issue
                 reduction='mean',
                 loss_weight=1.0,
             )
