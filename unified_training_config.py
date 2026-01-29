@@ -1672,7 +1672,7 @@ class UnifiedTrainingConfig:
                 type='LovaszLoss',
                 loss_type='multi_class',
                 classes='all',  # Use all classes to avoid tensor size mismatch
-                per_image=False,  # Compute loss across batch to avoid stacking issue
+                per_image=True,  # Compute loss per image, then average
                 reduction='mean',
                 loss_weight=1.0,
             )
