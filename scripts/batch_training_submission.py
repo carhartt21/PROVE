@@ -461,8 +461,8 @@ chmod 775 {work_dir}
 cd {work_dir}
 
 # Activate conda environment
-source /home/$USER/miniconda3/etc/profile.d/conda.sh
-conda activate prove
+source ~/.bashrc
+mamba activate prove
 
 # Pre-flight check: verify results don't already exist
 CHECKPOINT="{work_dir}/iter_10000.pth"
