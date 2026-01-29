@@ -731,16 +731,17 @@ ALL_MODELS = {**SEGMENTATION_MODELS, **DETECTION_MODELS}
 class TrainingConfig:
     """Training hyperparameters
     
-    Note: With batch_size=8 and max_iters=10000, this processes 80,000 samples total.
+    Note: With batch_size=16 and max_iters=80000, this processes 1.28M samples total.
     Learning rates are scaled proportionally: lr = base_lr * batch_size / 2
+    Warmup period: 1000 iterations (was 500)
     """
-    max_iters: int = 10000  # 80k samples with batch_size=8
-    batch_size: int = 8
+    max_iters: int = 80000  # 80k iterations with batch_size=16
+    batch_size: int = 16
     workers_per_gpu: int = 4
-    checkpoint_interval: int = 2000  # Save every 2k iters (was 10k for 80k iters)
-    eval_interval: int = 2000  # Eval every 2k iters (was 6666 for 80k iters)
+    checkpoint_interval: int = 5000  # Save every 5k iters
+    eval_interval: int = 5000  # Eval every 5k iters (aligned with checkpoint)
     log_interval: int = 50
-    warmup_iters: int = 500
+    warmup_iters: int = 1000
     warmup_ratio: float = 0.001
     seed: int = 42
     deterministic: bool = True
@@ -750,31 +751,31 @@ class TrainingConfig:
     early_stop_min_delta: float = 0.001
     # Learning rate scaling factor (relative to batch_size=2)
     # lr = base_lr * batch_size / 2
-    lr_scale_factor: float = 4.0  # batch_size=8 / base_batch_size=2
+    lr_scale_factor: float = 8.0  # batch_size=16 / base_batch_size=2
     # Segmentation loss for decode/aux heads
     seg_loss: str = 'cross_entropy'
 
 
 TRAINING_CONFIGS = {
     'segmentation': TrainingConfig(
-        max_iters=10000,  # 80k samples with batch_size=8
-        batch_size=8,
-        checkpoint_interval=2000,
-        eval_interval=2000,
+        max_iters=80000,  # 80k iterations with batch_size=16
+        batch_size=16,
+        checkpoint_interval=5000,  # Aligned with eval_interval
+        eval_interval=5000,        # Validation at every checkpoint
         early_stop=True,
-        early_stop_patience=5,
+        early_stop_patience=3,
         early_stop_min_delta=0.001,  # mIoU improvement threshold
-        lr_scale_factor=4.0,
+        lr_scale_factor=8.0,
     ),
     'detection': TrainingConfig(
-        max_iters=5000,  # 40k samples with batch_size=8
-        batch_size=8,
-        checkpoint_interval=1000,
-        eval_interval=1000,
+        max_iters=40000,  # 40k iterations with batch_size=16
+        batch_size=16,
+        checkpoint_interval=5000,  # Aligned with eval_interval
+        eval_interval=5000,        # Validation at every checkpoint
         early_stop=True,
         early_stop_patience=5,
         early_stop_min_delta=0.001,  # mAP improvement threshold
-        lr_scale_factor=4.0,
+        lr_scale_factor=8.0,
     ),
 }
 
@@ -1825,7 +1826,7 @@ class UnifiedTrainingConfig:
             'optim_wrapper': optim_wrapper,
             'param_scheduler': param_scheduler,
             
-            # Checkpointing (new format)
+            # Checkpointing (new format) - save best checkpoint based on mIoU
             'default_hooks': dict(
                 timer=dict(type='IterTimerHook'),
                 logger=dict(type='LoggerHook', interval=training_cfg.log_interval),
@@ -1834,6 +1835,9 @@ class UnifiedTrainingConfig:
                     type='CheckpointHook',
                     interval=training_cfg.checkpoint_interval,
                     by_epoch=False,
+                    save_best='val/mIoU',  # Save best checkpoint based on val mIoU
+                    rule='greater',  # Higher mIoU is better
+                    max_keep_ckpts=-1,  # Keep ALL checkpoints
                 ),
                 sampler_seed=dict(type='DistSamplerSeedHook'),
             ),
