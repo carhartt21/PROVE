@@ -366,6 +366,7 @@ def generate_job_list(
                             model,
                             ratio if strategy.startswith('gen_') else None,
                             seg_loss=seg_loss,
+                            stage=stage if isinstance(stage, int) else None,
                         )
                         if lock.is_locked():
                             holder = lock.get_lock_holder()

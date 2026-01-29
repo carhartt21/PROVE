@@ -41,6 +41,7 @@ class TrainingLock:
     def __init__(self, strategy: str, dataset: str, model: str, 
                  ratio: Optional[float] = None,
                  seg_loss: Optional[str] = None,
+                 stage: Optional[int] = None,
                  lock_dir: str = DEFAULT_LOCK_DIR):
         """
         Initialize a training lock.
@@ -50,6 +51,8 @@ class TrainingLock:
             dataset: Dataset name (e.g., 'IDD-AW', 'BDD10k')
             model: Model name (e.g., 'deeplabv3plus_r50')
             ratio: Optional ratio for generative strategies
+            seg_loss: Optional loss function override
+            stage: Training stage (1 or 2) for lock file naming
             lock_dir: Directory to store lock files
         """
         self.strategy = strategy
@@ -57,10 +60,12 @@ class TrainingLock:
         self.model = model
         self.ratio = ratio
         self.seg_loss = seg_loss
+        self.stage = stage
         self.lock_dir = Path(lock_dir)
         
-        # Build lock filename
-        lock_name = f'{strategy}_{self.dataset}_{model}'
+        # Build lock filename with stage prefix
+        stage_prefix = f's{stage}_' if stage else ''
+        lock_name = f'{stage_prefix}{strategy}_{self.dataset}_{model}'
         if ratio is not None:
             lock_name += f'_ratio{ratio:.2f}'.replace('.', 'p')
         if seg_loss and seg_loss != 'cross_entropy':
