@@ -1,27 +1,69 @@
 # PROVE Project TODO
 
-**Last Updated:** 2026-01-29 (22:30)
+**Last Updated:** 2026-01-30 (08:15)
 
 ---
 
 ## 🔧 Current Status
 
 ### Active Jobs
-- **Total:** 12 jobs (0 running, 12 pending)
-- **Training:** Stage 1 baseline with Lovasz loss
+- **Total:** 33 jobs (0 running, 33 pending) - all Lovasz loss
+- **chge7185:** 6 running Stage 2 Lovasz jobs, many pending
 
-### New Training Configuration (2026-01-29)
+### Current Training Configuration (2026-01-30)
 | Setting | Value |
 |---------|-------|
 | **Batch Size** | 16 |
 | **Max Iterations** | 80,000 |
 | **Warmup Iterations** | 1,000 |
-| **Loss Function** | Lovasz |
-| **Checkpoint Interval** | 10,000 |
-| **Eval Interval** | 10,000 |
+| **Loss Function** | Lovasz (under evaluation) |
+| **Checkpoint Interval** | 5,000 |
+| **Eval Interval** | 5,000 |
+| **Early Stop Patience** | 5 validations (25k iters) |
 | **LR Scale Factor** | 8.0 (batch_size=16 / base=2) |
 | **Best Checkpoint** | Saved based on val/mIoU |
 | **Keep Checkpoints** | ALL |
+
+---
+
+## ⚠️ Lovasz Loss Findings (2026-01-30)
+
+### Investigation Summary
+Analyzed chge7185's Stage 2 training (baseline_bdd10k_deeplabv3plus with Lovasz loss)
+
+### Validation mIoU Progression
+```
+Iter    mIoU    Best?
+5k      35.43   
+10k     35.86   ↑ best
+15k     34.68   
+20k     36.35   ↑ best
+25k     35.18   
+30k     34.09   
+35k     37.56   ↑ best
+40k     37.55   
+45k     35.81   
+50k     33.49   
+55k     39.15   ↑ best
+60k     35.61   
+65k     33.94   
+70k     39.69   ↑ best (current best)
+75k     39.63   
+```
+
+### Key Observations
+1. **Oscillating mIoU (33-40%)** - No clear convergence trend
+2. **Early stopping not triggered** - keeps finding new bests intermittently
+3. **Per-class issues:** 8 classes at 0% IoU (wall, rider, bus, train, motorcycle, bicycle)
+4. **Historical CE baseline:** 44-48% mIoU (more stable)
+
+### Possible Causes
+- `classes='present'` in Lovasz loss (uneven gradients for rare classes)
+- High LR with batch size 16
+- Multi-domain training complexity (Stage 2)
+
+### Recommendation
+Consider comparing with CrossEntropy loss baseline to determine which is more stable.
 
 ### Optimizer & Scheduler
 | Model Type | Optimizer | Base LR | Scaled LR (BS=16) |
@@ -77,24 +119,40 @@
 - baseline_mapillaryvistas_* (895301-895303)
 - baseline_outside15k_* (895304-895306)
 
-### Phase 3: Stage 2 Training (All Domains) ⏳ PENDING
+### Phase 3: Stage 2 Training (All Domains) 🔄 IN PROGRESS (chge7185)
 
-After Stage 1 completes, select top strategies for Stage 2.
+| Model | Dataset | Progress | mIoU | Status |
+|-------|---------|----------|------|--------|
+| DeepLabV3+ | BDD10k | ~84% (67k/80k) | 39.69% | 🔄 Running |
+| SegFormer | BDD10k | ~59% (47k/80k) | ~37% | 🔄 Running |
+| PSPNet | BDD10k | ~37% (30k/80k) | ~36% | 🔄 Running |
+
+**⚠️ Note:** Stage 2 mIoU is lower than Stage 1 because it trains on ALL weather conditions, including challenging night/rain domains (night domain: ~22.8% mIoU).
 
 ---
 
 ## 🎯 Proposed Next Steps
 
+### ⚠️ Decision Pending: Loss Function
+Based on Lovasz instability findings, decide between:
+- **Option A:** Add CrossEntropy comparison jobs (run both)
+- **Option B:** Kill Lovasz jobs, switch to CrossEntropy only
+- **Option C:** Let Lovasz jobs finish, analyze final results
+
 ### Immediate
-1. **Monitor baseline training** - 12 jobs pending
+1. **Monitor baseline training** - 33 jobs pending (Lovasz)
    - Expected duration: ~24-48 hours per job
    - Use `bjobs -w -u mima2416` to check status
 
-2. **Submit remaining std_* strategies** after baseline completes
-   - `python scripts/batch_training_submission.py --stage 1 --strategy-type std --seg-loss lovasz`
+2. **Monitor chge7185 Stage 2 jobs** - 6 running
+   - DeepLabV3+ at 84% - near completion
+   - Watch final mIoU to assess Lovasz convergence
 
 ### After Baseline Complete
-3. **Submit gen_* strategies**
+3. **Submit std_* strategies** (after loss decision)
+   - `python scripts/batch_training_submission.py --stage 1 --strategy-type std --seg-loss lovasz`
+
+4. **Submit gen_* strategies**
    - `python scripts/batch_training_submission.py --stage 1 --strategy-type gen --seg-loss lovasz`
 
 4. **Run testing on completed models**
