@@ -748,7 +748,7 @@ class TrainingConfig:
     # Early stopping configuration
     early_stop: bool = True
     early_stop_patience: int = 5
-    early_stop_min_delta: float = 0.001
+    early_stop_min_delta: float = 0.1
     # Learning rate scaling factor (relative to batch_size=2)
     # lr = base_lr * batch_size / 2
     lr_scale_factor: float = 8.0  # batch_size=16 / base_batch_size=2
@@ -764,7 +764,7 @@ TRAINING_CONFIGS = {
         eval_interval=5000,        # Validation at every checkpoint
         early_stop=True,
         early_stop_patience=3,
-        early_stop_min_delta=0.001,  # mIoU improvement threshold
+        early_stop_min_delta=0.1,  # mIoU improvement threshold
         lr_scale_factor=8.0,
     ),
     'detection': TrainingConfig(
@@ -774,7 +774,7 @@ TRAINING_CONFIGS = {
         eval_interval=5000,        # Validation at every checkpoint
         early_stop=True,
         early_stop_patience=5,
-        early_stop_min_delta=0.001,  # mAP improvement threshold
+        early_stop_min_delta=0.1,  # mAP improvement threshold
         lr_scale_factor=8.0,
     ),
 }
