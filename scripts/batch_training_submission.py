@@ -421,6 +421,8 @@ def generate_job_script(
     training_cmd = ' '.join(cmd_parts)
     
     aux_suffix = f"_aux-{aux_loss}" if aux_loss else ''
+    # Stage prefix for lock file (same as job name)
+    stage_prefix = f's{job.stage}_' if isinstance(job.stage, int) else f'{job.stage}_'
     
     script = f'''#!/bin/bash
 #BSUB -J {job.job_name}
@@ -481,7 +483,7 @@ fi
 # Acquire training lock
 LOCK_DIR="/scratch/aaa_exchange/AWARE/training_locks"
 mkdir -p $LOCK_DIR
-LOCK_FILE="$LOCK_DIR/{job.strategy}_{job.dataset.lower().replace('-', '_')}_{job.model}{aux_suffix}.lock"
+LOCK_FILE="$LOCK_DIR/{stage_prefix}{job.strategy}_{job.dataset.lower().replace('-', '_')}_{job.model}{aux_suffix}.lock"
 
 # Try to acquire lock (non-blocking)
 exec 200>"$LOCK_FILE"
