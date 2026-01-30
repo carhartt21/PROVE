@@ -1672,7 +1672,7 @@ class UnifiedTrainingConfig:
                 classes='all',  # Use all classes to avoid tensor size mismatch
                 per_image=True,  # Compute loss per image, then average
                 reduction='mean',
-                loss_weight=0.5,
+                loss_weight=0.3,
             )
         if loss_name == 'focal':
             return dict(
@@ -1681,12 +1681,12 @@ class UnifiedTrainingConfig:
                 gamma=2.0,
                 alpha=0.5,
                 reduction='mean',
-                loss_weight=0.5,
+                loss_weight=0.3,
             )
         if loss_name == 'boundary':
             return dict(
                 type='SegBoundaryLoss',
-                loss_weight=0.5,
+                loss_weight=0.3,
                 ignore_index=255,
             )
         raise ValueError(f"Unsupported auxiliary segmentation loss: {loss_name}")
