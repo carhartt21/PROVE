@@ -175,6 +175,8 @@ python unified_training.py --list
 | `--early-stop-patience` | Number of validations without improvement before stopping | 5 |
 | `--use-native-classes` | Use native labels (66 for Mapillary, 24 for OUTSIDE15k) instead of Cityscapes 19 | False |
 | `--aux-loss` | Auxiliary loss to add alongside CrossEntropyLoss (`focal`, `lovasz`, `boundary`) | None |
+| `--save-val-predictions` | Save validation visualizations (Input \| GT \| Prediction side-by-side) | False |
+| `--max-val-samples` | Maximum number of samples to visualize per validation epoch | 5 |
 
 **Important Training Modes:**
 
@@ -198,10 +200,13 @@ python unified_training.py --dataset BDD10k --model segformer_mit-b5 \
 # Training with auxiliary loss (CE remains primary)
 python unified_training.py --dataset BDD10k --model deeplabv3plus_r50 \
     --strategy baseline --aux-loss focal
+
+# Training with validation visualization (saves Input | GT | Prediction images)
+python unified_training.py --dataset BDD10k --model deeplabv3plus_r50 \
+    --strategy baseline --save-val-predictions --max-val-samples 10
 ```
 
 #### Combined Strategies
-
 You can combine standard augmentation strategies (std_*) with generative augmentation strategies (gen_*) or baseline using the `--std-strategy` option. This enables applying both types of augmentation during training.
 
 **Available Standard Augmentations for `--std-strategy`:**

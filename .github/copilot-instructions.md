@@ -109,6 +109,10 @@ python unified_training.py --dataset BDD10k --model deeplabv3plus_r50 \
 python unified_training.py --dataset BDD10k --model deeplabv3plus_r50 \
     --strategy baseline --aux-loss focal  # Options: focal, lovasz, boundary
 
+# Save validation predictions (for visual inspection)
+python unified_training.py --dataset BDD10k --model deeplabv3plus_r50 \
+    --strategy baseline --save-val-predictions --max-val-samples 10
+
 # Submit as LSF job instead of running locally
 python unified_training.py --dataset BDD10k --model deeplabv3plus_r50 \
     --strategy baseline --domain-filter clear_day --submit-job

@@ -754,6 +754,9 @@ class TrainingConfig:
     lr_scale_factor: float = 8.0  # batch_size=16 / base_batch_size=2
     # Optional auxiliary segmentation loss (in addition to CE)
     aux_loss: Optional[str] = None
+    # Validation visualization - save Input | GT | Prediction side-by-side
+    save_val_predictions: bool = False
+    max_val_samples: int = 5  # Maximum samples to save per validation epoch
 
 
 TRAINING_CONFIGS = {
@@ -1625,12 +1628,43 @@ class UnifiedTrainingConfig:
         
         print(f"[UnifiedTrainingConfig] Added StandardAugmentationHook (method={method}, p_aug={p_aug})")
     
+    def _build_default_hooks(
+        self,
+        dataset_cfg: 'DatasetConfig',
+        training_cfg: TrainingConfig,
+    ) -> Dict[str, Any]:
+        """Build default hooks configuration, including optional visualization.
+        
+        Args:
+            dataset_cfg: Dataset configuration
+            training_cfg: Training configuration
+            
+        Returns:
+            Dictionary of default hook configurations
+        """
+        hooks = dict(
+            timer=dict(type='IterTimerHook'),
+            logger=dict(type='LoggerHook', interval=training_cfg.log_interval),
+            param_scheduler=dict(type='ParamSchedulerHook'),
+            checkpoint=dict(
+                type='CheckpointHook',
+                interval=training_cfg.checkpoint_interval,
+                by_epoch=False,
+                save_best='val/mIoU',  # Save best checkpoint based on val mIoU
+                rule='greater',  # Higher mIoU is better
+                max_keep_ckpts=-1,  # Keep ALL checkpoints
+            ),
+            sampler_seed=dict(type='DistSamplerSeedHook'),
+        )
+        
+        return hooks
+    
     def _build_custom_hooks(
         self,
         dataset_cfg: 'DatasetConfig',
         training_cfg: TrainingConfig,
     ) -> List[Dict[str, Any]]:
-        """Build custom hooks configuration, including early stopping.
+        """Build custom hooks configuration, including early stopping and visualization.
         
         Args:
             dataset_cfg: Dataset configuration
@@ -1660,6 +1694,14 @@ class UnifiedTrainingConfig:
                 strict=False,  # Don't crash if metric not found
                 check_finite=True,  # Stop if NaN/Inf
             ))
+        
+        # Validation visualization hook - saves Input | GT | Prediction side-by-side
+        if training_cfg.save_val_predictions and dataset_cfg.task == 'segmentation':
+            hooks.append(dict(
+                type='ValVisualizationHook',
+                max_samples=training_cfg.max_val_samples,
+            ))
+            print(f"[UnifiedTrainingConfig] Enabled ValVisualizationHook (max_samples={training_cfg.max_val_samples})")
         
         return hooks
 
@@ -1837,20 +1879,7 @@ class UnifiedTrainingConfig:
             'param_scheduler': param_scheduler,
             
             # Checkpointing (new format) - save best checkpoint based on mIoU
-            'default_hooks': dict(
-                timer=dict(type='IterTimerHook'),
-                logger=dict(type='LoggerHook', interval=training_cfg.log_interval),
-                param_scheduler=dict(type='ParamSchedulerHook'),
-                checkpoint=dict(
-                    type='CheckpointHook',
-                    interval=training_cfg.checkpoint_interval,
-                    by_epoch=False,
-                    save_best='val/mIoU',  # Save best checkpoint based on val mIoU
-                    rule='greater',  # Higher mIoU is better
-                    max_keep_ckpts=-1,  # Keep ALL checkpoints
-                ),
-                sampler_seed=dict(type='DistSamplerSeedHook'),
-            ),
+            'default_hooks': self._build_default_hooks(dataset_cfg, training_cfg),
             
             # Early stopping hook (custom hooks)
             'custom_hooks': self._build_custom_hooks(dataset_cfg, training_cfg),

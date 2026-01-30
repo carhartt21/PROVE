@@ -95,6 +95,8 @@ class UnifiedTrainer:
         lr: Learning rate. Default: None (uses model-specific default)
         warmup_iters: Number of warmup iterations. Default: None (uses config default)
         aux_loss: Optional auxiliary loss to add (e.g., 'focal', 'lovasz', 'boundary')
+        save_val_predictions: Whether to save prediction outputs during validation
+        max_val_samples: Maximum number of validation samples to visualize per epoch
         gpu_ids: List of GPU IDs to use. Default: [0]
         distributed: Whether to use distributed training. Default: False
     """
@@ -121,6 +123,8 @@ class UnifiedTrainer:
         lr: Optional[float] = None,
         warmup_iters: Optional[int] = None,
         aux_loss: Optional[str] = None,
+        save_val_predictions: bool = False,
+        max_val_samples: int = 5,
         gpu_ids: List[int] = None,
         distributed: bool = False,
         use_native_classes: bool = True,
@@ -145,6 +149,8 @@ class UnifiedTrainer:
         self.lr = lr
         self.warmup_iters = warmup_iters
         self.aux_loss = aux_loss
+        self.save_val_predictions = save_val_predictions
+        self.max_val_samples = max_val_samples
         self.gpu_ids = gpu_ids or [0]
         self.distributed = distributed
         self.use_native_classes = use_native_classes
@@ -161,6 +167,8 @@ class UnifiedTrainer:
         custom_training_config = {
             'early_stop': self.early_stop,
             'early_stop_patience': self.early_stop_patience,
+            'save_val_predictions': self.save_val_predictions,
+            'max_val_samples': self.max_val_samples,
         }
         if self.max_iters is not None:
             custom_training_config['max_iters'] = self.max_iters
@@ -295,6 +303,13 @@ class UnifiedTrainer:
             except ImportError as e:
                 print(f"Warning: StandardAugmentationHook not available: {e}")
             
+            # Import ValVisualizationHook to register it with MMEngine
+            try:
+                from tools.validation_visualization_hook import ValVisualizationHook
+                print("[Training] ValVisualizationHook registered")
+            except ImportError as e:
+                print(f"Warning: ValVisualizationHook not available: {e}")
+            
             # Import mmsegmentation to register all components
             import mmseg.models
             import mmseg.datasets  
@@ -384,6 +399,13 @@ try:
 except ImportError as e:
     print(f"Warning: StandardAugmentationHook not available: {{e}}")
 
+# Import ValVisualizationHook to register it with MMEngine
+try:
+    from tools.validation_visualization_hook import ValVisualizationHook
+    print("[Training] ValVisualizationHook registered")
+except ImportError as e:
+    print(f"Warning: ValVisualizationHook not available: {{e}}")
+
 # Import mmsegmentation components carefully to avoid mmcv._ext issues
 try:
     import mmseg.datasets  
@@ -423,6 +445,13 @@ try:
     print("[Training] StandardAugmentationHook registered")
 except ImportError as e:
     print(f"Warning: StandardAugmentationHook not available: {{e}}")
+
+# Import ValVisualizationHook to register it with MMEngine
+try:
+    from tools.validation_visualization_hook import ValVisualizationHook
+    print("[Training] ValVisualizationHook registered")
+except ImportError as e:
+    print(f"Warning: ValVisualizationHook not available: {{e}}")
 
 # Import mmsegmentation components
 try:
@@ -945,6 +974,13 @@ try:
 except ImportError as e:
     print(f"Warning: StandardAugmentationHook not available: {{e}}")
 
+# Import ValVisualizationHook to register it with MMEngine
+try:
+    from tools.validation_visualization_hook import ValVisualizationHook
+    print("[Training] ValVisualizationHook registered")
+except ImportError as e:
+    print(f"Warning: ValVisualizationHook not available: {{e}}")
+
 try:
     import mmseg.datasets  
     import mmseg.evaluation
@@ -1352,6 +1388,10 @@ Examples:
     parser.add_argument('--aux-loss', type=str, default=None,
                        choices=['focal', 'lovasz', 'boundary'],
                        help='Auxiliary loss to add alongside CrossEntropyLoss.')
+    parser.add_argument('--save-val-predictions', action='store_true',
+                       help='Save validation visualizations (Input | GT | Prediction side-by-side)')
+    parser.add_argument('--max-val-samples', type=int, default=5,
+                       help='Maximum number of validation samples to visualize per epoch')
     parser.add_argument('--gpu-ids', type=int, nargs='+', default=[0],
                        help='GPU IDs to use')
     parser.add_argument('--distributed', action='store_true',
@@ -1585,6 +1625,8 @@ def main():
         lr=args.lr,
         warmup_iters=args.warmup_iters,
         aux_loss=args.aux_loss,
+        save_val_predictions=args.save_val_predictions,
+        max_val_samples=args.max_val_samples,
         gpu_ids=args.gpu_ids,
         distributed=args.distributed,
         use_native_classes=args.use_native_classes,
