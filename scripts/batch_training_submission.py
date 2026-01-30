@@ -238,7 +238,7 @@ class TrainingJob:
     model: str
     stage: int  # Can be 1, 2, or 'ratio' for ratio ablation
     ratio: float = 0.5
-    seg_loss: Optional[str] = None
+    aux_loss: Optional[str] = None
     weights_dir: Optional[Path] = None
     skip_reason: Optional[str] = None
     
@@ -253,9 +253,7 @@ class TrainingJob:
         
         dataset_short = self.dataset.lower().replace('-', '')
         model_short = self.model.split('_')[0]
-        loss_tag = ''
-        if self.seg_loss and self.seg_loss != 'cross_entropy':
-            loss_tag = f'_{self.seg_loss}'
+        aux_tag = f"_aux-{self.aux_loss}" if self.aux_loss else ''
         if self.strategy.startswith('gen_'):
             if self.ratio != 0.5:
                 base = f'{self.strategy}_{dataset_short}_{model_short}_{self.ratio:.2f}'.replace('.', 'p')
@@ -263,7 +261,7 @@ class TrainingJob:
                 base = f'{self.strategy}_{dataset_short}_{model_short}'
         else:
             base = f'{self.strategy}_{dataset_short}_{model_short}'
-        return f'{stage_prefix}{base}{loss_tag}'
+        return f'{stage_prefix}{base}{aux_tag}'
     
     @property
     def is_skipped(self) -> bool:
@@ -277,7 +275,7 @@ def get_weights_dir(
     model: str,
     stage: int,
     ratio: float = 0.5,
-    seg_loss: Optional[str] = None,
+    aux_loss: Optional[str] = None,
 ) -> Path:
     """Get the weights directory for a training configuration."""
     # Determine base root based on stage
@@ -297,8 +295,8 @@ def get_weights_dir(
     model_dir = model
     if strategy.startswith('gen_') and ratio != 1.0:
         model_dir = f'{model}_ratio{ratio:.2f}'.replace('.', 'p')
-    if seg_loss and seg_loss != 'cross_entropy':
-        model_dir = f'{model_dir}_loss-{seg_loss}'
+    if aux_loss:
+        model_dir = f'{model_dir}_aux-{aux_loss}'
     
     return base_root / strategy / dataset_dir / model_dir
 
@@ -309,7 +307,7 @@ def generate_job_list(
     datasets: Optional[List[str]] = None,
     models: Optional[List[str]] = None,
     ratios: Optional[List[float]] = None,
-    seg_loss: Optional[str] = None,
+    aux_loss: Optional[str] = None,
     check_existing: bool = True,
     check_locks: bool = True,
 ) -> List[TrainingJob]:
@@ -348,11 +346,11 @@ def generate_job_list(
                         model=model,
                         stage=stage,
                         ratio=ratio,
-                        seg_loss=seg_loss,
+                        aux_loss=aux_loss,
                     )
                     
                     # Get weights directory
-                    job.weights_dir = get_weights_dir(strategy, dataset, model, stage, ratio, seg_loss)
+                    job.weights_dir = get_weights_dir(strategy, dataset, model, stage, ratio, aux_loss)
                     
                     # Pre-flight checks
                     if check_existing and has_valid_results(job.weights_dir):
@@ -365,7 +363,7 @@ def generate_job_list(
                             dataset,
                             model,
                             ratio if strategy.startswith('gen_') else None,
-                            seg_loss=seg_loss,
+                            aux_loss=aux_loss,
                             stage=stage if isinstance(stage, int) else None,
                         )
                         if lock.is_locked():
@@ -388,7 +386,7 @@ def generate_job_script(
     job: TrainingJob,
     lsf_config: LSFConfig,
     max_iters: Optional[int] = None,
-    seg_loss: Optional[str] = None,
+    aux_loss: Optional[str] = None,
 ) -> str:
     """Generate LSF job script for a training job."""
     work_dir = str(job.weights_dir)
@@ -413,18 +411,16 @@ def generate_job_script(
     if max_iters is not None:
         cmd_parts.extend(['--max-iters', str(max_iters)])
 
-    # Add segmentation loss if specified
-    if seg_loss:
-        cmd_parts.extend(['--seg-loss', seg_loss])
+    # Add auxiliary loss if specified
+    if aux_loss:
+        cmd_parts.extend(['--aux-loss', aux_loss])
     
     # Add work-dir to ensure proper output location
     cmd_parts.extend(['--work-dir', work_dir])
     
     training_cmd = ' '.join(cmd_parts)
     
-    loss_suffix = ''
-    if seg_loss and seg_loss != 'cross_entropy':
-        loss_suffix = f"_loss-{seg_loss}"
+    aux_suffix = f"_aux-{aux_loss}" if aux_loss else ''
     
     script = f'''#!/bin/bash
 #BSUB -J {job.job_name}
@@ -458,7 +454,7 @@ echo "Strategy: {job.strategy}"
 echo "Dataset: {job.dataset}"
 echo "Model: {job.model}"
 echo "Stage: {job.stage}"
-echo "Seg Loss: {seg_loss or 'default'}"
+echo "Aux Loss: {aux_loss or 'none'}"
 echo "Work Dir: {work_dir}"
 echo "=========================================="
 
@@ -485,7 +481,7 @@ fi
 # Acquire training lock
 LOCK_DIR="/scratch/aaa_exchange/AWARE/training_locks"
 mkdir -p $LOCK_DIR
-LOCK_FILE="$LOCK_DIR/{job.strategy}_{job.dataset.lower().replace('-', '_')}_{job.model}{loss_suffix}.lock"
+LOCK_FILE="$LOCK_DIR/{job.strategy}_{job.dataset.lower().replace('-', '_')}_{job.model}{aux_suffix}.lock"
 
 # Try to acquire lock (non-blocking)
 exec 200>"$LOCK_FILE"
@@ -505,7 +501,7 @@ cat > "$LOCK_FILE" << EOF
   "strategy": "{job.strategy}",
   "dataset": "{job.dataset}",
   "model": "{job.model}",
-  "seg_loss": "{seg_loss or 'cross_entropy'}",
+  "aux_loss": "{aux_loss or ''}",
   "started": "$(date -Iseconds)"
 }}
 EOF
@@ -594,7 +590,7 @@ def submit_job(
     lsf_config: LSFConfig,
     dry_run: bool = False,
     max_iters: Optional[int] = None,
-    seg_loss: Optional[str] = None,
+    aux_loss: Optional[str] = None,
 ) -> bool:
     """
     Submit a training job to LSF.
@@ -617,7 +613,7 @@ def submit_job(
         job.weights_dir.mkdir(parents=True, exist_ok=True)
     
     # Generate job script
-    script = generate_job_script(job, lsf_config, max_iters=max_iters, seg_loss=seg_loss)
+    script = generate_job_script(job, lsf_config, max_iters=max_iters, aux_loss=aux_loss)
     script_path = job.weights_dir / 'submit_job.sh'
     
     if dry_run:
@@ -714,9 +710,9 @@ Examples:
                        help='Real/gen ratios for generative strategies (default: 0.5). Example: --ratios 0.0 0.25 0.5')
     parser.add_argument('--max-iters', type=int, default=None,
                        help='Maximum training iterations (default: use config default, usually 10000)')
-    parser.add_argument('--seg-loss', type=str, default=None,
-                       choices=['cross_entropy', 'lovasz', 'boundary'],
-                       help='Segmentation loss override for decode/aux heads')
+    parser.add_argument('--aux-loss', type=str, default=None,
+                       choices=['focal', 'lovasz', 'boundary'],
+                       help='Auxiliary loss to add alongside CrossEntropyLoss')
     
     # Pre-flight options
     parser.add_argument('--no-check-existing', action='store_true',
@@ -783,7 +779,7 @@ Examples:
         datasets=args.datasets,
         models=args.models,
         ratios=args.ratios,
-        seg_loss=args.seg_loss,
+        aux_loss=args.aux_loss,
         check_existing=not args.no_check_existing,
         check_locks=not args.no_check_locks,
     )
@@ -834,7 +830,13 @@ Examples:
             print(f"\nReached limit of {args.limit} jobs")
             break
         
-        if submit_job(job, lsf_config, dry_run=args.dry_run, max_iters=args.max_iters, seg_loss=args.seg_loss):
+        if submit_job(
+            job,
+            lsf_config,
+            dry_run=args.dry_run,
+            max_iters=args.max_iters,
+            aux_loss=args.aux_loss,
+        ):
             submitted += 1
             if not args.dry_run and args.delay > 0:
                 time.sleep(args.delay)

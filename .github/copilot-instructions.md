@@ -105,6 +105,10 @@ python unified_training.py --dataset MapillaryVistas --model deeplabv3plus_r50 \
 python unified_training.py --dataset BDD10k --model deeplabv3plus_r50 \
     --strategy baseline --batch-size 4 --lr 0.02 --warmup-iters 500
 
+# Add auxiliary loss (CE remains primary)
+python unified_training.py --dataset BDD10k --model deeplabv3plus_r50 \
+    --strategy baseline --aux-loss focal  # Options: focal, lovasz, boundary
+
 # Submit as LSF job instead of running locally
 python unified_training.py --dataset BDD10k --model deeplabv3plus_r50 \
     --strategy baseline --domain-filter clear_day --submit-job

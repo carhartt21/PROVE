@@ -752,8 +752,8 @@ class TrainingConfig:
     # Learning rate scaling factor (relative to batch_size=2)
     # lr = base_lr * batch_size / 2
     lr_scale_factor: float = 8.0  # batch_size=16 / base_batch_size=2
-    # Segmentation loss for decode/aux heads
-    seg_loss: str = 'cross_entropy'
+    # Optional auxiliary segmentation loss (in addition to CE)
+    aux_loss: Optional[str] = None
 
 
 TRAINING_CONFIGS = {
@@ -1011,7 +1011,7 @@ class UnifiedTrainingConfig:
         # Ensure warmup_iters does not exceed max_iters
         if training_cfg.max_iters <= training_cfg.warmup_iters:
             training_cfg.warmup_iters = max(1, training_cfg.max_iters // 2)
-        
+
         # Apply custom conditions if provided
         conditions = custom_conditions or aug_strategy.conditions
         
@@ -1145,7 +1145,7 @@ class UnifiedTrainingConfig:
         # Ensure warmup_iters does not exceed max_iters
         if training_cfg.max_iters <= training_cfg.warmup_iters:
             training_cfg.warmup_iters = max(1, training_cfg.max_iters // 2)
-        
+
         conditions = custom_conditions or aug_strategy.conditions
         
         # Build base configuration using first dataset as template
@@ -1663,63 +1663,72 @@ class UnifiedTrainingConfig:
         
         return hooks
 
-    def _get_segmentation_loss_config(self, seg_loss: str) -> Optional[Dict[str, Any]]:
-        """Return loss configuration for segmentation heads."""
-        if not seg_loss or seg_loss == 'cross_entropy':
-            return None
-        if seg_loss == 'lovasz':
+    def _get_aux_segmentation_loss_config(self, loss_name: str) -> Dict[str, Any]:
+        """Return auxiliary loss configuration for segmentation heads."""
+        if loss_name == 'lovasz':
             return dict(
                 type='LovaszLoss',
                 loss_type='multi_class',
                 classes='all',  # Use all classes to avoid tensor size mismatch
                 per_image=True,  # Compute loss per image, then average
                 reduction='mean',
-                loss_weight=1.0,
+                loss_weight=0.5,
             )
-        if seg_loss == 'boundary':
+        if loss_name == 'focal':
+            return dict(
+                type='FocalLoss',
+                use_sigmoid=False,
+                gamma=2.0,
+                alpha=0.5,
+                reduction='mean',
+                loss_weight=0.5,
+            )
+        if loss_name == 'boundary':
             return dict(
                 type='SegBoundaryLoss',
-                loss_weight=1.0,
+                loss_weight=0.5,
                 ignore_index=255,
             )
-        raise ValueError(f"Unsupported segmentation loss: {seg_loss}")
+        raise ValueError(f"Unsupported auxiliary segmentation loss: {loss_name}")
 
-    def _apply_segmentation_loss(
+    def _apply_segmentation_aux_loss(
         self,
         model_def: Dict[str, Any],
-        seg_loss: str,
+        aux_loss: Optional[str],
     ) -> Dict[str, Any]:
-        """Apply a segmentation loss override to decode/aux heads."""
-        loss_cfg = self._get_segmentation_loss_config(seg_loss)
-        if loss_cfg is None:
+        """Apply a single auxiliary segmentation loss while keeping CE primary."""
+        if not aux_loss:
             return model_def
 
-        def _replace_loss(head: Dict[str, Any]) -> None:
+        def _normalize_loss_decode(existing_loss):
+            if isinstance(existing_loss, list):
+                return existing_loss
+            if isinstance(existing_loss, dict):
+                return [existing_loss]
+            return []
+
+        def _apply_to_head(head: Dict[str, Any]) -> None:
             if not isinstance(head, dict) or 'loss_decode' not in head:
                 return
-            existing = head.get('loss_decode', {})
-            loss_weight = 1.0
-            if isinstance(existing, dict) and 'loss_weight' in existing:
-                loss_weight = existing['loss_weight']
-            new_loss = dict(loss_cfg)
-            new_loss['loss_weight'] = loss_weight
-            head['loss_decode'] = new_loss
+            losses = _normalize_loss_decode(head.get('loss_decode', {}))
+            losses.append(self._get_aux_segmentation_loss_config(aux_loss))
+            head['loss_decode'] = losses
 
         if 'decode_head' in model_def:
             decode_head = model_def['decode_head']
             if isinstance(decode_head, dict):
-                _replace_loss(decode_head)
+                _apply_to_head(decode_head)
             elif isinstance(decode_head, list):
                 for head in decode_head:
-                    _replace_loss(head)
+                    _apply_to_head(head)
 
         if 'auxiliary_head' in model_def:
             aux_head = model_def['auxiliary_head']
             if isinstance(aux_head, dict):
-                _replace_loss(aux_head)
+                _apply_to_head(aux_head)
             elif isinstance(aux_head, list):
                 for head in aux_head:
-                    _replace_loss(head)
+                    _apply_to_head(head)
 
         return model_def
     
@@ -1751,9 +1760,9 @@ class UnifiedTrainingConfig:
             # Update pretrained paths with cache_dir
             model_def = self._update_pretrained_paths(model_def)
 
-            # Apply segmentation loss override if configured
+            # Apply auxiliary segmentation losses if configured (CE remains primary)
             if dataset_cfg.task == 'segmentation':
-                model_def = self._apply_segmentation_loss(model_def, training_cfg.seg_loss)
+                model_def = self._apply_segmentation_aux_loss(model_def, training_cfg.aux_loss)
         
         # Build optimizer wrapper (new MMEngine format)
         # Scale learning rate based on batch size: lr = base_lr * batch_size / 2
@@ -1811,7 +1820,8 @@ class UnifiedTrainingConfig:
                 'batch_size': training_cfg.batch_size,  # Store for dataloader config
                 'max_iters': training_cfg.max_iters,
                 'lr_scale_factor': training_cfg.lr_scale_factor,
-                'seg_loss': training_cfg.seg_loss,
+                'primary_loss': 'cross_entropy',
+                'aux_loss': training_cfg.aux_loss,
             },
             
             # Model definition (inline, not inherited from _base_)

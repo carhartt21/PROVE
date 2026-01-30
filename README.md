@@ -174,6 +174,7 @@ python unified_training.py --list
 | `--no-early-stop` | Disable early stopping (stops when no improvement for 5 validations) | Enabled |
 | `--early-stop-patience` | Number of validations without improvement before stopping | 5 |
 | `--use-native-classes` | Use native labels (66 for Mapillary, 24 for OUTSIDE15k) instead of Cityscapes 19 | False |
+| `--aux-loss` | Auxiliary loss to add alongside CrossEntropyLoss (`focal`, `lovasz`, `boundary`) | None |
 
 **Important Training Modes:**
 
@@ -193,6 +194,10 @@ python unified_training.py --dataset BDD10k --model segformer_mit-b5 \
 # Resume from checkpoint
 python unified_training.py --dataset BDD10k --model segformer_mit-b5 \
     --strategy gen_cycleGAN --resume-from /path/to/iter_80000.pth --max-iters 160000
+
+# Training with auxiliary loss (CE remains primary)
+python unified_training.py --dataset BDD10k --model deeplabv3plus_r50 \
+    --strategy baseline --aux-loss focal
 ```
 
 #### Combined Strategies

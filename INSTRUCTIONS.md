@@ -69,6 +69,13 @@ python unified_training.py \
     --strategy gen_cycleGAN \
     --real-gen-ratio 0.5 \
     --domain-filter clear_day
+
+# Add auxiliary loss (CE remains primary)
+python unified_training.py \
+    --dataset BDD10k \
+    --model deeplabv3plus_r50 \
+    --strategy baseline \
+    --aux-loss focal
 ```
 
 **Using submit_training.sh:**
@@ -86,6 +93,15 @@ python unified_training.py \
     --strategy gen_cycleGAN \
     --ratio 0.5 \
     --dry-run
+```
+
+**Batch submission with auxiliary loss:**
+```bash
+python scripts/batch_training_submission.py --stage 1 \
+    --strategies baseline gen_cycleGAN \
+    --ratios 0.5 \
+    --aux-loss focal \
+    -y
 ```
 
 ### Testing Job Submission

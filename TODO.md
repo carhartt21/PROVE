@@ -1,6 +1,6 @@
 # PROVE Project TODO
 
-**Last Updated:** 2026-01-30 (08:15)
+**Last Updated:** 2026-01-30 (10:56)
 
 ---
 
@@ -74,6 +74,11 @@ Consider comparing with CrossEntropy loss baseline to determine which is more st
 ---
 
 ## ✅ Recently Completed
+
+### 2026-01-30
+- [x] ✅ Refactored training loss CLI to single `--aux-loss` across training, batch submission, locks, and docs
+- [x] ✅ Validated `--aux-loss` with config-only checks (focal, lovasz, boundary all working)
+- [x] ✅ Updated README.md, INSTRUCTIONS.md, TODO.md with aux-loss documentation
 
 ### 2026-01-29
 - [x] **Cleared all old weights** (996 GB removed)
@@ -150,10 +155,10 @@ Based on Lovasz instability findings, decide between:
 
 ### After Baseline Complete
 3. **Submit std_* strategies** (after loss decision)
-   - `python scripts/batch_training_submission.py --stage 1 --strategy-type std --seg-loss lovasz`
+   - `python scripts/batch_training_submission.py --stage 1 --strategy-type std --aux-loss lovasz`
 
 4. **Submit gen_* strategies**
-   - `python scripts/batch_training_submission.py --stage 1 --strategy-type gen --seg-loss lovasz`
+   - `python scripts/batch_training_submission.py --stage 1 --strategy-type gen --aux-loss lovasz`
 
 4. **Run testing on completed models**
    - `python scripts/auto_submit_tests.py --stage 1 --dry-run`
