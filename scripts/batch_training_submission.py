@@ -429,9 +429,8 @@ def generate_job_script(
 #BSUB -q {lsf_config.queue}
 #BSUB -o {work_dir}/train_%J.out
 #BSUB -e {work_dir}/train_%J.err
-#BSUB -n {lsf_config.gpu_count}
-#BSUB -gpu "num=1:gmem=20GB"
-#BSUB -W {lsf_config.time_limit}
+#BSUB -n 2,{lsf_config.gpu_count}
+#BSUB -gpu "num=1:gmem=36GB"
 
 # ============================================================================
 # Environment setup
