@@ -88,7 +88,7 @@ TARGET_DOMAINS = {
 }
 
 # Models to test
-MODELS_TO_TEST = ['pspnet_r50', 'segformer_mit-b5', 'deeplabv3plus_r50']
+MODELS_TO_TEST = ['pspnet_r50', 'segformer_mit-b3', 'deeplabv3plus_r50', 'segnext_mscan-b', 'hrnet_hr48']
 
 # All available strategies
 ALL_STRATEGIES = [
@@ -660,7 +660,7 @@ def main():
     parser = argparse.ArgumentParser(description='Domain Adaptation Ablation Study')
     parser.add_argument('--source-dataset', choices=['bdd10k', 'idd-aw', 'mapillaryvistas'],
                        help='Source dataset to test')
-    parser.add_argument('--model', choices=['pspnet_r50', 'segformer_mit-b5', 'deeplabv3plus_r50'],
+    parser.add_argument('--model', choices=['pspnet_r50', 'segformer_mit-b3', 'deeplabv3plus_r50', 'segnext_mscan-b', 'hrnet_hr48'],
                        help='Model architecture')
     parser.add_argument('--strategy', choices=ALL_STRATEGIES, default='baseline',
                        help='Training strategy (default: baseline). Available: ' + ', '.join(ALL_STRATEGIES[:5]) + '...')

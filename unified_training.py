@@ -75,7 +75,7 @@ class UnifiedTrainer:
     
     Args:
         dataset: Dataset name (e.g., 'ACDC', 'BDD10k', 'BDD100k')
-        model: Model name (e.g., 'deeplabv3plus_r50', 'segformer_mit-b5')
+        model: Model name (e.g., 'deeplabv3plus_r50', 'segformer_mit-b3', 'hrnet_hr48')
         strategy: Augmentation strategy (e.g., 'baseline', 'gen_cycleGAN')
         real_gen_ratio: Ratio of real images (0.0-1.0). Default: 1.0
         custom_conditions: Optional list of weather conditions to use

@@ -4,7 +4,7 @@ PROVE Unified Training Configuration System
 
 This module provides a centralized configuration system that eliminates
 redundant config files by parameterizing:
-- Base model (deeplabv3plus_r50, pspnet_r50, segformer_mit-b5, etc.)
+- Base model (deeplabv3plus_r50, pspnet_r50, segformer_mit-b3, hrnet_hr48, segnext_mscan-b)
 - Dataset (ACDC, BDD10k, BDD100k, IDD-AW, MapillaryVistas, OUTSIDE15k)
 - Augmentation strategy (baseline, std_photometric_distort, gen_<model>)
 - Real-to-generated image ratio for mixed training
@@ -368,7 +368,7 @@ MODEL_DEFINITIONS = {
         'train_cfg': {},
         'test_cfg': {'mode': 'whole'},
     },
-    'segformer_mit-b5': {
+    'segformer_mit-b3': {
         'type': 'EncoderDecoder',
         'data_preprocessor': {
             'type': 'SegDataPreProcessor',
@@ -384,7 +384,7 @@ MODEL_DEFINITIONS = {
             'in_channels': 3,
             'embed_dims': 64,
             'num_stages': 4,
-            'num_layers': [3, 6, 40, 3],
+            'num_layers': [3, 4, 18, 3],
             'num_heads': [1, 2, 5, 8],
             'patch_sizes': [7, 3, 3, 3],
             'sr_ratios': [8, 4, 2, 1],
@@ -396,7 +396,7 @@ MODEL_DEFINITIONS = {
             'drop_path_rate': 0.1,
             'init_cfg': {
                 'type': 'Pretrained',
-                'checkpoint': 'https://download.openmmlab.com/mmsegmentation/v0.5/pretrain/segformer/mit_b5_20220624-658746d9.pth',
+                'checkpoint': 'https://download.openmmlab.com/mmsegmentation/v0.5/pretrain/segformer/mit_b3_20220624-13b1141c.pth',
             },
         },
         'decode_head': {
@@ -774,10 +774,10 @@ SEGMENTATION_MODELS = {
         lr=0.01,
         weight_decay=0.0005,
     ),
-    'segformer_mit-b5': ModelConfig(
-        name='segformer_mit-b5',
+    'segformer_mit-b3': ModelConfig(
+        name='segformer_mit-b3',
         task='segmentation',
-        base_config='_base_/models/segformer_mit-b5.py',
+        base_config='_base_/models/segformer_mit-b3.py',
         optimizer='AdamW',
         lr=0.00006,
         weight_decay=0.01,

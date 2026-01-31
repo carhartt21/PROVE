@@ -1,6 +1,6 @@
 # PROVE Project TODO
 
-**Last Updated:** 2026-01-31 (20:35)
+**Last Updated:** 2026-01-31 (20:55)
 
 ---
 
@@ -12,7 +12,7 @@ The critical pipeline bug has been fixed and verified through Cityscapes replica
 
 | Model | Before Fix | After Fix (Cityscapes) | Expected |
 |-------|-----------|------------------------|----------|
-| SegFormer MIT-B5 | ~45% | **79.33%** ✅ | ~79-80% |
+| SegFormer MIT-B3 | ~45% | **79.33%** ✅ | ~79-80% |
 | SegNeXt MSCAN-B | ~45% | **79.81%** ✅ | ~77-79% |
 | DeepLabV3+ R50 | ~38% | 58.02% | ~77% (needs 769x769) |
 
@@ -23,17 +23,19 @@ The critical pipeline bug has been fixed and verified through Cityscapes replica
 **PROVE Training (Fixed Pipeline):**
 | Job ID | Model | Dataset | Status | Progress |
 |--------|-------|---------|--------|----------|
-| 1004334 | SegFormer MIT-B5 | BDD10k (clear_day) | 🏃 RUN | ~5k/80k |
+| 1004444 | SegFormer MIT-B3 | BDD10k (clear_day) | ⏳ PEND | New |
 | 1004336 | DeepLabV3+ R50 | BDD10k (clear_day) | 🏃 RUN | Starting |
 | 1004413 | SegNeXt MSCAN-B | BDD10k (clear_day) | ⏳ PEND | (re-submitted) |
 | 1004424 | HRNet HR48 | BDD10k (clear_day) | ⏳ PEND | New |
 
-**Note:** HRNet HR48 added to PROVE training pipeline (unified_training_config.py).
+**Note:** 
+- Changed from SegFormer MIT-B5 to MIT-B3 (matches Cityscapes replication)
+- HRNet HR48 added to PROVE training pipeline
 
 **Available Models (5):**
 - DeepLabV3+ R50, PSPNet R50 (CNN)
-- SegFormer MIT-B5, SegNeXt MSCAN-B (Transformer)
-- HRNet HR48 (High-Resolution Net) **NEW**
+- SegFormer MIT-B3, SegNeXt MSCAN-B (Transformer)
+- HRNet HR48 (High-Resolution Net)
 
 **Cityscapes Replication (Complete):**
 | Model | mIoU | Expected |

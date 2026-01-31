@@ -668,8 +668,8 @@ def generate_model_config(
     Generate model configuration for segmentation.
     
     Args:
-        model_name: Model architecture ('deeplabv3plus', 'pspnet', 'segformer')
-        backbone: Backbone network ('r50', 'r101', 'mit-b5')
+        model_name: Model architecture ('deeplabv3plus', 'pspnet', 'segformer', 'hrnet', 'segnext')
+        backbone: Backbone network ('r50', 'r101', 'mit-b3', 'hr48', 'mscan-b')
         num_classes: Number of output classes
         
     Returns:

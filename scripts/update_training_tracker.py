@@ -42,12 +42,12 @@ MODELS = {
         'baseline': 'deeplabv3plus_r50',
     },
     'all_domains': {
-        # Stage 2 uses all 4 models: DeepLabV3+, PSPNet, SegFormer, and SegNeXt
+        # Stage 2 uses all 5 models: DeepLabV3+, PSPNet, SegFormer, SegNeXt, and HRNet
         # Generative strategies use _ratio0p50 suffix (trained with 0.5 real/gen ratio)
         # Standard strategies use base model names (no ratio suffix)
-        'gen': ['deeplabv3plus_r50_ratio0p50', 'pspnet_r50_ratio0p50', 'segformer_mit-b5_ratio0p50', 'segnext_mscan-b_ratio0p50'],
-        'std': ['deeplabv3plus_r50', 'pspnet_r50', 'segformer_mit-b5', 'segnext_mscan-b'],
-        'baseline': ['deeplabv3plus_r50', 'pspnet_r50', 'segformer_mit-b5', 'segnext_mscan-b'],
+        'gen': ['deeplabv3plus_r50_ratio0p50', 'pspnet_r50_ratio0p50', 'segformer_mit-b3_ratio0p50', 'segnext_mscan-b_ratio0p50', 'hrnet_hr48_ratio0p50'],
+        'std': ['deeplabv3plus_r50', 'pspnet_r50', 'segformer_mit-b3', 'segnext_mscan-b', 'hrnet_hr48'],
+        'baseline': ['deeplabv3plus_r50', 'pspnet_r50', 'segformer_mit-b3', 'segnext_mscan-b', 'hrnet_hr48'],
     }
 }
 
@@ -105,8 +105,12 @@ ALL_MODELS = [
     'deeplabv3plus_r50_ratio0p50',
     'pspnet_r50',
     'pspnet_r50_ratio0p50',
-    'segformer_mit-b5',
-    'segformer_mit-b5_ratio0p50',
+    'segformer_mit-b3',
+    'segformer_mit-b3_ratio0p50',
+    'segnext_mscan-b',
+    'segnext_mscan-b_ratio0p50',
+    'hrnet_hr48',
+    'hrnet_hr48_ratio0p50',
 ]
 
 # Model display names
@@ -115,8 +119,12 @@ MODEL_DISPLAY = {
     'deeplabv3plus_r50_ratio0p50': 'DeepLabV3+ (0.5)',
     'pspnet_r50': 'PSPNet',
     'pspnet_r50_ratio0p50': 'PSPNet (0.5)',
-    'segformer_mit-b5': 'SegFormer',
-    'segformer_mit-b5_ratio0p50': 'SegFormer (0.5)',
+    'segformer_mit-b3': 'SegFormer',
+    'segformer_mit-b3_ratio0p50': 'SegFormer (0.5)',
+    'segnext_mscan-b': 'SegNeXt',
+    'segnext_mscan-b_ratio0p50': 'SegNeXt (0.5)',
+    'hrnet_hr48': 'HRNet',
+    'hrnet_hr48_ratio0p50': 'HRNet (0.5)',
 }
 
 
@@ -787,9 +795,9 @@ def collect_detailed_coverage(domain_filter='clear_day', verbose=False):
     for strategy in strategies_to_check:
         # Determine which models to check based on strategy type
         if strategy.startswith('gen_'):
-            models_to_check = ['deeplabv3plus_r50_ratio0p50', 'pspnet_r50_ratio0p50', 'segformer_mit-b5_ratio0p50', 'segnext_mscan-b_ratio0p50']
+            models_to_check = ['deeplabv3plus_r50_ratio0p50', 'pspnet_r50_ratio0p50', 'segformer_mit-b3_ratio0p50', 'segnext_mscan-b_ratio0p50', 'hrnet_hr48_ratio0p50']
         else:
-            models_to_check = ['deeplabv3plus_r50', 'pspnet_r50', 'segformer_mit-b5', 'segnext_mscan-b']
+            models_to_check = ['deeplabv3plus_r50', 'pspnet_r50', 'segformer_mit-b3', 'segnext_mscan-b', 'hrnet_hr48']
         
         for dataset in DATASETS:
             for model in models_to_check:
