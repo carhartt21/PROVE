@@ -1,6 +1,6 @@
 # PROVE Project TODO
 
-**Last Updated:** 2026-01-31 (22:25)
+**Last Updated:** 2026-02-01 (00:45)
 
 ---
 
@@ -21,25 +21,24 @@ The critical pipeline bug has been fixed and verified through Cityscapes replica
 ### Active Jobs (2026-01-31)
 
 **Stage 1 Baseline Training (Fixed Pipeline) - Submitted 22:22:**
-| Job ID | Dataset | Model | Status |
-|--------|---------|-------|--------|
-| 1004631 | BDD10k | SegFormer B3 | ⏳ PEND |
-| 1004632 | BDD10k | SegNeXt MSCAN-B | ⏳ PEND |
-| 1004633 | BDD10k | HRNet HR48 | ⏳ PEND |
-| 1004634 | IDD-AW | SegFormer B3 | ⏳ PEND |
-| 1004635 | IDD-AW | SegNeXt MSCAN-B | ⏳ PEND |
-| 1004636 | IDD-AW | HRNet HR48 | ⏳ PEND |
-| 1004637 | MapillaryVistas | SegFormer B3 | ⏳ PEND |
-| 1004638 | MapillaryVistas | SegNeXt MSCAN-B | ⏳ PEND |
-| 1004639 | MapillaryVistas | HRNet HR48 | ⏳ PEND |
-| 1004640 | OUTSIDE15k | SegFormer B3 | ⏳ PEND |
-| 1004641 | OUTSIDE15k | SegNeXt MSCAN-B | ⏳ PEND |
-| 1004642 | OUTSIDE15k | HRNet HR48 | ⏳ PEND |
+| Job ID | Dataset | Model | Status | Progress |
+|--------|---------|-------|--------|----------|
+| 1004631 | BDD10k | SegFormer B3 | ❌ EXIT | Permission denied (mima2416 dir) |
+| 1004632 | BDD10k | SegNeXt MSCAN-B | 🏃 RUN | 24% (19k/80k) |
+| 1004633 | BDD10k | HRNet HR48 | ❌ EXIT | Permission denied (mima2416 dir) |
+| 1004634 | IDD-AW | SegFormer B3 | 🏃 RUN | 32% (25k/80k) |
+| 1004635 | IDD-AW | SegNeXt MSCAN-B | 🏃 RUN | 24% (19k/80k) |
+| 1004636 | IDD-AW | HRNet HR48 | 🏃 RUN | 21% (17k/80k) |
+| 1004637 | MapillaryVistas | SegFormer B3 | 🏃 RUN | 22% (17k/80k) |
+| 1004638 | MapillaryVistas | SegNeXt MSCAN-B | 🏃 RUN | 5% (4k/80k) |
+| 1004639 | MapillaryVistas | HRNet HR48 | ⏳ PEND | - |
+| 1004640 | OUTSIDE15k | SegFormer B3 | ⏳ PEND | - |
+| 1004641 | OUTSIDE15k | SegNeXt MSCAN-B | ⏳ PEND | - |
+| 1004642 | OUTSIDE15k | HRNet HR48 | ⏳ PEND | - |
 
-**Note:** 
-- Stage 1 uses `--domain-filter clear_day` (trains only on clear day images)
-- Output directory: `/scratch/aaa_exchange/AWARE/WEIGHTS/baseline/{dataset}/{model}/`
-- 80,000 iterations per model
+**⚠️ BDD10k Permission Issue:**
+- Directories `bdd10k/segformer_mit-b3` and `bdd10k/hrnet_hr48` owned by mima2416 with 755 permissions
+- Created alternative directories with `_fixed` suffix, need to resubmit jobs
 
 **Available Models (5):**
 - DeepLabV3+ R50, PSPNet R50 (CNN)
@@ -56,13 +55,15 @@ The critical pipeline bug has been fixed and verified through Cityscapes replica
 | PSPNet R50 | 57.64% | ~76% (needs 769x769) | ✅ Complete |
 | OCRNet HR48 | 49.25% | ~79% (needs 512x1024) | ⚠️ Config issues |
 
-**Proper Crop Size Jobs (Still Running):**
-| Job ID | Model | Crop Size | Current mIoU | Progress |
-|--------|-------|-----------|--------------|----------|
-| 1004205 | DeepLabV3+ R50 | 769x769 | 55.52% | 76% (61k/80k) |
-| 1004206 | PSPNet R50 | 769x769 | 61.41% | 72% (58k/80k) |
-| 1004207 | HRNet HR48 | 512x1024 | 62.57% | 52% (83k/160k) |
-| 1004208 | OCRNet HR48 | 512x1024 | 50.17% | 40% (64k/160k) |
+**Cityscapes Proper Crop Size Jobs (Complete):**
+| Job ID | Model | Crop Size | Final mIoU | Expected |
+|--------|-------|-----------|------------|----------|
+| 1004205 | DeepLabV3+ R50 | 769x769 | **66.57%** | 79.6% |
+| 1004206 | PSPNet R50 | 769x769 | **72.50%** | 78.5% |
+| 1004207 | HRNet HR48 | 512x1024 | 67.65% (ongoing) | 80.6% |
+| 1004208 | OCRNet HR48 | 512x1024 | 56.00% (issues) | 81.3% |
+
+**Note:** PSPNet achieved 72.5% with 769x769 crop (vs 57.6% with 512x512), confirming crop size matters for CNNs.
 
 ### Current Training Configuration (2026-01-31)
 | Setting | Value |
