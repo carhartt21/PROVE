@@ -106,6 +106,35 @@ Cityscapes data is at: `/scratch/aaa_exchange/AWARE/CITYSCAPES/`
 | Crop Size | 512x1024 or 1024x1024 | 512x512 |
 | Iterations | 80k-160k | 80k |
 
+## Current Training Status (2026-01-31)
+
+**All 6 models are training successfully!**
+
+| Model | Progress | ETA | Node | Status |
+|-------|----------|-----|------|--------|
+| deeplabv3plus_r50 | 1,700/80k (2%) | ~1h 09m | makalu95 | ✅ Training |
+| pspnet_r50 | 1,100/80k (1%) | ~1h 11m | makalu95 | ✅ Training |
+| hrnet_hr48 | 46,550/160k (29%) | ~3h 17m | makalu94 | ✅ Training |
+| segformer_b3 | 29,950/160k (19%) | ~5h 24m | makalu94 | ✅ Training |
+| ocrnet_hr48 | 1,100/160k (0.7%) | ~6h 21m | makalu94 | ✅ Training |
+| segnext_mscan_b | 21,350/160k (13%) | ~7h 49m | makalu94 | ✅ Training |
+
+**Expected Completion:** All models within ~8 hours (by ~22:30 on 2026-01-31)
+
+### Job IDs
+- cs_hrnet_hr48: 983234
+- cs_segformer_b3: 983239
+- cs_segnext_mscan_b: 983271
+- cs_ocrnet_hr48: 983368
+- cs_deeplabv3plus_r50: 983372
+- cs_pspnet_r50: 983373
+
+### Setup Notes
+- All models use **512x512 crop size** to match PROVE training conditions
+- Using **single GPU** execution (changed from 4-GPU torchrun)
+- Pretrained weights downloaded to `~/.cache/torch/hub/checkpoints/` (cluster nodes have no internet)
+- labelTrainIds files generated using `prepare_cityscapes.py`
+
 ## Timeline
 
 Created: 2026-01-31

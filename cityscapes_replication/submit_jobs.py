@@ -15,52 +15,54 @@ from pathlib import Path
 from datetime import datetime
 
 # Configuration
-CONFIG_DIR = Path('/home/mima2416/repositories/PROVE/cityscapes_replication/configs')
+CONFIG_DIR = Path('/home/chge7185/repositories/PROVE/cityscapes_replication/configs')
 WORK_DIR_BASE = Path('/scratch/aaa_exchange/AWARE/CITYSCAPES_REPLICATION')
 CONDA_ENV = 'prove'
+REPO_DIR = Path('/home/chge7185/repositories/PROVE')
 
 # Job definitions - ALL using 512x512 crop size
+# Using single GPU - hours increased from original 4-GPU estimates
 JOBS = {
     'segformer_b3': {
         'config': 'segformer_mit-b3_cityscapes_512x512.py',
-        'gpus': 4,
-        'mem': '32000',
-        'hours': 48,  # 160k iterations
+        'gpus': 1,
+        'mem': '48000',
+        'hours': 96,  # 160k iterations, single GPU
         'expected_miou': 80.0,  # Lower than 1024x1024 due to smaller crop
     },
     'hrnet_hr48': {
         'config': 'hrnet_hr48_cityscapes_512x512.py',
-        'gpus': 4,
-        'mem': '32000',
-        'hours': 48,
+        'gpus': 1,
+        'mem': '48000',
+        'hours': 96,
         'expected_miou': 78.0,
     },
     'ocrnet_hr48': {
         'config': 'ocrnet_hr48_cityscapes_512x512.py',
-        'gpus': 4,
-        'mem': '32000',
-        'hours': 48,
+        'gpus': 1,
+        'mem': '48000',
+        'hours': 96,
         'expected_miou': 79.0,
     },
     'deeplabv3plus_r50': {
         'config': 'deeplabv3plus_r50_cityscapes_512x512.py',
-        'gpus': 4,
-        'mem': '32000',
-        'hours': 24,  # 80k iterations is faster
+        'gpus': 1,
+        'mem': '48000',
+        'hours': 48,  # 80k iterations is faster
         'expected_miou': 77.0,
     },
     'pspnet_r50': {
         'config': 'pspnet_r50_cityscapes_512x512.py',
-        'gpus': 4,
-        'mem': '32000',
-        'hours': 24,
+        'gpus': 1,
+        'mem': '48000',
+        'hours': 48,
         'expected_miou': 76.0,
     },
     'segnext_mscan_b': {
         'config': 'segnext_mscan-b_cityscapes_512x512.py',
-        'gpus': 4,
-        'mem': '32000',
-        'hours': 48,  # 160k iterations
+        'gpus': 1,
+        'mem': '48000',
+        'hours': 96,  # 160k iterations
         'expected_miou': 77.0,  # Estimated
     },
 }
@@ -71,31 +73,29 @@ LSF_TEMPLATE = '''#!/bin/bash
 #BSUB -o {work_dir}/train_%J.out
 #BSUB -e {work_dir}/train_%J.err
 #BSUB -W {hours}:00
-#BSUB -n {gpus}
-#BSUB -R "span[hosts=1]"
-#BSUB -M {mem}
-#BSUB -R "rusage[mem={mem}]"
-#BSUB -gpu "num={gpus}:mode=exclusive_process"
+#BSUB -n 1
+#BSUB -gpu "num=1:gmem=36GB"
 
 echo "Job started at $(date)"
 echo "Running on host: $(hostname)"
+echo "Job ID: $LSB_JOBID"
 echo "Config: {config}"
 echo "Work dir: {work_dir}"
 echo "Expected mIoU: {expected_miou}%"
 
+# Set permissions
+umask 002
+
 # Activate environment
-source /home/mima2416/miniconda3/etc/profile.d/conda.sh
-conda activate {conda_env}
+source ~/.bashrc
+mamba activate {conda_env}
 
-# Set up distributed training
-export MASTER_ADDR=localhost
-export MASTER_PORT=$((29500 + RANDOM % 100))
+# Create work directory
+mkdir -p {work_dir}
+cd {repo_dir}/cityscapes_replication
 
-# Run training with torchrun (modern distributed launcher)
-cd /home/mima2416/repositories/PROVE/cityscapes_replication
-
-torchrun --nproc_per_node={gpus} --master_port=$MASTER_PORT \\
-    train.py \\
+# Run training with single GPU (no torchrun needed for single GPU)
+python train.py \\
     {config_path} \\
     --work-dir {work_dir}
 
@@ -123,6 +123,7 @@ def submit_job(model: str, job_info: dict, dry_run: bool = False):
         hours=job_info['hours'],
         expected_miou=job_info['expected_miou'],
         conda_env=CONDA_ENV,
+        repo_dir=REPO_DIR,
     )
     
     print(f"\n{'='*60}")

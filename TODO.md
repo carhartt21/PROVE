@@ -1,14 +1,28 @@
 # PROVE Project TODO
 
-**Last Updated:** 2026-01-30 (10:56)
+**Last Updated:** 2026-01-31 (14:35)
 
 ---
 
 ## 🔧 Current Status
 
 ### Active Jobs
-- **Total:** 33 jobs (0 running, 33 pending) - all Lovasz loss
-- **chge7185:** 6 running Stage 2 Lovasz jobs, many pending
+
+#### Cityscapes Replication (chge7185) - 6 running
+| Model | Progress | ETA | Node | Job ID |
+|-------|----------|-----|------|--------|
+| deeplabv3plus_r50 | 1,700/80k (2%) | ~1h 09m | makalu95 | 983372 |
+| pspnet_r50 | 1,100/80k (1%) | ~1h 11m | makalu95 | 983373 |
+| hrnet_hr48 | 46,550/160k (29%) | ~3h 17m | makalu94 | 983234 |
+| segformer_b3 | 29,950/160k (19%) | ~5h 24m | makalu94 | 983239 |
+| ocrnet_hr48 | 1,100/160k (0.7%) | ~6h 21m | makalu94 | 983368 |
+| segnext_mscan_b | 21,350/160k (13%) | ~7h 49m | makalu94 | 983271 |
+
+**Purpose:** Verify that our training infrastructure can achieve published Cityscapes results (~78-82% mIoU).
+**Branch:** `cityscapes-replication`
+**Expected Completion:** ~22:30 on 2026-01-31
+
+### Lovasz Loss Training (mima2416) - 33 pending
 
 ### Current Training Configuration (2026-01-30)
 | Setting | Value |
@@ -23,6 +37,42 @@
 | **LR Scale Factor** | 8.0 (batch_size=16 / base=2) |
 | **Best Checkpoint** | Saved based on val/mIoU |
 | **Keep Checkpoints** | ALL |
+
+---
+
+## 🧪 Cityscapes Replication Experiment (2026-01-31)
+
+### Purpose
+Replicate standard mmsegmentation Cityscapes training to verify if our pipeline can achieve published results (~78-82% mIoU vs current PROVE ~45% mIoU).
+
+### Key Hypothesis: Pipeline Bug
+Current PROVE pipeline may be missing critical augmentation:
+```python
+# CURRENT (potentially wrong)
+Resize(512, 512)  # Fixed resize
+RandomCrop(512, 512)  # Same size - no effect!
+
+# STANDARD (correct)
+RandomResize(scale=(2048,1024), ratio_range=(0.5, 2.0))  # Critical!
+RandomCrop(crop_size)  # Now meaningful
+```
+
+### Models Under Test
+| Model | Iterations | Expected mIoU | Current Progress |
+|-------|------------|---------------|------------------|
+| SegFormer MIT-B3 | 160k | ~80% | 19% |
+| HRNet HR48 | 160k | ~78% | 29% |
+| OCRNet HR48 | 160k | ~79% | 0.7% |
+| DeepLabV3+ R50 | 80k | ~77% | 2% |
+| PSPNet R50 | 80k | ~76% | 1% |
+| SegNeXt MSCAN-B | 160k | ~77% | 13% |
+
+### Outcome Interpretation
+- **If achieves ~78-82% mIoU:** Pipeline bug confirmed → Fix `unified_training_config.py`
+- **If achieves ~45% mIoU:** Other issue (data, environment) → Debug dependencies
+
+### Output Directory
+`/scratch/aaa_exchange/AWARE/CITYSCAPES_REPLICATION/`
 
 ---
 
@@ -74,6 +124,15 @@ Consider comparing with CrossEntropy loss baseline to determine which is more st
 ---
 
 ## ✅ Recently Completed
+
+### 2026-01-31
+- [x] ✅ **Cityscapes Replication Setup** - All 6 models training
+  - Fixed paths from mima2416 to chge7185
+  - Changed from 4-GPU to single-GPU execution
+  - Downloaded pretrained weights locally (cluster nodes have no internet)
+  - Created `prepare_cityscapes.py` to generate labelTrainIds files (5000 files converted)
+  - Fixed duplicate job submissions
+  - All jobs now running on makalu94/makalu95
 
 ### 2026-01-30
 - [x] ✅ Refactored training loss CLI to single `--aux-loss` across training, batch submission, locks, and docs
