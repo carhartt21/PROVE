@@ -642,9 +642,9 @@ def collect_detailed_coverage(domain_filter='clear_day', verbose=False):
     for strategy in ALL_STRATEGIES:
         # Determine which models to check based on strategy type
         if strategy.startswith('gen_'):
-            models_to_check = ['deeplabv3plus_r50_ratio0p50', 'pspnet_r50_ratio0p50', 'segformer_mit-b5_ratio0p50']
+            models_to_check = ['deeplabv3plus_r50_ratio0p50', 'pspnet_r50_ratio0p50', 'segformer_mit-b5_ratio0p50', 'segnext_mscan-b_ratio0p50']
         else:
-            models_to_check = ['deeplabv3plus_r50', 'pspnet_r50', 'segformer_mit-b5']
+            models_to_check = ['deeplabv3plus_r50', 'pspnet_r50', 'segformer_mit-b5', 'segnext_mscan-b']
         
         for dataset in DATASETS:
             for model in models_to_check:

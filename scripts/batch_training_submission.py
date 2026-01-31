@@ -84,7 +84,7 @@ GENERATED_IMAGES_ROOT = Path('/scratch/aaa_exchange/AWARE/GENERATED_IMAGES')
 ALL_DATASETS = ['BDD10k', 'IDD-AW', 'MapillaryVistas', 'OUTSIDE15k']
 
 # All models
-ALL_MODELS = ['deeplabv3plus_r50', 'pspnet_r50', 'segformer_mit-b5']
+ALL_MODELS = ['deeplabv3plus_r50', 'pspnet_r50', 'segformer_mit-b5', 'segnext_mscan-b']
 
 # 21 gen_* strategies with full dataset coverage
 # (excluding gen_EDICT, gen_StyleID, gen_flux2, gen_AOD-Net - no/insufficient coverage)
