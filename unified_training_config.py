@@ -463,6 +463,47 @@ MODEL_DEFINITIONS = {
         'train_cfg': {},
         'test_cfg': {'mode': 'whole'},
     },
+    'hrnet_hr48': {
+        'type': 'EncoderDecoder',
+        'data_preprocessor': {
+            'type': 'SegDataPreProcessor',
+            'mean': [123.675, 116.28, 103.53],
+            'std': [58.395, 57.12, 57.375],
+            'bgr_to_rgb': True,
+            'pad_val': 0,
+            'seg_pad_val': 255,
+            'size': (512, 512),
+        },
+        'pretrained': 'open-mmlab://msra/hrnetv2_w48',
+        'backbone': {
+            'type': 'HRNet',
+            'norm_cfg': {'type': 'SyncBN', 'requires_grad': True},
+            'norm_eval': False,
+            'extra': {
+                'stage1': {'num_modules': 1, 'num_branches': 1, 'block': 'BOTTLENECK', 'num_blocks': (4,), 'num_channels': (64,)},
+                'stage2': {'num_modules': 1, 'num_branches': 2, 'block': 'BASIC', 'num_blocks': (4, 4), 'num_channels': (48, 96)},
+                'stage3': {'num_modules': 4, 'num_branches': 3, 'block': 'BASIC', 'num_blocks': (4, 4, 4), 'num_channels': (48, 96, 192)},
+                'stage4': {'num_modules': 3, 'num_branches': 4, 'block': 'BASIC', 'num_blocks': (4, 4, 4, 4), 'num_channels': (48, 96, 192, 384)},
+            },
+        },
+        'decode_head': {
+            'type': 'FCNHead',
+            'in_channels': [48, 96, 192, 384],
+            'in_index': (0, 1, 2, 3),
+            'channels': 720,  # sum([48, 96, 192, 384])
+            'input_transform': 'resize_concat',
+            'kernel_size': 1,
+            'num_convs': 1,
+            'concat_input': False,
+            'dropout_ratio': -1,
+            'num_classes': 19,
+            'norm_cfg': {'type': 'SyncBN', 'requires_grad': True},
+            'align_corners': False,
+            'loss_decode': {'type': 'CrossEntropyLoss', 'use_sigmoid': False, 'loss_weight': 1.0, 'avg_non_ignore': True},
+        },
+        'train_cfg': {},
+        'test_cfg': {'mode': 'whole'},
+    },
     'faster_rcnn_r50_fpn_1x': {
         'type': 'FasterRCNN',
         'data_preprocessor': {
@@ -748,6 +789,14 @@ SEGMENTATION_MODELS = {
         optimizer='AdamW',
         lr=0.00006,
         weight_decay=0.01,
+    ),
+    'hrnet_hr48': ModelConfig(
+        name='hrnet_hr48',
+        task='segmentation',
+        base_config='_base_/models/fcn_hr48.py',
+        optimizer='SGD',
+        lr=0.01,
+        weight_decay=0.0005,
     ),
 }
 
