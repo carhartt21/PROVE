@@ -19,49 +19,49 @@ CONFIG_DIR = Path('/home/mima2416/repositories/PROVE/cityscapes_replication/conf
 WORK_DIR_BASE = Path('/scratch/aaa_exchange/AWARE/CITYSCAPES_REPLICATION')
 CONDA_ENV = 'prove'
 
-# Job definitions - updated with new models
+# Job definitions - ALL using 512x512 crop size
 JOBS = {
     'segformer_b3': {
-        'config': 'segformer_mit-b3_cityscapes_1024x1024.py',
+        'config': 'segformer_mit-b3_cityscapes_512x512.py',
         'gpus': 4,
         'mem': '32000',
         'hours': 48,  # 160k iterations
-        'expected_miou': 81.94,
+        'expected_miou': 80.0,  # Lower than 1024x1024 due to smaller crop
     },
     'hrnet_hr48': {
-        'config': 'hrnet_hr48_cityscapes_512x1024.py',
+        'config': 'hrnet_hr48_cityscapes_512x512.py',
         'gpus': 4,
         'mem': '32000',
         'hours': 48,
-        'expected_miou': 80.65,
+        'expected_miou': 78.0,
     },
     'ocrnet_hr48': {
-        'config': 'ocrnet_hr48_cityscapes_512x1024.py',
+        'config': 'ocrnet_hr48_cityscapes_512x512.py',
         'gpus': 4,
         'mem': '32000',
         'hours': 48,
-        'expected_miou': 81.35,
+        'expected_miou': 79.0,
     },
     'deeplabv3plus_r50': {
-        'config': 'deeplabv3plus_r50_cityscapes_769x769.py',
+        'config': 'deeplabv3plus_r50_cityscapes_512x512.py',
         'gpus': 4,
         'mem': '32000',
         'hours': 24,  # 80k iterations is faster
-        'expected_miou': 79.61,
+        'expected_miou': 77.0,
     },
     'pspnet_r50': {
-        'config': 'pspnet_r50_cityscapes_769x769.py',
+        'config': 'pspnet_r50_cityscapes_512x512.py',
         'gpus': 4,
         'mem': '32000',
         'hours': 24,
-        'expected_miou': 78.55,
+        'expected_miou': 76.0,
     },
     'segnext_mscan_b': {
-        'config': 'segnext_mscan-b_cityscapes_512x1024.py',
+        'config': 'segnext_mscan-b_cityscapes_512x512.py',
         'gpus': 4,
         'mem': '32000',
         'hours': 48,  # 160k iterations
-        'expected_miou': 79.0,  # Estimated, not officially benchmarked
+        'expected_miou': 77.0,  # Estimated
     },
 }
 
@@ -199,19 +199,19 @@ def main():
         if failed > 0:
             print(f"Failed: {failed} jobs")
     
-    print("\nExpected Results Comparison:")
+    print("\nExpected Results Comparison (all 512x512 crop):")
     print("-" * 60)
     print(f"{'Model':<25} {'PROVE (Current)':<15} {'Expected':<15}")
     print("-" * 60)
-    print(f"{'SegFormer MIT-B3':<25} {'~45%':<15} {'81.94%':<15}")
-    print(f"{'HRNet HR48':<25} {'N/A':<15} {'80.65%':<15}")
-    print(f"{'OCRNet HR48':<25} {'N/A':<15} {'81.35%':<15}")
-    print(f"{'DeepLabV3+ R50':<25} {'~38%':<15} {'79.61%':<15}")
-    print(f"{'PSPNet R50':<25} {'~35%':<15} {'78.55%':<15}")
-    print(f"{'SegNeXt MSCAN-B':<25} {'N/A':<15} {'~79% (est)':<15}")
+    print(f"{'SegFormer MIT-B3':<25} {'~45%':<15} {'~80%':<15}")
+    print(f"{'HRNet HR48':<25} {'N/A':<15} {'~78%':<15}")
+    print(f"{'OCRNet HR48':<25} {'N/A':<15} {'~79%':<15}")
+    print(f"{'DeepLabV3+ R50':<25} {'~38%':<15} {'~77%':<15}")
+    print(f"{'PSPNet R50':<25} {'~35%':<15} {'~76%':<15}")
+    print(f"{'SegNeXt MSCAN-B':<25} {'N/A':<15} {'~77% (est)':<15}")
     print("-" * 60)
     print("\nIf replication achieves expected results, the pipeline bug is confirmed.")
-    print("NOTE: SegNeXt is not officially benchmarked on Cityscapes (estimate only).")
+    print("NOTE: All configs use 512x512 crop size to match PROVE training.")
 
 
 if __name__ == '__main__':
