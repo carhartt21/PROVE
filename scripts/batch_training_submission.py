@@ -133,7 +133,7 @@ class LSFConfig:
     queue: str = 'BatchGPU'
     time_limit: str = '24:00'
     memory: int = 48000  # Memory in MB
-    gpu_count: int = 8
+    cpu_count: int = 4
 
 
 # ============================================================================
@@ -429,8 +429,8 @@ def generate_job_script(
 #BSUB -q {lsf_config.queue}
 #BSUB -o {work_dir}/train_%J.out
 #BSUB -e {work_dir}/train_%J.err
-#BSUB -n 2,{lsf_config.gpu_count}
-#BSUB -gpu "num=1:gmem=36GB"
+#BSUB -n 2,{lsf_config.cpu_count}
+#BSUB -gpu "num=1"
 
 # ============================================================================
 # Environment setup
