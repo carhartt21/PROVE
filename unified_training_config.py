@@ -1394,7 +1394,7 @@ class UnifiedTrainingConfig:
         
         Args:
             dataset_cfg: Dataset configuration object
-            is_baseline: If True, skip data augmentation transforms
+            is_baseline: If True, skip data augmentation transforms (DEPRECATED - always use augmentation)
             
         Returns:
             List of pipeline transforms
@@ -1402,6 +1402,8 @@ class UnifiedTrainingConfig:
         crop_size = (512, 512)
         
         # Pipeline with MapillaryLabelTransform added after LoadAnnotations
+        # Note: is_baseline is IGNORED - we always use full augmentation pipeline
+        # Multi-scale training is essential for good performance
         pipeline = [
             dict(type='LoadImageFromFile'),
             dict(type='LoadAnnotations'),
@@ -1410,18 +1412,13 @@ class UnifiedTrainingConfig:
             # Convert Mapillary labels (0-65) to Cityscapes trainIds (0-18, 255)
             # MapillaryLabelTransform is registered in unified_datasets.py
             dict(type='MapillaryLabelTransform', target_space='cityscapes'),
-            dict(type='Resize', scale=(512, 512), keep_ratio=False),
+            # Multi-scale resize: essential for segmentation performance
+            dict(type='RandomResize', scale=(2048, 1024), ratio_range=(0.5, 2.0), keep_ratio=True),
+            dict(type='RandomCrop', crop_size=crop_size, cat_max_ratio=0.75),
+            dict(type='RandomFlip', prob=0.5),
+            dict(type='PhotoMetricDistortion'),
+            dict(type='PackSegInputs'),
         ]
-        
-        # Only add augmentations if not baseline
-        if not is_baseline:
-            pipeline.extend([
-                dict(type='RandomCrop', crop_size=crop_size, cat_max_ratio=0.75),
-                dict(type='RandomFlip', prob=0.5),
-                dict(type='PhotoMetricDistortion'),
-            ])
-        
-        pipeline.append(dict(type='PackSegInputs'))
         
         return pipeline
     
@@ -1437,13 +1434,15 @@ class UnifiedTrainingConfig:
         
         Args:
             dataset_cfg: Dataset configuration object
-            is_baseline: If True, skip data augmentation transforms
+            is_baseline: If True, skip data augmentation transforms (DEPRECATED - always use augmentation)
             
         Returns:
             List of pipeline transforms
         """
         crop_size = (512, 512)
         
+        # Note: is_baseline is IGNORED - we always use full augmentation pipeline
+        # Multi-scale training is essential for good performance
         pipeline = [
             dict(type='LoadImageFromFile'),
             dict(type='LoadAnnotations'),
@@ -1451,18 +1450,13 @@ class UnifiedTrainingConfig:
             dict(type='ReduceToSingleChannel'),
             # Convert Cityscapes label IDs (0-33) to trainIDs (0-18)
             dict(type='CityscapesLabelIdToTrainId'),
-            dict(type='Resize', scale=(512, 512), keep_ratio=False),
+            # Multi-scale resize: essential for segmentation performance
+            dict(type='RandomResize', scale=(2048, 1024), ratio_range=(0.5, 2.0), keep_ratio=True),
+            dict(type='RandomCrop', crop_size=crop_size, cat_max_ratio=0.75),
+            dict(type='RandomFlip', prob=0.5),
+            dict(type='PhotoMetricDistortion'),
+            dict(type='PackSegInputs'),
         ]
-        
-        # Only add augmentations if not baseline
-        if not is_baseline:
-            pipeline.extend([
-                dict(type='RandomCrop', crop_size=crop_size, cat_max_ratio=0.75),
-                dict(type='RandomFlip', prob=0.5),
-                dict(type='PhotoMetricDistortion'),
-            ])
-        
-        pipeline.append(dict(type='PackSegInputs'))
         
         return pipeline
     
@@ -1478,31 +1472,28 @@ class UnifiedTrainingConfig:
         
         Args:
             dataset_cfg: Dataset configuration object
-            is_baseline: If True, skip data augmentation transforms
+            is_baseline: If True, skip data augmentation transforms (DEPRECATED - always use augmentation)
             
         Returns:
             List of pipeline transforms
         """
         crop_size = (512, 512)
         
+        # Note: is_baseline is IGNORED - we always use full augmentation pipeline
+        # Multi-scale training is essential for good performance
         pipeline = [
             dict(type='LoadImageFromFile'),
             dict(type='LoadAnnotations'),
             # Handle labels stored as 3-channel PNGs
             dict(type='ReduceToSingleChannel'),
             # NO CityscapesLabelIdToTrainId - labels already in trainID format
-            dict(type='Resize', scale=(1024, 512), keep_ratio=True),
+            # Multi-scale resize: essential for segmentation performance
+            dict(type='RandomResize', scale=(2048, 1024), ratio_range=(0.5, 2.0), keep_ratio=True),
+            dict(type='RandomCrop', crop_size=crop_size, cat_max_ratio=0.75),
+            dict(type='RandomFlip', prob=0.5),
+            dict(type='PhotoMetricDistortion'),
+            dict(type='PackSegInputs'),
         ]
-        
-        # Only add augmentations if not baseline
-        if not is_baseline:
-            pipeline.extend([
-                dict(type='RandomCrop', crop_size=crop_size, cat_max_ratio=0.75),
-                dict(type='RandomFlip', prob=0.5),
-                dict(type='PhotoMetricDistortion'),
-            ])
-        
-        pipeline.append(dict(type='PackSegInputs'))
         
         return pipeline
     
@@ -1524,7 +1515,7 @@ class UnifiedTrainingConfig:
         
         Args:
             dataset_cfg: Dataset configuration object
-            is_baseline: If True, skip data augmentation transforms
+            is_baseline: If True, skip data augmentation transforms (DEPRECATED - always use augmentation)
             
         Returns:
             List of pipeline transforms
@@ -1532,6 +1523,8 @@ class UnifiedTrainingConfig:
         crop_size = (512, 512)
         
         # Pipeline with Outside15kLabelTransform added after LoadAnnotations
+        # Note: is_baseline is IGNORED - we always use full augmentation pipeline
+        # Multi-scale training is essential for good performance
         pipeline = [
             dict(type='LoadImageFromFile'),
             dict(type='LoadAnnotations'),
@@ -1540,18 +1533,13 @@ class UnifiedTrainingConfig:
             # Convert OUTSIDE15k labels (0-23) to Cityscapes trainIds (0-18, 255)
             # Outside15kLabelTransform is registered in custom_transforms.py
             dict(type='Outside15kLabelTransform'),
-            dict(type='Resize', scale=(512, 512), keep_ratio=False),
+            # Multi-scale resize: essential for segmentation performance
+            dict(type='RandomResize', scale=(2048, 1024), ratio_range=(0.5, 2.0), keep_ratio=True),
+            dict(type='RandomCrop', crop_size=crop_size, cat_max_ratio=0.75),
+            dict(type='RandomFlip', prob=0.5),
+            dict(type='PhotoMetricDistortion'),
+            dict(type='PackSegInputs'),
         ]
-        
-        # Only add augmentations if not baseline
-        if not is_baseline:
-            pipeline.extend([
-                dict(type='RandomCrop', crop_size=crop_size, cat_max_ratio=0.75),
-                dict(type='RandomFlip', prob=0.5),
-                dict(type='PhotoMetricDistortion'),
-            ])
-        
-        pipeline.append(dict(type='PackSegInputs'))
         
         return pipeline
     
@@ -2253,31 +2241,33 @@ class UnifiedTrainingConfig:
             pipeline.append(dict(type='MapillaryToTrainId'))
         # NOTE: IDD-AW no longer needs IddawLabelClamp - masks have correct trainIds
         
-        pipeline.append(dict(type='Resize', scale=(512, 512), keep_ratio=False))
+        # Multi-scale resize: essential for segmentation performance
+        # This creates scale variation (0.5x to 2.0x) before random cropping
+        pipeline.append(dict(type='RandomResize', scale=(2048, 1024), ratio_range=(0.5, 2.0), keep_ratio=True))
         
         # Augmentation logic - each type gets ONLY its specific augmentation for proper ablation:
-        # - baseline (type='none'): No augmentations at all
+        # - baseline (type='none'): ONLY basic augmentations (RandomCrop + RandomFlip + PhotoMetricDistortion)
+        #   NOTE: baseline now includes basic augmentations - this is critical for performance!
         # - minimal (type='minimal'): RandomCrop + RandomFlip only (geometric augmentation)
         # - standard (type='standard'): PhotoMetricDistortion only (color augmentation)
-        # - generated (type='generated'): No pipeline augmentations (just use generated images)
-        # - batch_augment (type='batch_augment'): No pipeline augmentations (use batch-level hooks)
+        # - generated (type='generated'): Basic augmentations (just use generated images)
+        # - batch_augment (type='batch_augment'): Basic augmentations (use batch-level hooks)
         #
         # This design isolates each augmentation technique's effect for proper ablation
         is_minimal = aug_strategy.type == 'minimal'
         is_standard = aug_strategy.type == 'standard'  # std_photometric_distort only
         
-        if is_minimal:
-            # std_minimal: ONLY geometric augmentation (crop + flip)
-            pipeline.extend([
-                dict(type='RandomCrop', crop_size=crop_size, cat_max_ratio=0.75),
-                dict(type='RandomFlip', prob=0.5),
-            ])
-        elif is_standard:
-            # std_photometric_distort: ONLY color augmentation (no crop/flip)
+        # All strategies get basic spatial augmentation (RandomCrop + RandomFlip)
+        # This is essential for good performance
+        pipeline.extend([
+            dict(type='RandomCrop', crop_size=crop_size, cat_max_ratio=0.75),
+            dict(type='RandomFlip', prob=0.5),
+        ])
+        
+        # Add PhotoMetricDistortion for standard strategies and baseline
+        # This provides important color augmentation
+        if not is_minimal:  # baseline, standard, generated, batch_augment all get PhotoMetricDistortion
             pipeline.append(dict(type='PhotoMetricDistortion'))
-        # baseline, generated, batch_augment, transform: NO pipeline augmentations
-        # - generated: uses mixed data (real + synthetic images)
-        # - batch_augment: uses batch-level hooks (cutmix, mixup, autoaugment, randaugment)
         
         # Add augmentation transforms from strategy (non-baseline strategies may add more)
         pipeline.extend(aug_strategy.get_pipeline_transforms())
