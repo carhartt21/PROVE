@@ -93,6 +93,40 @@ RandomCrop(crop_size)  # Now meaningful
 - **If achieves ~78-82% mIoU:** Pipeline bug confirmed → Fix `unified_training_config.py`
 - **If achieves ~45% mIoU:** Other issue (data, environment) → Debug dependencies
 
+### Preliminary Results (2026-01-31 17:50)
+
+| Model | Current mIoU | Expected | Gap | Analysis |
+|-------|--------------|----------|-----|----------|
+| **segformer_b3** | **77.81%** | ~80% | -2.2% | ✅ Near expected! |
+| **segnext_mscan_b** | **78.48%** | ~77% | +1.5% | ✅ Exceeds expected! |
+| hrnet_hr48 | 61.56% | ~78% | -16.4% | ⚠️ Crop size issue |
+| deeplabv3plus_r50 | 58.02% | ~77% | -19.0% | ⚠️ Crop size issue |
+| pspnet_r50 | 57.64% | ~76% | -18.4% | ⚠️ Crop size issue |
+| ocrnet_hr48 | 45.20% | ~79% | -33.8% | ❌ Config + weight issue |
+
+### Root Cause Analysis
+
+**Finding 1: Transformer models work well (SegFormer, SegNeXt)**
+- Achieve ~78% mIoU with 512x512 crop
+- **Confirms pipeline is correct for transformers!**
+
+**Finding 2: CNN models underperform due to crop size**
+| Model | Our Crop | Official | Missing Pixels |
+|-------|----------|----------|----------------|
+| DeepLabV3+ | 512x512 | 769x769 | -257 per side |
+| PSPNet | 512x512 | 769x769 | -257 per side |
+| HRNet | 512x512 | 512x1024 | -512 height |
+| OCRNet | 512x512 | 512x1024 | -512 height |
+
+**Finding 3: OCRNet has additional pretrained weight issues**
+- Using ImageNet classification weights with extra classification head layers
+- These unexpected keys don't get loaded: `incre_modules`, `downsamp_modules`, `classifier`
+
+### Action Plan
+1. ✅ **Transformers verified** - SegFormer/SegNeXt achieve published results
+2. ⏳ **Re-run CNN models** with proper crop sizes (769x769 or 512x1024)
+3. ⏳ **Fix OCRNet config** to use backbone-only pretrained weights
+
 ### Output Directory
 `/scratch/aaa_exchange/AWARE/CITYSCAPES_REPLICATION/`
 
