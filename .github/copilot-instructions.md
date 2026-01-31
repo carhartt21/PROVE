@@ -87,35 +87,42 @@ bhist -n 20                       # Recent job history
 bpeek <job_id>                    # View running job output
 ```
 
-### Training
+### Training (Batch Submission - PREFERRED)
 ```bash
-# Stage 1 (REQUIRES --domain-filter clear_day)
-python unified_training.py --dataset BDD10k --model deeplabv3plus_r50 \
-    --strategy baseline --domain-filter clear_day
+# ALWAYS use batch_training_submission.py for job submission!
+# It handles: pre-flight checks, training locks, proper parameters
 
-# Stage 2 (NO domain filter - trains on all conditions)
+# Stage 1: Dry run first (ALWAYS!)
+python scripts/batch_training_submission.py --stage 1 --dry-run
+
+# Stage 1: Submit all baseline jobs (5 models × 4 datasets = 20 jobs)
+python scripts/batch_training_submission.py --stage 1 --strategies baseline
+
+# Stage 1: Submit specific dataset/model
+python scripts/batch_training_submission.py --stage 1 --datasets BDD10k --models deeplabv3plus_r50
+
+# Stage 1: Submit std_* strategies only
+python scripts/batch_training_submission.py --stage 1 --strategy-type std --dry-run
+
+# Stage 1: Submit gen_* strategies only
+python scripts/batch_training_submission.py --stage 1 --strategy-type gen --dry-run
+
+# Stage 2: All conditions training
+python scripts/batch_training_submission.py --stage 2 --dry-run
+
+# Limit number of jobs (useful for testing)
+python scripts/batch_training_submission.py --stage 1 --limit 10
+```
+
+### Training (Single Job - for debugging only)
+```bash
+# Direct training submission (avoid for production - use batch_training_submission.py)
 python unified_training.py --dataset BDD10k --model deeplabv3plus_r50 \
-    --strategy gen_cycleGAN --real-gen-ratio 0.5
+    --strategy baseline --domain-filter clear_day --submit-job
 
 # MapillaryVistas REQUIRES --use-native-classes (66 classes, not 19)
 python unified_training.py --dataset MapillaryVistas --model deeplabv3plus_r50 \
-    --strategy baseline --use-native-classes --domain-filter clear_day
-
-# Custom batch size and learning rate (for ablation studies)
-python unified_training.py --dataset BDD10k --model deeplabv3plus_r50 \
-    --strategy baseline --batch-size 4 --lr 0.02 --warmup-iters 500
-
-# Add auxiliary loss (CE remains primary)
-python unified_training.py --dataset BDD10k --model deeplabv3plus_r50 \
-    --strategy baseline --aux-loss focal  # Options: focal, lovasz, boundary
-
-# Save validation predictions (for visual inspection)
-python unified_training.py --dataset BDD10k --model deeplabv3plus_r50 \
-    --strategy baseline --save-val-predictions --max-val-samples 10
-
-# Submit as LSF job instead of running locally
-python unified_training.py --dataset BDD10k --model deeplabv3plus_r50 \
-    --strategy baseline --domain-filter clear_day --submit-job
+    --strategy baseline --use-native-classes --domain-filter clear_day --submit-job
 ```
 
 ### Testing
@@ -141,6 +148,7 @@ python scripts/update_testing_tracker.py --stage 2
 
 | File | Purpose |
 |------|---------|
+| `scripts/batch_training_submission.py` | **PREFERRED** for batch job submission - handles locks, checks, parameters |
 | `unified_training.py` | Main training entry point, handles job submission |
 | `fine_grained_test.py` | Per-domain/per-class evaluation with optimized inference |
 | `unified_training_config.py` | Generates MMSeg configs from CLI args |
@@ -150,7 +158,7 @@ python scripts/update_testing_tracker.py --stage 2
 
 ## Models, Datasets & Strategies
 
-**Models:** `deeplabv3plus_r50`, `pspnet_r50`, `segformer_mit-b5`, `segnext_mscan-b`
+**Models (5):** `deeplabv3plus_r50`, `pspnet_r50`, `segformer_mit-b3`, `segnext_mscan-b`, `hrnet_hr48`
 
 **Datasets:**
 | Dataset | Classes | Label Format |
