@@ -1,58 +1,59 @@
 # PROVE Project TODO
 
-**Last Updated:** 2026-01-31 (11:45)
+**Last Updated:** 2026-01-31 (14:35)
 
 ---
 
 ## 🔧 Current Status
 
-### Active Jobs (2026-01-31)
-| Job ID | Name | Status | Notes |
-|--------|------|--------|-------|
-| 980994 | s1_gen_stargan_v2_bdd10k_deeplabv3plus_aux-lovasz | 🏃 RUN | Stage 1 augmentation study |
-| 983073 | cs_segformer_b3 | ⏳ PEND | Cityscapes replication |
-| 983074 | cs_hrnet_hr48 | ⏳ PEND | Cityscapes replication |
-| 983075 | cs_ocrnet_hr48 | ⏳ PEND | Cityscapes replication |
-| 983076 | cs_deeplabv3plus_r50 | ⏳ PEND | Cityscapes replication |
-| 983077 | cs_pspnet_r50 | ⏳ PEND | Cityscapes replication |
-| 983078 | cs_segnext_mscan_b | ⏳ PEND | Cityscapes replication |
+### Active Jobs
 
-**Queue Status:** BatchGPU 220 pending / 229 running (449/450)
+#### Cityscapes Replication (chge7185) - 8 jobs (4 running, 4 pending)
 
----
+**512x512 Crop Jobs (comparison with PROVE):**
+| Model | Progress | Best mIoU | Node | Job ID |
+|-------|----------|-----------|------|--------|
+| ✅ deeplabv3plus_r50 | Complete | 58.02% | - | 983372 |
+| ✅ pspnet_r50 | Complete | 57.64% | - | 983373 |
+| hrnet_hr48 | 151k/160k (94%) | 61.56% | makalu94 | 983234 |
+| segformer_b3 | 99k/160k (62%) | **77.81%** | makalu94 | 983239 |
+| segnext_mscan_b | 76k/160k (48%) | **78.48%** | makalu94 | 983271 |
+| ocrnet_hr48 | 86k/160k (54%) | 45.20% | makalu94 | 983368 |
 
-## 🚨 CRITICAL: Pipeline Bug Discovery (2026-01-31)
+**Proper Crop Size Jobs (expected to match published results):**
+| Model | Crop | Expected mIoU | Status | Job ID |
+|-------|------|---------------|--------|--------|
+| deeplabv3plus_r50_769 | 769x769 | ~79.6% | 🔄 Running | 1004205 |
+| pspnet_r50_769 | 769x769 | ~78.5% | ⏳ Pending | 1004206 |
+| hrnet_hr48_1024 | 512x1024 | ~80.6% | ⏳ Pending | 1004207 |
+| ocrnet_hr48_1024 | 512x1024 | ~81.3% | ⏳ Pending | 1004208 |
 
-### Issue
-Training pipeline **missing critical multi-scale augmentation** - all strategies perform within ~0.91% of each other (44.78-45.69% mIoU).
+**Purpose:** Verify that our training infrastructure can achieve published Cityscapes results (~78-82% mIoU).
+**Branch:** `cityscapes-replication`
 
-### Root Cause
-```python
-# PROVE Pipeline (WRONG):
-Resize(512, 512) → RandomCrop(512, 512) → RandomFlip
-# Since Resize and RandomCrop use SAME SIZE, RandomCrop extracts FULL image = NO VARIATION
+### Lovasz Loss Training (mima2416) - 33 pending
 
-# Standard mmsegmentation Pipeline (CORRECT):
-RandomResize(ratio_range=(0.5, 2.0)) → RandomCrop(512, 512) → RandomFlip → PhotoMetricDistortion
-# RandomResize creates scale variation BEFORE crop
+### Monitoring Commands
+```bash
+# Check all Cityscapes jobs
+bjobs -w | grep "cs_"
+
+# Check training progress for all models
+for model in hrnet_hr48 segformer_b3 segnext_mscan_b ocrnet_hr48 deeplabv3plus_r50 pspnet_r50; do
+  dir="/scratch/aaa_exchange/AWARE/CITYSCAPES_REPLICATION/$model"
+  out_file=$(ls -t "$dir"/train_*.out 2>/dev/null | head -1)
+  echo "=== $model ===" && grep "Iter(train)" "$out_file" | tail -1
+done
+
+# Check for errors
+for model in hrnet_hr48 segformer_b3 segnext_mscan_b ocrnet_hr48 deeplabv3plus_r50 pspnet_r50; do
+  dir="/scratch/aaa_exchange/AWARE/CITYSCAPES_REPLICATION/$model"
+  err_file=$(ls -t "$dir"/train_*.err 2>/dev/null | head -1)
+  if [ -f "$err_file" ] && [ -s "$err_file" ]; then
+    echo "=== $model ERRORS ===" && tail -10 "$err_file"
+  fi
+done
 ```
-
-### Evidence
-| Model | BDD10k mIoU | Expected Cityscapes mIoU |
-|-------|-------------|--------------------------|
-| SegFormer MIT-B5 | 45.69% | **~82%** |
-| DeepLabV3+ R50 | 38.42% | **~77%** |
-| PSPNet R50 | 37.40% | **~76%** |
-
-**Bug Location:** [unified_training_config.py](unified_training_config.py) line 1237
-
-### Verification Experiment
-Created `cityscapes-replication` branch to test standard mmsegmentation pipeline on Cityscapes:
-- **6 models:** SegFormer B3, HRNet HR48, OCRNet HR48, DeepLabV3+ R50, PSPNet R50, SegNeXt MSCAN-B
-- **All use 512x512 crop** with RandomResize(0.5-2.0x) before crop
-- **If results match expected mIoU (~76-82%), pipeline bug is confirmed**
-
----
 
 ### Current Training Configuration (2026-01-30)
 | Setting | Value |
@@ -67,6 +68,117 @@ Created `cityscapes-replication` branch to test standard mmsegmentation pipeline
 | **LR Scale Factor** | 8.0 (batch_size=16 / base=2) |
 | **Best Checkpoint** | Saved based on val/mIoU |
 | **Keep Checkpoints** | ALL |
+
+---
+
+## 🧪 Cityscapes Replication Experiment (2026-01-31)
+
+### Purpose
+Replicate standard mmsegmentation Cityscapes training to verify if our pipeline can achieve published results (~78-82% mIoU vs current PROVE ~45% mIoU).
+
+### Key Hypothesis: Pipeline Bug
+Current PROVE pipeline may be missing critical augmentation:
+```python
+# CURRENT (potentially wrong)
+Resize(512, 512)  # Fixed resize
+RandomCrop(512, 512)  # Same size - no effect!
+
+# STANDARD (correct)
+RandomResize(scale=(2048,1024), ratio_range=(0.5, 2.0))  # Critical!
+RandomCrop(crop_size)  # Now meaningful
+```
+
+### Models Under Test
+| Model | Iterations | Expected mIoU | Current Progress |
+|-------|------------|---------------|------------------|
+| SegFormer MIT-B3 | 160k | ~80% | 19% |
+| HRNet HR48 | 160k | ~78% | 29% |
+| OCRNet HR48 | 160k | ~79% | 0.7% |
+| DeepLabV3+ R50 | 80k | ~77% | 2% |
+| PSPNet R50 | 80k | ~76% | 1% |
+| SegNeXt MSCAN-B | 160k | ~77% | 13% |
+
+### Outcome Interpretation
+- **If achieves ~78-82% mIoU:** Pipeline bug confirmed → Fix `unified_training_config.py`
+- **If achieves ~45% mIoU:** Other issue (data, environment) → Debug dependencies
+
+### Preliminary Results (2026-01-31 17:50)
+
+| Model | Current mIoU | Expected | Gap | Analysis |
+|-------|--------------|----------|-----|----------|
+| **segformer_b3** | **77.81%** | ~80% | -2.2% | ✅ Near expected! |
+| **segnext_mscan_b** | **78.48%** | ~77% | +1.5% | ✅ Exceeds expected! |
+| hrnet_hr48 | 61.56% | ~78% | -16.4% | ⚠️ Crop size issue |
+| deeplabv3plus_r50 | 58.02% | ~77% | -19.0% | ⚠️ Crop size issue |
+| pspnet_r50 | 57.64% | ~76% | -18.4% | ⚠️ Crop size issue |
+| ocrnet_hr48 | 45.20% | ~79% | -33.8% | ❌ Config + weight issue |
+
+### Root Cause Analysis
+
+**Finding 1: Transformer models work well (SegFormer, SegNeXt)**
+- Achieve ~78% mIoU with 512x512 crop
+- **Confirms pipeline is correct for transformers!**
+
+**Finding 2: CNN models underperform due to crop size**
+| Model | Our Crop | Official | Missing Pixels |
+|-------|----------|----------|----------------|
+| DeepLabV3+ | 512x512 | 769x769 | -257 per side |
+| PSPNet | 512x512 | 769x769 | -257 per side |
+| HRNet | 512x512 | 512x1024 | -512 height |
+| OCRNet | 512x512 | 512x1024 | -512 height |
+
+**Finding 3: OCRNet has additional pretrained weight issues**
+- Using ImageNet classification weights with extra classification head layers
+- These unexpected keys don't get loaded: `incre_modules`, `downsamp_modules`, `classifier`
+
+### Action Plan
+1. ✅ **Transformers verified** - SegFormer/SegNeXt achieve published results
+2. ✅ **Re-run CNN models** - Submitted 4 proper crop size jobs (Job IDs: 1004205-1004208)
+   - deeplabv3plus_r50_769 (769x769) - Expected ~79.6%
+   - pspnet_r50_769 (769x769) - Expected ~78.5%
+   - hrnet_hr48_1024 (512x1024) - Expected ~80.6%
+   - ocrnet_hr48_1024 (512x1024) - Expected ~81.3%
+3. ⏳ **Monitor results** - Check if proper crop sizes fix the mIoU gap
+
+### Output Directory
+`/scratch/aaa_exchange/AWARE/CITYSCAPES_REPLICATION/`
+
+### Next Steps (After Training Completes)
+
+#### 1. Evaluate Results (~22:30 today)
+```bash
+# Check final mIoU from validation logs
+for model in hrnet_hr48 segformer_b3 segnext_mscan_b ocrnet_hr48 deeplabv3plus_r50 pspnet_r50; do
+  dir="/scratch/aaa_exchange/AWARE/CITYSCAPES_REPLICATION/$model"
+  out_file=$(ls -t "$dir"/train_*.out 2>/dev/null | head -1)
+  echo "=== $model ===" && grep "mIoU" "$out_file" | tail -5
+done
+```
+
+#### 2. Analyze Results
+
+| Scenario | Outcome | Action |
+|----------|---------|--------|
+| mIoU ≥ 70% | **Pipeline bug confirmed** | Fix RandomResize in unified_training_config.py |
+| mIoU ≈ 45% | Other issue | Debug MMSeg installation, check data loading |
+| mIoU ≈ 60% | Partial fix | May need larger crop size (769x769 or 1024x1024) |
+
+#### 3. If Pipeline Bug Confirmed
+- [ ] Add RandomResize to unified_training_config.py
+- [ ] Re-run baseline experiments with fixed pipeline
+- [ ] Compare before/after mIoU
+
+#### 4. Create Testing Script
+Create `cityscapes_replication/test.py` for final evaluation:
+```bash
+python test.py configs/segformer_mit-b3_cityscapes_512x512.py \
+    /scratch/aaa_exchange/AWARE/CITYSCAPES_REPLICATION/segformer_b3/iter_160000.pth
+```
+
+#### 5. Document Findings
+- Update this TODO with final mIoU results
+- Create analysis document comparing Cityscapes vs PROVE results
+- Determine root cause of mIoU gap
 
 ---
 
@@ -120,13 +232,13 @@ Consider comparing with CrossEntropy loss baseline to determine which is more st
 ## ✅ Recently Completed
 
 ### 2026-01-31
-- [x] ✅ Collected training results (20 tests: 12 Stage 1, 8 Stage 2)
-- [x] ✅ Analyzed std_*/gen_* strategies - all within 0.91% mIoU range
-- [x] ✅ **Discovered pipeline bug:** Missing RandomResize before RandomCrop
-- [x] ✅ Created `cityscapes-replication` branch for verification experiment
-- [x] ✅ Created 6 model configs with proper pipeline (512x512 crop)
-- [x] ✅ Submitted 6 Cityscapes replication jobs (983073-983078)
-- [x] ✅ Created comprehensive results report: TRAINING_RESULTS_REPORT_2026-01-31.md
+- [x] ✅ **Cityscapes Replication Setup** - All 6 models training
+  - Fixed paths from mima2416 to chge7185
+  - Changed from 4-GPU to single-GPU execution
+  - Downloaded pretrained weights locally (cluster nodes have no internet)
+  - Created `prepare_cityscapes.py` to generate labelTrainIds files (5000 files converted)
+  - Fixed duplicate job submissions
+  - All jobs now running on makalu94/makalu95
 
 ### 2026-01-30
 - [x] ✅ Refactored training loss CLI to single `--aux-loss` across training, batch submission, locks, and docs

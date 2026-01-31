@@ -38,7 +38,7 @@ norm_cfg = dict(type='SyncBN', requires_grad=True)
 model = dict(
     type='EncoderDecoder',
     data_preprocessor=data_preprocessor,
-    pretrained='open-mmlab://msra/hrnetv2_w48',
+    pretrained='/home/chge7185/.cache/torch/hub/checkpoints/hrnetv2_w48-d2186c55.pth',
     backbone=dict(
         type='HRNet',
         norm_cfg=norm_cfg,

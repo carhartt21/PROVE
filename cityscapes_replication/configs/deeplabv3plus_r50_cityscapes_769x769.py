@@ -38,7 +38,7 @@ norm_cfg = dict(type='SyncBN', requires_grad=True)
 model = dict(
     type='EncoderDecoder',
     data_preprocessor=data_preprocessor,
-    pretrained='open-mmlab://resnet50_v1c',
+    pretrained='/home/chge7185/.cache/torch/hub/checkpoints/resnet50_v1c-2cccc1ad.pth',
     backbone=dict(
         type='ResNetV1c',
         depth=50,
