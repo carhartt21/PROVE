@@ -1,14 +1,58 @@
 # PROVE Project TODO
 
-**Last Updated:** 2026-01-30 (10:56)
+**Last Updated:** 2026-01-31 (11:45)
 
 ---
 
 ## 🔧 Current Status
 
-### Active Jobs
-- **Total:** 33 jobs (0 running, 33 pending) - all Lovasz loss
-- **chge7185:** 6 running Stage 2 Lovasz jobs, many pending
+### Active Jobs (2026-01-31)
+| Job ID | Name | Status | Notes |
+|--------|------|--------|-------|
+| 980994 | s1_gen_stargan_v2_bdd10k_deeplabv3plus_aux-lovasz | 🏃 RUN | Stage 1 augmentation study |
+| 983073 | cs_segformer_b3 | ⏳ PEND | Cityscapes replication |
+| 983074 | cs_hrnet_hr48 | ⏳ PEND | Cityscapes replication |
+| 983075 | cs_ocrnet_hr48 | ⏳ PEND | Cityscapes replication |
+| 983076 | cs_deeplabv3plus_r50 | ⏳ PEND | Cityscapes replication |
+| 983077 | cs_pspnet_r50 | ⏳ PEND | Cityscapes replication |
+| 983078 | cs_segnext_mscan_b | ⏳ PEND | Cityscapes replication |
+
+**Queue Status:** BatchGPU 220 pending / 229 running (449/450)
+
+---
+
+## 🚨 CRITICAL: Pipeline Bug Discovery (2026-01-31)
+
+### Issue
+Training pipeline **missing critical multi-scale augmentation** - all strategies perform within ~0.91% of each other (44.78-45.69% mIoU).
+
+### Root Cause
+```python
+# PROVE Pipeline (WRONG):
+Resize(512, 512) → RandomCrop(512, 512) → RandomFlip
+# Since Resize and RandomCrop use SAME SIZE, RandomCrop extracts FULL image = NO VARIATION
+
+# Standard mmsegmentation Pipeline (CORRECT):
+RandomResize(ratio_range=(0.5, 2.0)) → RandomCrop(512, 512) → RandomFlip → PhotoMetricDistortion
+# RandomResize creates scale variation BEFORE crop
+```
+
+### Evidence
+| Model | BDD10k mIoU | Expected Cityscapes mIoU |
+|-------|-------------|--------------------------|
+| SegFormer MIT-B5 | 45.69% | **~82%** |
+| DeepLabV3+ R50 | 38.42% | **~77%** |
+| PSPNet R50 | 37.40% | **~76%** |
+
+**Bug Location:** [unified_training_config.py](unified_training_config.py) line 1237
+
+### Verification Experiment
+Created `cityscapes-replication` branch to test standard mmsegmentation pipeline on Cityscapes:
+- **6 models:** SegFormer B3, HRNet HR48, OCRNet HR48, DeepLabV3+ R50, PSPNet R50, SegNeXt MSCAN-B
+- **All use 512x512 crop** with RandomResize(0.5-2.0x) before crop
+- **If results match expected mIoU (~76-82%), pipeline bug is confirmed**
+
+---
 
 ### Current Training Configuration (2026-01-30)
 | Setting | Value |
@@ -75,6 +119,15 @@ Consider comparing with CrossEntropy loss baseline to determine which is more st
 
 ## ✅ Recently Completed
 
+### 2026-01-31
+- [x] ✅ Collected training results (20 tests: 12 Stage 1, 8 Stage 2)
+- [x] ✅ Analyzed std_*/gen_* strategies - all within 0.91% mIoU range
+- [x] ✅ **Discovered pipeline bug:** Missing RandomResize before RandomCrop
+- [x] ✅ Created `cityscapes-replication` branch for verification experiment
+- [x] ✅ Created 6 model configs with proper pipeline (512x512 crop)
+- [x] ✅ Submitted 6 Cityscapes replication jobs (983073-983078)
+- [x] ✅ Created comprehensive results report: TRAINING_RESULTS_REPORT_2026-01-31.md
+
 ### 2026-01-30
 - [x] ✅ Refactored training loss CLI to single `--aux-loss` across training, batch submission, locks, and docs
 - [x] ✅ Validated `--aux-loss` with config-only checks (focal, lovasz, boundary all working)
@@ -138,29 +191,37 @@ Consider comparing with CrossEntropy loss baseline to determine which is more st
 
 ## 🎯 Proposed Next Steps
 
+### 🚨 HIGH PRIORITY: Pipeline Bug Verification
+
+1. **Wait for Cityscapes replication jobs (6 jobs pending)**
+   - Work dirs: `/scratch/aaa_exchange/AWARE/CITYSCAPES_REPLICATION/`
+   - Expected mIoU: 76-82% if pipeline is correct
+   - Monitor: `bjobs -w | grep "cs_"` and `bpeek <job_id>`
+
+2. **Analyze results when complete**
+   - Compare achieved mIoU vs published benchmarks
+   - If matching → **Pipeline bug confirmed**
+   - If not matching → Investigate further (data, training config, etc.)
+
+3. **Fix PROVE pipeline if bug confirmed**
+   - Update [unified_training_config.py](unified_training_config.py)
+   - Add RandomResize(ratio_range=(0.5, 2.0)) before RandomCrop
+   - Re-run all training with fixed pipeline
+
 ### ⚠️ Decision Pending: Loss Function
 Based on Lovasz instability findings, decide between:
 - **Option A:** Add CrossEntropy comparison jobs (run both)
 - **Option B:** Kill Lovasz jobs, switch to CrossEntropy only
 - **Option C:** Let Lovasz jobs finish, analyze final results
 
-### Immediate
-1. **Monitor baseline training** - 33 jobs pending (Lovasz)
-   - Expected duration: ~24-48 hours per job
-   - Use `bjobs -w -u mima2416` to check status
-
-2. **Monitor chge7185 Stage 2 jobs** - 6 running
-   - DeepLabV3+ at 84% - near completion
-   - Watch final mIoU to assess Lovasz convergence
-
-### After Baseline Complete
-3. **Submit std_* strategies** (after loss decision)
+### After Pipeline Fix Verified
+3. **Submit std_* strategies** (after pipeline fix)
    - `python scripts/batch_training_submission.py --stage 1 --strategy-type std --aux-loss lovasz`
 
 4. **Submit gen_* strategies**
    - `python scripts/batch_training_submission.py --stage 1 --strategy-type gen --aux-loss lovasz`
 
-4. **Run testing on completed models**
+5. **Run testing on completed models**
    - `python scripts/auto_submit_tests.py --stage 1 --dry-run`
 
 ---
