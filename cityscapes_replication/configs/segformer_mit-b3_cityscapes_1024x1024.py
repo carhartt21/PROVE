@@ -1,16 +1,17 @@
 """
-PSPNet ResNet-50 Cityscapes config with STANDARD pipeline.
-Expected mIoU: 78.55%
+SegFormer MIT-B3 Cityscapes config with STANDARD pipeline.
+Expected mIoU: 81.94%
 """
 
+# Dataset settings
 dataset_type = 'CityscapesDataset'
 data_root = '/scratch/aaa_exchange/AWARE/CITYSCAPES'
-crop_size = (769, 769)
+crop_size = (1024, 1024)
 
 train_pipeline = [
     dict(type='LoadImageFromFile'),
     dict(type='LoadAnnotations'),
-    dict(type='RandomResize', scale=(2049, 1025), ratio_range=(0.5, 2.0), keep_ratio=True),
+    dict(type='RandomResize', scale=(2048, 1024), ratio_range=(0.5, 2.0), keep_ratio=True),
     dict(type='RandomCrop', crop_size=crop_size, cat_max_ratio=0.75),
     dict(type='RandomFlip', prob=0.5),
     dict(type='PhotoMetricDistortion'),
@@ -19,11 +20,12 @@ train_pipeline = [
 
 test_pipeline = [
     dict(type='LoadImageFromFile'),
-    dict(type='Resize', scale=(2049, 1025), keep_ratio=True),
+    dict(type='Resize', scale=(2048, 1024), keep_ratio=True),
     dict(type='LoadAnnotations'),
     dict(type='PackSegInputs')
 ]
 
+# Normalization
 data_preprocessor = dict(
     type='SegDataPreProcessor',
     mean=[123.675, 116.28, 103.53],
@@ -35,49 +37,44 @@ data_preprocessor = dict(
 
 norm_cfg = dict(type='SyncBN', requires_grad=True)
 
+# Model - SegFormer MIT-B3
 model = dict(
     type='EncoderDecoder',
     data_preprocessor=data_preprocessor,
-    pretrained='open-mmlab://resnet50_v1c',
     backbone=dict(
-        type='ResNetV1c',
-        depth=50,
+        type='MixVisionTransformer',
+        in_channels=3,
+        embed_dims=64,
         num_stages=4,
+        num_layers=[3, 4, 18, 3],  # MIT-B3 depths
+        num_heads=[1, 2, 5, 8],
+        patch_sizes=[7, 3, 3, 3],
+        sr_ratios=[8, 4, 2, 1],
         out_indices=(0, 1, 2, 3),
-        dilations=(1, 1, 2, 4),
-        strides=(1, 2, 1, 1),
-        norm_cfg=norm_cfg,
-        norm_eval=False,
-        style='pytorch',
-        contract_dilation=True),
+        mlp_ratio=4,
+        qkv_bias=True,
+        drop_rate=0.0,
+        attn_drop_rate=0.0,
+        drop_path_rate=0.1,
+        init_cfg=dict(
+            type='Pretrained',
+            checkpoint='https://download.openmmlab.com/mmsegmentation/v0.5/pretrain/segformer/mit_b3_20220624-13b1141c.pth')),
     decode_head=dict(
-        type='PSPHead',
-        in_channels=2048,
-        in_index=3,
-        channels=512,
-        pool_scales=(1, 2, 3, 6),
-        dropout_ratio=0.1,
-        num_classes=19,
-        norm_cfg=norm_cfg,
-        align_corners=True,
-        loss_decode=dict(type='CrossEntropyLoss', use_sigmoid=False, loss_weight=1.0)),
-    auxiliary_head=dict(
-        type='FCNHead',
-        in_channels=1024,
-        in_index=2,
+        type='SegformerHead',
+        in_channels=[64, 128, 320, 512],
+        in_index=[0, 1, 2, 3],
         channels=256,
-        num_convs=1,
-        concat_input=False,
         dropout_ratio=0.1,
         num_classes=19,
         norm_cfg=norm_cfg,
-        align_corners=True,
-        loss_decode=dict(type='CrossEntropyLoss', use_sigmoid=False, loss_weight=0.4)),
+        align_corners=False,
+        loss_decode=dict(type='CrossEntropyLoss', use_sigmoid=False, loss_weight=1.0)),
     train_cfg=dict(),
-    test_cfg=dict(mode='slide', crop_size=(769, 769), stride=(513, 513)))
+    test_cfg=dict(mode='slide', crop_size=(1024, 1024), stride=(768, 768)))
 
+# Data loaders
 train_dataloader = dict(
-    batch_size=2,
+    batch_size=1,
     num_workers=4,
     persistent_workers=True,
     sampler=dict(type='InfiniteSampler', shuffle=True),
@@ -102,16 +99,24 @@ test_dataloader = val_dataloader
 val_evaluator = dict(type='IoUMetric', iou_metrics=['mIoU'])
 test_evaluator = val_evaluator
 
-train_cfg = dict(type='IterBasedTrainLoop', max_iters=80000, val_interval=8000)
+# Training schedule - 160k iterations
+train_cfg = dict(type='IterBasedTrainLoop', max_iters=160000, val_interval=8000)
 val_cfg = dict(type='ValLoop')
 test_cfg = dict(type='TestLoop')
 
+# Optimizer - AdamW for transformers
 optim_wrapper = dict(
     type='OptimWrapper',
-    optimizer=dict(type='SGD', lr=0.01, momentum=0.9, weight_decay=0.0005))
+    optimizer=dict(type='AdamW', lr=0.00006, betas=(0.9, 0.999), weight_decay=0.01),
+    paramwise_cfg=dict(
+        custom_keys=dict(
+            pos_block=dict(decay_mult=0.),
+            norm=dict(decay_mult=0.),
+            head=dict(lr_mult=10.))))
 
 param_scheduler = [
-    dict(type='PolyLR', eta_min=1e-4, power=0.9, begin=0, end=80000, by_epoch=False)
+    dict(type='LinearLR', start_factor=1e-6, by_epoch=False, begin=0, end=1500),
+    dict(type='PolyLR', eta_min=0.0, power=1.0, begin=1500, end=160000, by_epoch=False)
 ]
 
 

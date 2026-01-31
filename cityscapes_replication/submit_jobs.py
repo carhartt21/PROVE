@@ -2,13 +2,10 @@
 """
 Submit Cityscapes replication training jobs to LSF.
 
-This script submits training jobs using the standard mmsegmentation pipeline
-to verify that our training infrastructure can achieve published results.
-
 Usage:
     python submit_jobs.py --dry-run     # Preview jobs without submitting
     python submit_jobs.py               # Submit all jobs
-    python submit_jobs.py --model segformer  # Submit only SegFormer
+    python submit_jobs.py --model segformer_b3  # Submit only SegFormer B3
 """
 
 import argparse
@@ -22,28 +19,49 @@ CONFIG_DIR = Path('/home/mima2416/repositories/PROVE/cityscapes_replication/conf
 WORK_DIR_BASE = Path('/scratch/aaa_exchange/AWARE/CITYSCAPES_REPLICATION')
 CONDA_ENV = 'prove'
 
-# Job definitions
+# Job definitions - updated with new models
 JOBS = {
-    'segformer': {
-        'config': 'segformer_mit-b5_cityscapes_1024x1024.py',
-        'gpus': 4,  # Smaller batch per GPU, needs fewer GPUs
+    'segformer_b3': {
+        'config': 'segformer_mit-b3_cityscapes_1024x1024.py',
+        'gpus': 4,
+        'mem': '32000',
+        'hours': 48,  # 160k iterations
+        'expected_miou': 81.94,
+    },
+    'hrnet_hr48': {
+        'config': 'hrnet_hr48_cityscapes_512x1024.py',
+        'gpus': 4,
         'mem': '32000',
         'hours': 48,
-        'expected_miou': 82.25,
+        'expected_miou': 80.65,
     },
-    'deeplabv3plus': {
+    'ocrnet_hr48': {
+        'config': 'ocrnet_hr48_cityscapes_512x1024.py',
+        'gpus': 4,
+        'mem': '32000',
+        'hours': 48,
+        'expected_miou': 81.35,
+    },
+    'deeplabv3plus_r50': {
         'config': 'deeplabv3plus_r50_cityscapes_769x769.py',
         'gpus': 4,
-        'mem': '32000', 
+        'mem': '32000',
         'hours': 24,  # 80k iterations is faster
         'expected_miou': 79.61,
     },
-    'pspnet': {
+    'pspnet_r50': {
         'config': 'pspnet_r50_cityscapes_769x769.py',
         'gpus': 4,
         'mem': '32000',
         'hours': 24,
         'expected_miou': 78.55,
+    },
+    'segnext_mscan_b': {
+        'config': 'segnext_mscan-b_cityscapes_512x1024.py',
+        'gpus': 4,
+        'mem': '32000',
+        'hours': 48,  # 160k iterations
+        'expected_miou': 79.0,  # Estimated, not officially benchmarked
     },
 }
 
@@ -116,9 +134,7 @@ def submit_job(model: str, job_info: dict, dry_run: bool = False):
     print(f"{'='*60}")
     
     if dry_run:
-        print("DRY RUN - Job script:")
-        print("-" * 40)
-        print(job_script)
+        print("DRY RUN - Would submit job")
         return None
     
     # Write job script
@@ -127,7 +143,7 @@ def submit_job(model: str, job_info: dict, dry_run: bool = False):
     
     # Submit job
     result = subprocess.run(
-        ['bsub', '-i', str(job_file)],
+        ['bsub'],
         capture_output=True,
         text=True,
         input=job_script
@@ -184,14 +200,18 @@ def main():
             print(f"Failed: {failed} jobs")
     
     print("\nExpected Results Comparison:")
-    print("-" * 50)
-    print(f"{'Model':<20} {'PROVE (Current)':<15} {'Expected':<15}")
-    print("-" * 50)
-    print(f"{'SegFormer MIT-B5':<20} {'~45%':<15} {'82.25%':<15}")
-    print(f"{'DeepLabV3+ R50':<20} {'~38%':<15} {'79.61%':<15}")
-    print(f"{'PSPNet R50':<20} {'~35%':<15} {'78.55%':<15}")
-    print("-" * 50)
+    print("-" * 60)
+    print(f"{'Model':<25} {'PROVE (Current)':<15} {'Expected':<15}")
+    print("-" * 60)
+    print(f"{'SegFormer MIT-B3':<25} {'~45%':<15} {'81.94%':<15}")
+    print(f"{'HRNet HR48':<25} {'N/A':<15} {'80.65%':<15}")
+    print(f"{'OCRNet HR48':<25} {'N/A':<15} {'81.35%':<15}")
+    print(f"{'DeepLabV3+ R50':<25} {'~38%':<15} {'79.61%':<15}")
+    print(f"{'PSPNet R50':<25} {'~35%':<15} {'78.55%':<15}")
+    print(f"{'SegNeXt MSCAN-B':<25} {'N/A':<15} {'~79% (est)':<15}")
+    print("-" * 60)
     print("\nIf replication achieves expected results, the pipeline bug is confirmed.")
+    print("NOTE: SegNeXt is not officially benchmarked on Cityscapes (estimate only).")
 
 
 if __name__ == '__main__':

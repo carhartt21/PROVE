@@ -1,16 +1,18 @@
 """
-PSPNet ResNet-50 Cityscapes config with STANDARD pipeline.
-Expected mIoU: 78.55%
+SegNeXt MSCAN-B adapted for Cityscapes with STANDARD pipeline.
+NOTE: SegNeXt is not officially benchmarked on Cityscapes.
+ADE20K performance: 48.03% mIoU
+Expected Cityscapes: ~78-80% mIoU (estimated)
 """
 
 dataset_type = 'CityscapesDataset'
 data_root = '/scratch/aaa_exchange/AWARE/CITYSCAPES'
-crop_size = (769, 769)
+crop_size = (512, 1024)  # Standard Cityscapes crop size
 
 train_pipeline = [
     dict(type='LoadImageFromFile'),
     dict(type='LoadAnnotations'),
-    dict(type='RandomResize', scale=(2049, 1025), ratio_range=(0.5, 2.0), keep_ratio=True),
+    dict(type='RandomResize', scale=(2048, 1024), ratio_range=(0.5, 2.0), keep_ratio=True),
     dict(type='RandomCrop', crop_size=crop_size, cat_max_ratio=0.75),
     dict(type='RandomFlip', prob=0.5),
     dict(type='PhotoMetricDistortion'),
@@ -19,10 +21,12 @@ train_pipeline = [
 
 test_pipeline = [
     dict(type='LoadImageFromFile'),
-    dict(type='Resize', scale=(2049, 1025), keep_ratio=True),
+    dict(type='Resize', scale=(2048, 1024), keep_ratio=True),
     dict(type='LoadAnnotations'),
     dict(type='PackSegInputs')
 ]
+
+ham_norm_cfg = dict(type='GN', num_groups=32, requires_grad=True)
 
 data_preprocessor = dict(
     type='SegDataPreProcessor',
@@ -31,53 +35,52 @@ data_preprocessor = dict(
     bgr_to_rgb=True,
     pad_val=0,
     seg_pad_val=255,
-    size=crop_size)
+    size=crop_size,
+    test_cfg=dict(size_divisor=32))
 
 norm_cfg = dict(type='SyncBN', requires_grad=True)
 
+# SegNeXt MSCAN-B model
 model = dict(
     type='EncoderDecoder',
     data_preprocessor=data_preprocessor,
-    pretrained='open-mmlab://resnet50_v1c',
     backbone=dict(
-        type='ResNetV1c',
-        depth=50,
-        num_stages=4,
-        out_indices=(0, 1, 2, 3),
-        dilations=(1, 1, 2, 4),
-        strides=(1, 2, 1, 1),
-        norm_cfg=norm_cfg,
-        norm_eval=False,
-        style='pytorch',
-        contract_dilation=True),
+        type='MSCAN',
+        init_cfg=dict(
+            type='Pretrained',
+            checkpoint='https://download.openmmlab.com/mmsegmentation/v0.5/pretrain/segnext/mscan_b_20230227-3ab7d230.pth'),
+        embed_dims=[64, 128, 320, 512],
+        mlp_ratios=[8, 8, 4, 4],
+        drop_rate=0.0,
+        drop_path_rate=0.1,
+        depths=[3, 3, 12, 3],  # MSCAN-B depths
+        attention_kernel_sizes=[5, [1, 7], [1, 11], [1, 21]],
+        attention_kernel_paddings=[2, [0, 3], [0, 5], [0, 10]],
+        act_cfg=dict(type='GELU'),
+        norm_cfg=dict(type='BN', requires_grad=True)),
     decode_head=dict(
-        type='PSPHead',
-        in_channels=2048,
-        in_index=3,
-        channels=512,
-        pool_scales=(1, 2, 3, 6),
-        dropout_ratio=0.1,
-        num_classes=19,
-        norm_cfg=norm_cfg,
-        align_corners=True,
-        loss_decode=dict(type='CrossEntropyLoss', use_sigmoid=False, loss_weight=1.0)),
-    auxiliary_head=dict(
-        type='FCNHead',
-        in_channels=1024,
-        in_index=2,
+        type='LightHamHead',
+        in_channels=[128, 320, 512],
+        in_index=[1, 2, 3],
         channels=256,
-        num_convs=1,
-        concat_input=False,
+        ham_channels=256,
         dropout_ratio=0.1,
-        num_classes=19,
-        norm_cfg=norm_cfg,
-        align_corners=True,
-        loss_decode=dict(type='CrossEntropyLoss', use_sigmoid=False, loss_weight=0.4)),
+        num_classes=19,  # Cityscapes has 19 classes
+        norm_cfg=ham_norm_cfg,
+        align_corners=False,
+        loss_decode=dict(type='CrossEntropyLoss', use_sigmoid=False, loss_weight=1.0),
+        ham_kwargs=dict(
+            MD_S=1,
+            MD_R=16,
+            train_steps=6,
+            eval_steps=7,
+            inv_t=100,
+            rand_init=True)),
     train_cfg=dict(),
-    test_cfg=dict(mode='slide', crop_size=(769, 769), stride=(513, 513)))
+    test_cfg=dict(mode='whole'))
 
 train_dataloader = dict(
-    batch_size=2,
+    batch_size=4,  # SegNeXt uses larger batch size with single GPU config
     num_workers=4,
     persistent_workers=True,
     sampler=dict(type='InfiniteSampler', shuffle=True),
@@ -102,16 +105,23 @@ test_dataloader = val_dataloader
 val_evaluator = dict(type='IoUMetric', iou_metrics=['mIoU'])
 test_evaluator = val_evaluator
 
-train_cfg = dict(type='IterBasedTrainLoop', max_iters=80000, val_interval=8000)
+train_cfg = dict(type='IterBasedTrainLoop', max_iters=160000, val_interval=8000)
 val_cfg = dict(type='ValLoop')
 test_cfg = dict(type='TestLoop')
 
+# AdamW optimizer for SegNeXt
 optim_wrapper = dict(
     type='OptimWrapper',
-    optimizer=dict(type='SGD', lr=0.01, momentum=0.9, weight_decay=0.0005))
+    optimizer=dict(type='AdamW', lr=0.00006, betas=(0.9, 0.999), weight_decay=0.01),
+    paramwise_cfg=dict(
+        custom_keys=dict(
+            pos_block=dict(decay_mult=0.),
+            norm=dict(decay_mult=0.),
+            head=dict(lr_mult=10.))))
 
 param_scheduler = [
-    dict(type='PolyLR', eta_min=1e-4, power=0.9, begin=0, end=80000, by_epoch=False)
+    dict(type='LinearLR', start_factor=1e-6, by_epoch=False, begin=0, end=1500),
+    dict(type='PolyLR', eta_min=0.0, power=1.0, begin=1500, end=160000, by_epoch=False)
 ]
 
 

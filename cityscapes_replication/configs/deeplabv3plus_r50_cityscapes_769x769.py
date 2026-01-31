@@ -1,26 +1,16 @@
-
 """
 DeepLabV3+ ResNet-50 Cityscapes config with STANDARD pipeline.
 Expected mIoU: 79.61%
 """
 
-_base_ = []
-
-# Dataset settings
 dataset_type = 'CityscapesDataset'
 data_root = '/scratch/aaa_exchange/AWARE/CITYSCAPES'
-
-
 crop_size = (769, 769)
 
 train_pipeline = [
     dict(type='LoadImageFromFile'),
     dict(type='LoadAnnotations'),
-    dict(
-        type='RandomResize',
-        scale=(2049, 1025),
-        ratio_range=(0.5, 2.0),
-        keep_ratio=True),
+    dict(type='RandomResize', scale=(2049, 1025), ratio_range=(0.5, 2.0), keep_ratio=True),
     dict(type='RandomCrop', crop_size=crop_size, cat_max_ratio=0.75),
     dict(type='RandomFlip', prob=0.5),
     dict(type='PhotoMetricDistortion'),
@@ -34,8 +24,6 @@ test_pipeline = [
     dict(type='PackSegInputs')
 ]
 
-
-# Normalization config
 data_preprocessor = dict(
     type='SegDataPreProcessor',
     mean=[123.675, 116.28, 103.53],
@@ -43,9 +31,8 @@ data_preprocessor = dict(
     bgr_to_rgb=True,
     pad_val=0,
     seg_pad_val=255,
-    size=(769, 769))
+    size=crop_size)
 
-# Model config
 norm_cfg = dict(type='SyncBN', requires_grad=True)
 
 model = dict(
@@ -75,8 +62,7 @@ model = dict(
         num_classes=19,
         norm_cfg=norm_cfg,
         align_corners=True,
-        loss_decode=dict(
-            type='CrossEntropyLoss', use_sigmoid=False, loss_weight=1.0)),
+        loss_decode=dict(type='CrossEntropyLoss', use_sigmoid=False, loss_weight=1.0)),
     auxiliary_head=dict(
         type='FCNHead',
         in_channels=1024,
@@ -88,23 +74,19 @@ model = dict(
         num_classes=19,
         norm_cfg=norm_cfg,
         align_corners=True,
-        loss_decode=dict(
-            type='CrossEntropyLoss', use_sigmoid=False, loss_weight=0.4)),
+        loss_decode=dict(type='CrossEntropyLoss', use_sigmoid=False, loss_weight=0.4)),
     train_cfg=dict(),
     test_cfg=dict(mode='slide', crop_size=(769, 769), stride=(513, 513)))
 
-# Data loaders
 train_dataloader = dict(
-    batch_size=2,  # Per GPU (4 GPUs x 2 = 8 total)
+    batch_size=2,
     num_workers=4,
     persistent_workers=True,
     sampler=dict(type='InfiniteSampler', shuffle=True),
     dataset=dict(
         type=dataset_type,
         data_root=data_root,
-        data_prefix=dict(
-            img_path='leftImg8bit/train',
-            seg_map_path='gtFine/train'),
+        data_prefix=dict(img_path='leftImg8bit/train', seg_map_path='gtFine/train'),
         pipeline=train_pipeline))
 
 val_dataloader = dict(
@@ -115,47 +97,25 @@ val_dataloader = dict(
     dataset=dict(
         type=dataset_type,
         data_root=data_root,
-        data_prefix=dict(
-            img_path='leftImg8bit/val',
-            seg_map_path='gtFine/val'),
+        data_prefix=dict(img_path='leftImg8bit/val', seg_map_path='gtFine/val'),
         pipeline=test_pipeline))
 
 test_dataloader = val_dataloader
-
-# Evaluation
 val_evaluator = dict(type='IoUMetric', iou_metrics=['mIoU'])
 test_evaluator = val_evaluator
 
-# Training schedule - 80k iterations
 train_cfg = dict(type='IterBasedTrainLoop', max_iters=80000, val_interval=8000)
 val_cfg = dict(type='ValLoop')
 test_cfg = dict(type='TestLoop')
 
-# Optimizer - SGD for CNNs
 optim_wrapper = dict(
     type='OptimWrapper',
-    optimizer=dict(type='SGD', lr=0.01, momentum=0.9, weight_decay=0.0005),
-    clip_grad=None)
+    optimizer=dict(type='SGD', lr=0.01, momentum=0.9, weight_decay=0.0005))
 
-# Learning rate scheduler
 param_scheduler = [
-    dict(
-        type='PolyLR',
-        eta_min=1e-4,
-        power=0.9,
-        begin=0,
-        end=80000,
-        by_epoch=False)
+    dict(type='PolyLR', eta_min=1e-4, power=0.9, begin=0, end=80000, by_epoch=False)
 ]
 
-# Default hooks
-default_hooks = dict(
-    timer=dict(type='IterTimerHook'),
-    logger=dict(type='LoggerHook', interval=50, log_metric_by_epoch=False),
-    param_scheduler=dict(type='ParamSchedulerHook'),
-    checkpoint=dict(type='CheckpointHook', by_epoch=False, interval=8000,
-                   save_best='mIoU', rule='greater'),
-    sampler_seed=dict(type='DistSamplerSeedHook'))
 
 default_scope = 'mmseg'
 env_cfg = dict(
@@ -167,3 +127,12 @@ log_processor = dict(by_epoch=False)
 log_level = 'INFO'
 load_from = None
 resume = False
+
+default_hooks = dict(
+    timer=dict(type='IterTimerHook'),
+    logger=dict(type='LoggerHook', interval=50, log_metric_by_epoch=False),
+    param_scheduler=dict(type='ParamSchedulerHook'),
+    checkpoint=dict(type='CheckpointHook', by_epoch=False, interval=8000,
+                   save_best='mIoU', rule='greater'),
+    sampler_seed=dict(type='DistSamplerSeedHook'))
+

@@ -37,9 +37,14 @@ The `RandomResize` step is **critical** - it provides:
 
 | Model | Expected mIoU | Iterations | Crop Size | Notes |
 |-------|---------------|------------|-----------|-------|
-| SegFormer MIT-B5 | 82.25% | 160k | 1024×1024 | Transformer backbone |
+| SegFormer MIT-B3 | 81.94% | 160k | 1024×1024 | Transformer backbone, lighter than B5 |
+| HRNet HR48 | 80.65% | 160k | 512×1024 | High-resolution multi-scale features |
+| OCRNet HR48 | 81.35% | 160k | 512×1024 | Object-contextual representations |
 | DeepLabV3+ R50 | 79.61% | 80k | 769×769 | ASPP decoder |
 | PSPNet R50 | 78.55% | 80k | 769×769 | PPM pooling |
+| SegNeXt MSCAN-B | ~79% (est) | 160k | 512×1024 | MSCAN attention, not officially benchmarked |
+
+**Note:** SegNeXt MSCAN-B is adapted from the ADE20K config as it's not officially benchmarked on Cityscapes.
 
 ## Usage
 

@@ -1,16 +1,16 @@
 """
-PSPNet ResNet-50 Cityscapes config with STANDARD pipeline.
-Expected mIoU: 78.55%
+OCRNet with HRNet HR48 backbone - Cityscapes with STANDARD pipeline.
+Expected mIoU: 81.35%
 """
 
 dataset_type = 'CityscapesDataset'
 data_root = '/scratch/aaa_exchange/AWARE/CITYSCAPES'
-crop_size = (769, 769)
+crop_size = (512, 1024)
 
 train_pipeline = [
     dict(type='LoadImageFromFile'),
     dict(type='LoadAnnotations'),
-    dict(type='RandomResize', scale=(2049, 1025), ratio_range=(0.5, 2.0), keep_ratio=True),
+    dict(type='RandomResize', scale=(2048, 1024), ratio_range=(0.5, 2.0), keep_ratio=True),
     dict(type='RandomCrop', crop_size=crop_size, cat_max_ratio=0.75),
     dict(type='RandomFlip', prob=0.5),
     dict(type='PhotoMetricDistortion'),
@@ -19,7 +19,7 @@ train_pipeline = [
 
 test_pipeline = [
     dict(type='LoadImageFromFile'),
-    dict(type='Resize', scale=(2049, 1025), keep_ratio=True),
+    dict(type='Resize', scale=(2048, 1024), keep_ratio=True),
     dict(type='LoadAnnotations'),
     dict(type='PackSegInputs')
 ]
@@ -35,46 +35,51 @@ data_preprocessor = dict(
 
 norm_cfg = dict(type='SyncBN', requires_grad=True)
 
+# OCRNet with HRNet-W48 backbone (CascadeEncoderDecoder)
 model = dict(
-    type='EncoderDecoder',
+    type='CascadeEncoderDecoder',
     data_preprocessor=data_preprocessor,
-    pretrained='open-mmlab://resnet50_v1c',
+    num_stages=2,
+    pretrained='open-mmlab://msra/hrnetv2_w48',
     backbone=dict(
-        type='ResNetV1c',
-        depth=50,
-        num_stages=4,
-        out_indices=(0, 1, 2, 3),
-        dilations=(1, 1, 2, 4),
-        strides=(1, 2, 1, 1),
+        type='HRNet',
         norm_cfg=norm_cfg,
         norm_eval=False,
-        style='pytorch',
-        contract_dilation=True),
-    decode_head=dict(
-        type='PSPHead',
-        in_channels=2048,
-        in_index=3,
-        channels=512,
-        pool_scales=(1, 2, 3, 6),
-        dropout_ratio=0.1,
-        num_classes=19,
-        norm_cfg=norm_cfg,
-        align_corners=True,
-        loss_decode=dict(type='CrossEntropyLoss', use_sigmoid=False, loss_weight=1.0)),
-    auxiliary_head=dict(
-        type='FCNHead',
-        in_channels=1024,
-        in_index=2,
-        channels=256,
-        num_convs=1,
-        concat_input=False,
-        dropout_ratio=0.1,
-        num_classes=19,
-        norm_cfg=norm_cfg,
-        align_corners=True,
-        loss_decode=dict(type='CrossEntropyLoss', use_sigmoid=False, loss_weight=0.4)),
+        extra=dict(
+            stage1=dict(num_modules=1, num_branches=1, block='BOTTLENECK', num_blocks=(4,), num_channels=(64,)),
+            stage2=dict(num_modules=1, num_branches=2, block='BASIC', num_blocks=(4, 4), num_channels=(48, 96)),
+            stage3=dict(num_modules=4, num_branches=3, block='BASIC', num_blocks=(4, 4, 4), num_channels=(48, 96, 192)),
+            stage4=dict(num_modules=3, num_branches=4, block='BASIC', num_blocks=(4, 4, 4, 4), num_channels=(48, 96, 192, 384)))),
+    decode_head=[
+        dict(
+            type='FCNHead',
+            in_channels=[48, 96, 192, 384],
+            channels=sum([48, 96, 192, 384]),
+            input_transform='resize_concat',
+            in_index=(0, 1, 2, 3),
+            kernel_size=1,
+            num_convs=1,
+            concat_input=False,
+            dropout_ratio=-1,
+            num_classes=19,
+            norm_cfg=norm_cfg,
+            align_corners=False,
+            loss_decode=dict(type='CrossEntropyLoss', use_sigmoid=False, loss_weight=0.4)),
+        dict(
+            type='OCRHead',
+            in_channels=[48, 96, 192, 384],
+            channels=512,
+            ocr_channels=256,
+            input_transform='resize_concat',
+            in_index=(0, 1, 2, 3),
+            norm_cfg=norm_cfg,
+            dropout_ratio=-1,
+            num_classes=19,
+            align_corners=False,
+            loss_decode=dict(type='CrossEntropyLoss', use_sigmoid=False, loss_weight=1.0))
+    ],
     train_cfg=dict(),
-    test_cfg=dict(mode='slide', crop_size=(769, 769), stride=(513, 513)))
+    test_cfg=dict(mode='whole'))
 
 train_dataloader = dict(
     batch_size=2,
@@ -102,7 +107,7 @@ test_dataloader = val_dataloader
 val_evaluator = dict(type='IoUMetric', iou_metrics=['mIoU'])
 test_evaluator = val_evaluator
 
-train_cfg = dict(type='IterBasedTrainLoop', max_iters=80000, val_interval=8000)
+train_cfg = dict(type='IterBasedTrainLoop', max_iters=160000, val_interval=8000)
 val_cfg = dict(type='ValLoop')
 test_cfg = dict(type='TestLoop')
 
@@ -111,7 +116,7 @@ optim_wrapper = dict(
     optimizer=dict(type='SGD', lr=0.01, momentum=0.9, weight_decay=0.0005))
 
 param_scheduler = [
-    dict(type='PolyLR', eta_min=1e-4, power=0.9, begin=0, end=80000, by_epoch=False)
+    dict(type='PolyLR', eta_min=1e-4, power=0.9, begin=0, end=160000, by_epoch=False)
 ]
 
 
