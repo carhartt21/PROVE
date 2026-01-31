@@ -20,7 +20,7 @@ WORK_DIR_BASE = Path('/scratch/aaa_exchange/AWARE/CITYSCAPES_REPLICATION')
 CONDA_ENV = 'prove'
 REPO_DIR = Path('/home/chge7185/repositories/PROVE')
 
-# Job definitions - ALL using 512x512 crop size
+# Job definitions - 512x512 crop size for comparison with PROVE
 # Using single GPU - hours increased from original 4-GPU estimates
 JOBS = {
     'segformer_b3': {
@@ -64,6 +64,35 @@ JOBS = {
         'mem': '48000',
         'hours': 96,  # 160k iterations
         'expected_miou': 77.0,  # Estimated
+    },
+    # PROPER CROP SIZE JOBS - should match published results
+    'deeplabv3plus_r50_769': {
+        'config': 'deeplabv3plus_r50_cityscapes_769x769.py',
+        'gpus': 1,
+        'mem': '64000',  # Larger crop needs more memory
+        'hours': 72,  # 80k iterations with larger crop
+        'expected_miou': 79.6,  # Official published mIoU
+    },
+    'pspnet_r50_769': {
+        'config': 'pspnet_r50_cityscapes_769x769.py',
+        'gpus': 1,
+        'mem': '64000',
+        'hours': 72,
+        'expected_miou': 78.5,  # Official published mIoU
+    },
+    'hrnet_hr48_1024': {
+        'config': 'hrnet_hr48_cityscapes_512x1024.py',
+        'gpus': 1,
+        'mem': '64000',
+        'hours': 120,  # 160k iterations with larger crop
+        'expected_miou': 80.6,  # Official published mIoU
+    },
+    'ocrnet_hr48_1024': {
+        'config': 'ocrnet_hr48_cityscapes_512x1024.py',
+        'gpus': 1,
+        'mem': '64000',
+        'hours': 120,
+        'expected_miou': 81.3,  # Official published mIoU
     },
 }
 

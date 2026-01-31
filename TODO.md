@@ -8,19 +8,28 @@
 
 ### Active Jobs
 
-#### Cityscapes Replication (chge7185) - 6 running
-| Model | Progress | ETA | Node | Job ID |
-|-------|----------|-----|------|--------|
-| deeplabv3plus_r50 | 1,700/80k (2%) | ~1h 09m | makalu95 | 983372 |
-| pspnet_r50 | 1,100/80k (1%) | ~1h 11m | makalu95 | 983373 |
-| hrnet_hr48 | 46,550/160k (29%) | ~3h 17m | makalu94 | 983234 |
-| segformer_b3 | 29,950/160k (19%) | ~5h 24m | makalu94 | 983239 |
-| ocrnet_hr48 | 1,100/160k (0.7%) | ~6h 21m | makalu94 | 983368 |
-| segnext_mscan_b | 21,350/160k (13%) | ~7h 49m | makalu94 | 983271 |
+#### Cityscapes Replication (chge7185) - 8 jobs (4 running, 4 pending)
+
+**512x512 Crop Jobs (comparison with PROVE):**
+| Model | Progress | Best mIoU | Node | Job ID |
+|-------|----------|-----------|------|--------|
+| ✅ deeplabv3plus_r50 | Complete | 58.02% | - | 983372 |
+| ✅ pspnet_r50 | Complete | 57.64% | - | 983373 |
+| hrnet_hr48 | 151k/160k (94%) | 61.56% | makalu94 | 983234 |
+| segformer_b3 | 99k/160k (62%) | **77.81%** | makalu94 | 983239 |
+| segnext_mscan_b | 76k/160k (48%) | **78.48%** | makalu94 | 983271 |
+| ocrnet_hr48 | 86k/160k (54%) | 45.20% | makalu94 | 983368 |
+
+**Proper Crop Size Jobs (expected to match published results):**
+| Model | Crop | Expected mIoU | Status | Job ID |
+|-------|------|---------------|--------|--------|
+| deeplabv3plus_r50_769 | 769x769 | ~79.6% | 🔄 Running | 1004205 |
+| pspnet_r50_769 | 769x769 | ~78.5% | ⏳ Pending | 1004206 |
+| hrnet_hr48_1024 | 512x1024 | ~80.6% | ⏳ Pending | 1004207 |
+| ocrnet_hr48_1024 | 512x1024 | ~81.3% | ⏳ Pending | 1004208 |
 
 **Purpose:** Verify that our training infrastructure can achieve published Cityscapes results (~78-82% mIoU).
 **Branch:** `cityscapes-replication`
-**Expected Completion:** ~22:30 on 2026-01-31
 
 ### Lovasz Loss Training (mima2416) - 33 pending
 
@@ -124,8 +133,12 @@ RandomCrop(crop_size)  # Now meaningful
 
 ### Action Plan
 1. ✅ **Transformers verified** - SegFormer/SegNeXt achieve published results
-2. ⏳ **Re-run CNN models** with proper crop sizes (769x769 or 512x1024)
-3. ⏳ **Fix OCRNet config** to use backbone-only pretrained weights
+2. ✅ **Re-run CNN models** - Submitted 4 proper crop size jobs (Job IDs: 1004205-1004208)
+   - deeplabv3plus_r50_769 (769x769) - Expected ~79.6%
+   - pspnet_r50_769 (769x769) - Expected ~78.5%
+   - hrnet_hr48_1024 (512x1024) - Expected ~80.6%
+   - ocrnet_hr48_1024 (512x1024) - Expected ~81.3%
+3. ⏳ **Monitor results** - Check if proper crop sizes fix the mIoU gap
 
 ### Output Directory
 `/scratch/aaa_exchange/AWARE/CITYSCAPES_REPLICATION/`
