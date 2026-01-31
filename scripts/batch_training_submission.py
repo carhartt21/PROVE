@@ -115,8 +115,8 @@ GEN_STRATEGIES = [
 # Standard augmentation strategies
 STD_STRATEGIES = [
     'baseline',           # No augmentation at all
-    'std_minimal',        # RandomCrop + RandomFlip only
-    'std_photometric_distort',  # PhotoMetricDistortion only
+    # 'std_minimal',        # RandomCrop + RandomFlip only
+    # 'std_photometric_distort',  # PhotoMetricDistortion only
     'std_autoaugment',    # AutoAugment (batch-level)
     'std_cutmix',         # CutMix (batch-level)
     'std_mixup',          # MixUp (batch-level)
