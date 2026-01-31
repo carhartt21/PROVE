@@ -24,6 +24,28 @@
 
 ### Lovasz Loss Training (mima2416) - 33 pending
 
+### Monitoring Commands
+```bash
+# Check all Cityscapes jobs
+bjobs -w | grep "cs_"
+
+# Check training progress for all models
+for model in hrnet_hr48 segformer_b3 segnext_mscan_b ocrnet_hr48 deeplabv3plus_r50 pspnet_r50; do
+  dir="/scratch/aaa_exchange/AWARE/CITYSCAPES_REPLICATION/$model"
+  out_file=$(ls -t "$dir"/train_*.out 2>/dev/null | head -1)
+  echo "=== $model ===" && grep "Iter(train)" "$out_file" | tail -1
+done
+
+# Check for errors
+for model in hrnet_hr48 segformer_b3 segnext_mscan_b ocrnet_hr48 deeplabv3plus_r50 pspnet_r50; do
+  dir="/scratch/aaa_exchange/AWARE/CITYSCAPES_REPLICATION/$model"
+  err_file=$(ls -t "$dir"/train_*.err 2>/dev/null | head -1)
+  if [ -f "$err_file" ] && [ -s "$err_file" ]; then
+    echo "=== $model ERRORS ===" && tail -10 "$err_file"
+  fi
+done
+```
+
 ### Current Training Configuration (2026-01-30)
 | Setting | Value |
 |---------|-------|
@@ -73,6 +95,43 @@ RandomCrop(crop_size)  # Now meaningful
 
 ### Output Directory
 `/scratch/aaa_exchange/AWARE/CITYSCAPES_REPLICATION/`
+
+### Next Steps (After Training Completes)
+
+#### 1. Evaluate Results (~22:30 today)
+```bash
+# Check final mIoU from validation logs
+for model in hrnet_hr48 segformer_b3 segnext_mscan_b ocrnet_hr48 deeplabv3plus_r50 pspnet_r50; do
+  dir="/scratch/aaa_exchange/AWARE/CITYSCAPES_REPLICATION/$model"
+  out_file=$(ls -t "$dir"/train_*.out 2>/dev/null | head -1)
+  echo "=== $model ===" && grep "mIoU" "$out_file" | tail -5
+done
+```
+
+#### 2. Analyze Results
+
+| Scenario | Outcome | Action |
+|----------|---------|--------|
+| mIoU ≥ 70% | **Pipeline bug confirmed** | Fix RandomResize in unified_training_config.py |
+| mIoU ≈ 45% | Other issue | Debug MMSeg installation, check data loading |
+| mIoU ≈ 60% | Partial fix | May need larger crop size (769x769 or 1024x1024) |
+
+#### 3. If Pipeline Bug Confirmed
+- [ ] Add RandomResize to unified_training_config.py
+- [ ] Re-run baseline experiments with fixed pipeline
+- [ ] Compare before/after mIoU
+
+#### 4. Create Testing Script
+Create `cityscapes_replication/test.py` for final evaluation:
+```bash
+python test.py configs/segformer_mit-b3_cityscapes_512x512.py \
+    /scratch/aaa_exchange/AWARE/CITYSCAPES_REPLICATION/segformer_b3/iter_160000.pth
+```
+
+#### 5. Document Findings
+- Update this TODO with final mIoU results
+- Create analysis document comparing Cityscapes vs PROVE results
+- Determine root cause of mIoU gap
 
 ---
 
