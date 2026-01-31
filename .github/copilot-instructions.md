@@ -150,7 +150,7 @@ python scripts/update_testing_tracker.py --stage 2
 
 ## Models, Datasets & Strategies
 
-**Models:** `deeplabv3plus_r50`, `pspnet_r50`, `segformer_mit-b5`
+**Models:** `deeplabv3plus_r50`, `pspnet_r50`, `segformer_mit-b5`, `segnext_mscan-b`
 
 **Datasets:**
 | Dataset | Classes | Label Format |

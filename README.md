@@ -161,7 +161,7 @@ python unified_training.py --list
 | Option | Description | Default |
 |--------|-------------|---------|
 | `--dataset` | Dataset name (ACDC, BDD10k, BDD100k, IDD-AW, MapillaryVistas, OUTSIDE15k) | Required |
-| `--model` | Model name (deeplabv3plus_r50, pspnet_r50, segformer_mit-b5, etc.) | Required |
+| `--model` | Model name (deeplabv3plus_r50, pspnet_r50, segformer_mit-b5, segnext_mscan-b, etc.) | Required |
 | `--strategy` | Main augmentation strategy (baseline, std_cutmix, gen_cycleGAN, etc.) | baseline |
 | `--std-strategy` | Standard augmentation to combine with main strategy (see Combined Strategies) | None |
 | `--real-gen-ratio` | Ratio of real to generated images (0.0 to 1.0) | 1.0 |
