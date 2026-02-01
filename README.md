@@ -592,12 +592,32 @@ The detailed testing now generates a unified output structure:
 
 | Dataset | Domains |
 |---------|---------|
-| ACDC | clear_day, cloudy, dawn_dusk, foggy, night, rainy, snowy |
-| BDD10k | clear, overcast, partly_cloudy, rainy, snowy, foggy |
-| BDD100k | clear, overcast, partly_cloudy, rainy, snowy, foggy, undefined |
-| IDD-AW | clear, foggy, rainy |
-| MapillaryVistas | (no domain split) |
-| OUTSIDE15k | (no domain split) |
+| ACDC | foggy, night, rainy, snowy |
+| BDD10k | clear_day, cloudy, dawn_dusk, foggy, night, rainy, snowy |
+| BDD100k | clear_day, cloudy, dawn_dusk, foggy, night, rainy, snowy |
+| IDD-AW | clear_day, cloudy, dawn_dusk, foggy, night, rainy, snowy |
+| MapillaryVistas | clear_day, cloudy, dawn_dusk, foggy, night, rainy, snowy |
+| OUTSIDE15k | clear_day, cloudy, dawn_dusk, foggy, night, rainy, snowy |
+
+#### Cross-Domain Testing (Cityscapes → ACDC)
+
+Test Cityscapes-trained models on ACDC adverse weather conditions:
+
+```bash
+# Preview available models and what would be tested
+python scripts/test_cityscapes_replication_on_acdc.py --dry-run
+
+# Test all models with per-domain breakdown
+python scripts/test_cityscapes_replication_on_acdc.py
+
+# Test specific models only
+python scripts/test_cityscapes_replication_on_acdc.py --models segformer_b3 segnext_mscan_b
+
+# Submit as LSF cluster jobs (parallel)
+python scripts/test_cityscapes_replication_on_acdc.py --submit-jobs
+```
+
+**Output:** Per-domain mIoU breakdown (foggy, night, rainy, snowy) saved to `CITYSCAPES_REPLICATION/acdc_cross_domain_results/`
 
 See [docs/UNIFIED_TESTING.md](docs/UNIFIED_TESTING.md) for comprehensive testing documentation.
 

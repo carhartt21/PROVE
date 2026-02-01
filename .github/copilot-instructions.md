@@ -149,11 +149,19 @@ python scripts/update_testing_tracker.py --stage 1
 python scripts/update_testing_tracker.py --stage 2
 ```
 
+### Cross-Domain Testing (Cityscapes → ACDC)
+```bash
+# Test Cityscapes replication models on ACDC per-domain
+python scripts/test_cityscapes_replication_on_acdc.py --dry-run      # Preview
+python scripts/test_cityscapes_replication_on_acdc.py --submit-jobs  # Submit LSF jobs
+```
+
 ## Key Files
 
 | File | Purpose |
 |------|---------|
 | `scripts/batch_training_submission.py` | **PREFERRED** for batch job submission - handles locks, checks, parameters |
+| `scripts/test_cityscapes_replication_on_acdc.py` | Cross-domain testing (Cityscapes → ACDC) with per-domain breakdown |
 | `unified_training.py` | Main training entry point, handles job submission |
 | `fine_grained_test.py` | Per-domain/per-class evaluation with optimized inference |
 | `unified_training_config.py` | Generates MMSeg configs from CLI args |

@@ -1,6 +1,6 @@
 # PROVE Project TODO
 
-**Last Updated:** 2026-02-01 (09:30)
+**Last Updated:** 2026-02-01 (11:45)
 
 ---
 
@@ -17,6 +17,20 @@ The critical pipeline bug has been fixed and verified through Cityscapes replica
 | DeepLabV3+ R50 | ~38% | 58.02% | ~77% (needs 769x769) |
 
 **Fix summary:** Added `RandomResize(0.5-2.0x)` before `RandomCrop` - see [PIPELINE_COMPARISON_ANALYSIS.md](PIPELINE_COMPARISON_ANALYSIS.md)
+
+### ✅ NEW: Cross-Domain Testing Script (2026-02-01)
+
+Test Cityscapes replication models on ACDC (foggy, night, rainy, snowy):
+
+```bash
+# Preview available models
+python scripts/test_cityscapes_replication_on_acdc.py --dry-run
+
+# Test all models with per-domain breakdown
+python scripts/test_cityscapes_replication_on_acdc.py --submit-jobs
+```
+
+**Output:** `CITYSCAPES_REPLICATION/acdc_cross_domain_results/`
 
 ### Active Jobs (2026-01-31)
 
