@@ -213,8 +213,14 @@ def detect_model_num_classes(cfg) -> int:
     """Detect number of output classes from model config."""
     # Try decode_head first
     if hasattr(cfg, 'model') and 'decode_head' in cfg.model:
-        num_classes = cfg.model.decode_head.get('num_classes', 19)
-        return num_classes
+        decode_head = cfg.model.decode_head
+        # Handle case where decode_head is a list (e.g., OCRNet with cascade heads)
+        if isinstance(decode_head, list):
+            for head in decode_head:
+                if 'num_classes' in head:
+                    return head['num_classes']
+        elif isinstance(decode_head, dict):
+            return decode_head.get('num_classes', 19)
     # Fall back to top-level num_classes
     if hasattr(cfg, 'num_classes'):
         return cfg.num_classes
@@ -898,10 +904,16 @@ def run_fine_grained_test(
         for img_path in img_files:
             label_path = label_dir / img_path.name
             if not label_path.exists():
+                # Try stem + extension
                 for ext in ['.png', '.jpg']:
                     label_path = label_dir / (img_path.stem + ext)
                     if label_path.exists():
                         break
+            if not label_path.exists():
+                # ACDC-specific naming: image has _rgb_anon, label has _gt_labelIds
+                if '_rgb_anon' in img_path.name:
+                    acdc_label_name = img_path.name.replace('_rgb_anon', '_gt_labelIds')
+                    label_path = label_dir / acdc_label_name
             if label_path.exists():
                 valid_pairs.append((img_path, label_path))
         

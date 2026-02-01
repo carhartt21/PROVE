@@ -186,13 +186,21 @@ def run_test(
             print(f"  STDERR: {result.stderr[:500]}")
             return None
         
-        # Load results
+        # Load results - fine_grained_test creates a timestamp subdirectory
+        # Look for results.json in output_dir or its subdirectories
         results_file = output_dir / 'results.json'
+        if not results_file.exists():
+            # Check for timestamped subdirectory
+            subdirs = sorted([d for d in output_dir.iterdir() if d.is_dir()], 
+                           key=lambda x: x.name, reverse=True)
+            if subdirs:
+                results_file = subdirs[0] / 'results.json'
+        
         if results_file.exists():
             with open(results_file) as f:
                 return json.load(f)
         else:
-            print(f"  ERROR: Results file not found at {results_file}")
+            print(f"  ERROR: Results file not found in {output_dir}")
             return None
             
     except Exception as e:
@@ -297,7 +305,10 @@ def print_results_summary(results: Dict[str, dict]):
             continue
             
         display_name = REPLICATION_MODELS.get(model_name, {}).get('display_name', model_name)
-        overall = result.get('overall', {}).get('mIoU', 0) * 100
+        overall = result.get('overall', {}).get('mIoU', 0)
+        # Only scale if value is in 0-1 range (some results may be pre-scaled)
+        if isinstance(overall, float) and overall <= 1:
+            overall *= 100
         
         domain_values = []
         for domain in ACDC_DOMAINS:
