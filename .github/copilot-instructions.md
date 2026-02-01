@@ -25,11 +25,13 @@ PROVE evaluates semantic segmentation models under adverse weather conditions us
 |-------|--------------|-------------|---------|
 | **Stage 1** | `clear_day` | `WEIGHTS/` | Train clear-only, test cross-domain robustness |
 | **Stage 2** | None (all) | `WEIGHTS_STAGE_2/` | Train all conditions, evaluate domain-inclusive |
+| **Cityscapes** | None | `WEIGHTS_CITYSCAPES/` | Pipeline verification on standard benchmark |
 
 **External Data Paths:**
 ```
 /scratch/aaa_exchange/AWARE/WEIGHTS/           # Stage 1 weights
 /scratch/aaa_exchange/AWARE/WEIGHTS_STAGE_2/   # Stage 2 weights
+/scratch/aaa_exchange/AWARE/WEIGHTS_CITYSCAPES/      # Cityscapes pipeline verification
 /scratch/aaa_exchange/AWARE/WEIGHTS_RATIO_ABLATION/  # Ratio ablation study
 /scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/        # Extended training study
 ```
@@ -110,6 +112,9 @@ python scripts/batch_training_submission.py --stage 1 --strategy-type gen --dry-
 # Stage 2: All conditions training
 python scripts/batch_training_submission.py --stage 2 --dry-run
 
+# Cityscapes: Pipeline verification (160k iterations, all 5 models)
+python scripts/batch_training_submission.py --stage cityscapes --dry-run
+
 # Limit number of jobs (useful for testing)
 python scripts/batch_training_submission.py --stage 1 --limit 10
 ```
@@ -163,6 +168,7 @@ python scripts/update_testing_tracker.py --stage 2
 **Datasets:**
 | Dataset | Classes | Label Format |
 |---------|---------|--------------|
+| Cityscapes | 19 | Native trainIds (`_gtFine_labelTrainIds.png`) |
 | ACDC, BDD10k, IDD-AW | 19 | Cityscapes train IDs |
 | MapillaryVistas | 66 | RGB-encoded |
 | OUTSIDE15k | 24 | RGB-encoded |

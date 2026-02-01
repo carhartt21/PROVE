@@ -253,6 +253,22 @@ DATASET_CONFIGS = {
         classes=CITYSCAPES_CLASSES,  # Cityscapes class names
         img_suffix='.jpg',  # OUTSIDE15k images are JPEG
     ),
+    # Cityscapes - for pipeline verification (uses native MMSeg CityscapesDataset)
+    'Cityscapes': DatasetConfig(
+        name='Cityscapes',
+        task='segmentation',
+        format='cityscapes_native',  # Special format - uses MMSeg native handling
+        data_root='/scratch/aaa_exchange/AWARE/CITYSCAPES',  # Override default data root
+        train_img_dir='leftImg8bit/train',
+        train_ann_dir='gtFine/train',
+        val_img_dir='leftImg8bit/val',
+        val_ann_dir='gtFine/val',
+        test_img_dir='leftImg8bit/val',  # Cityscapes test labels not publicly available
+        test_ann_dir='gtFine/val',
+        num_classes=19,
+        classes=CITYSCAPES_CLASSES,
+        img_suffix='_leftImg8bit.png',  # Cityscapes has specific naming pattern
+    ),
 }
 
 
@@ -2026,9 +2042,18 @@ class UnifiedTrainingConfig:
             use_native_classes: If True, use native class count (66 for MapillaryVistas, 24 for OUTSIDE15k)
         """
         
-        # Use base data root - dataset paths already include the dataset name
-        data_root = self.data_root
+        # Use data_root from dataset config if specified, otherwise use default
+        # This allows Cityscapes to use its own path (/scratch/aaa_exchange/AWARE/CITYSCAPES)
+        if dataset_cfg.data_root and dataset_cfg.data_root != DEFAULT_DATA_ROOT:
+            data_root = dataset_cfg.data_root
+            print(f"[INFO] Using dataset-specific data_root: {data_root}")
+        else:
+            data_root = self.data_root
         config['data_root'] = data_root
+        
+        # Store format for later use in dataloader config
+        is_cityscapes_native = (dataset_cfg.format == 'cityscapes_native')
+        config['_is_cityscapes_native'] = is_cityscapes_native
         
         # Determine dataset type based on format and native classes setting
         # MapillaryDataset_v1 must be used when training with native 66 Mapillary classes
@@ -2041,7 +2066,8 @@ class UnifiedTrainingConfig:
             config['dataset_type'] = 'Outside15kDataset'
             print(f"[INFO] Using Outside15kDataset for proper 24-class evaluation metrics")
         else:
-            config['dataset_type'] = 'CityscapesDataset' if dataset_cfg.format == 'cityscapes' else 'CocoDataset'
+            # Both 'cityscapes' and 'cityscapes_native' use CityscapesDataset
+            config['dataset_type'] = 'CityscapesDataset' if dataset_cfg.format in ('cityscapes', 'cityscapes_native') else 'CocoDataset'
         
         # Handle native classes for MapillaryVistas and OUTSIDE15k
         if use_native_classes:
@@ -2103,15 +2129,28 @@ class UnifiedTrainingConfig:
         # Must match the dataset_type set above for consistent class handling
         seg_dataset_type = config['dataset_type']
         
+        # Check if using Cityscapes native format (uses default CityscapesDataset suffixes)
+        is_cityscapes_native = config.get('_is_cityscapes_native', False)
+        
         if dataset_cfg.task == 'segmentation':
-            # Train dataloader
-            # Use correct dataset type based on native class setting
-            config['train_dataloader'] = dict(
-                batch_size=batch_size,
-                num_workers=num_workers,
-                persistent_workers=True,
-                sampler=dict(type='InfiniteSampler', shuffle=True),
-                dataset=dict(
+            # For Cityscapes native format, use default suffixes (handled by CityscapesDataset)
+            # For other formats, use explicit suffixes
+            if is_cityscapes_native:
+                # Cityscapes native: let CityscapesDataset use its defaults
+                # '_leftImg8bit.png' for images, '_gtFine_labelTrainIds.png' for labels
+                train_dataset_dict = dict(
+                    type=seg_dataset_type,
+                    data_root=data_root,
+                    data_prefix=dict(
+                        img_path=train_img_dir,
+                        seg_map_path=train_ann_dir,
+                    ),
+                    reduce_zero_label=False,
+                    pipeline='{{train_pipeline}}',
+                )
+            else:
+                # Other datasets: use explicit suffixes
+                train_dataset_dict = dict(
                     type=seg_dataset_type,
                     data_root=data_root,
                     data_prefix=dict(
@@ -2123,28 +2162,50 @@ class UnifiedTrainingConfig:
                     seg_map_suffix='.png',
                     reduce_zero_label=False,  # Set here instead of LoadAnnotations
                     pipeline='{{train_pipeline}}',
-                ),
+                )
+            
+            # Train dataloader
+            # Use correct dataset type based on native class setting
+            config['train_dataloader'] = dict(
+                batch_size=batch_size,
+                num_workers=num_workers,
+                persistent_workers=True,
+                sampler=dict(type='InfiniteSampler', shuffle=True),
+                dataset=train_dataset_dict,
             )
             
             # Val dataloader
-            config['val_dataloader'] = dict(
-                batch_size=1,
-                num_workers=num_workers,
-                persistent_workers=True,
-                sampler=dict(type='DefaultSampler', shuffle=False),
-                dataset=dict(
+            if is_cityscapes_native:
+                val_dataset_dict = dict(
+                    type=seg_dataset_type,
+                    data_root=data_root,
+                    data_prefix=dict(
+                        img_path=dataset_cfg.val_img_dir,
+                        seg_map_path=dataset_cfg.val_ann_dir,
+                    ),
+                    reduce_zero_label=False,
+                    pipeline='{{test_pipeline}}',
+                )
+            else:
+                val_dataset_dict = dict(
                     type=seg_dataset_type,
                     data_root=data_root,
                     data_prefix=dict(
                         img_path=dataset_cfg.val_img_dir,
                         seg_map_path=os.path.join(ann_root, dataset_cfg.val_ann_dir) if dataset_cfg.ann_root else dataset_cfg.val_ann_dir,
                     ),
-                    # Custom suffixes for non-standard Cityscapes format
                     img_suffix=dataset_cfg.img_suffix,
                     seg_map_suffix='.png',
-                    reduce_zero_label=False,  # Set here instead of LoadAnnotations
+                    reduce_zero_label=False,
                     pipeline='{{test_pipeline}}',
-                ),
+                )
+            
+            config['val_dataloader'] = dict(
+                batch_size=1,
+                num_workers=num_workers,
+                persistent_workers=True,
+                sampler=dict(type='DefaultSampler', shuffle=False),
+                dataset=val_dataset_dict,
             )
             
             # Test dataloader (same as val for now)
@@ -2237,18 +2298,21 @@ class UnifiedTrainingConfig:
         # Multi-dataset training: Map all labels to Cityscapes 19-class format (unified labels)
         #
         # Dataset native formats:
-        # - ACDC/Cityscapes: labelIds (0-33) - ALWAYS needs CityscapesLabelIdToTrainId transform
+        # - ACDC: uses Cityscapes labelIds (0-33) - needs CityscapesLabelIdToTrainId transform
+        # - Cityscapes (cityscapes_native format): uses labelTrainIds files - NO transform needed
         # - BDD10k: Already Cityscapes trainIDs (0-18) - no transform needed
         # - IDD-AW: Extended Cityscapes trainIDs with values 19, 20 - needs IddawLabelClamp
         #           IDD values 19=traffic light (maps to trainId 6), 20=pole (maps to trainId 5)
         # - OUTSIDE15k: 24 native classes (0-23) - only transform to Cityscapes if NOT use_native_classes
         # - MapillaryVistas: 66 native classes (0-65) - only transform to Cityscapes if NOT use_native_classes
-        CITYSCAPES_LABEL_ID_DATASETS = {'ACDC', 'Cityscapes'}  # Uses Cityscapes labelId format (0-33)
+        CITYSCAPES_LABEL_ID_DATASETS = {'ACDC'}  # Uses Cityscapes labelId format (0-33), needs conversion
+        # Note: 'Cityscapes' (cityscapes_native format) uses _gtFine_labelTrainIds.png which are already trainIds
         OUTSIDE15K_DATASETS = {'OUTSIDE15k'}
         MAPILLARY_DATASETS = {'MapillaryVistas', 'Mapillary'}
         IDDAW_DATASETS = {'IDD-AW'}  # IDD-AW has extra classes 19=traffic light, 20=pole
         
-        # ACDC/Cityscapes always need labelId->trainId conversion (format conversion)
+        # ACDC always needs labelId->trainId conversion (format conversion)
+        # Cityscapes native format does NOT need conversion (already uses labelTrainIds files)
         needs_label_id_transform = dataset in CITYSCAPES_LABEL_ID_DATASETS if dataset else True
         # OUTSIDE15k converts to Cityscapes trainIds ONLY IF not using native classes
         needs_outside15k_transform = (dataset in OUTSIDE15K_DATASETS and not use_native_classes) if dataset else False

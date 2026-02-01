@@ -1,6 +1,6 @@
 # Evaluation Stage Status
 
-**Last Updated:** 2026-01-28 (13:30)
+**Last Updated:** 2026-02-01 (09:30)
 
 ---
 
@@ -12,6 +12,21 @@
 > **Bug Status:** ✅ FIXED | **Retraining:** ⏳ Required
 > 
 > See [BUG_REPORT](BUG_REPORT_CROSS_DATASET_CONTAMINATION.md) for details.
+
+---
+
+## ✅ NEW: Cityscapes Pipeline Verification Stage
+
+For pipeline verification, a new `cityscapes` stage is available:
+
+```bash
+python scripts/batch_training_submission.py --stage cityscapes --dry-run
+```
+
+**Details:**
+- **Output:** `WEIGHTS_CITYSCAPES/baseline/cityscapes/{model}/`
+- **Iterations:** 160,000
+- **Purpose:** Verify pipeline correctness using standard Cityscapes benchmark
 
 ---
 

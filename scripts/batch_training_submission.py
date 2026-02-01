@@ -78,13 +78,20 @@ from training_lock import TrainingLock
 WEIGHTS_ROOT_STAGE1 = Path('/scratch/aaa_exchange/AWARE/WEIGHTS')
 WEIGHTS_ROOT_STAGE2 = Path('/scratch/aaa_exchange/AWARE/WEIGHTS_STAGE_2')
 WEIGHTS_ROOT_RATIO_ABLATION = Path('/scratch/aaa_exchange/AWARE/WEIGHTS_RATIO_ABLATION')
+WEIGHTS_ROOT_CITYSCAPES = Path('/scratch/aaa_exchange/AWARE/WEIGHTS_CITYSCAPES')  # Pipeline verification
 GENERATED_IMAGES_ROOT = Path('/scratch/aaa_exchange/AWARE/GENERATED_IMAGES')
 
 # All datasets
 ALL_DATASETS = ['BDD10k', 'IDD-AW', 'MapillaryVistas', 'OUTSIDE15k']
 
+# Cityscapes dataset for pipeline verification (not in standard ALL_DATASETS)
+CITYSCAPES_DATASET = 'Cityscapes'
+
 # All models
 ALL_MODELS = ['deeplabv3plus_r50', 'pspnet_r50', 'segformer_mit-b3', 'segnext_mscan-b', 'hrnet_hr48']
+
+# Cityscapes validation models (all 5 models for full pipeline verification)
+CITYSCAPES_VALIDATION_MODELS = ALL_MODELS  # Use all 5 models for comprehensive verification
 
 # 21 gen_* strategies with full dataset coverage
 # (excluding gen_EDICT, gen_StyleID, gen_flux2, gen_AOD-Net - no/insufficient coverage)
@@ -285,6 +292,8 @@ def get_weights_dir(
         base_root = WEIGHTS_ROOT_STAGE2
     elif stage == 'ratio':
         base_root = WEIGHTS_ROOT_RATIO_ABLATION
+    elif stage == 'cityscapes':
+        base_root = WEIGHTS_ROOT_CITYSCAPES
     else:
         base_root = WEIGHTS_ROOT_STAGE1
     
@@ -391,6 +400,15 @@ def generate_job_script(
     """Generate LSF job script for a training job."""
     work_dir = str(job.weights_dir)
     
+    # Determine effective max_iters for checkpoint paths
+    # Default: 160k for Cityscapes, 80k for other stages
+    if max_iters is not None:
+        effective_max_iters = max_iters
+    elif job.stage == 'cityscapes':
+        effective_max_iters = 160000
+    else:
+        effective_max_iters = 80000
+    
     # Build training command
     cmd_parts = [
         'python', str(PROJECT_ROOT / 'unified_training.py'),
@@ -399,17 +417,17 @@ def generate_job_script(
         '--strategy', job.strategy,
     ]
     
-    # Add domain filter for Stage 1 and ratio ablation (not Stage 2)
+    # Add domain filter for Stage 1 and ratio ablation (not Stage 2 or Cityscapes)
     if job.stage in [1, 'ratio']:
         cmd_parts.extend(['--domain-filter', 'clear_day'])
+    # Note: Stage 2 and Cityscapes do NOT use domain filter
     
     # Add ratio parameter for generative strategies
     if job.strategy.startswith('gen_'):
         cmd_parts.extend(['--real-gen-ratio', str(job.ratio)])
     
-    # Add max iterations if specified
-    if max_iters is not None:
-        cmd_parts.extend(['--max-iters', str(max_iters)])
+    # Add max iterations
+    cmd_parts.extend(['--max-iters', str(effective_max_iters)])
 
     # Add auxiliary loss if specified
     if aux_loss:
@@ -469,7 +487,7 @@ source ~/.bashrc
 mamba activate prove
 
 # Pre-flight check: verify results don't already exist
-CHECKPOINT="{work_dir}/iter_10000.pth"
+CHECKPOINT="{work_dir}/iter_{effective_max_iters}.pth"
 if [ -f "$CHECKPOINT" ]; then
     SIZE=$(stat -c%s "$CHECKPOINT" 2>/dev/null || echo 0)
     if [ "$SIZE" -gt 1000 ]; then
@@ -527,7 +545,7 @@ TRAIN_EXIT_CODE=$?
 # ============================================================================
 
 if [ $TRAIN_EXIT_CODE -eq 0 ]; then
-    CHECKPOINT="{work_dir}/iter_10000.pth"
+    CHECKPOINT="{work_dir}/iter_{effective_max_iters}.pth"
     CONFIG="{work_dir}/training_config.py"
     TEST_OUTPUT="{work_dir}/test_results_detailed"
     
@@ -537,13 +555,18 @@ if [ $TRAIN_EXIT_CODE -eq 0 ]; then
         echo "Starting fine-grained testing..."
         echo "=========================================="
         
+        # Cityscapes uses its own test structure (val set)
+        # Other datasets use FINAL_SPLITS structure
+        DATA_ROOT={'"' + '/scratch/aaa_exchange/AWARE/CITYSCAPES' + '"' if job.dataset == 'Cityscapes' else '"' + '/scratch/aaa_exchange/AWARE/FINAL_SPLITS' + '"'}
+        TEST_SPLIT={'"val"' if job.dataset == 'Cityscapes' else '"test"'}
+        
         python {PROJECT_ROOT}/fine_grained_test.py \\
             --config "$CONFIG" \\
             --checkpoint "$CHECKPOINT" \\
             --output-dir "$TEST_OUTPUT" \\
             --dataset {job.dataset} \\
-            --data-root /scratch/aaa_exchange/AWARE/FINAL_SPLITS \\
-            --test-split test \\
+            --data-root $DATA_ROOT \\
+            --test-split $TEST_SPLIT \\
             --batch-size 10
         
         TEST_EXIT_CODE=$?
@@ -686,12 +709,15 @@ Examples:
     
     # Submit for specific dataset/model
     python batch_training_submission.py --stage 1 --datasets BDD10k --models deeplabv3plus_r50
+    
+    # Pipeline verification on Cityscapes
+    python batch_training_submission.py --stage cityscapes --dry-run
 '''
     )
     
     # Required arguments
     parser.add_argument('--stage', required=True,
-                       help='Training stage: 1 (clear_day only), 2 (all domains), or "ratio" for ratio ablation study')
+                       help='Training stage: 1 (clear_day only), 2 (all domains), "ratio" for ratio ablation, or "cityscapes" for pipeline verification')
     
     # Filtering options
     parser.add_argument('--strategy-type', choices=['all', 'std', 'gen'],
@@ -699,8 +725,8 @@ Examples:
                        help='Strategy type: all (28), std (7 baseline+std_*), gen (21 gen_*)')
     parser.add_argument('--strategies', nargs='+', 
                        help='Specific strategies to train (overrides --strategy-type)')
-    parser.add_argument('--datasets', nargs='+', choices=ALL_DATASETS,
-                       help='Specific datasets (default: all)')
+    parser.add_argument('--datasets', nargs='+', choices=ALL_DATASETS + [CITYSCAPES_DATASET],
+                       help='Specific datasets (default: all). Use Cityscapes for pipeline verification.')
     parser.add_argument('--models', nargs='+', choices=ALL_MODELS,
                        help='Specific models (default: all)')
     
@@ -747,28 +773,45 @@ Examples:
     )
     
     # Validate and parse stage
-    stage_map = {'1': 1, '2': 2, 'ratio': 'ratio'}
+    stage_map = {'1': 1, '2': 2, 'ratio': 'ratio', 'cityscapes': 'cityscapes'}
     stage_input = str(args.stage).lower()
-    if stage_input not in stage_map and stage_input not in ['1', '2', 'ratio']:
-        print(f"Error: Invalid stage '{args.stage}'. Must be 1, 2, or 'ratio'")
+    if stage_input not in stage_map and stage_input not in ['1', '2', 'ratio', 'cityscapes']:
+        print(f"Error: Invalid stage '{args.stage}'. Must be 1, 2, 'ratio', or 'cityscapes'")
         return
     stage = stage_map.get(stage_input, args.stage if isinstance(args.stage, int) else stage_input)
     
-    # Determine strategies based on --strategy-type or --strategies
-    strategies = args.strategies
-    if strategies is None:
-        if args.strategy_type == 'std':
-            strategies = STD_STRATEGIES
-        elif args.strategy_type == 'gen':
-            strategies = GEN_STRATEGIES
-        else:  # 'all'
-            strategies = ALL_STRATEGIES
+    # For Cityscapes stage, use specific defaults
+    if stage == 'cityscapes':
+        # Use baseline only for Cityscapes pipeline verification
+        if args.strategies is None:
+            strategies = ['baseline']
+        else:
+            strategies = args.strategies
+        # Use Cityscapes validation models
+        datasets = [CITYSCAPES_DATASET]
+        models = args.models or CITYSCAPES_VALIDATION_MODELS
+    else:
+        # Determine strategies based on --strategy-type or --strategies
+        strategies = args.strategies
+        if strategies is None:
+            if args.strategy_type == 'std':
+                strategies = STD_STRATEGIES
+            elif args.strategy_type == 'gen':
+                strategies = GEN_STRATEGIES
+            else:  # 'all'
+                strategies = ALL_STRATEGIES
+        datasets = args.datasets
+        models = args.models
     
     # Generate job list
     print(f"\n{'='*60}")
     print(f"Batch Training Submission - Stage {stage}")
     if stage == 'ratio':
         print(f"  Ratios: {args.ratios}")
+    elif stage == 'cityscapes':
+        print(f"  Pipeline Verification Mode")
+        print(f"  Dataset: {CITYSCAPES_DATASET}")
+        print(f"  Models: {models}")
     print(f"{'='*60}")
     print(f"\nStrategy type: {args.strategy_type}")
     print(f"Strategies: {len(strategies)}")
@@ -777,8 +820,8 @@ Examples:
     jobs = generate_job_list(
         stage=stage,
         strategies=strategies,
-        datasets=args.datasets,
-        models=args.models,
+        datasets=datasets,
+        models=models,
         ratios=args.ratios,
         aux_loss=args.aux_loss,
         check_existing=not args.no_check_existing,

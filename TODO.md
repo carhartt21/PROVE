@@ -1,6 +1,6 @@
 # PROVE Project TODO
 
-**Last Updated:** 2026-02-01 (00:45)
+**Last Updated:** 2026-02-01 (09:30)
 
 ---
 
@@ -266,6 +266,27 @@ Consider comparing with CrossEntropy loss baseline to determine which is more st
 ---
 
 ## 🎯 Proposed Next Steps
+
+### ✅ NEW: Cityscapes Training Stage Added (2026-02-01)
+
+Added support for direct Cityscapes training via `--stage cityscapes` in `batch_training_submission.py`:
+
+```bash
+# Dry run (preview)
+python scripts/batch_training_submission.py --stage cityscapes --dry-run
+
+# Submit all 5 models
+python scripts/batch_training_submission.py --stage cityscapes -y
+```
+
+**Configuration:**
+- **Dataset**: Cityscapes (2975 train / 500 val)
+- **Data root**: `/scratch/aaa_exchange/AWARE/CITYSCAPES`
+- **Iterations**: 160,000
+- **Output**: `WEIGHTS_CITYSCAPES/baseline/cityscapes/{model}/`
+- **Models**: All 5 (DeepLabV3+, PSPNet, SegFormer, SegNeXt, HRNet)
+
+**Purpose:** Pipeline verification using standard benchmark results.
 
 ### 🚨 HIGH PRIORITY: Pipeline Bug Verification
 

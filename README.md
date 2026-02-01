@@ -410,6 +410,33 @@ bash train_unified.sh submit --dataset ACDC --model deeplabv3plus_r50 --strategy
 
 See [docs/UNIFIED_TRAINING.md](docs/UNIFIED_TRAINING.md) for comprehensive documentation.
 
+#### Batch Training Submission (Preferred for Large-Scale Experiments)
+
+For systematic experiments across multiple configurations, use the batch submission script:
+
+```bash
+# Stage 1: Train on clear-day domain only (cross-domain robustness evaluation)
+python scripts/batch_training_submission.py --stage 1 --dry-run  # Preview jobs
+python scripts/batch_training_submission.py --stage 1 -y         # Submit all
+
+# Stage 2: Train on all domains (domain-inclusive training)
+python scripts/batch_training_submission.py --stage 2 --dry-run
+
+# Cityscapes: Pipeline verification (160k iterations, all 5 models)
+python scripts/batch_training_submission.py --stage cityscapes --dry-run
+
+# Filter by dataset, model, or strategy
+python scripts/batch_training_submission.py --stage 1 --datasets BDD10k IDD-AW \
+    --models segformer_mit-b3 --strategies baseline --dry-run
+```
+
+**Available Stages:**
+| Stage | Domain Filter | Output Directory | Purpose |
+|-------|--------------|------------------|---------|
+| `1` | `clear_day` | `WEIGHTS/` | Train clear-only, test cross-domain |
+| `2` | None (all) | `WEIGHTS_STAGE_2/` | Train all conditions |
+| `cityscapes` | None | `WEIGHTS_CITYSCAPES/` | Pipeline verification on standard benchmark |
+
 ### 2. Testing and Evaluation
 
 #### Using test_unified.sh (Recommended)
