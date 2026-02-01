@@ -170,9 +170,9 @@ python unified_training.py --list
 | `--cache-dir` | Directory for caching pretrained weights and checkpoints | ~/.cache/torch |
 | `--load-from` | Path to pretrained weights to initialize model | None |
 | `--resume-from` | Path to checkpoint to resume training from | None |
-| `--max-iters` | Maximum training iterations | 80000 (seg) / 40000 (det) |
-| `--checkpoint-interval` | Save checkpoint every N iterations | 5000 |
-| `--eval-interval` | Run validation every N iterations | 5000 |
+| `--max-iters` | Maximum training iterations | 15000 (seg) / 10000 (det) |
+| `--checkpoint-interval` | Save checkpoint every N iterations | 2000 |
+| `--eval-interval` | Run validation every N iterations | 2000 |
 | `--batch-size` | Training batch size (LR auto-scales with linear scaling rule) | 16 |
 | `--no-early-stop` | Disable early stopping (stops when no improvement for 5 validations) | Enabled |
 | `--early-stop-patience` | Number of validations without improvement before stopping | 5 |
@@ -445,9 +445,9 @@ python scripts/batch_training_submission.py --stage 1 --max-iters 20000 \
 | `--models` | List of models to train | All 5 models |
 | `--strategies` | List of augmentation strategies | baseline |
 | `--ratios` | Real/gen ratios for generative strategies | 0.5 |
-| `--max-iters` | Maximum training iterations | 80k (160k for Cityscapes) |
-| `--checkpoint-interval` | Save checkpoint every N iterations | 5000 |
-| `--eval-interval` | Run validation every N iterations | 5000 |
+| `--max-iters` | Maximum training iterations | 15k (20k for Cityscapes) |
+| `--checkpoint-interval` | Save checkpoint every N iterations | 2000 |
+| `--eval-interval` | Run validation every N iterations | 2000 |
 | `--aux-loss` | Auxiliary loss (focal, lovasz, boundary) | None |
 | `--limit` | Maximum number of jobs to submit | None |
 | `--dry-run` | Preview jobs without submitting | False |

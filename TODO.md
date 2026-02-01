@@ -1,6 +1,6 @@
 # PROVE Project TODO
 
-**Last Updated:** 2026-02-01 (22:15)
+**Last Updated:** 2026-02-01 (22:35)
 
 ---
 
@@ -18,11 +18,40 @@ The critical pipeline bug has been fixed and verified through Cityscapes replica
 
 **Fix summary:** Added `RandomResize(0.5-2.0x)` before `RandomCrop` - see [PIPELINE_COMPARISON_ANALYSIS.md](PIPELINE_COMPARISON_ANALYSIS.md)
 
-### ⚠️ NEW: Validation Pipeline Fix (2026-02-01)
+### 🔄 NEW TRAINING DEFAULTS (2026-02-01)
 
-**Fixed validation resize bug:** Changed test pipeline from `Resize(512x512)` to `Resize(2048x1024, keep_ratio=True)` to match Cityscapes native resolution. This prevents `IndexError: mask shape mismatch` during validation.
+**Updated default training parameters based on convergence analysis:**
 
-**File modified:** [unified_training_config.py](unified_training_config.py#L2427-L2452)
+| Parameter | Old Default | New Default | Rationale |
+|-----------|-------------|-------------|-----------|
+| `max_iters` (seg) | 80,000 | **15,000** | ~98% of final mIoU, 80% faster |
+| `max_iters` (det) | 40,000 | **10,000** | ~98% of final mAP, 75% faster |
+| `checkpoint_interval` | 5,000 | **2,000** | 8 checkpoints for detailed tracking |
+| `eval_interval` | 5,000 | **2,000** | Aligned with checkpoints |
+
+**Convergence analysis from Cityscapes replication (BS=2, 160k iters):**
+- 8k iters: ~87.5% of final mIoU
+- 16k iters: ~92.5% of final mIoU
+- 32k iters: ~95% of final mIoU
+- 64k iters: ~97.5% of final mIoU
+- 120k iters: ~98% of final mIoU ← **15k iters at BS=16 equivalent**
+
+### 🏃 Active Jobs: Stage 1 Full Resubmission (15k iters)
+
+All Stage 1 jobs have been resubmitted with optimized parameters:
+
+| Status | Count |
+|--------|-------|
+| Running | 14 |
+| Pending | 556 |
+| Skipped (existing) | 33 |
+| **Total** | **570** |
+
+**Command used:**
+```bash
+python scripts/batch_training_submission.py --stage 1 --max-iters 15000 \
+    --checkpoint-interval 2000 --eval-interval 2000 -y
+```
 
 ### 🏃 Active Jobs: PROVE Cityscapes Replication (BS16, 20k iters)
 
@@ -30,49 +59,28 @@ Testing PROVE default parameters (batch size 16) on Cityscapes with 20k iteratio
 
 | Job ID | Model | Status | Max Iters | Ckpt/Eval Interval | Output Directory |
 |--------|-------|--------|-----------|-------------------|------------------|
-| 1006831 | SegFormer MIT-B3 | ⏳ PEND (TOP) | 20k | 2k | `WEIGHTS_CITYSCAPES/baseline/cityscapes/segformer_mit-b3` |
-| 1006832 | SegNeXt MSCAN-B | ⏳ PEND (TOP) | 20k | 2k | `WEIGHTS_CITYSCAPES/baseline/cityscapes/segnext_mscan-b` |
+| 1006852 | SegFormer MIT-B3 | ⏳ PEND | 20k | 2k | `WEIGHTS_CITYSCAPES/baseline/cityscapes/segformer_mit-b3` |
+| 1006853 | SegNeXt MSCAN-B | ⏳ PEND | 20k | 2k | `WEIGHTS_CITYSCAPES/baseline/cityscapes/segnext_mscan-b` |
 
-**Configuration rationale:** 
-- Cityscapes replication (BS=2, 160k iters) = 320k samples
-- PROVE default (BS=16, 20k iters) = 320k samples ✅ equivalent
+### ✅ NEW Features Added (2026-02-01)
 
-**Previous attempts:**
-- 1006046, 1006047: FAILED (mask shape mismatch) - fixed validation pipeline
-- 1006731, 1006732: CANCELLED (80k iters too long)
+1. **CLI arguments for checkpoint/eval intervals:**
+   - `--checkpoint-interval N`: Save checkpoint every N iterations
+   - `--eval-interval N`: Run validation every N iterations
 
-**NEW CLI arguments added to unified_training.py:**
-- `--checkpoint-interval`: Save checkpoint every N iterations (default: 5000)
-- `--eval-interval`: Run validation every N iterations (default: 5000)
+2. **Auto LR scaling:** When `--batch-size` is specified, `lr_scale_factor` auto-adjusts:
+   - `lr = base_lr × (batch_size / 2)` (linear scaling rule)
+
+3. **Validation pipeline fix:** Uses full resolution instead of 512x512
 
 ### ✅ Cross-Domain Testing Script (2026-02-01)
 
 Test Cityscapes replication models on ACDC (foggy, night, rainy, snowy):
 
 ```bash
-# Preview available models
-python scripts/test_cityscapes_replication_on_acdc.py --dry-run
-
-# Test all models with per-domain breakdown
-python scripts/test_cityscapes_replication_on_acdc.py --submit-jobs
+python scripts/test_cityscapes_replication_on_acdc.py --dry-run      # Preview
+python scripts/test_cityscapes_replication_on_acdc.py --submit-jobs  # Submit
 ```
-
-**Output:** `CITYSCAPES_REPLICATION/acdc_cross_domain_results/`
-
-### Active Jobs (2026-01-31)
-
-**Stage 1 Baseline Training (Fixed Pipeline) - Submitted 22:22:**
-| Job ID | Dataset | Model | Status | Progress |
-|--------|---------|-------|--------|----------|
-| 1004631 | BDD10k | SegFormer B3 | ❌ EXIT | Permission denied (mima2416 dir) |
-| 1004632 | BDD10k | SegNeXt MSCAN-B | 🏃 RUN | 24% (19k/80k) |
-| 1004633 | BDD10k | HRNet HR48 | ❌ EXIT | Permission denied (mima2416 dir) |
-| 1004634 | IDD-AW | SegFormer B3 | 🏃 RUN | 32% (25k/80k) |
-| 1004635 | IDD-AW | SegNeXt MSCAN-B | 🏃 RUN | 24% (19k/80k) |
-| 1004636 | IDD-AW | HRNet HR48 | 🏃 RUN | 21% (17k/80k) |
-| 1004637 | MapillaryVistas | SegFormer B3 | 🏃 RUN | 22% (17k/80k) |
-| 1004638 | MapillaryVistas | SegNeXt MSCAN-B | 🏃 RUN | 5% (4k/80k) |
-| 1004639 | MapillaryVistas | HRNet HR48 | ⏳ PEND | - |
 | 1004640 | OUTSIDE15k | SegFormer B3 | ⏳ PEND | - |
 | 1004641 | OUTSIDE15k | SegNeXt MSCAN-B | ⏳ PEND | - |
 | 1004642 | OUTSIDE15k | HRNet HR48 | ⏳ PEND | - |
