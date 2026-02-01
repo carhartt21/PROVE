@@ -1133,6 +1133,14 @@ class UnifiedTrainingConfig:
             for key, value in custom_training_config.items():
                 if hasattr(training_cfg, key):
                     setattr(training_cfg, key, value)
+            
+            # Auto-adjust lr_scale_factor when batch_size is explicitly set
+            # Linear scaling: lr_scale_factor = batch_size / base_batch_size (where base=2)
+            if 'batch_size' in custom_training_config:
+                new_batch_size = custom_training_config['batch_size']
+                base_batch_size = 2  # Reference batch size for base LR
+                training_cfg.lr_scale_factor = new_batch_size / base_batch_size
+                print(f"✓ Auto-adjusted LR scaling: batch_size={new_batch_size} → lr_scale_factor={training_cfg.lr_scale_factor}")
 
         # Ensure warmup_iters does not exceed max_iters
         if training_cfg.max_iters <= training_cfg.warmup_iters:
@@ -1267,6 +1275,14 @@ class UnifiedTrainingConfig:
             for key, value in custom_training_config.items():
                 if hasattr(training_cfg, key):
                     setattr(training_cfg, key, value)
+            
+            # Auto-adjust lr_scale_factor when batch_size is explicitly set
+            # Linear scaling: lr_scale_factor = batch_size / base_batch_size (where base=2)
+            if 'batch_size' in custom_training_config:
+                new_batch_size = custom_training_config['batch_size']
+                base_batch_size = 2  # Reference batch size for base LR
+                training_cfg.lr_scale_factor = new_batch_size / base_batch_size
+                print(f"✓ Auto-adjusted LR scaling: batch_size={new_batch_size} → lr_scale_factor={training_cfg.lr_scale_factor}")
 
         # Ensure warmup_iters does not exceed max_iters
         if training_cfg.max_iters <= training_cfg.warmup_iters:
@@ -2427,8 +2443,28 @@ class UnifiedTrainingConfig:
             test_pipeline.append(dict(type='MapillaryToTrainId'))
         # NOTE: IDD-AW no longer needs IddawLabelClamp - masks have correct trainIds
         
-        # Resize to fixed 512x512 for testing (consistent with training)
-        test_pipeline.append(dict(type='Resize', scale=(512, 512), keep_ratio=False))
+        # Validation resize: Use dataset-specific full resolution for proper evaluation
+        # The model outputs predictions at full resolution which must match the label size
+        # NOTE: Training uses crops (512x512) but validation should use full images
+        if dataset == 'Cityscapes':
+            # Cityscapes native resolution: 2048x1024 (width x height)
+            test_pipeline.append(dict(type='Resize', scale=(2048, 1024), keep_ratio=True))
+        elif dataset in ('ACDC', 'BDD10k', 'BDD100k'):
+            # These datasets also use Cityscapes-like resolution (1920x1080 or similar)
+            # Use keep_ratio=True to preserve aspect ratio
+            test_pipeline.append(dict(type='Resize', scale=(2048, 1024), keep_ratio=True))
+        elif dataset in ('MapillaryVistas', 'Mapillary'):
+            # MapillaryVistas has variable sizes, use a reasonable validation size
+            test_pipeline.append(dict(type='Resize', scale=(2048, 1024), keep_ratio=True))
+        elif dataset in ('OUTSIDE15k',):
+            # OUTSIDE15k has various image sizes
+            test_pipeline.append(dict(type='Resize', scale=(2048, 1024), keep_ratio=True))
+        elif dataset in ('IDD-AW',):
+            # IDD-AW has Cityscapes-like resolution
+            test_pipeline.append(dict(type='Resize', scale=(2048, 1024), keep_ratio=True))
+        else:
+            # Default: use Cityscapes-like resolution for unknown datasets
+            test_pipeline.append(dict(type='Resize', scale=(2048, 1024), keep_ratio=True))
         
         if task == 'segmentation':
             test_pipeline.append(dict(type='PackSegInputs'))

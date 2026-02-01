@@ -115,6 +115,10 @@ python scripts/batch_training_submission.py --stage 2 --dry-run
 # Cityscapes: Pipeline verification (160k iterations, all 5 models)
 python scripts/batch_training_submission.py --stage cityscapes --dry-run
 
+# Custom training duration with frequent checkpoints
+python scripts/batch_training_submission.py --stage 1 --max-iters 20000 \
+    --checkpoint-interval 2000 --eval-interval 2000 --dry-run
+
 # Limit number of jobs (useful for testing)
 python scripts/batch_training_submission.py --stage 1 --limit 10
 ```
@@ -124,6 +128,10 @@ python scripts/batch_training_submission.py --stage 1 --limit 10
 # Direct training submission (avoid for production - use batch_training_submission.py)
 python unified_training.py --dataset BDD10k --model deeplabv3plus_r50 \
     --strategy baseline --domain-filter clear_day --submit-job
+
+# Custom checkpoint/eval intervals
+python unified_training.py --dataset Cityscapes --model segformer_mit-b3 \
+    --strategy baseline --max-iters 20000 --checkpoint-interval 2000 --eval-interval 2000
 
 # MapillaryVistas REQUIRES --use-native-classes (66 classes, not 19)
 python unified_training.py --dataset MapillaryVistas --model deeplabv3plus_r50 \

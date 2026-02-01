@@ -88,7 +88,13 @@ ALL_DATASETS = ['BDD10k', 'IDD-AW', 'MapillaryVistas', 'OUTSIDE15k']
 CITYSCAPES_DATASET = 'Cityscapes'
 
 # All models
-ALL_MODELS = ['deeplabv3plus_r50', 'pspnet_r50', 'segformer_mit-b3', 'segnext_mscan-b', 'hrnet_hr48']
+ALL_MODELS = [
+    # 'deeplabv3plus_r50', 
+    'pspnet_r50', 
+    'segformer_mit-b3', 
+    'segnext_mscan-b', 
+    # 'hrnet_hr48'
+    ]
 
 # Cityscapes validation models (all 5 models for full pipeline verification)
 CITYSCAPES_VALIDATION_MODELS = ALL_MODELS  # Use all 5 models for comprehensive verification
@@ -395,6 +401,8 @@ def generate_job_script(
     job: TrainingJob,
     lsf_config: LSFConfig,
     max_iters: Optional[int] = None,
+    checkpoint_interval: Optional[int] = None,
+    eval_interval: Optional[int] = None,
     aux_loss: Optional[str] = None,
 ) -> str:
     """Generate LSF job script for a training job."""
@@ -428,6 +436,12 @@ def generate_job_script(
     
     # Add max iterations
     cmd_parts.extend(['--max-iters', str(effective_max_iters)])
+
+    # Add checkpoint and eval intervals if specified
+    if checkpoint_interval is not None:
+        cmd_parts.extend(['--checkpoint-interval', str(checkpoint_interval)])
+    if eval_interval is not None:
+        cmd_parts.extend(['--eval-interval', str(eval_interval)])
 
     # Add auxiliary loss if specified
     if aux_loss:
@@ -614,6 +628,8 @@ def submit_job(
     lsf_config: LSFConfig,
     dry_run: bool = False,
     max_iters: Optional[int] = None,
+    checkpoint_interval: Optional[int] = None,
+    eval_interval: Optional[int] = None,
     aux_loss: Optional[str] = None,
 ) -> bool:
     """
@@ -624,6 +640,9 @@ def submit_job(
         lsf_config: LSF configuration
         dry_run: If True, just print what would be done
         max_iters: Optional maximum training iterations
+        checkpoint_interval: Optional checkpoint save interval
+        eval_interval: Optional validation interval
+        aux_loss: Optional auxiliary loss type
         
     Returns:
         True if job was submitted successfully
@@ -637,7 +656,13 @@ def submit_job(
         job.weights_dir.mkdir(parents=True, exist_ok=True)
     
     # Generate job script
-    script = generate_job_script(job, lsf_config, max_iters=max_iters, aux_loss=aux_loss)
+    script = generate_job_script(
+        job, lsf_config,
+        max_iters=max_iters,
+        checkpoint_interval=checkpoint_interval,
+        eval_interval=eval_interval,
+        aux_loss=aux_loss
+    )
     script_path = job.weights_dir / 'submit_job.sh'
     
     if dry_run:
@@ -737,6 +762,10 @@ Examples:
                        help='Real/gen ratios for generative strategies (default: 0.5). Example: --ratios 0.0 0.25 0.5')
     parser.add_argument('--max-iters', type=int, default=None,
                        help='Maximum training iterations (default: use config default, usually 10000)')
+    parser.add_argument('--checkpoint-interval', type=int, default=None,
+                       help='Save checkpoint every N iterations (default: 5000)')
+    parser.add_argument('--eval-interval', type=int, default=None,
+                       help='Run validation every N iterations (default: 5000)')
     parser.add_argument('--aux-loss', type=str, default=None,
                        choices=['focal', 'lovasz', 'boundary'],
                        help='Auxiliary loss to add alongside CrossEntropyLoss')
@@ -879,6 +908,8 @@ Examples:
             lsf_config,
             dry_run=args.dry_run,
             max_iters=args.max_iters,
+            checkpoint_interval=args.checkpoint_interval,
+            eval_interval=args.eval_interval,
             aux_loss=args.aux_loss,
         ):
             submitted += 1

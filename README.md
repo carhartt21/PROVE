@@ -171,6 +171,9 @@ python unified_training.py --list
 | `--load-from` | Path to pretrained weights to initialize model | None |
 | `--resume-from` | Path to checkpoint to resume training from | None |
 | `--max-iters` | Maximum training iterations | 80000 (seg) / 40000 (det) |
+| `--checkpoint-interval` | Save checkpoint every N iterations | 5000 |
+| `--eval-interval` | Run validation every N iterations | 5000 |
+| `--batch-size` | Training batch size (LR auto-scales with linear scaling rule) | 16 |
 | `--no-early-stop` | Disable early stopping (stops when no improvement for 5 validations) | Enabled |
 | `--early-stop-patience` | Number of validations without improvement before stopping | 5 |
 | `--use-native-classes` | Use native labels (66 for Mapillary, 24 for OUTSIDE15k) instead of Cityscapes 19 | False |
@@ -428,7 +431,27 @@ python scripts/batch_training_submission.py --stage cityscapes --dry-run
 # Filter by dataset, model, or strategy
 python scripts/batch_training_submission.py --stage 1 --datasets BDD10k IDD-AW \
     --models segformer_mit-b3 --strategies baseline --dry-run
+
+# Custom training duration with frequent checkpoints
+python scripts/batch_training_submission.py --stage 1 --max-iters 20000 \
+    --checkpoint-interval 2000 --eval-interval 2000 --dry-run
 ```
+
+**Batch Submission Options:**
+| Option | Description | Default |
+|--------|-------------|---------|
+| `--stage` | Training stage (1, 2, cityscapes, ratio, extended, combinations) | Required |
+| `--datasets` | List of datasets to train on | All for stage |
+| `--models` | List of models to train | All 5 models |
+| `--strategies` | List of augmentation strategies | baseline |
+| `--ratios` | Real/gen ratios for generative strategies | 0.5 |
+| `--max-iters` | Maximum training iterations | 80k (160k for Cityscapes) |
+| `--checkpoint-interval` | Save checkpoint every N iterations | 5000 |
+| `--eval-interval` | Run validation every N iterations | 5000 |
+| `--aux-loss` | Auxiliary loss (focal, lovasz, boundary) | None |
+| `--limit` | Maximum number of jobs to submit | None |
+| `--dry-run` | Preview jobs without submitting | False |
+| `-y, --yes` | Skip confirmation prompt | False |
 
 **Available Stages:**
 | Stage | Domain Filter | Output Directory | Purpose |

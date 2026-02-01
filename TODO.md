@@ -1,6 +1,6 @@
 # PROVE Project TODO
 
-**Last Updated:** 2026-02-01 (11:45)
+**Last Updated:** 2026-02-01 (22:15)
 
 ---
 
@@ -18,7 +18,34 @@ The critical pipeline bug has been fixed and verified through Cityscapes replica
 
 **Fix summary:** Added `RandomResize(0.5-2.0x)` before `RandomCrop` - see [PIPELINE_COMPARISON_ANALYSIS.md](PIPELINE_COMPARISON_ANALYSIS.md)
 
-### ✅ NEW: Cross-Domain Testing Script (2026-02-01)
+### ⚠️ NEW: Validation Pipeline Fix (2026-02-01)
+
+**Fixed validation resize bug:** Changed test pipeline from `Resize(512x512)` to `Resize(2048x1024, keep_ratio=True)` to match Cityscapes native resolution. This prevents `IndexError: mask shape mismatch` during validation.
+
+**File modified:** [unified_training_config.py](unified_training_config.py#L2427-L2452)
+
+### 🏃 Active Jobs: PROVE Cityscapes Replication (BS16, 20k iters)
+
+Testing PROVE default parameters (batch size 16) on Cityscapes with 20k iterations (~320k samples):
+
+| Job ID | Model | Status | Max Iters | Ckpt/Eval Interval | Output Directory |
+|--------|-------|--------|-----------|-------------------|------------------|
+| 1006831 | SegFormer MIT-B3 | ⏳ PEND (TOP) | 20k | 2k | `WEIGHTS_CITYSCAPES/baseline/cityscapes/segformer_mit-b3` |
+| 1006832 | SegNeXt MSCAN-B | ⏳ PEND (TOP) | 20k | 2k | `WEIGHTS_CITYSCAPES/baseline/cityscapes/segnext_mscan-b` |
+
+**Configuration rationale:** 
+- Cityscapes replication (BS=2, 160k iters) = 320k samples
+- PROVE default (BS=16, 20k iters) = 320k samples ✅ equivalent
+
+**Previous attempts:**
+- 1006046, 1006047: FAILED (mask shape mismatch) - fixed validation pipeline
+- 1006731, 1006732: CANCELLED (80k iters too long)
+
+**NEW CLI arguments added to unified_training.py:**
+- `--checkpoint-interval`: Save checkpoint every N iterations (default: 5000)
+- `--eval-interval`: Run validation every N iterations (default: 5000)
+
+### ✅ Cross-Domain Testing Script (2026-02-01)
 
 Test Cityscapes replication models on ACDC (foggy, night, rainy, snowy):
 

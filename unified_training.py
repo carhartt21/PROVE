@@ -91,6 +91,8 @@ class UnifiedTrainer:
         early_stop: Whether to enable early stopping. Default: True
         early_stop_patience: Number of validations without improvement before stopping. Default: 5
         max_iters: Maximum training iterations. Default: None (uses model default)
+        checkpoint_interval: Checkpoint save interval. Default: None (uses config default of 5000)
+        eval_interval: Validation interval. Default: None (uses config default of 5000)
         batch_size: Training batch size. Default: None (uses config default of 2)
         lr: Learning rate. Default: None (uses model-specific default)
         warmup_iters: Number of warmup iterations. Default: None (uses config default)
@@ -119,6 +121,8 @@ class UnifiedTrainer:
         early_stop: bool = True,
         early_stop_patience: int = 5,
         max_iters: Optional[int] = None,
+        checkpoint_interval: Optional[int] = None,
+        eval_interval: Optional[int] = None,
         batch_size: Optional[int] = None,
         lr: Optional[float] = None,
         warmup_iters: Optional[int] = None,
@@ -145,6 +149,8 @@ class UnifiedTrainer:
         self.early_stop = early_stop
         self.early_stop_patience = early_stop_patience
         self.max_iters = max_iters
+        self.checkpoint_interval = checkpoint_interval
+        self.eval_interval = eval_interval
         self.batch_size = batch_size
         self.lr = lr
         self.warmup_iters = warmup_iters
@@ -172,6 +178,10 @@ class UnifiedTrainer:
         }
         if self.max_iters is not None:
             custom_training_config['max_iters'] = self.max_iters
+        if self.checkpoint_interval is not None:
+            custom_training_config['checkpoint_interval'] = self.checkpoint_interval
+        if self.eval_interval is not None:
+            custom_training_config['eval_interval'] = self.eval_interval
         if self.batch_size is not None:
             custom_training_config['batch_size'] = self.batch_size
         if self.warmup_iters is not None:
@@ -1379,6 +1389,10 @@ Examples:
                        help='Early stopping patience (number of validations without improvement)')
     parser.add_argument('--max-iters', type=int, default=None,
                        help='Maximum training iterations (default: 80000 for segmentation, 40000 for detection)')
+    parser.add_argument('--checkpoint-interval', type=int, default=None,
+                       help='Save checkpoint every N iterations (default: 5000)')
+    parser.add_argument('--eval-interval', type=int, default=None,
+                       help='Run validation every N iterations (default: 5000)')
     parser.add_argument('--batch-size', type=int, default=None,
                        help='Training batch size (default: 2). Larger batches may require LR adjustment.')
     parser.add_argument('--lr', '--learning-rate', type=float, default=None, dest='lr',
@@ -1621,6 +1635,8 @@ def main():
         early_stop=not args.no_early_stop,
         early_stop_patience=args.early_stop_patience,
         max_iters=args.max_iters,
+        checkpoint_interval=args.checkpoint_interval,
+        eval_interval=args.eval_interval,
         batch_size=args.batch_size,
         lr=args.lr,
         warmup_iters=args.warmup_iters,
