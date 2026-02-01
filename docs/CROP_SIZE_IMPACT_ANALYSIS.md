@@ -155,6 +155,60 @@ Use **proper crop sizes** as designed:
 
 ---
 
+---
+
+## Visualizations
+
+The following figures illustrate the mechanisms described above:
+
+| Figure | Location | Description |
+|--------|----------|-------------|
+| PPM Cell Coverage | `result_figures/crop_size_analysis/ppm_cell_coverage.png` | How pool_scales create different cell sizes at each crop |
+| ASPP Kernel Coverage | `result_figures/crop_size_analysis/aspp_kernel_coverage.png` | Dilation rate overflow at small feature maps |
+| Performance vs Crop | `result_figures/crop_size_analysis/performance_vs_crop_size.png` | Experimental results showing CNN degradation |
+| Receptive Field Comparison | `result_figures/crop_size_analysis/receptive_field_comparison.png` | PPM vs ASPP vs Self-Attention ERF |
+| Modification Hypothesis | `result_figures/crop_size_analysis/modification_hypothesis.png` | Expected improvements from parameter tuning |
+| Summary Figure | `result_figures/crop_size_analysis/crop_size_analysis_summary.png` | Comprehensive overview |
+
+---
+
+## Verification Experiments
+
+To validate the hypothesis that modified spatial hyperparameters can recover performance at small crop sizes, we submitted two verification experiments:
+
+### Experiment 1: PSPNet with Modified PPM
+
+**Hypothesis:** Increasing pool_scales to (1,2,4,8) will create larger pooling cells at 512×512:
+- Scale-4: 128×128 pixel cells (vs 85×85 at scale-6)
+- Scale-8: 64×64 pixel cells (fine detail preserved)
+
+**Config:** `configs/pspnet_r50_cityscapes_512x512_modified_ppm.py`
+**Job:** 1005923 (BatchGPU)
+**Status:** PENDING
+
+**Expected Result:** If hypothesis is correct, mIoU should improve from 57.64% toward ~65-70%.
+
+### Experiment 2: DeepLabV3+ with Modified ASPP
+
+**Hypothesis:** Reducing dilations to (1,6,12,18) prevents kernel overflow:
+- Max kernel: 37×37 (fits within 64×64 feature map)
+- All dilation rates capture valid context (no zero-padding artifacts)
+
+**Config:** `configs/deeplabv3plus_r50_cityscapes_512x512_modified_aspp.py`
+**Job:** 1005925 (BatchGPU)
+**Status:** PENDING
+
+**Expected Result:** If hypothesis is correct, mIoU should improve from 58.02% toward ~63-66%.
+
+### Results (To Be Updated)
+
+| Model | Original 512×512 | Modified 512×512 | Δ mIoU | Hypothesis Validated? |
+|-------|------------------|------------------|--------|----------------------|
+| PSPNet R50 | 57.64% | *pending* | - | - |
+| DeepLabV3+ R50 | 58.02% | *pending* | - | - |
+
+---
+
 ## Conclusion
 
 The dramatic performance drop of CNN-based methods at small crop sizes is caused by:
@@ -164,3 +218,5 @@ The dramatic performance drop of CNN-based methods at small crop sizes is caused
 3. **Information bottleneck** - insufficient semantic content per pooling cell
 
 **Bottom Line:** Transformers' global self-attention mechanism provides inherent scale invariance that CNN pooling/dilation strategies lack. For memory-constrained settings, transformers are the preferred architecture family.
+
+**Verification Pending:** Jobs 1005923 (PSPNet) and 1005925 (DeepLabV3+) will test whether parameter adjustment can partially recover performance at small crop sizes.
