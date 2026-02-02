@@ -169,12 +169,38 @@ def find_configs_needing_tests(main_only=False, include_ratio1p0=False):
                             else:
                                 continue  # Skip other ratios
                         
-                        checkpoint_path = model_dir / 'iter_80000.pth'
+                        # Find the final checkpoint - look for highest iteration checkpoint
+                        # New training uses 15k iterations (BS=16), old used 80k (BS=2)
+                        checkpoint_path = None
                         config_path = model_dir / 'training_config.py'
                         
-                        if not checkpoint_path.exists():
-                            continue
                         if not config_path.exists():
+                            continue
+                        
+                        # Look for checkpoints in order of preference:
+                        # 1. iter_15000.pth (new BS=16 training, 15k iters)
+                        # 2. iter_80000.pth (old BS=2 training, 80k iters)
+                        # 3. Highest available iteration
+                        for checkpoint_name in ['iter_15000.pth', 'iter_80000.pth']:
+                            candidate = model_dir / checkpoint_name
+                            if candidate.exists():
+                                checkpoint_path = candidate
+                                break
+                        
+                        # If no preferred checkpoint, find highest iteration
+                        if checkpoint_path is None:
+                            checkpoints = list(model_dir.glob('iter_*.pth'))
+                            if checkpoints:
+                                # Sort by iteration number and take highest
+                                def get_iter_num(p):
+                                    try:
+                                        return int(p.stem.split('_')[1])
+                                    except:
+                                        return 0
+                                checkpoints.sort(key=get_iter_num, reverse=True)
+                                checkpoint_path = checkpoints[0]
+                        
+                        if checkpoint_path is None or not checkpoint_path.exists():
                             continue
                         
                         # Check if test results exist
