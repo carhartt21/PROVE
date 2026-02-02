@@ -480,9 +480,9 @@ def generate_job_script(
     work_dir = str(job.weights_dir)
     
     # Model-specific max_iters for memory-intensive models
-    # These models use smaller batch sizes and need more iterations
+    # These models use different batch sizes and need adjusted iterations
     MODEL_SPECIFIC_MAX_ITERS = {
-        'mask2former_swin-b': 40000,  # BS=2, 40k iters ≈ 80k samples (similar to 5k @ BS=16)
+        'mask2former_swin-b': 10000,  # BS=8, 10k iters = 80k samples (similar to 5k @ BS=16)
     }
     
     # Models requiring exclusive GPU access (memory-intensive)
