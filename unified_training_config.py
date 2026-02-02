@@ -2685,13 +2685,16 @@ class UnifiedTrainingConfig:
         # Validation resize: Use dataset-specific full resolution for proper evaluation
         # The model outputs predictions at full resolution which must match the label size
         # NOTE: Training uses crops (512x512) but validation should use full images
+        # CRITICAL: FINAL_SPLITS test images are 512x512 for most datasets, except ACDC (1920x1080)
         if dataset == 'Cityscapes':
             # Cityscapes native resolution: 2048x1024 (width x height)
             test_pipeline.append(dict(type='Resize', scale=(2048, 1024), keep_ratio=True))
-        elif dataset in ('ACDC', 'BDD10k', 'BDD100k'):
-            # These datasets also use Cityscapes-like resolution (1920x1080 or similar)
-            # Use keep_ratio=True to preserve aspect ratio
+        elif dataset in ('ACDC',):
+            # ACDC native resolution: 1920x1080 (width x height)
             test_pipeline.append(dict(type='Resize', scale=(2048, 1024), keep_ratio=True))
+        elif dataset in ('BDD10k', 'BDD100k'):
+            # BDD10k test images in FINAL_SPLITS are 512x512 - keep at native resolution
+            test_pipeline.append(dict(type='Resize', scale=(512, 512), keep_ratio=False))
         elif dataset in ('MapillaryVistas', 'Mapillary'):
             # MapillaryVistas test images are 512x512 - keep at native resolution
             # to match training crop size and avoid shape mismatch in validation
@@ -2700,8 +2703,8 @@ class UnifiedTrainingConfig:
             # OUTSIDE15k has various image sizes - use 512x512 to match training
             test_pipeline.append(dict(type='Resize', scale=(512, 512), keep_ratio=False))
         elif dataset in ('IDD-AW',):
-            # IDD-AW has Cityscapes-like resolution
-            test_pipeline.append(dict(type='Resize', scale=(2048, 1024), keep_ratio=True))
+            # IDD-AW test images in FINAL_SPLITS are 512x512 - keep at native resolution
+            test_pipeline.append(dict(type='Resize', scale=(512, 512), keep_ratio=False))
         else:
             # Default: use Cityscapes-like resolution for unknown datasets
             test_pipeline.append(dict(type='Resize', scale=(2048, 1024), keep_ratio=True))
