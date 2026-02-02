@@ -1,10 +1,57 @@
 # PROVE Project TODO
 
-**Last Updated:** 2026-02-01 (22:35)
+**Last Updated:** 2026-02-02 (08:30)
 
 ---
 
-## 🔧 Current Status
+## � URGENT: Recent Actions (2026-02-02)
+
+### ✅ Fixed MapillaryVistas/OUTSIDE15k Validation Bug
+- **Issue**: Shape mismatch during validation - mask [1024, 1024] vs prediction [512, 512]
+- **Root Cause**: Validation pipeline resized 512x512 images to (2048, 1024), causing mismatch
+- **Fix**: Changed validation resize to (512, 512) for MapillaryVistas and OUTSIDE15k
+- **Commit**: `81053c8` - [unified_training_config.py](unified_training_config.py#L2467-L2470)
+- **Jobs Resubmitted**: 11 MapillaryVistas + 1 OUTSIDE15k (all gen_* strategies)
+
+### ✅ Priority 1-3 Coverage Jobs Submitted (26 jobs)
+
+**mIoU Analysis Results (93 total results):**
+- **Stage 1 Gaps**: IDD-AW (only 3 baseline), OUTSIDE15k (only 3 baseline), MapillaryVistas (being addressed)
+- **Stage 2 Gap**: ALL datasets only have baseline (NO gen_* or std_*)
+
+**Jobs Submitted (2026-02-02 08:26-08:30):**
+
+| Priority | Dataset | Strategies | Jobs | Status |
+|----------|---------|------------|------|--------|
+| **1** | IDD-AW | gen_* (step1x_new, flux_kontext, albumentations_weather) | 9 | 🔄 2 RUN, 7 PEND |
+| **2** | OUTSIDE15k | gen_* (same 3 strategies) | 9 | ⏳ PEND |
+| **3a** | IDD-AW | std_* (autoaugment, cutmix, mixup, randaugment) | 4 | ⏳ PEND |
+| **3b** | OUTSIDE15k | std_* (same 4 strategies) | 4 | ⏳ PEND |
+
+**Models Used**: segnext_mscan-b, segformer_mit-b3, pspnet_r50
+
+**Impact:**
+- IDD-AW: 3 configs → 16 configs (+433% coverage)
+- OUTSIDE15k: 3 configs → 16 configs (+433% coverage)
+
+**Current Cluster Status** (08:30):
+- Total jobs: 38
+- Running: 13 (cluster fully utilized)
+- Pending: 24
+
+### 🔜 Remaining Priorities (Not Yet Submitted)
+
+**Priority 4**: MapillaryVistas std_* strategies (~6 jobs)
+- Wait for current 11 gen_* jobs to complete
+
+**Priority 5**: Stage 2 gen_* experiments (~12 jobs)
+- Test top 3 gen strategies (step1x_new, flux_kontext, albumentations_weather)
+- Datasets: BDD10k, IDD-AW
+- Models: segnext_mscan-b, segformer_mit-b3
+
+---
+
+## �🔧 Current Status
 
 ### 🎉 PIPELINE FIX APPLIED & VERIFIED!
 
