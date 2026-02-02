@@ -493,15 +493,16 @@ def generate_job_script(
     # - ResNet-50 backbone models: ~20-24 GB at BS=16
     # - HRNet/SegFormer/SegNeXt: ~24-28 GB at BS=16  
     # - Mask2Former/Swin-B: ~48-64 GB at BS=8 (reduced batch size)
+    # Reduced slightly to improve job scheduling on shared cluster
     MODEL_GMEM_REQUIREMENTS = {
-        'pspnet_r50': '24G',
-        'deeplabv3plus_r50': '24G',
-        'hrnet_hr48': '32G',
-        'segformer_mit-b3': '32G',
-        'segnext_mscan-b': '32G',
-        'mask2former_swin-b': '48G',
+        'pspnet_r50': '18G',
+        'deeplabv3plus_r50': '18G',
+        'hrnet_hr48': '24G',
+        'segformer_mit-b3': '24G',
+        'segnext_mscan-b': '24G',
+        'mask2former_swin-b': '40G',
     }
-    DEFAULT_GMEM = '32G'  # Safe default for unknown models
+    DEFAULT_GMEM = '24G'  # Safe default for unknown models
     
     # Determine effective max_iters for checkpoint paths
     # Default: 20k for Cityscapes (matches original 160k at BS=2), 15k for other stages
