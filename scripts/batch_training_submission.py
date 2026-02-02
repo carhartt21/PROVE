@@ -488,6 +488,21 @@ def generate_job_script(
     # Models requiring exclusive GPU access (memory-intensive)
     EXCLUSIVE_GPU_MODELS = {'mask2former_swin-b'}
     
+    # GPU memory requirements per model (at BS=16, 512x512 input, with 20% safety margin)
+    # Memory estimates based on model architecture and parameter counts:
+    # - ResNet-50 backbone models: ~20-24 GB at BS=16
+    # - HRNet/SegFormer/SegNeXt: ~24-28 GB at BS=16  
+    # - Mask2Former/Swin-B: ~48-64 GB at BS=8 (reduced batch size)
+    MODEL_GMEM_REQUIREMENTS = {
+        'pspnet_r50': '24G',
+        'deeplabv3plus_r50': '24G',
+        'hrnet_hr48': '32G',
+        'segformer_mit-b3': '32G',
+        'segnext_mscan-b': '32G',
+        'mask2former_swin-b': '48G',
+    }
+    DEFAULT_GMEM = '32G'  # Safe default for unknown models
+    
     # Determine effective max_iters for checkpoint paths
     # Default: 20k for Cityscapes (matches original 160k at BS=2), 15k for other stages
     # 15k iters at BS=16 achieves ~98% of final mIoU while reducing training time by ~80%
@@ -501,10 +516,12 @@ def generate_job_script(
         effective_max_iters = 15000  # 15k iters at BS=16 (~98% of final mIoU)
     
     # GPU specification - use exclusive_process for memory-intensive models
+    # All models get gmem specification to prevent OOM from GPU sharing
+    gmem = MODEL_GMEM_REQUIREMENTS.get(job.model, DEFAULT_GMEM)
     if job.model in EXCLUSIVE_GPU_MODELS:
-        gpu_spec = '"num=1:mode=exclusive_process"'
+        gpu_spec = f'"num=1:mode=exclusive_process:gmem={gmem}"'
     else:
-        gpu_spec = '"num=1"'
+        gpu_spec = f'"num=1:gmem={gmem}"'
     
     # Build training command
     cmd_parts = [
