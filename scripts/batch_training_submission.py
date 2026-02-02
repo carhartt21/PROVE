@@ -104,7 +104,8 @@ ALL_MODELS = [
     'pspnet_r50', 
     'segformer_mit-b3', 
     'segnext_mscan-b', 
-    # 'hrnet_hr48'
+    # 'hrnet_hr48',
+    'mask2former_swin-b',
     ]
 
 # Cityscapes validation models (all 5 models for full pipeline verification)

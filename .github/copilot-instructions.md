@@ -184,7 +184,7 @@ python scripts/test_cityscapes_replication_on_acdc.py --submit-jobs  # Submit LS
 
 ## Models, Datasets & Strategies
 
-**Models (5):** `deeplabv3plus_r50`, `pspnet_r50`, `segformer_mit-b3`, `segnext_mscan-b`, `hrnet_hr48`
+**Models (6):** `deeplabv3plus_r50`, `pspnet_r50`, `segformer_mit-b3`, `segnext_mscan-b`, `hrnet_hr48`, `mask2former_swin-b`
 
 **Datasets:**
 | Dataset | Classes | Label Format |

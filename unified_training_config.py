@@ -4,7 +4,7 @@ PROVE Unified Training Configuration System
 
 This module provides a centralized configuration system that eliminates
 redundant config files by parameterizing:
-- Base model (deeplabv3plus_r50, pspnet_r50, segformer_mit-b3, hrnet_hr48, segnext_mscan-b)
+- Base model (deeplabv3plus_r50, pspnet_r50, segformer_mit-b3, hrnet_hr48, segnext_mscan-b, mask2former_swin-b)
 - Dataset (ACDC, BDD10k, BDD100k, IDD-AW, MapillaryVistas, OUTSIDE15k)
 - Augmentation strategy (baseline, std_photometric_distort, gen_<model>)
 - Real-to-generated image ratio for mixed training
@@ -520,6 +520,156 @@ MODEL_DEFINITIONS = {
         'train_cfg': {},
         'test_cfg': {'mode': 'whole'},
     },
+    'mask2former_swin-b': {
+        'type': 'EncoderDecoder',
+        'data_preprocessor': {
+            'type': 'SegDataPreProcessor',
+            'mean': [123.675, 116.28, 103.53],
+            'std': [58.395, 57.12, 57.375],
+            'bgr_to_rgb': True,
+            'pad_val': 0,
+            'seg_pad_val': 255,
+            'size': (512, 512),
+            'test_cfg': {'size_divisor': 32},
+        },
+        'backbone': {
+            'type': 'SwinTransformer',
+            'pretrain_img_size': 384,
+            'embed_dims': 128,
+            'depths': [2, 2, 18, 2],
+            'num_heads': [4, 8, 16, 32],
+            'window_size': 12,
+            'mlp_ratio': 4,
+            'qkv_bias': True,
+            'qk_scale': None,
+            'drop_rate': 0.0,
+            'attn_drop_rate': 0.0,
+            'drop_path_rate': 0.3,
+            'patch_norm': True,
+            'out_indices': (0, 1, 2, 3),
+            'with_cp': False,
+            'frozen_stages': -1,
+            'init_cfg': {
+                'type': 'Pretrained',
+                'checkpoint': 'https://download.openmmlab.com/mmsegmentation/v0.5/pretrain/swin/swin_base_patch4_window12_384_22k_20220317-e5c09f74.pth',
+            },
+        },
+        'decode_head': {
+            'type': 'Mask2FormerHead',
+            'in_channels': [128, 256, 512, 1024],
+            'strides': [4, 8, 16, 32],
+            'feat_channels': 256,
+            'out_channels': 256,
+            'num_classes': 19,
+            'num_queries': 100,
+            'num_transformer_feat_level': 3,
+            'align_corners': False,
+            'pixel_decoder': {
+                'type': 'mmdet.MSDeformAttnPixelDecoder',
+                'num_outs': 3,
+                'norm_cfg': {'type': 'GN', 'num_groups': 32},
+                'act_cfg': {'type': 'ReLU'},
+                'encoder': {
+                    'num_layers': 6,
+                    'layer_cfg': {
+                        'self_attn_cfg': {
+                            'embed_dims': 256,
+                            'num_heads': 8,
+                            'num_levels': 3,
+                            'num_points': 4,
+                            'im2col_step': 64,
+                            'dropout': 0.0,
+                            'batch_first': True,
+                            'norm_cfg': None,
+                            'init_cfg': None,
+                        },
+                        'ffn_cfg': {
+                            'embed_dims': 256,
+                            'feedforward_channels': 1024,
+                            'num_fcs': 2,
+                            'ffn_drop': 0.0,
+                            'act_cfg': {'type': 'ReLU', 'inplace': True},
+                        },
+                    },
+                    'init_cfg': None,
+                },
+                'positional_encoding': {'num_feats': 128, 'normalize': True},
+                'init_cfg': None,
+            },
+            'enforce_decoder_input_project': False,
+            'positional_encoding': {'num_feats': 128, 'normalize': True},
+            'transformer_decoder': {
+                'return_intermediate': True,
+                'num_layers': 9,
+                'layer_cfg': {
+                    'self_attn_cfg': {
+                        'embed_dims': 256,
+                        'num_heads': 8,
+                        'attn_drop': 0.0,
+                        'proj_drop': 0.0,
+                        'dropout_layer': None,
+                        'batch_first': True,
+                    },
+                    'cross_attn_cfg': {
+                        'embed_dims': 256,
+                        'num_heads': 8,
+                        'attn_drop': 0.0,
+                        'proj_drop': 0.0,
+                        'dropout_layer': None,
+                        'batch_first': True,
+                    },
+                    'ffn_cfg': {
+                        'embed_dims': 256,
+                        'feedforward_channels': 2048,
+                        'num_fcs': 2,
+                        'act_cfg': {'type': 'ReLU', 'inplace': True},
+                        'ffn_drop': 0.0,
+                        'dropout_layer': None,
+                        'add_identity': True,
+                    },
+                },
+                'init_cfg': None,
+            },
+            'loss_cls': {
+                'type': 'mmdet.CrossEntropyLoss',
+                'use_sigmoid': False,
+                'loss_weight': 2.0,
+                'reduction': 'mean',
+                'class_weight': [1.0] * 19 + [0.1],  # num_classes + background
+            },
+            'loss_mask': {
+                'type': 'mmdet.CrossEntropyLoss',
+                'use_sigmoid': True,
+                'reduction': 'mean',
+                'loss_weight': 5.0,
+            },
+            'loss_dice': {
+                'type': 'mmdet.DiceLoss',
+                'use_sigmoid': True,
+                'activate': True,
+                'reduction': 'mean',
+                'naive_dice': True,
+                'eps': 1.0,
+                'loss_weight': 5.0,
+            },
+            'train_cfg': {
+                'num_points': 12544,
+                'oversample_ratio': 3.0,
+                'importance_sample_ratio': 0.75,
+                'assigner': {
+                    'type': 'mmdet.HungarianAssigner',
+                    'match_costs': [
+                        {'type': 'mmdet.ClassificationCost', 'weight': 2.0},
+                        {'type': 'mmdet.CrossEntropyLossCost', 'weight': 5.0, 'use_sigmoid': True},
+                        {'type': 'mmdet.DiceCost', 'weight': 5.0, 'pred_act': True, 'eps': 1.0},
+                    ],
+                },
+                'sampler': {'type': 'mmdet.MaskPseudoSampler'},
+            },
+        },
+        'train_cfg': {},
+        'test_cfg': {'mode': 'whole'},
+    },
     'faster_rcnn_r50_fpn_1x': {
         'type': 'FasterRCNN',
         'data_preprocessor': {
@@ -813,6 +963,14 @@ SEGMENTATION_MODELS = {
         optimizer='SGD',
         lr=0.01,
         weight_decay=0.0005,
+    ),
+    'mask2former_swin-b': ModelConfig(
+        name='mask2former_swin-b',
+        task='segmentation',
+        base_config='mask2former/mask2former_swin-b-in22k-384x384-pre_8xb2-90k_cityscapes-512x1024.py',
+        optimizer='AdamW',
+        lr=0.0001,
+        weight_decay=0.05,
     ),
 }
 
@@ -1929,6 +2087,9 @@ class UnifiedTrainingConfig:
             # Update num_classes in decode_head for segmentation models
             if 'decode_head' in model_def:
                 model_def['decode_head']['num_classes'] = dataset_cfg.num_classes
+                # Special handling for Mask2Former - update class_weight in loss_cls
+                if model_cfg.name == 'mask2former_swin-b' and 'loss_cls' in model_def['decode_head']:
+                    model_def['decode_head']['loss_cls']['class_weight'] = [1.0] * dataset_cfg.num_classes + [0.1]
             if 'auxiliary_head' in model_def:
                 model_def['auxiliary_head']['num_classes'] = dataset_cfg.num_classes
             # Update num_classes for detection models
@@ -1948,15 +2109,55 @@ class UnifiedTrainingConfig:
         # Scale learning rate based on batch size: lr = base_lr * batch_size / 2
         scaled_lr = model_cfg.lr * training_cfg.lr_scale_factor
         
-        optim_wrapper = dict(
-            type='OptimWrapper',
-            optimizer=dict(
-                type=model_cfg.optimizer,
-                lr=scaled_lr,  # Scaled learning rate
-                weight_decay=model_cfg.weight_decay,
-                **(dict(momentum=0.9) if model_cfg.optimizer == 'SGD' else dict(betas=(0.9, 0.999))),
-            ),
-        )
+        # Special handling for Mask2Former - requires gradient clipping and paramwise config
+        if model_cfg.name == 'mask2former_swin-b':
+            # Mask2Former requires special optimizer configuration
+            depths = [2, 2, 18, 2]  # Swin-B depths
+            backbone_norm_multi = dict(lr_mult=0.1, decay_mult=0.0)
+            backbone_embed_multi = dict(lr_mult=0.1, decay_mult=0.0)
+            embed_multi = dict(lr_mult=1.0, decay_mult=0.0)
+            custom_keys = {
+                'backbone': dict(lr_mult=0.1, decay_mult=1.0),
+                'backbone.patch_embed.norm': backbone_norm_multi,
+                'backbone.norm': backbone_norm_multi,
+                'absolute_pos_embed': backbone_embed_multi,
+                'relative_position_bias_table': backbone_embed_multi,
+                'query_embed': embed_multi,
+                'query_feat': embed_multi,
+                'level_embed': embed_multi,
+            }
+            # Add stage-wise norm keys
+            for stage_id, num_blocks in enumerate(depths):
+                for block_id in range(num_blocks):
+                    custom_keys[f'backbone.stages.{stage_id}.blocks.{block_id}.norm'] = backbone_norm_multi
+            for stage_id in range(len(depths) - 1):
+                custom_keys[f'backbone.stages.{stage_id}.downsample.norm'] = backbone_norm_multi
+            
+            optim_wrapper = dict(
+                type='OptimWrapper',
+                optimizer=dict(
+                    type='AdamW',
+                    lr=scaled_lr,
+                    weight_decay=model_cfg.weight_decay,
+                    eps=1e-8,
+                    betas=(0.9, 0.999),
+                ),
+                clip_grad=dict(max_norm=0.01, norm_type=2),
+                paramwise_cfg=dict(
+                    custom_keys=custom_keys,
+                    norm_decay_mult=0.0,
+                ),
+            )
+        else:
+            optim_wrapper = dict(
+                type='OptimWrapper',
+                optimizer=dict(
+                    type=model_cfg.optimizer,
+                    lr=scaled_lr,  # Scaled learning rate
+                    weight_decay=model_cfg.weight_decay,
+                    **(dict(momentum=0.9) if model_cfg.optimizer == 'SGD' else dict(betas=(0.9, 0.999))),
+                ),
+            )
         
         # Build param scheduler (new MMEngine format)
         param_scheduler = [

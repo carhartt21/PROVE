@@ -152,12 +152,13 @@ ALL_STRATEGIES = GENERATIVE_STRATEGIES + STANDARD_STRATEGIES
 SKIP_COMBOS = set()  # All strategies now have full dataset coverage
 
 # Models for per-model breakdown
-BASE_MODELS = ['deeplabv3plus_r50', 'pspnet_r50', 'segformer_mit-b5', 'segnext_mscan-b']
+BASE_MODELS = ['deeplabv3plus_r50', 'pspnet_r50', 'segformer_mit-b5', 'segnext_mscan-b', 'mask2former_swin-b']
 MODEL_DISPLAY = {
     'deeplabv3plus_r50': 'DeepLabV3+',
     'pspnet_r50': 'PSPNet',
     'segformer_mit-b5': 'SegFormer',
     'segnext_mscan-b': 'SegNeXt',
+    'mask2former_swin-b': 'Mask2Former',
 }
 
 

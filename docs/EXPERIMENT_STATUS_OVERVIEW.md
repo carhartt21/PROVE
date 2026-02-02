@@ -1,6 +1,6 @@
 # PROVE Experiment Status Overview
 
-**Last Updated:** 2026-02-02 11:00
+**Last Updated:** 2026-02-02 12:00
 
 ---
 
@@ -10,13 +10,15 @@
 |--------|---------------------|----------------------|---------------|
 | **Total Checkpoints** | 701 | 396 | 212 |
 | **Fully Trained (80k)** | 15 | 23 | TBD |
-| **Tested Results** | 39 | 5 | 8 (Stage 1) + 3 (Stage 2) |
-| **Cluster Jobs Active** | 1 | 0 | 0 |
+| **Tested Results** | 39 | 25 | 8 (Stage 1) + 3 (Stage 2) |
+| **Cluster Jobs Active** | 0 | 0 | 0 |
 
 ### Quick Stats
 - **Total Strategies:** 28 (1 baseline + 6 std_* + 21 gen_*)
-- **Average mIoU:** Stage 1: 36.80%, Stage 2: 37.56%, Loss Ablation: 38.17%
-- **Best Result:** gen_flux_kontext/bdd10k/segformer_mit-b5 → **46.15% mIoU**
+- **Models (6):** `deeplabv3plus_r50`, `pspnet_r50`, `segformer_mit-b3`, `segnext_mscan-b`, `hrnet_hr48`, `mask2former_swin-b`
+- **Average mIoU:** Stage 1: 36.80%, Stage 2: 40.64%, Loss Ablation: 38.17%
+- **Best Result (Stage 1):** gen_flux_kontext/bdd10k/segformer_mit-b5 → **46.15% mIoU**
+- **Best Result (Stage 2):** baseline/bdd10k/segnext_mscan-b_ratio1p0 → **49.84% mIoU**
 
 ---
 
