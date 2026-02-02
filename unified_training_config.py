@@ -2465,11 +2465,12 @@ class UnifiedTrainingConfig:
             # Use keep_ratio=True to preserve aspect ratio
             test_pipeline.append(dict(type='Resize', scale=(2048, 1024), keep_ratio=True))
         elif dataset in ('MapillaryVistas', 'Mapillary'):
-            # MapillaryVistas has variable sizes, use a reasonable validation size
-            test_pipeline.append(dict(type='Resize', scale=(2048, 1024), keep_ratio=True))
+            # MapillaryVistas test images are 512x512 - keep at native resolution
+            # to match training crop size and avoid shape mismatch in validation
+            test_pipeline.append(dict(type='Resize', scale=(512, 512), keep_ratio=False))
         elif dataset in ('OUTSIDE15k',):
-            # OUTSIDE15k has various image sizes
-            test_pipeline.append(dict(type='Resize', scale=(2048, 1024), keep_ratio=True))
+            # OUTSIDE15k has various image sizes - use 512x512 to match training
+            test_pipeline.append(dict(type='Resize', scale=(512, 512), keep_ratio=False))
         elif dataset in ('IDD-AW',):
             # IDD-AW has Cityscapes-like resolution
             test_pipeline.append(dict(type='Resize', scale=(2048, 1024), keep_ratio=True))
