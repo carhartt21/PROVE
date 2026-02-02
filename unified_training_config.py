@@ -1048,6 +1048,8 @@ class TrainingConfig:
     aux_loss: Optional[str] = None
     # Validation visualization - save Input | GT | Prediction side-by-side
     save_val_predictions: bool = False
+    # Gradient accumulation - effective batch = batch_size * accumulative_counts
+    accumulative_counts: int = 1  # Default no accumulation
     max_val_samples: int = 5  # Maximum samples to save per validation epoch
 
 
@@ -1077,14 +1079,15 @@ TRAINING_CONFIGS = {
 # Model-specific training configs for memory-intensive models
 MODEL_SPECIFIC_TRAINING_CONFIGS = {
     'mask2former_swin-b': TrainingConfig(
-        max_iters=40000,  # 40k iterations with batch_size=2 (equivalent to 5k @ BS=16)
-        batch_size=2,  # Mask2Former is very memory intensive
+        max_iters=40000,  # 40k iterations with effective batch_size=2 (via accumulation)
+        batch_size=1,  # Mask2Former is very memory intensive - use gradient accumulation
+        accumulative_counts=2,  # Effective batch_size = 1 * 2 = 2
         checkpoint_interval=5000,
         eval_interval=5000,
         early_stop=True,
         early_stop_patience=5,
         early_stop_min_delta=0.1,
-        lr_scale_factor=1.0,  # No scaling, batch_size=2 is the reference
+        lr_scale_factor=1.0,  # No scaling, effective batch_size=2 is the reference
         warmup_iters=500,
     ),
 }
@@ -2169,6 +2172,7 @@ class UnifiedTrainingConfig:
                     custom_keys=custom_keys,
                     norm_decay_mult=0.0,
                 ),
+                accumulative_counts=training_cfg.accumulative_counts,
             )
         else:
             optim_wrapper = dict(
@@ -2179,6 +2183,7 @@ class UnifiedTrainingConfig:
                     weight_decay=model_cfg.weight_decay,
                     **(dict(momentum=0.9) if model_cfg.optimizer == 'SGD' else dict(betas=(0.9, 0.999))),
                 ),
+                accumulative_counts=training_cfg.accumulative_counts,
             )
         
         # Build param scheduler (new MMEngine format)
