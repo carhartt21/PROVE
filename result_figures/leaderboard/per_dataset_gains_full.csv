@@ -1,8 +1,8 @@
-Strategy,Type,bdd10k,idd-aw,mapillaryvistas,outside15k,Avg Gain,Normal Gain,Adverse Gain
-baseline,Baseline Full,,,,,,,
-std_autoaugment,Standard Aug,,,,,,,
-std_cutmix,Standard Aug,,,,,,,
-std_minimal,Standard Aug,,,,,,,
-std_mixup,Standard Aug,,,,,,,
-std_photometric_distort,Standard Aug,,,,,,,
-std_randaugment,Standard Aug,,,,,,,
+Strategy,Type,bdd10k,Avg Gain,Normal Gain,Adverse Gain
+baseline,Baseline Full,,,,
+std_autoaugment,Standard Aug,,,,
+std_cutmix,Standard Aug,,,,
+std_minimal,Standard Aug,,,,
+std_mixup,Standard Aug,,,,
+std_photometric_distort,Standard Aug,,,,
+std_randaugment,Standard Aug,,,,

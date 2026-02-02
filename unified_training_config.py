@@ -1079,15 +1079,15 @@ TRAINING_CONFIGS = {
 # Model-specific training configs for memory-intensive models
 MODEL_SPECIFIC_TRAINING_CONFIGS = {
     'mask2former_swin-b': TrainingConfig(
-        max_iters=40000,  # 40k iterations with effective batch_size=2 (via accumulation)
-        batch_size=1,  # Mask2Former is very memory intensive - use gradient accumulation
-        accumulative_counts=2,  # Effective batch_size = 1 * 2 = 2
+        max_iters=40000,  # 40k iterations with batch_size=2 (equivalent to 5k @ BS=16)
+        batch_size=2,  # Requires exclusive GPU access (mode=exclusive_process)
+        accumulative_counts=1,  # No accumulation needed with exclusive GPU
         checkpoint_interval=5000,
         eval_interval=5000,
         early_stop=True,
         early_stop_patience=5,
         early_stop_min_delta=0.1,
-        lr_scale_factor=1.0,  # No scaling, effective batch_size=2 is the reference
+        lr_scale_factor=1.0,  # No scaling, batch_size=2 is the reference
         warmup_iters=500,
     ),
 }

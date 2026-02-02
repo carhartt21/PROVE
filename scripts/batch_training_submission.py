@@ -485,6 +485,9 @@ def generate_job_script(
         'mask2former_swin-b': 40000,  # BS=2, 40k iters ≈ 80k samples (similar to 5k @ BS=16)
     }
     
+    # Models requiring exclusive GPU access (memory-intensive)
+    EXCLUSIVE_GPU_MODELS = {'mask2former_swin-b'}
+    
     # Determine effective max_iters for checkpoint paths
     # Default: 20k for Cityscapes (matches original 160k at BS=2), 15k for other stages
     # 15k iters at BS=16 achieves ~98% of final mIoU while reducing training time by ~80%
@@ -496,6 +499,12 @@ def generate_job_script(
         effective_max_iters = 20000  # 20k iters (BS=16) = 320k samples = 160k iters (BS=2)
     else:
         effective_max_iters = 15000  # 15k iters at BS=16 (~98% of final mIoU)
+    
+    # GPU specification - use exclusive_process for memory-intensive models
+    if job.model in EXCLUSIVE_GPU_MODELS:
+        gpu_spec = '"num=1:mode=exclusive_process"'
+    else:
+        gpu_spec = '"num=1"'
     
     # Build training command
     cmd_parts = [
@@ -546,7 +555,7 @@ def generate_job_script(
 #BSUB -o {work_dir}/train_%J.out
 #BSUB -e {work_dir}/train_%J.err
 #BSUB -n 2,{lsf_config.cpu_count}
-#BSUB -gpu "num=1"
+#BSUB -gpu {gpu_spec}
 
 # ============================================================================
 # Environment setup
