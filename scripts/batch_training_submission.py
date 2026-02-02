@@ -479,11 +479,19 @@ def generate_job_script(
     """Generate LSF job script for a training job."""
     work_dir = str(job.weights_dir)
     
+    # Model-specific max_iters for memory-intensive models
+    # These models use smaller batch sizes and need more iterations
+    MODEL_SPECIFIC_MAX_ITERS = {
+        'mask2former_swin-b': 40000,  # BS=2, 40k iters ≈ 80k samples (similar to 5k @ BS=16)
+    }
+    
     # Determine effective max_iters for checkpoint paths
     # Default: 20k for Cityscapes (matches original 160k at BS=2), 15k for other stages
     # 15k iters at BS=16 achieves ~98% of final mIoU while reducing training time by ~80%
     if max_iters is not None:
         effective_max_iters = max_iters
+    elif job.model in MODEL_SPECIFIC_MAX_ITERS:
+        effective_max_iters = MODEL_SPECIFIC_MAX_ITERS[job.model]
     elif job.stage == 'cityscapes':
         effective_max_iters = 20000  # 20k iters (BS=16) = 320k samples = 160k iters (BS=2)
     else:
