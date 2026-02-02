@@ -1,10 +1,30 @@
 # PROVE Project TODO
 
-**Last Updated:** 2026-02-02 (08:30)
+**Last Updated:** 2026-02-02 (08:15)
 
 ---
 
-## � URGENT: Recent Actions (2026-02-02)
+## 🆕 NEW: Resume Training Feature (2026-02-02)
+
+Added `--resume` flag to batch_training_submission.py to resume interrupted training:
+
+```bash
+# Dry run to see what would be resumed
+python scripts/batch_training_submission.py --stage 1 --resume --dry-run
+
+# Resume specific strategies
+python scripts/batch_training_submission.py --stage 1 --resume --strategies gen_step1x_new -y
+```
+
+**How it works:**
+- Finds the latest `iter_*.pth` checkpoint in the weights directory
+- Passes `--resume-from` to unified_training.py to continue training
+- Skips jobs that are already complete (have final checkpoint)
+- Jobs without checkpoints start fresh
+
+---
+
+## 🔧 URGENT: Recent Actions (2026-02-02)
 
 ### ✅ Fixed MapillaryVistas/OUTSIDE15k Validation Bug
 - **Issue**: Shape mismatch during validation - mask [1024, 1024] vs prediction [512, 512]
