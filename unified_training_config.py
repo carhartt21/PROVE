@@ -551,7 +551,7 @@ MODEL_DEFINITIONS = {
             'frozen_stages': -1,
             'init_cfg': {
                 'type': 'Pretrained',
-                'checkpoint': 'https://download.openmmlab.com/mmsegmentation/v0.5/pretrain/swin/swin_base_patch4_window12_384_22k_20220317-e5c09f74.pth',
+                'checkpoint': '/scratch/aaa_exchange/AWARE/pretrained/swin/swin_base_patch4_window12_384_22k_20220317-e5c09f74.pth',
             },
         },
         'decode_head': {
@@ -1074,6 +1074,21 @@ TRAINING_CONFIGS = {
     ),
 }
 
+# Model-specific training configs for memory-intensive models
+MODEL_SPECIFIC_TRAINING_CONFIGS = {
+    'mask2former_swin-b': TrainingConfig(
+        max_iters=40000,  # 40k iterations with batch_size=2 (equivalent to 5k @ BS=16)
+        batch_size=2,  # Mask2Former is very memory intensive
+        checkpoint_interval=5000,
+        eval_interval=5000,
+        early_stop=True,
+        early_stop_patience=5,
+        early_stop_min_delta=0.1,
+        lr_scale_factor=1.0,  # No scaling, batch_size=2 is the reference
+        warmup_iters=500,
+    ),
+}
+
 
 # ============================================================================
 # Augmentation Strategies
@@ -1264,7 +1279,14 @@ class UnifiedTrainingConfig:
         dataset_cfg = DATASET_CONFIGS[dataset]
         model_cfg = ALL_MODELS[model]
         aug_strategy = AUGMENTATION_STRATEGIES[strategy]
-        training_cfg = TRAINING_CONFIGS.get(dataset_cfg.task, TRAINING_CONFIGS['segmentation'])
+        
+        # Check for model-specific training config first, then fall back to task default
+        from copy import deepcopy
+        if model in MODEL_SPECIFIC_TRAINING_CONFIGS:
+            training_cfg = deepcopy(MODEL_SPECIFIC_TRAINING_CONFIGS[model])
+            print(f"✓ Using model-specific training config for {model} (batch_size={training_cfg.batch_size})")
+        else:
+            training_cfg = deepcopy(TRAINING_CONFIGS.get(dataset_cfg.task, TRAINING_CONFIGS['segmentation']))
         
         # Validate generated images exist for this dataset if using generative strategy
         if aug_strategy.type == 'generated' and aug_strategy.generative_model:
