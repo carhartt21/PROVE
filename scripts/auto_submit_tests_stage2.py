@@ -169,39 +169,32 @@ def find_configs_needing_tests(main_only=False, include_ratio1p0=False):
                             else:
                                 continue  # Skip other ratios
                         
-                        # Find the final checkpoint - look for highest iteration checkpoint
-                        # New training uses 15k iterations (BS=16), old used 80k (BS=2)
-                        checkpoint_path = None
                         config_path = model_dir / 'training_config.py'
                         
                         if not config_path.exists():
                             continue
                         
-                        # Look for checkpoints in order of preference:
-                        # 1. iter_15000.pth (new BS=16 training, 15k iters)
-                        # 2. iter_80000.pth (old BS=2 training, 80k iters)
-                        # 3. Highest available iteration
-                        for checkpoint_name in ['iter_15000.pth', 'iter_80000.pth']:
-                            candidate = model_dir / checkpoint_name
-                            if candidate.exists():
-                                checkpoint_path = candidate
-                                break
+                        # Extract expected max_iters from training config
+                        expected_max_iters = None
+                        try:
+                            with open(config_path, 'r') as f:
+                                config_content = f.read()
+                            # Parse max_iters from train_cfg = dict(max_iters=15000, ...)
+                            import re
+                            match = re.search(r'max_iters\s*=\s*(\d+)', config_content)
+                            if match:
+                                expected_max_iters = int(match.group(1))
+                        except Exception as e:
+                            pass
                         
-                        # If no preferred checkpoint, find highest iteration
-                        if checkpoint_path is None:
-                            checkpoints = list(model_dir.glob('iter_*.pth'))
-                            if checkpoints:
-                                # Sort by iteration number and take highest
-                                def get_iter_num(p):
-                                    try:
-                                        return int(p.stem.split('_')[1])
-                                    except:
-                                        return 0
-                                checkpoints.sort(key=get_iter_num, reverse=True)
-                                checkpoint_path = checkpoints[0]
+                        if expected_max_iters is None:
+                            continue  # Can't determine expected checkpoint
                         
-                        if checkpoint_path is None or not checkpoint_path.exists():
-                            continue
+                        # Look for the final checkpoint matching expected_max_iters
+                        checkpoint_path = model_dir / f'iter_{expected_max_iters}.pth'
+                        
+                        if not checkpoint_path.exists():
+                            continue  # Training not complete
                         
                         # Check if test results exist
                         test_results_dir = model_dir / 'test_results_detailed'
