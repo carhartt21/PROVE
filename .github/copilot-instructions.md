@@ -34,6 +34,7 @@ PROVE evaluates semantic segmentation models under adverse weather conditions us
 /scratch/aaa_exchange/AWARE/WEIGHTS_CITYSCAPES/      # Cityscapes pipeline verification
 /scratch/aaa_exchange/AWARE/WEIGHTS_RATIO_ABLATION/  # Ratio ablation study
 /scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED/        # Extended training study
+/scratch/aaa_exchange/AWARE/WEIGHTS_LOSS_ABLATION/   # Loss function ablation (aux-lovasz, aux-boundary, aux-focal, loss-lovasz)
 ```
 
 **Core Data Flow:**

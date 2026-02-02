@@ -13,6 +13,7 @@ Usage:
     python scripts/auto_submit_tests_stage2.py --dry-run          # Show what would be submitted
     python scripts/auto_submit_tests_stage2.py --limit 10         # Submit max 10 jobs
     python scripts/auto_submit_tests_stage2.py --shared-gpu       # Use shared GPU mode
+    python scripts/auto_submit_tests_stage2.py --include-ratio1p0 # Include ratio1p0 models
 """
 
 import os
@@ -116,11 +117,12 @@ def get_running_test_jobs():
     return running_jobs
 
 
-def find_configs_needing_tests(main_only=False):
+def find_configs_needing_tests(main_only=False, include_ratio1p0=False):
     """Find all Stage 2 configurations that have checkpoints but need testing.
     
     Args:
         main_only: Only consider main datasets (BDD10k, MapillaryVistas)
+        include_ratio1p0: Include ratio1p0 models (real-only training)
     
     Returns:
         list: List of dicts with strategy, dataset, model, weights_dir, etc.
@@ -155,9 +157,17 @@ def find_configs_needing_tests(main_only=False):
                         if model_dir.name.endswith('_backup'):
                             continue
                         
-                        # Only consider main models (ratio0p50) unless explicitly requested
-                        if 'ratio' in model_dir.name and 'ratio0p50' not in model_dir.name:
-                            continue
+                        # Filter by ratio type
+                        # - Always include models without "ratio" in name (standard models)
+                        # - Always include ratio0p50 (mixed real+gen training)
+                        # - Include ratio1p0 only if flag is set (real-only training)
+                        if 'ratio' in model_dir.name:
+                            if 'ratio0p50' in model_dir.name:
+                                pass  # Always include
+                            elif 'ratio1p0' in model_dir.name and include_ratio1p0:
+                                pass  # Include if flag set
+                            else:
+                                continue  # Skip other ratios
                         
                         checkpoint_path = model_dir / 'iter_80000.pth'
                         config_path = model_dir / 'training_config.py'
@@ -293,6 +303,8 @@ def main():
                        help='Use shared GPU mode (default: True)')
     parser.add_argument('--no-shared-gpu', dest='shared_gpu', action='store_false',
                        help='Use exclusive GPU mode')
+    parser.add_argument('--include-ratio1p0', action='store_true',
+                       help='Include ratio1p0 models (real-only training)')
     parser.add_argument('--verbose', '-v', action='store_true',
                        help='Show verbose output')
     
@@ -303,6 +315,10 @@ def main():
     print("=" * 60)
     print(f"Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"Weights root: {WEIGHTS_ROOT_STAGE2}")
+    print(f"Main datasets only: {args.main_only}")
+    print(f"Include ratio1p0: {args.include_ratio1p0}")
+    print(f"Dry run: {args.dry_run}")
+    print(f"Shared GPU: {args.shared_gpu}")
     print(f"Main datasets only: {args.main_only}")
     print(f"Dry run: {args.dry_run}")
     print(f"Shared GPU: {args.shared_gpu}")
@@ -318,7 +334,10 @@ def main():
     
     # Find configs needing tests
     print("Scanning for configurations needing tests...")
-    configs = find_configs_needing_tests(main_only=args.main_only)
+    configs = find_configs_needing_tests(
+        main_only=args.main_only,
+        include_ratio1p0=args.include_ratio1p0
+    )
     print(f"Found {len(configs)} configurations needing tests")
     print()
     
