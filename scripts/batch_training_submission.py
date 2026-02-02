@@ -9,6 +9,7 @@ A robust, multi-user training submission system with:
 - Configurable for different evaluation stages
 - LSF job submission with proper parameter handling
 - File permissions: 775 for directories, 664 for files
+- Resume capability to continue interrupted training
 
 Strategies:
     - STD_STRATEGIES (7): baseline, std_minimal, std_photometric_distort,
@@ -40,6 +41,10 @@ Usage:
     
     # Stage 2 (no domain filter, all weather conditions)
     python scripts/batch_training_submission.py --stage 2 --dry-run
+    
+    # Resume interrupted training (finds latest checkpoint and continues)
+    python scripts/batch_training_submission.py --stage 1 --resume --dry-run
+    python scripts/batch_training_submission.py --stage 1 --resume --strategies gen_step1x_new
 
 Stages:
     Stage 1: Train on clear_day only (--domain-filter clear_day), test cross-domain robustness
@@ -49,6 +54,12 @@ Pre-flight Checks:
     - Skips if checkpoint already exists (iter_10000.pth)
     - Skips if training lock is held by another job
     - Skips gen_* strategies if generated images don't exist for dataset
+    
+Resume Mode (--resume):
+    - Finds the latest iter_*.pth checkpoint in the weights directory
+    - Passes --resume-from to unified_training.py to continue training
+    - Skips jobs that are already complete (have final checkpoint)
+    - Jobs without checkpoints will start fresh
 """
 
 import os
@@ -161,6 +172,50 @@ def get_checkpoint_path(weights_dir: Path, max_iters: int = 10000) -> Optional[P
     return None
 
 
+def get_latest_checkpoint(weights_dir: Path) -> Optional[Path]:
+    """Find the latest checkpoint in a weights directory for resuming training.
+    
+    Returns:
+        Path to the latest iter_*.pth checkpoint, or None if no checkpoints exist.
+    """
+    if not weights_dir.exists():
+        return None
+    
+    # Find all iter_*.pth files
+    checkpoints = list(weights_dir.glob('iter_*.pth'))
+    if not checkpoints:
+        return None
+    
+    # Sort by iteration number (extract from filename)
+    def get_iter_num(p: Path) -> int:
+        try:
+            # Extract number from iter_XXXXX.pth
+            return int(p.stem.split('_')[1])
+        except (IndexError, ValueError):
+            return 0
+    
+    # Sort by iteration number descending and return the latest
+    checkpoints.sort(key=get_iter_num, reverse=True)
+    latest = checkpoints[0]
+    
+    # Verify checkpoint is valid (not empty/corrupted)
+    try:
+        if latest.stat().st_size < 1000:  # Less than 1KB is suspicious
+            return None
+    except OSError:
+        return None
+    
+    return latest
+
+
+def get_checkpoint_iteration(checkpoint_path: Path) -> int:
+    """Extract iteration number from checkpoint filename."""
+    try:
+        return int(checkpoint_path.stem.split('_')[1])
+    except (IndexError, ValueError):
+        return 0
+
+
 def has_valid_results(weights_dir: Path, max_iters: int = 10000) -> bool:
     """Check if valid training results already exist."""
     checkpoint = get_checkpoint_path(weights_dir, max_iters)
@@ -254,6 +309,7 @@ class TrainingJob:
     aux_loss: Optional[str] = None
     weights_dir: Optional[Path] = None
     skip_reason: Optional[str] = None
+    resume_from: Optional[Path] = None  # Checkpoint to resume from
     
     @property
     def job_name(self) -> str:
@@ -325,6 +381,8 @@ def generate_job_list(
     aux_loss: Optional[str] = None,
     check_existing: bool = True,
     check_locks: bool = True,
+    resume: bool = False,
+    max_iters: int = 15000,
 ) -> List[TrainingJob]:
     """
     Generate list of training jobs with pre-flight checks.
@@ -337,6 +395,8 @@ def generate_job_list(
         ratios: List of real/gen ratios for generative strategies (default: [0.5])
         check_existing: Skip jobs with existing results
         check_locks: Skip jobs that are currently locked
+        resume: If True, look for existing checkpoints to resume from
+        max_iters: Maximum training iterations (used to determine if training is complete)
         
     Returns:
         List of TrainingJob objects
@@ -368,10 +428,20 @@ def generate_job_list(
                     job.weights_dir = get_weights_dir(strategy, dataset, model, stage, ratio, aux_loss)
                     
                     # Pre-flight checks
-                    if check_existing and has_valid_results(job.weights_dir):
+                    if check_existing and has_valid_results(job.weights_dir, max_iters):
                         job.skip_reason = 'Results exist'
                     elif strategy.startswith('gen_') and not has_generated_images(strategy, dataset):
                         job.skip_reason = 'No generated images'
+                    elif resume:
+                        # Look for existing checkpoint to resume from
+                        latest_ckpt = get_latest_checkpoint(job.weights_dir)
+                        if latest_ckpt:
+                            ckpt_iter = get_checkpoint_iteration(latest_ckpt)
+                            if ckpt_iter >= max_iters:
+                                job.skip_reason = f'Already complete (iter {ckpt_iter})'
+                            else:
+                                job.resume_from = latest_ckpt
+                        # If no checkpoint, will start fresh (resume_from stays None)
                     elif check_locks:
                         lock = TrainingLock(
                             strategy,
@@ -447,6 +517,10 @@ def generate_job_script(
     # Add auxiliary loss if specified
     if aux_loss:
         cmd_parts.extend(['--aux-loss', aux_loss])
+    
+    # Add resume-from if resuming from a checkpoint
+    if job.resume_from:
+        cmd_parts.extend(['--resume-from', str(job.resume_from)])
     
     # Add work-dir to ensure proper output location
     cmd_parts.extend(['--work-dir', work_dir])
@@ -669,6 +743,9 @@ def submit_job(
     if dry_run:
         print(f"  SUBMIT: {job.job_name}")
         print(f"    Dir: {job.weights_dir}")
+        if job.resume_from:
+            resume_iter = get_checkpoint_iteration(job.resume_from)
+            print(f"    Resuming from: iter_{resume_iter}.pth")
         return True
     
     # Write script - try weights dir first, fall back to temp file
@@ -776,6 +853,8 @@ Examples:
                        help='Don\'t skip jobs with existing results')
     parser.add_argument('--no-check-locks', action='store_true',
                        help='Don\'t check for training locks')
+    parser.add_argument('--resume', action='store_true',
+                       help='Resume training from existing checkpoints. Finds latest iter_*.pth and resumes from there.')
     
     # LSF options
     parser.add_argument('--queue', default='BatchGPU',
@@ -847,6 +926,14 @@ Examples:
     print(f"Strategies: {len(strategies)}")
     print(f"\nGenerating job list...")
     
+    # Determine effective max_iters for job generation
+    if args.max_iters is not None:
+        effective_max_iters = args.max_iters
+    elif stage == 'cityscapes':
+        effective_max_iters = 20000
+    else:
+        effective_max_iters = 15000
+    
     jobs = generate_job_list(
         stage=stage,
         strategies=strategies,
@@ -854,19 +941,24 @@ Examples:
         models=models,
         ratios=args.ratios,
         aux_loss=args.aux_loss,
-        check_existing=not args.no_check_existing,
-        check_locks=not args.no_check_locks,
+        check_existing=not args.no_check_existing and not args.resume,
+        check_locks=not args.no_check_locks and not args.resume,
+        resume=args.resume,
+        max_iters=effective_max_iters,
     )
     
     # Summary
     total = len(jobs)
     skipped = sum(1 for j in jobs if j.is_skipped)
     to_submit = total - skipped
+    resuming = sum(1 for j in jobs if j.resume_from is not None)
     
     print(f"\nJob Summary:")
     print(f"  Total configurations: {total}")
     print(f"  Skipped: {skipped}")
     print(f"  To submit: {to_submit}")
+    if resuming > 0:
+        print(f"  Resuming from checkpoint: {resuming}")
     
     if args.limit and to_submit > args.limit:
         print(f"  Limited to: {args.limit}")

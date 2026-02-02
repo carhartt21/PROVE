@@ -119,6 +119,10 @@ python scripts/batch_training_submission.py --stage cityscapes --dry-run
 python scripts/batch_training_submission.py --stage 1 --max-iters 20000 \
     --checkpoint-interval 2000 --eval-interval 2000 --dry-run
 
+# Resume interrupted training (finds latest checkpoint and continues)
+python scripts/batch_training_submission.py --stage 1 --resume --dry-run
+python scripts/batch_training_submission.py --stage 1 --resume --strategies gen_step1x_new -y
+
 # Limit number of jobs (useful for testing)
 python scripts/batch_training_submission.py --stage 1 --limit 10
 ```
