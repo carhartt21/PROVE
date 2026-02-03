@@ -1,6 +1,6 @@
 # Training Tracker - Stage 2 (All Domains)
 
-**Last Updated:** 2026-01-28 13:30
+**Last Updated:** 2026-02-03 07:52
 
 ---
 
@@ -21,11 +21,11 @@
 
 ## Progress Summary (⚠️ gen_* results INVALID)
 
-| Category | Total | Complete | Status |
-|----------|-------|----------|--------|
-| **Generative (gen_*)** | 83 | 84 | ❌ **INVALID** - needs retraining |
-| **Standard (std_*)** | 24 | 24 | ✅ **VALID** |
-| **TOTAL** | 107 | 108 | ⚠️ Partial |
+| Category | Total | Complete | Partial | Running | Pending | Failed |
+|----------|-------|----------|---------|---------|---------|--------|
+| **Generative (gen_*)** | 83 | 0 | 0 | 0 | 82 | 2 |
+| **Standard (std_*)** | 28 | 0 | 3 | 1 | 22 | 2 |
+| **TOTAL** | 111 | 0 | 3 | 1 | 104 | 4 |
 
 ### Generative Image Augmentation Strategies (❌ INVALID)
 
@@ -56,9 +56,10 @@
 
 | Strategy | BDD10k | IDD-AW | MapillaryVistas | OUTSIDE15k | Notes |
 |----------|--------|--------|-----------------|------------|-------|
-| baseline | ✅ | ✅ | ✅ | ✅ |  |
-| std_std_photometric_distort | ✅ | ✅ | ✅ | ✅ |  |
-| std_autoaugment | ✅ | ✅ | ✅ | ✅ |  |
-| std_cutmix | ✅ | ✅ | ✅ | ✅ |  |
-| std_mixup | ✅ | ✅ | ✅ | ✅ |  |
-| std_randaugment | ✅ | ✅ | ✅ | ✅ |  |
+| baseline | 3/4 | 🔄 | 3/4 | 3/4 |  |
+| std_minimal | ⏳ | ⏳ | ⏳ | ⏳ |  |
+| std_photometric_distort | ⏳ | ⏳ | ⏳ | ⏳ |  |
+| std_autoaugment | ❌ | ⏳ | ⏳ | ⏳ |  |
+| std_cutmix | ⏳ | ⏳ | ⏳ | ⏳ |  |
+| std_mixup | ❌ | ⏳ | ⏳ | ⏳ |  |
+| std_randaugment | ⏳ | ⏳ | ⏳ | ⏳ |  |

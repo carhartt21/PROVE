@@ -1080,7 +1080,13 @@ def generate_lsf_script(
     else:
         weights_base = "/scratch/aaa_exchange/AWARE/WEIGHTS_STAGE_2"
     
-    work_dir = f"{weights_base}/{strategy}/{dataset.lower()}/{model}_ratio{str(real_gen_ratio).replace('.', 'p')}"
+    # Model directory: only add ratio suffix for generative strategies with ratio != 1.0
+    if strategy.startswith('gen_') and real_gen_ratio != 1.0:
+        model_dir = f"{model}_ratio{str(real_gen_ratio).replace('.', 'p')}"
+    else:
+        model_dir = model
+    
+    work_dir = f"{weights_base}/{strategy}/{dataset.lower()}/{model_dir}"
     
     script = f'''#!/bin/bash
 #BSUB -J {job_name}
@@ -1666,7 +1672,12 @@ def main():
         script = generate_lsf_script(
             args.dataset, args.model, args.strategy, args.real_gen_ratio
         )
-        script_name = f"/tmp/prove_job_{args.dataset}_{args.model}.sh"
+        # Use work_dir for script if available, otherwise use temp dir
+        if args.work_dir:
+            script_name = os.path.join(args.work_dir, f"submit_job.sh")
+        else:
+            script_name = f"/tmp/prove_job_{args.dataset}_{args.model}.sh"
+        os.makedirs(os.path.dirname(script_name), exist_ok=True)
         with open(script_name, 'w') as f:
             f.write(script)
         

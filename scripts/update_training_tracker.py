@@ -33,21 +33,24 @@ WEIGHTS_ROOT_STAGE2 = Path(os.environ.get('PROVE_WEIGHTS_ROOT_STAGE2', '/scratch
 TRACKER_PATH = PROJECT_ROOT / 'docs' / 'TRAINING_TRACKER.md'
 DATASETS = ['bdd10k', 'idd-aw', 'mapillaryvistas', 'outside15k']
 
-# Models - now using new structure: dataset_cd/model_ratio
+# Models - now using all 4 models per strategy per dataset
 # Domain filter is part of dataset directory, not model directory
+# Stage 1 (clear_day): Uses 4 models: pspnet, segformer, segnext, mask2former
+# Stage 2 (all_domains): Uses same 4 models
 MODELS = {
     'clear_day': {
-        'gen': 'deeplabv3plus_r50_ratio0p50',
-        'std': 'deeplabv3plus_r50',
-        'baseline': 'deeplabv3plus_r50',
+        # Stage 1 now uses 4 models (not 6, excluding deeplabv3plus_r50 and hrnet_hr48)
+        'gen': ['pspnet_r50_ratio0p50', 'segformer_mit-b3_ratio0p50', 'segnext_mscan-b_ratio0p50', 'mask2former_swin-b_ratio0p50'],
+        'std': ['pspnet_r50', 'segformer_mit-b3', 'segnext_mscan-b', 'mask2former_swin-b'],
+        'baseline': ['pspnet_r50', 'segformer_mit-b3', 'segnext_mscan-b', 'mask2former_swin-b'],
     },
     'all_domains': {
-        # Stage 2 uses all 6 models: DeepLabV3+, PSPNet, SegFormer, SegNeXt, HRNet, and Mask2Former
+        # Stage 2 uses same 4 models as Stage 1
         # Generative strategies use _ratio0p50 suffix (trained with 0.5 real/gen ratio)
         # Standard strategies use base model names (no ratio suffix)
-        'gen': ['deeplabv3plus_r50_ratio0p50', 'pspnet_r50_ratio0p50', 'segformer_mit-b3_ratio0p50', 'segnext_mscan-b_ratio0p50', 'hrnet_hr48_ratio0p50', 'mask2former_swin-b_ratio0p50'],
-        'std': ['deeplabv3plus_r50', 'pspnet_r50', 'segformer_mit-b3', 'segnext_mscan-b', 'hrnet_hr48', 'mask2former_swin-b'],
-        'baseline': ['deeplabv3plus_r50', 'pspnet_r50', 'segformer_mit-b3', 'segnext_mscan-b', 'hrnet_hr48', 'mask2former_swin-b'],
+        'gen': ['pspnet_r50_ratio0p50', 'segformer_mit-b3_ratio0p50', 'segnext_mscan-b_ratio0p50', 'mask2former_swin-b_ratio0p50'],
+        'std': ['pspnet_r50', 'segformer_mit-b3', 'segnext_mscan-b', 'mask2former_swin-b'],
+        'baseline': ['pspnet_r50', 'segformer_mit-b3', 'segnext_mscan-b', 'mask2former_swin-b'],
     }
 }
 
@@ -183,8 +186,8 @@ def check_weight_status(strategy, dataset, domain_filter='clear_day'):
     else:
         weights_root = WEIGHTS_ROOT
     
-    # Dataset directory - no more _cd or _ad suffix
-    dataset_dir = dataset
+    # Dataset directory - normalize: idd-aw -> iddaw (directory name uses no hyphen)
+    dataset_dir = dataset.replace('-', '')
     dirs_to_try = [dataset_dir]
     
     # Track per-model status for Stage 2 partial completion
@@ -196,43 +199,85 @@ def check_weight_status(strategy, dataset, domain_filter='clear_day'):
         best_status = 'pending'
         best_path = None
         
+        # Try model_dir as-is, and also with _ratio1p0 suffix for legacy compatibility
+        model_variants = [model_dir]
+        if not model_dir.endswith('_ratio0p50') and not model_dir.endswith('_ratio1p0'):
+            # For standard/baseline strategies, also check legacy _ratio1p0 directories
+            model_variants.append(f'{model_dir}_ratio1p0')
+        
         for d in dirs_to_try:
-            weights_path = weights_root / strategy / d / model_dir
-            # Check for iter_10000.pth (Stage 1) or iter_80000.pth (fallback)
-            checkpoint = weights_path / "iter_10000.pth"
-            if not checkpoint.exists():
-                checkpoint = weights_path / "iter_80000.pth"
-            lock_file = weights_path / ".training_lock"
-            
-            status = 'pending'
-            try:
-                if lock_file.exists():
-                    status = 'running'
-                elif checkpoint.exists():
-                    if checkpoint.stat().st_size > 1000:
-                        status = 'complete'
-                    else:
-                        status = 'failed'
-            except PermissionError:
-                try:
-                    if weights_path.exists():
-                        files = os.listdir(weights_path)
-                        if ".training_lock" in files: status = 'running'
-                        elif "iter_10000.pth" in files or "iter_80000.pth" in files: status = 'complete'
-                except: pass
+            for model_variant in model_variants:
+                weights_path = weights_root / strategy / d / model_variant
+                # Check for valid checkpoints
+                # Priority: iter_80000.pth (complete), others (in-progress)
+                checkpoint = None
+                is_complete = False
+                highest_iter = 0
                 
-            if status == 'complete':
-                best_status = 'complete'
-                best_path = weights_path
+                # First check for the final checkpoint (80k iterations)
+                final_ckpt = weights_path / "iter_80000.pth"
+                if final_ckpt.exists():
+                    checkpoint = final_ckpt
+                    is_complete = True
+                else:
+                    # Check for any checkpoint to determine highest iteration
+                    for iter_num in [75000, 70000, 65000, 60000, 55000, 50000, 45000, 40000, 
+                                     35000, 30000, 25000, 20000, 15000, 10000, 5000, 2000, 1250]:
+                        ckpt = weights_path / f"iter_{iter_num}.pth"
+                        if ckpt.exists():
+                            checkpoint = ckpt
+                            highest_iter = iter_num
+                            break
+                
+                lock_file = weights_path / ".training_lock"
+                
+                status = 'pending'
+                try:
+                    if lock_file.exists():
+                        status = 'running'
+                    elif checkpoint and checkpoint.exists():
+                        if checkpoint.stat().st_size > 1000:
+                            if is_complete:
+                                status = 'complete'
+                            elif highest_iter >= 5000:
+                                # Significant progress - treat as in-progress (needs resume)
+                                status = 'running'  # Use 'running' to indicate work in progress
+                            else:
+                                # Very early checkpoint (1250, 2000) - likely early OOM
+                                status = 'failed'
+                        else:
+                            status = 'failed'
+                except PermissionError:
+                    try:
+                        if weights_path.exists():
+                            files = os.listdir(weights_path)
+                            if ".training_lock" in files: 
+                                status = 'running'
+                            elif "iter_80000.pth" in files: 
+                                status = 'complete'
+                            elif any(f"iter_{n}.pth" in files for n in [75000, 70000, 65000, 60000, 55000, 50000, 
+                                    45000, 40000, 35000, 30000, 25000, 20000, 15000, 10000, 5000]): 
+                                status = 'running'  # Significant progress
+                            elif any(f"iter_{n}.pth" in files for n in [2000, 1250]): 
+                                status = 'failed'  # Early OOM
+                    except: pass
+                    
+                if status == 'complete':
+                    best_status = 'complete'
+                    best_path = weights_path
+                    break
+                if status == 'running':
+                    best_status = 'running'
+                    best_path = weights_path
+                elif status == 'failed' and best_status == 'pending':
+                    best_status = 'failed'
+                    best_path = weights_path
+                elif best_path is None:
+                    best_path = weights_path
+            
+            # If we found complete, break out of d loop too
+            if best_status == 'complete':
                 break
-            if status == 'running':
-                best_status = 'running'
-                best_path = weights_path
-            elif status == 'failed' and best_status == 'pending':
-                best_status = 'failed'
-                best_path = weights_path
-            elif best_path is None:
-                best_path = weights_path
         
         model_statuses.append(best_status)
         best_paths.append(best_path)
@@ -516,23 +561,26 @@ def check_model_weight_status(strategy, dataset, model, domain_filter='clear_day
     else:
         weights_root = WEIGHTS_ROOT
     
-    # Dataset directory - no more suffix
-    dataset_dir = dataset
+    # Dataset directory - normalize: idd-aw -> iddaw (directory name uses no hyphen)
+    dataset_dir = dataset.replace('-', '')
     dirs_to_try = [dataset_dir]
         
     for d in dirs_to_try:
         weights_path = weights_root / strategy / d / model
-        # Check for iter_10000.pth (Stage 1) or iter_80000.pth (fallback)
-        checkpoint = weights_path / "iter_10000.pth"
-        if not checkpoint.exists():
-            checkpoint = weights_path / "iter_80000.pth"
+        # Check for valid checkpoints: iter_15000.pth, iter_10000.pth, or iter_80000.pth
+        checkpoint = None
+        for iter_num in [15000, 10000, 80000]:
+            ckpt = weights_path / f"iter_{iter_num}.pth"
+            if ckpt.exists():
+                checkpoint = ckpt
+                break
         lock_file = weights_path / ".training_lock"
         
         try:
             if lock_file.exists():
                 return 'running', weights_path
             
-            if checkpoint.exists():
+            if checkpoint and checkpoint.exists():
                 if checkpoint.stat().st_size > 1000:
                     return 'complete', weights_path
                 else:
@@ -542,7 +590,7 @@ def check_model_weight_status(strategy, dataset, model, domain_filter='clear_day
                 if weights_path.exists():
                     files = os.listdir(weights_path)
                     if ".training_lock" in files: return 'running', weights_path
-                    if "iter_10000.pth" in files or "iter_80000.pth" in files: return 'complete', weights_path
+                    if any(f"iter_{n}.pth" in files for n in [15000, 10000, 80000]): return 'complete', weights_path
             except: pass
             
     return 'pending', weights_path

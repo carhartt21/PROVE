@@ -472,6 +472,7 @@ def generate_job_script(
     job: TrainingJob,
     lsf_config: LSFConfig,
     max_iters: Optional[int] = None,
+    batch_size: Optional[int] = None,
     checkpoint_interval: Optional[int] = None,
     eval_interval: Optional[int] = None,
     aux_loss: Optional[str] = None,
@@ -543,6 +544,10 @@ def generate_job_script(
     
     # Add max iterations
     cmd_parts.extend(['--max-iters', str(effective_max_iters)])
+
+    # Add batch size if specified
+    if batch_size is not None:
+        cmd_parts.extend(['--batch-size', str(batch_size)])
 
     # Add checkpoint and eval intervals if specified
     if checkpoint_interval is not None:
@@ -739,6 +744,7 @@ def submit_job(
     lsf_config: LSFConfig,
     dry_run: bool = False,
     max_iters: Optional[int] = None,
+    batch_size: Optional[int] = None,
     checkpoint_interval: Optional[int] = None,
     eval_interval: Optional[int] = None,
     aux_loss: Optional[str] = None,
@@ -751,6 +757,7 @@ def submit_job(
         lsf_config: LSF configuration
         dry_run: If True, just print what would be done
         max_iters: Optional maximum training iterations
+        batch_size: Optional batch size (default: 16 for Cityscapes, 2 for others)
         checkpoint_interval: Optional checkpoint save interval
         eval_interval: Optional validation interval
         aux_loss: Optional auxiliary loss type
@@ -770,6 +777,7 @@ def submit_job(
     script = generate_job_script(
         job, lsf_config,
         max_iters=max_iters,
+        batch_size=batch_size,
         checkpoint_interval=checkpoint_interval,
         eval_interval=eval_interval,
         aux_loss=aux_loss
@@ -876,6 +884,8 @@ Examples:
                        help='Real/gen ratios for generative strategies (default: 0.5). Example: --ratios 0.0 0.25 0.5')
     parser.add_argument('--max-iters', type=int, default=None,
                        help='Maximum training iterations (default: use config default, usually 10000)')
+    parser.add_argument('--batch-size', type=int, default=None,
+                       help='Training batch size (default: 16 for Cityscapes, 2 for others). Adjust LR and warmup automatically.')
     parser.add_argument('--checkpoint-interval', type=int, default=None,
                        help='Save checkpoint every N iterations (default: 5000)')
     parser.add_argument('--eval-interval', type=int, default=None,
@@ -1037,6 +1047,7 @@ Examples:
             lsf_config,
             dry_run=args.dry_run,
             max_iters=args.max_iters,
+            batch_size=args.batch_size,
             checkpoint_interval=args.checkpoint_interval,
             eval_interval=args.eval_interval,
             aux_loss=args.aux_loss,
