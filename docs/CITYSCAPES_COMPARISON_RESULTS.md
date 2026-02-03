@@ -133,8 +133,39 @@
 3. **SegNext nearly matches reference**: Only 0.59% below reference with 2× total gradient steps
 4. **SegFormer benefits more from smaller batch**: Shows larger relative improvement (+0.87% vs +0.57%)
 
+## Training Time Comparison
+
+All runs performed on NVIDIA A100 80GB GPUs.
+
+| Model | Config | Run Time | mIoU | Time per 1% mIoU |
+|-------|--------|----------|------|------------------|
+| **SegFormer** | Reference (80k, BS=2) | 7.5 hrs | 79.98% | 5.6 min |
+| **SegFormer** | BS=16, 20k | 2.25 hrs | 75.97% | 1.8 min |
+| **SegFormer** | BS=8, 40k | 2.49 hrs | 76.84% | 1.9 min |
+| **SegNext** | Reference (80k, BS=2) | 9.3 hrs | 81.13% | 6.9 min |
+| **SegNext** | BS=16, 20k | 2.44 hrs | 79.97% | 1.8 min |
+| **SegNext** | BS=8, 40k | 2.66 hrs | 80.54% | 2.0 min |
+
+### Training Time Details
+
+| Config | SegFormer Run Time | SegNext Run Time |
+|--------|-------------------|------------------|
+| Reference (80k, BS=2) | 27,050 sec (7.5 hrs) | 33,627 sec (9.3 hrs) |
+| PROVE BS=16, 20k | 8,099 sec (2.25 hrs) | 8,794 sec (2.44 hrs) |
+| PROVE BS=8, 40k | 8,958 sec (2.49 hrs) | 9,584 sec (2.66 hrs) |
+
+### Efficiency Analysis
+
+1. **PROVE configs are ~3× faster** than reference configs
+2. **BS=8 adds ~10% training time** over BS=16 for ~1% mIoU improvement
+3. **Time-efficiency tradeoff**:
+   - BS=16: Fastest training, acceptable accuracy (~1-4% below reference)
+   - BS=8: Slightly slower, better accuracy (~0.5-3% below reference)
+   - Reference: Slowest, best accuracy
+
 ### Conclusion
 
 - **For SegNext**: BS=16 with 20k iterations is acceptable (~1% below reference)
 - **For SegFormer**: Consider using BS=8 with 40k iterations for better results
 - **Total samples matter less than gradient steps** for transformer models
+- **PROVE config is ~3× faster** while achieving 95-99% of reference accuracy
