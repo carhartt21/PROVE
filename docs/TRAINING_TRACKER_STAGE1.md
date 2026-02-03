@@ -1,6 +1,6 @@
 # Training Tracker - Stage 1 (Clear Day)
 
-**Last Updated:** 2026-02-03 07:52
+**Last Updated:** 2026-02-03 17:25
 
 ---
 
@@ -23,9 +23,9 @@
 
 | Category | Total | Complete | Partial | Running | Pending | Failed |
 |----------|-------|----------|---------|---------|---------|--------|
-| **Generative (gen_*)** | 83 | 0 | 0 | 46 | 5 | 33 |
+| **Generative (gen_*)** | 83 | 0 | 0 | 58 | 5 | 21 |
 | **Standard (std_*)** | 28 | 0 | 0 | 16 | 8 | 4 |
-| **TOTAL** | 111 | 0 | 0 | 62 | 13 | 37 |
+| **TOTAL** | 111 | 0 | 0 | 74 | 13 | 25 |
 
 ### Generative Image Augmentation Strategies (❌ INVALID)
 

@@ -114,6 +114,8 @@ ALL_MODELS = [
     'segnext_mscan-b_ratio0p50',
     'hrnet_hr48',
     'hrnet_hr48_ratio0p50',
+    'mask2former_swin-b',
+    'mask2former_swin-b_ratio0p50',
 ]
 
 # Model display names
@@ -128,6 +130,8 @@ MODEL_DISPLAY = {
     'segnext_mscan-b_ratio0p50': 'SegNeXt (0.5)',
     'hrnet_hr48': 'HRNet',
     'hrnet_hr48_ratio0p50': 'HRNet (0.5)',
+    'mask2former_swin-b': 'Mask2Former',
+    'mask2former_swin-b_ratio0p50': 'Mask2Former (0.5)',
 }
 
 
