@@ -66,6 +66,36 @@
 - ✅ segformer_mit-b3: **Completed** - 76.84% mIoU (Job 1057498)
 - ✅ segnext_mscan-b: **Completed** - 80.54% mIoU (Job 1057499)
 
+## Training Progress: BS=16, 20k Iterations
+
+**SegFormer MIT-B3 (BS=16):**
+| Iteration | mIoU | aAcc |
+|-----------|------|------|
+| 2000 | 57.78% | 92.98% |
+| 4000 | 56.41% | 92.72% |
+| 6000 | 63.15% | 93.98% |
+| 8000 | 69.83% | 94.57% |
+| 10000 | 68.98% | 94.67% |
+| 12000 | 68.04% | 94.10% |
+| 14000 | 73.13% | 95.40% |
+| 16000 | 74.60% | 95.49% |
+| 18000 | 74.67% | 95.61% |
+| **20000** | **75.97%** | **95.58%** |
+
+**SegNext MSCAN-B (BS=16):**
+| Iteration | mIoU | aAcc |
+|-----------|------|------|
+| 2000 | 59.16% | 93.29% |
+| 4000 | 64.75% | 94.06% |
+| 6000 | 70.93% | 95.25% |
+| 8000 | 74.59% | 95.46% |
+| 10000 | 73.54% | 95.37% |
+| 12000 | 76.80% | 95.92% |
+| 14000 | 76.58% | 95.94% |
+| 16000 | 78.90% | 96.18% |
+| 18000 | 79.40% | 96.26% |
+| **20000** | **79.97%** | **96.33%** |
+
 ## Additional Experiment: BS=8, 40k Iterations
 
 **Purpose**: Test if transformer models (SegFormer, SegNext) achieve better results with smaller batch size and longer training.
