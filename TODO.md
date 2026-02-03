@@ -1,10 +1,63 @@
 # PROVE Project TODO
 
-**Last Updated:** 2026-02-02 (08:15)
+**Last Updated:** 2026-02-03 (18:10)
 
 ---
 
-## 🆕 NEW: Resume Training Feature (2026-02-02)
+## 🆕 NEW: Mask2Former Swin-B Integration (2026-02-03)
+
+### ✅ Mask2Former Added to Training Pipeline
+- **Model**: Mask2Former with Swin-B backbone (22k pretrained)
+- **Configuration**: batch_size=8, max_iters=10,000, lr=0.0004 (4x scaled)
+- **GPU Mode**: `exclusive_process` for memory-intensive training
+- **Pretrained Weights**: `/scratch/aaa_exchange/AWARE/pretrained/swin/swin_base_patch4_window12_384_22k_20220317-e5c09f74.pth`
+
+### 🐛 Fixed: Validation Shape Mismatch Bug (2026-02-03)
+- **Issue**: Mask2Former Stage 1 jobs failing with IndexError: shape [1024,1024] vs [512,512]
+- **Root Cause**: Config generated before commit `8a4948c` that fixed BDD10k/IDD-AW resize to 512x512
+- **Fix**: Cleaned old configs and resubmitted jobs with correct resize scale
+- **Commit**: `8a4948c` - Extend validation resize fix to BDD10k and IDD-AW
+
+### 🔄 Active Stage 1 Baseline Jobs (6 jobs)
+| Job ID | Job Name | Status |
+|--------|----------|--------|
+| 1093758 | s1_baseline_bdd10k_mask2former | PEND (top) |
+| 1093759 | s1_baseline_iddaw_mask2former | PEND (top) |
+| 1093760 | s1_baseline_mapillaryvistas_mask2former | PEND (top) |
+| 1093761 | s1_baseline_outside15k_mask2former | PEND (top) |
+| 1093764 | s1_baseline_bdd10k_segformer | PEND (top) |
+| 1093765 | s1_baseline_iddaw_pspnet | PEND (top) |
+
+### � Stage 1 Baseline Status (2026-02-03)
+
+| Dataset | DeepLabV3+ | PSPNet | SegFormer | SegNeXt | HRNet | Mask2Former |
+|---------|:----------:|:------:|:---------:|:-------:|:-----:|:-----------:|
+| BDD10k | ⏳ | ✅ 30.0% | 🔄 | ✅ 41.3% | ❌ | 🔄 |
+| IDD-AW | ⏳ | 🔄 | ✅ 34.0% | ✅ 35.1% | ✅ 20.7% | 🔄 |
+| MapillaryVistas | ⏳ | ✅ 29.0% | ✅ 27.7% | ✅ 34.6% | ✅ 15.2% | 🔄 |
+| OUTSIDE15k | ⏳ | ✅ 36.0% | ✅ 36.9% | ✅ 38.7% | ✅ 19.8% | 🔄 |
+
+**Legend:** ✅ Complete | 🔄 Running/Submitted | ⏳ Pending | ❌ Failed
+
+**Best mIoU per Model:**
+- **SegNeXt**: 41.27% (BDD10k) ⭐
+- **SegFormer**: 36.87% (OUTSIDE15k)
+- **PSPNet**: 36.02% (OUTSIDE15k)
+- **HRNet**: 20.69% (IDD-AW)
+- **Mask2Former**: Jobs submitted, awaiting results
+- **DeepLabV3+**: Not yet submitted
+
+### 📈 Cluster Status
+- **Running Jobs**: 13
+- **Pending Jobs**: 70
+- **Total Jobs**: 83
+
+### �🔄 Active Stage 2 Jobs (~25 running/pending)
+Stage 2 Mask2Former and std_* strategy jobs running (BDD10k, IDD-AW, MapillaryVistas, OUTSIDE15k)
+
+---
+
+## 🆕 Resume Training Feature (2026-02-02)
 
 Added `--resume` flag to batch_training_submission.py to resume interrupted training:
 
