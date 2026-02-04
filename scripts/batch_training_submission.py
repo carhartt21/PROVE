@@ -162,10 +162,53 @@ class LSFConfig:
 
 
 # ============================================================================
+# Iteration Configuration
+# ============================================================================
+
+# Model-specific max iterations (some models need longer training)
+MODEL_SPECIFIC_MAX_ITERS = {
+    'mask2former_swin-b': 20000,  # Transformer models benefit from longer training
+}
+
+def get_effective_max_iters(
+    stage: int,
+    model: Optional[str] = None,
+    override_max_iters: Optional[int] = None,
+) -> int:
+    """
+    Compute the effective max_iters based on stage, model, and overrides.
+    
+    This is the single source of truth for determining the target checkpoint.
+    
+    Args:
+        stage: Training stage (1, 2, 'cityscapes', 'ratio', etc.)
+        model: Model name (used for model-specific iterations)
+        override_max_iters: Manual override from command line
+        
+    Returns:
+        The target maximum iterations for training
+    """
+    # Manual override takes highest priority
+    if override_max_iters is not None:
+        return override_max_iters
+    
+    # Model-specific iterations (some models need longer training)
+    if model and model in MODEL_SPECIFIC_MAX_ITERS:
+        return MODEL_SPECIFIC_MAX_ITERS[model]
+    
+    # Stage-specific defaults
+    if stage == 'cityscapes':
+        return 20000  # 20k iters (BS=16) = 320k samples = 160k iters (BS=2)
+    else:
+        # Stage 1, Stage 2, ratio ablation all use 15k iters
+        return 15000  # 15k iters at BS=16 (~98% of final mIoU)
+
+
+# ============================================================================
 # Pre-flight Checks
 # ============================================================================
 
-def get_checkpoint_path(weights_dir: Path, max_iters: int = 15000) -> Optional[Path]:
+def get_checkpoint_path(weights_dir: Path, max_iters: int) -> Optional[Path]:
     """Get the final checkpoint path if it exists."""
     checkpoint = weights_dir / f'iter_{max_iters}.pth'
     if checkpoint.exists():
@@ -217,8 +260,13 @@ def get_checkpoint_iteration(checkpoint_path: Path) -> int:
         return 0
 
 
-def has_valid_results(weights_dir: Path, max_iters: int = 15000) -> bool:
-    """Check if valid training results already exist."""
+def has_valid_results(weights_dir: Path, max_iters: int) -> bool:
+    """Check if valid training results already exist.
+    
+    Args:
+        weights_dir: Path to the weights directory
+        max_iters: Target iteration count (must be explicitly passed)
+    """
     checkpoint = get_checkpoint_path(weights_dir, max_iters)
     if checkpoint is None:
         return False
@@ -311,6 +359,7 @@ class TrainingJob:
     weights_dir: Optional[Path] = None
     skip_reason: Optional[str] = None
     resume_from: Optional[Path] = None  # Checkpoint to resume from
+    effective_max_iters: Optional[int] = None  # Target max iterations (computed per job)
     
     @property
     def job_name(self) -> str:
@@ -383,7 +432,7 @@ def generate_job_list(
     check_existing: bool = True,
     check_locks: bool = True,
     resume: bool = False,
-    max_iters: int = 15000,
+    max_iters: Optional[int] = None,
 ) -> List[TrainingJob]:
     """
     Generate list of training jobs with pre-flight checks.
@@ -397,7 +446,7 @@ def generate_job_list(
         check_existing: Skip jobs with existing results
         check_locks: Skip jobs that are currently locked
         resume: If True, look for existing checkpoints to resume from
-        max_iters: Maximum training iterations (used to determine if training is complete)
+        max_iters: Override for max training iterations (default: computed per job based on stage/model)
         
     Returns:
         List of TrainingJob objects
@@ -428,8 +477,15 @@ def generate_job_list(
                     # Get weights directory
                     job.weights_dir = get_weights_dir(strategy, dataset, model, stage, ratio, aux_loss)
                     
+                    # Compute effective max_iters for this job
+                    # Uses stage and model to determine target checkpoint
+                    effective_max_iters = get_effective_max_iters(stage, model, max_iters)
+                    
+                    # Store effective max_iters on job for later use in job script
+                    job.effective_max_iters = effective_max_iters
+                    
                     # Pre-flight checks
-                    if check_existing and has_valid_results(job.weights_dir, max_iters):
+                    if check_existing and has_valid_results(job.weights_dir, effective_max_iters):
                         job.skip_reason = 'Results exist'
                     elif strategy.startswith('gen_') and not has_generated_images(strategy, dataset):
                         job.skip_reason = 'No generated images'
@@ -438,7 +494,7 @@ def generate_job_list(
                         latest_ckpt = get_latest_checkpoint(job.weights_dir)
                         if latest_ckpt:
                             ckpt_iter = get_checkpoint_iteration(latest_ckpt)
-                            if ckpt_iter >= max_iters:
+                            if ckpt_iter >= effective_max_iters:
                                 job.skip_reason = f'Already complete (iter {ckpt_iter})'
                             else:
                                 job.resume_from = latest_ckpt
@@ -480,12 +536,6 @@ def generate_job_script(
     """Generate LSF job script for a training job."""
     work_dir = str(job.weights_dir)
     
-    # Model-specific max_iters for memory-intensive models
-    # These models use different batch sizes and need adjusted iterations
-    MODEL_SPECIFIC_MAX_ITERS = {
-        'mask2former_swin-b': 10000,  # BS=8, 10k iters = 80k samples (similar to 5k @ BS=16)
-    }
-    
     # Models requiring exclusive GPU access (memory-intensive)
     EXCLUSIVE_GPU_MODELS = {'mask2former_swin-b'}
     
@@ -505,17 +555,14 @@ def generate_job_script(
     }
     DEFAULT_GMEM = '20G'  # Safe default for unknown models
     
-    # Determine effective max_iters for checkpoint paths
-    # Default: 20k for Cityscapes (matches original 160k at BS=2), 15k for other stages
-    # 15k iters at BS=16 achieves ~98% of final mIoU while reducing training time by ~80%
-    if max_iters is not None:
+    # Use effective_max_iters from job if set, otherwise compute it
+    # (job.effective_max_iters should already be set by generate_job_list)
+    if job.effective_max_iters is not None:
+        effective_max_iters = job.effective_max_iters
+    elif max_iters is not None:
         effective_max_iters = max_iters
-    elif job.model in MODEL_SPECIFIC_MAX_ITERS:
-        effective_max_iters = MODEL_SPECIFIC_MAX_ITERS[job.model]
-    elif job.stage == 'cityscapes':
-        effective_max_iters = 20000  # 20k iters (BS=16) = 320k samples = 160k iters (BS=2)
     else:
-        effective_max_iters = 15000  # 15k iters at BS=16 (~98% of final mIoU)
+        effective_max_iters = get_effective_max_iters(job.stage, job.model)
     
     # GPU specification - use exclusive_process for memory-intensive models
     # All models get gmem specification to prevent OOM from GPU sharing
