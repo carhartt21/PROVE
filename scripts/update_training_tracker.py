@@ -154,6 +154,29 @@ def get_status_emoji(status, model_info=None):
     return base_emoji
 
 
+# Default max_iters (new training regime uses 15k iterations)
+DEFAULT_MAX_ITERS = 15000
+
+
+def get_target_iterations(weights_path):
+    """Read max_iters from training_config.py in the weights directory.
+    
+    Returns:
+        int: Target iteration count from config, or DEFAULT_MAX_ITERS if not found
+    """
+    config_file = weights_path / "training_config.py"
+    try:
+        if config_file.exists():
+            content = config_file.read_text()
+            # Parse: train_cfg = dict(max_iters=15000, ...)
+            match = re.search(r'max_iters\s*=\s*(\d+)', content)
+            if match:
+                return int(match.group(1))
+    except (PermissionError, IOError):
+        pass
+    return DEFAULT_MAX_ITERS
+
+
 def check_weight_status(strategy, dataset, domain_filter='clear_day'):
     """Check if weights exist and are valid. Also checks for training lock files and detailed results.
     
@@ -212,25 +235,33 @@ def check_weight_status(strategy, dataset, domain_filter='clear_day'):
         for d in dirs_to_try:
             for model_variant in model_variants:
                 weights_path = weights_root / strategy / d / model_variant
+                
+                # Get target iterations from config (or use default)
+                target_iters = get_target_iterations(weights_path)
+                
                 # Check for valid checkpoints
-                # Priority: iter_80000.pth (complete), others (in-progress)
                 checkpoint = None
                 is_complete = False
                 highest_iter = 0
                 
-                # First check for the final checkpoint (80k iterations)
-                final_ckpt = weights_path / "iter_80000.pth"
+                # First check for the final checkpoint (target iterations from config)
+                final_ckpt = weights_path / f"iter_{target_iters}.pth"
                 if final_ckpt.exists():
                     checkpoint = final_ckpt
                     is_complete = True
                 else:
-                    # Check for any checkpoint to determine highest iteration
-                    for iter_num in [75000, 70000, 65000, 60000, 55000, 50000, 45000, 40000, 
-                                     35000, 30000, 25000, 20000, 15000, 10000, 5000, 2000, 1250]:
+                    # Also check common iteration checkpoints to find highest
+                    # Include both old (80k) and new (15k) regime checkpoints
+                    for iter_num in [80000, 75000, 70000, 65000, 60000, 55000, 50000, 45000, 40000, 
+                                     35000, 30000, 25000, 20000, 15000, 14000, 12000, 10000, 8000,
+                                     6000, 5000, 4000, 2000, 1250]:
                         ckpt = weights_path / f"iter_{iter_num}.pth"
                         if ckpt.exists():
                             checkpoint = ckpt
                             highest_iter = iter_num
+                            # Check if this is actually the target (complete)
+                            if iter_num == target_iters:
+                                is_complete = True
                             break
                 
                 lock_file = weights_path / ".training_lock"
@@ -243,11 +274,11 @@ def check_weight_status(strategy, dataset, domain_filter='clear_day'):
                         if checkpoint.stat().st_size > 1000:
                             if is_complete:
                                 status = 'complete'
-                            elif highest_iter >= 5000:
-                                # Significant progress - treat as in-progress (needs resume)
+                            elif highest_iter >= min(5000, target_iters * 0.3):
+                                # Significant progress (at least 30% or 5k iters) - treat as in-progress
                                 status = 'running'  # Use 'running' to indicate work in progress
                             else:
-                                # Very early checkpoint (1250, 2000) - likely early OOM
+                                # Very early checkpoint - likely early OOM
                                 status = 'failed'
                         else:
                             status = 'failed'
@@ -257,12 +288,13 @@ def check_weight_status(strategy, dataset, domain_filter='clear_day'):
                             files = os.listdir(weights_path)
                             if ".training_lock" in files: 
                                 status = 'running'
-                            elif "iter_80000.pth" in files: 
+                            elif f"iter_{target_iters}.pth" in files: 
                                 status = 'complete'
-                            elif any(f"iter_{n}.pth" in files for n in [75000, 70000, 65000, 60000, 55000, 50000, 
-                                    45000, 40000, 35000, 30000, 25000, 20000, 15000, 10000, 5000]): 
+                            # Check for significant progress (common iteration numbers)
+                            elif any(f"iter_{n}.pth" in files for n in [80000, 75000, 70000, 65000, 60000, 55000, 50000, 
+                                    45000, 40000, 35000, 30000, 25000, 20000, 15000, 14000, 12000, 10000, 8000, 6000, 5000]): 
                                 status = 'running'  # Significant progress
-                            elif any(f"iter_{n}.pth" in files for n in [2000, 1250]): 
+                            elif any(f"iter_{n}.pth" in files for n in [4000, 2000, 1250]): 
                                 status = 'failed'  # Early OOM
                     except: pass
                     

@@ -1,6 +1,6 @@
 # Training Tracker - Stage 1 (Clear Day)
 
-**Last Updated:** 2026-02-03 17:25
+**Last Updated:** 2026-02-04 14:50
 
 ---
 
@@ -23,9 +23,9 @@
 
 | Category | Total | Complete | Partial | Running | Pending | Failed |
 |----------|-------|----------|---------|---------|---------|--------|
-| **Generative (gen_*)** | 83 | 0 | 0 | 58 | 5 | 21 |
-| **Standard (std_*)** | 28 | 0 | 0 | 16 | 8 | 4 |
-| **TOTAL** | 111 | 0 | 0 | 74 | 13 | 25 |
+| **Generative (gen_*)** | 83 | 0 | 8 | 9 | 5 | 62 |
+| **Standard (std_*)** | 28 | 4 | 4 | 6 | 8 | 6 |
+| **TOTAL** | 111 | 4 | 12 | 15 | 13 | 68 |
 
 ### Generative Image Augmentation Strategies (❌ INVALID)
 
@@ -56,10 +56,10 @@
 
 | Strategy | BDD10k | IDD-AW | MapillaryVistas | OUTSIDE15k | Notes |
 |----------|--------|--------|-----------------|------------|-------|
-| baseline | 🔄 | 🔄 | 🔄 | 🔄 |  |
+| baseline | 🔄 | 🔄 | 3/4 | 3/4 |  |
 | std_minimal | ⏳ | ⏳ | ⏳ | ⏳ |  |
 | std_photometric_distort | ⏳ | ⏳ | ⏳ | ⏳ |  |
-| std_autoaugment | ❌ | 🔄 | 🔄 | ❌ |  |
-| std_cutmix | 🔄 | 🔄 | 🔄 | 🔄 |  |
-| std_mixup | 🔄 | 🔄 | 🔄 | 🔄 |  |
-| std_randaugment | 🔄 | 🔄 | ❌ | ❌ |  |
+| std_autoaugment | ✅ | ✅ | 3/4 | 3/4 |  |
+| std_cutmix | ✅ | ✅ | 🔄 | 🔄 |  |
+| std_mixup | 🔄 | 🔄 | ❌ | ❌ |  |
+| std_randaugment | ❌ | ❌ | ❌ | ❌ |  |
