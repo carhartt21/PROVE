@@ -1,68 +1,57 @@
 # PROVE Project TODO
 
-**Last Updated:** 2026-02-03 (23:40)
+**Last Updated:** 2026-02-04 (17:00)
 
 ---
 
-## 🆕 Image Generation: Qwen Parallel Jobs (2026-02-03)
+## 🆕 Training Progress Update (2026-02-04)
 
-### 🔄 Active Qwen Image Generation Jobs (6 parallel)
-Parallelized Qwen image generation by weather condition for ~6x speedup:
+### 📊 Training Status Summary
 
-| Job ID | Weather | Status | Progress | Images |
-|--------|---------|--------|----------|--------|
-| 1095301 | foggy | PEND (top) | 12% | 369/2,975 |
-| 1095302 | rainy | PEND (top) | 12% | 368/2,975 |
-| 1095303 | snowy | PEND (top) | 12% | 368/2,975 |
-| 1095304 | cloudy | PEND (top) | 12% | 368/2,975 |
-| 1095305 | night | PEND (top) | 12% | 368/2,975 |
-| 1095306 | dawn_dusk | PEND (top) | 12% | 368/2,975 |
+| Metric | Stage 1 | Stage 2 |
+|--------|---------|---------|
+| Configs Complete | 4/111 (3.6%) | 3/111 (2.7%) |
+| **Models Complete** | **116/444 (26.1%)** | **45/444 (10.1%)** |
+| Models Running | 18 | 1 |
+| Models Pending | 179 | 399 |
+| Models Failed | 135 | 3 |
 
-**Output:** `/scratch/aaa_exchange/AWARE/GENERATED_IMAGES/qwen/CITYSCAPES`
-**Estimated Time:** ~6-8 hours per job (vs 31+ hours serial)
+### 🔄 Baseline Jobs (2026-02-04)
+All missing baseline Mask2Former jobs submitted and moved to top of queue:
 
-### 📊 Current Queue Status (2026-02-03 23:38)
+| Job ID | Stage | Dataset | Model | Status |
+|--------|-------|---------|-------|--------|
+| 1167137 | 1 | BDD10k | Mask2Former | RUN |
+| 1187813 | 1 | IDD-AW | Mask2Former | PEND (top) |
+| 1187814 | 1 | MapillaryVistas | Mask2Former | PEND (top) |
+| 1187815 | 1 | OUTSIDE15k | Mask2Former | PEND (top) |
+| 1187816 | 2 | BDD10k | Mask2Former | PEND (top) |
+| 1187817 | 2 | IDD-AW | Mask2Former | PEND (top) |
+| 1187818 | 2 | MapillaryVistas | Mask2Former | PEND (top) |
+| 1187819 | 2 | OUTSIDE15k | Mask2Former | PEND (top) |
+
+### 📊 Current Queue Status (2026-02-04 17:00)
 
 | User | Running | Pending | Total |
 |------|---------|---------|-------|
-| chge7185 | 6 | 251 | 258 |
-| mima2416 | 13 | 341 | 355 |
-
-**chge7185 Running Jobs:**
-- flux-kontext_CITYSCAPES (Job 1012976)
-- step1x_new_Cityscapes (Job 1015803)
-- step1x_v1p2_Cityscapes (Job 1015804)
-- weather_effect_Cityscapes (Job 1017030)
-- s2_std_cutmix_outside15k_pspnet (Job 1094725)
-- s2_std_mixup_bdd10k_pspnet (Job 1094729)
-
-**mima2416 Running Jobs:**
-- s1_std_autoaugment_* (multiple datasets)
-- s1_std_cutmix_* (multiple datasets)
+| mima2416 | 1 | 346 | 347 |
 
 ---
 
-## 🆕 Stage 2 Training Status (2026-02-03)
+## 🛠️ Script Improvements (2026-02-04)
 
-### Why s2_* Jobs (1057730-1057800) Failed
-- **Root Cause:** Lock files from mima2416's parallel training
-- **Error:** "ERROR: Another job is already training this configuration"
-- **Resolution:** Lock mechanism worked correctly - prevented duplicates
+### ✅ Training Tracker Improvements
+- **Reading target iterations from config**: Now reads `max_iters` from `training_config.py` instead of hardcoded 80000
+- **Individual model counts**: Shows per-model completion status (not just configuration-level)
+- **Default iterations**: 15,000 for new training regime (was 80,000)
 
-### Stage 2 Checkpoint Status (61 complete)
-| Owner | Checkpoints | Type |
-|-------|-------------|------|
-| mima2416 | 48 | Ratio ablation (`_ratio1p0`) |
-| chge7185 | 13 | Standard Stage 2 |
-
-### Pending Stage 2 Jobs
-- **To Submit:** 381 configurations
-- **Skipped:** 35 (results exist)
-- **Strategies:** baseline, std_*, gen_* (26 total strategies)
+**Updated files:**
+- `scripts/update_training_tracker.py`
+- `scripts/generate_baseline_overview.py`
 
 ---
 
-## 🆕 NEW: Mask2Former Swin-B Integration (2026-02-03)
+## 🆕 Mask2Former Swin-B Integration (2026-02-03)
 
 ### ✅ Mask2Former Added to Training Pipeline
 - **Model**: Mask2Former with Swin-B backbone (22k pretrained)
@@ -86,32 +75,30 @@ Parallelized Qwen image generation by weather condition for ~6x speedup:
 | 1093764 | s1_baseline_bdd10k_segformer | PEND (top) |
 | 1093765 | s1_baseline_iddaw_pspnet | PEND (top) |
 
-### � Stage 1 Baseline Status (2026-02-03)
+### 📈 Stage 1 Baseline Status (2026-02-04)
 
-| Dataset | DeepLabV3+ | PSPNet | SegFormer | SegNeXt | HRNet | Mask2Former |
-|---------|:----------:|:------:|:---------:|:-------:|:-----:|:-----------:|
-| BDD10k | ⏳ | ✅ 30.0% | 🔄 | ✅ 41.3% | ❌ | 🔄 |
-| IDD-AW | ⏳ | 🔄 | ✅ 34.0% | ✅ 35.1% | ✅ 20.7% | 🔄 |
-| MapillaryVistas | ⏳ | ✅ 29.0% | ✅ 27.7% | ✅ 34.6% | ✅ 15.2% | 🔄 |
-| OUTSIDE15k | ⏳ | ✅ 36.0% | ✅ 36.9% | ✅ 38.7% | ✅ 19.8% | 🔄 |
+| Dataset | PSPNet | SegFormer | SegNeXt | Mask2Former |
+|---------|:------:|:---------:|:-------:|:-----------:|
+| BDD10k | ✅ 40.7% | ✅ 46.3% | ✅ 44.9% | 🔄 |
+| IDD-AW | ✅ 26.2% | ✅ 34.0% | ✅ 35.1% | 🔄 |
+| MapillaryVistas | ✅ 29.0% | ✅ 27.7% | ✅ 34.6% | 🔄 |
+| OUTSIDE15k | ✅ 39.5% | ✅ 38.9% | ✅ 40.4% | 🔄 |
 
 **Legend:** ✅ Complete | 🔄 Running/Submitted | ⏳ Pending | ❌ Failed
 
-**Best mIoU per Model:**
-- **SegNeXt**: 41.27% (BDD10k) ⭐
-- **SegFormer**: 36.87% (OUTSIDE15k)
-- **PSPNet**: 36.02% (OUTSIDE15k)
-- **HRNet**: 20.69% (IDD-AW)
-- **Mask2Former**: Jobs submitted, awaiting results
-- **DeepLabV3+**: Not yet submitted
+**Best mIoU per Dataset (Stage 1 baseline):**
+- **BDD10k**: SegFormer 46.25%
+- **IDD-AW**: SegNeXt 35.09%
+- **MapillaryVistas**: SegNeXt 34.64%
+- **OUTSIDE15k**: SegNeXt 40.36%
 
 ### 📈 Cluster Status
-- **Running Jobs**: 13
-- **Pending Jobs**: 70
-- **Total Jobs**: 83
+- **Running Jobs**: 1
+- **Pending Jobs**: 346
+- **Total Jobs**: 347
 
-### �🔄 Active Stage 2 Jobs (~25 running/pending)
-Stage 2 Mask2Former and std_* strategy jobs running (BDD10k, IDD-AW, MapillaryVistas, OUTSIDE15k)
+### 🔄 Active Stage 2 Jobs
+Stage 2 Mask2Former baseline jobs pending (BDD10k, IDD-AW, MapillaryVistas, OUTSIDE15k)
 
 ---
 
