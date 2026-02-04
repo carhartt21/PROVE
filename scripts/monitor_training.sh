@@ -27,27 +27,63 @@ log_output() {
     done
 }
 
+# Function to count jobs finished within last N minutes
+# Args: $1=user, $2=status (DONE or EXIT), $3=minutes
+count_recent_jobs() {
+    local user=$1
+    local status=$2
+    local minutes=$3
+    local cutoff_epoch=$(date -d "$minutes minutes ago" '+%s')
+    local current_year=$(date '+%Y')
+    
+    bjobs -a -u "$user" -o "stat:8 finish_time:20" 2>/dev/null | \
+    awk -v status="$status" -v cutoff="$cutoff_epoch" -v year="$current_year" '
+        NR > 1 && $1 == status {
+            # finish_time format: "Feb  4 13:45" or similar
+            finish_str = $2 " " $3 " " $4 " " year
+            cmd = "date -d \"" finish_str "\" +%s 2>/dev/null"
+            cmd | getline finish_epoch
+            close(cmd)
+            if (finish_epoch != "" && finish_epoch >= cutoff) {
+                count++
+            }
+        }
+        END { print count + 0 }
+    '
+}
+
 while true; do
     clear
     {
     echo -e "${BOLD}${CYAN}=== Training Monitor - $(date '+%Y-%m-%d %H:%M:%S') ===${NC}"
     
-    # Compact job status
+    # Compact job status with totals
     echo ""
-    echo -e "${BLUE}[JOBS]${NC} chge7185: $(bjobs -u chge7185 -o 'stat' 2>/dev/null | tail -n +2 | sort | uniq -c | tr '\n' ' ')"
-    echo -e "${BLUE}[JOBS]${NC} mima2416: $(bjobs -u mima2416 -o 'stat' 2>/dev/null | tail -n +2 | sort | uniq -c | tr '\n' ' ')"
+    CHGE_STATS=$(bjobs -u chge7185 -o 'stat' 2>/dev/null | tail -n +2 | sort | uniq -c)
+    CHGE_RUN=$(echo "$CHGE_STATS" | awk '$2=="RUN" {print $1}')
+    CHGE_PEND=$(echo "$CHGE_STATS" | awk '$2=="PEND" {print $1}')
+    CHGE_RUN=${CHGE_RUN:-0}
+    CHGE_PEND=${CHGE_PEND:-0}
+    CHGE_TOTAL=$((CHGE_RUN + CHGE_PEND))
+    echo -e "${BLUE}[JOBS]${NC} chge7185: ${GREEN}RUN: $CHGE_RUN${NC} | ${YELLOW}PEND: $CHGE_PEND${NC} | Total: $CHGE_TOTAL"
     
-    # Recently finished - compact format
+    MIMA_STATS=$(bjobs -u mima2416 -o 'stat' 2>/dev/null | tail -n +2 | sort | uniq -c)
+    MIMA_RUN=$(echo "$MIMA_STATS" | awk '$2=="RUN" {print $1}')
+    MIMA_PEND=$(echo "$MIMA_STATS" | awk '$2=="PEND" {print $1}')
+    MIMA_RUN=${MIMA_RUN:-0}
+    MIMA_PEND=${MIMA_PEND:-0}
+    MIMA_TOTAL=$((MIMA_RUN + MIMA_PEND))
+    echo -e "${BLUE}[JOBS]${NC} mima2416: ${GREEN}RUN: $MIMA_RUN${NC} | ${YELLOW}PEND: $MIMA_PEND${NC} | Total: $MIMA_TOTAL"
+    
+    # Count failed/done jobs in last 4 hours (240 minutes)
     echo ""
-    echo -e "${RED}[FAILED]${NC} chge7185:"
-    bjobs -a -u chge7185 -o "stat jobid exit_code finish_time job_name:40" 2>/dev/null | awk '$1=="EXIT" {$1=""; print}' | head -5
-    echo -e "${RED}[FAILED]${NC} mima2416:"
-    bjobs -a -u mima2416 -o "stat jobid exit_code finish_time job_name:40" 2>/dev/null | awk '$1=="EXIT" {$1=""; print}' | head -5
-    echo ""
-    echo -e "${GREEN}[DONE]${NC} chge7185:"
-    bjobs -a -u chge7185 -o "stat jobid finish_time job_name:40" 2>/dev/null | awk '$1=="DONE" {$1=""; print}' | head -5
-    echo -e "${GREEN}[DONE]${NC} mima2416:"
-    bjobs -a -u mima2416 -o "stat jobid finish_time job_name:40" 2>/dev/null | awk '$1=="DONE" {$1=""; print}' | head -5
+    CHGE_FAILED=$(count_recent_jobs chge7185 EXIT 240)
+    MIMA_FAILED=$(count_recent_jobs mima2416 EXIT 240)
+    CHGE_DONE=$(count_recent_jobs chge7185 DONE 240)
+    MIMA_DONE=$(count_recent_jobs mima2416 DONE 240)
+    
+    echo -e "${RED}[FAILED 4h]${NC} chge7185: $CHGE_FAILED | mima2416: $MIMA_FAILED"
+    echo -e "${GREEN}[DONE 4h]${NC}   chge7185: $CHGE_DONE | mima2416: $MIMA_DONE"
     
     # Active locks (compact)
     LOCK_COUNT=$(ls -1 "$LOCKS_DIR"/*.lock 2>/dev/null | wc -l)
@@ -63,5 +99,4 @@ while true; do
     } | log_output
     
     sleep $INTERVAL
-done
 done
