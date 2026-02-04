@@ -1,6 +1,64 @@
 # PROVE Project TODO
 
-**Last Updated:** 2026-02-03 (18:10)
+**Last Updated:** 2026-02-03 (23:40)
+
+---
+
+## 🆕 Image Generation: Qwen Parallel Jobs (2026-02-03)
+
+### 🔄 Active Qwen Image Generation Jobs (6 parallel)
+Parallelized Qwen image generation by weather condition for ~6x speedup:
+
+| Job ID | Weather | Status | Progress | Images |
+|--------|---------|--------|----------|--------|
+| 1095301 | foggy | PEND (top) | 12% | 369/2,975 |
+| 1095302 | rainy | PEND (top) | 12% | 368/2,975 |
+| 1095303 | snowy | PEND (top) | 12% | 368/2,975 |
+| 1095304 | cloudy | PEND (top) | 12% | 368/2,975 |
+| 1095305 | night | PEND (top) | 12% | 368/2,975 |
+| 1095306 | dawn_dusk | PEND (top) | 12% | 368/2,975 |
+
+**Output:** `/scratch/aaa_exchange/AWARE/GENERATED_IMAGES/qwen/CITYSCAPES`
+**Estimated Time:** ~6-8 hours per job (vs 31+ hours serial)
+
+### 📊 Current Queue Status (2026-02-03 23:38)
+
+| User | Running | Pending | Total |
+|------|---------|---------|-------|
+| chge7185 | 6 | 251 | 258 |
+| mima2416 | 13 | 341 | 355 |
+
+**chge7185 Running Jobs:**
+- flux-kontext_CITYSCAPES (Job 1012976)
+- step1x_new_Cityscapes (Job 1015803)
+- step1x_v1p2_Cityscapes (Job 1015804)
+- weather_effect_Cityscapes (Job 1017030)
+- s2_std_cutmix_outside15k_pspnet (Job 1094725)
+- s2_std_mixup_bdd10k_pspnet (Job 1094729)
+
+**mima2416 Running Jobs:**
+- s1_std_autoaugment_* (multiple datasets)
+- s1_std_cutmix_* (multiple datasets)
+
+---
+
+## 🆕 Stage 2 Training Status (2026-02-03)
+
+### Why s2_* Jobs (1057730-1057800) Failed
+- **Root Cause:** Lock files from mima2416's parallel training
+- **Error:** "ERROR: Another job is already training this configuration"
+- **Resolution:** Lock mechanism worked correctly - prevented duplicates
+
+### Stage 2 Checkpoint Status (61 complete)
+| Owner | Checkpoints | Type |
+|-------|-------------|------|
+| mima2416 | 48 | Ratio ablation (`_ratio1p0`) |
+| chge7185 | 13 | Standard Stage 2 |
+
+### Pending Stage 2 Jobs
+- **To Submit:** 381 configurations
+- **Skipped:** 35 (results exist)
+- **Strategies:** baseline, std_*, gen_* (26 total strategies)
 
 ---
 
