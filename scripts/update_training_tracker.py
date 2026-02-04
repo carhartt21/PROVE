@@ -1135,7 +1135,48 @@ def update_tracker(status_matrix, summary, domain_filter='clear_day', tracker_pa
     std_replacement = f'### Standard Augmentation Strategies\n\n{std_table}\n'
     content = re.sub(std_pattern, std_replacement, content)
     
-    # Update progress summary
+    # Update progress summary - now counting individual model trainings
+    # Each strategy×dataset has 4 models
+    num_models = 4  # PSPNet, SegFormer, SegNeXt, Mask2Former
+    
+    # Count individual model completions from model_info
+    gen_model_complete = 0
+    gen_model_running = 0
+    gen_model_pending = 0
+    gen_model_failed = 0
+    for s in GENERATIVE_STRATEGIES:
+        for d in DATASETS:
+            model_info = status_matrix[s][d].get('model_info', {})
+            models = model_info.get('models', {})
+            for model, status in models.items():
+                if status == 'complete':
+                    gen_model_complete += 1
+                elif status == 'running':
+                    gen_model_running += 1
+                elif status == 'failed':
+                    gen_model_failed += 1
+                else:
+                    gen_model_pending += 1
+    
+    std_model_complete = 0
+    std_model_running = 0
+    std_model_pending = 0
+    std_model_failed = 0
+    for s in STANDARD_STRATEGIES:
+        for d in DATASETS:
+            model_info = status_matrix[s][d].get('model_info', {})
+            models = model_info.get('models', {})
+            for model, status in models.items():
+                if status == 'complete':
+                    std_model_complete += 1
+                elif status == 'running':
+                    std_model_running += 1
+                elif status == 'failed':
+                    std_model_failed += 1
+                else:
+                    std_model_pending += 1
+    
+    # Fallback: count configurations if model_info not available
     gen_complete = sum(1 for s in GENERATIVE_STRATEGIES 
                        for d in DATASETS 
                        if status_matrix[s][d]['status'] == 'complete')
@@ -1170,6 +1211,10 @@ def update_tracker(status_matrix, summary, domain_filter='clear_day', tracker_pa
                      if status_matrix[s][d]['status'] == 'failed')
     std_total = len(STANDARD_STRATEGIES) * len(DATASETS)
     
+    # Individual model totals
+    gen_model_total = gen_total * num_models
+    std_model_total = std_total * num_models
+    
     total_complete = gen_complete + std_complete
     total_partial = gen_partial + std_partial
     total_running = gen_running + std_running
@@ -1177,13 +1222,30 @@ def update_tracker(status_matrix, summary, domain_filter='clear_day', tracker_pa
     total_failed = gen_failed + std_failed
     total = gen_total + std_total
     
-    progress_table = f"""| Category | Total | Complete | Partial | Running | Pending | Failed |
-|----------|-------|----------|---------|---------|---------|--------|
+    total_model_complete = gen_model_complete + std_model_complete
+    total_model_running = gen_model_running + std_model_running
+    total_model_pending = gen_model_pending + std_model_pending
+    total_model_failed = gen_model_failed + std_model_failed
+    total_model_total = gen_model_total + std_model_total
+    
+    # Progress table now shows both configurations (4/4 complete) and individual models
+    progress_table = f"""| Category | Configs | Complete (4/4) | Partial | Running | Pending | Failed |
+|----------|---------|----------------|---------|---------|---------|--------|
 | **Generative (gen_*)** | {gen_total} | {gen_complete} | {gen_partial} | {gen_running} | {gen_pending} | {gen_failed} |
 | **Standard (std_*)** | {std_total} | {std_complete} | {std_partial} | {std_running} | {std_pending} | {std_failed} |
-| **TOTAL** | {total} | {total_complete} | {total_partial} | {total_running} | {total_pending} | {total_failed} |"""
+| **TOTAL** | {total} | {total_complete} | {total_partial} | {total_running} | {total_pending} | {total_failed} |
+
+### Individual Model Trainings
+
+| Category | Total Models | ✅ Complete | 🔄 Running | ⏳ Pending | ❌ Failed |
+|----------|-------------|-------------|------------|-----------|----------|
+| **Generative (gen_*)** | {gen_model_total} | {gen_model_complete} | {gen_model_running} | {gen_model_pending} | {gen_model_failed} |
+| **Standard (std_*)** | {std_model_total} | {std_model_complete} | {std_model_running} | {std_model_pending} | {std_model_failed} |
+| **TOTAL** | {total_model_total} | {total_model_complete} | {total_model_running} | {total_model_pending} | {total_model_failed} |"""
     
-    progress_pattern = r'\| Category \| Total \| Complete \|[^\n]+\n\|[-|\s]+\n(?:\|[^\n]+\n)+'
+    # Match either old format (Total | Complete) or new format (Configs | Complete)
+    # Also match the Individual Model Trainings section if present
+    progress_pattern = r'\| Category \| (?:Total|Configs) \|[^\n]+\n\|[-|\s]+\n(?:\|[^\n]+\n)+(?:\n### Individual Model Trainings\n\n\|[^\n]+\n\|[-|\s]+\n(?:\|[^\n]+\n)+)?'
     content = re.sub(progress_pattern, progress_table + '\n', content)
     
     # Write updated tracker
@@ -1192,11 +1254,20 @@ def update_tracker(status_matrix, summary, domain_filter='clear_day', tracker_pa
     
     return {
         'gen': {'total': gen_total, 'complete': gen_complete, 'partial': gen_partial,
-                'running': gen_running, 'pending': gen_pending, 'failed': gen_failed},
+                'running': gen_running, 'pending': gen_pending, 'failed': gen_failed,
+                'model_total': gen_model_total, 'model_complete': gen_model_complete,
+                'model_running': gen_model_running, 'model_pending': gen_model_pending,
+                'model_failed': gen_model_failed},
         'std': {'total': std_total, 'complete': std_complete, 'partial': std_partial,
-                'running': std_running, 'pending': std_pending, 'failed': std_failed},
+                'running': std_running, 'pending': std_pending, 'failed': std_failed,
+                'model_total': std_model_total, 'model_complete': std_model_complete,
+                'model_running': std_model_running, 'model_pending': std_model_pending,
+                'model_failed': std_model_failed},
         'total': {'total': total, 'complete': total_complete, 'partial': total_partial,
-                  'running': total_running, 'pending': total_pending, 'failed': total_failed},
+                  'running': total_running, 'pending': total_pending, 'failed': total_failed,
+                  'model_total': total_model_total, 'model_complete': total_model_complete,
+                  'model_running': total_model_running, 'model_pending': total_model_pending,
+                  'model_failed': total_model_failed},
     }
 
 
@@ -1210,12 +1281,20 @@ def print_summary(stats):
         name = {'gen': 'Generative', 'std': 'Standard', 'total': 'TOTAL'}[category]
         pct = (data['complete'] / data['total'] * 100) if data['total'] > 0 else 0
         partial_pct = ((data['complete'] + data['partial']) / data['total'] * 100) if data['total'] > 0 else 0
+        model_pct = (data.get('model_complete', 0) / data.get('model_total', 1) * 100) if data.get('model_total', 0) > 0 else 0
         print(f"\n{name} Strategies:")
-        print(f"  Complete: {data['complete']}/{data['total']} ({pct:.1f}%)")
-        print(f"  Partial:  {data['partial']} (total {data['complete'] + data['partial']}/{data['total']} = {partial_pct:.1f}%)")
-        print(f"  Running:  {data['running']}")
-        print(f"  Pending:  {data['pending']}")
-        print(f"  Failed:   {data['failed']}")
+        print(f"  Configurations (4/4 models):")
+        print(f"    Complete: {data['complete']}/{data['total']} ({pct:.1f}%)")
+        print(f"    Partial:  {data['partial']} (total {data['complete'] + data['partial']}/{data['total']} = {partial_pct:.1f}%)")
+        print(f"    Running:  {data['running']}")
+        print(f"    Pending:  {data['pending']}")
+        print(f"    Failed:   {data['failed']}")
+        if 'model_total' in data:
+            print(f"  Individual Models:")
+            print(f"    Complete: {data['model_complete']}/{data['model_total']} ({model_pct:.1f}%)")
+            print(f"    Running:  {data['model_running']}")
+            print(f"    Pending:  {data['model_pending']}")
+            print(f"    Failed:   {data['model_failed']}")
 
 
 def main():
