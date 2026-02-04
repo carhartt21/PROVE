@@ -58,25 +58,57 @@ DATASET_DISPLAY = {
     'outside15k': 'OUTSIDE15k',
 }
 
-# Valid checkpoint iterations (in order of preference)
+# Valid checkpoint iterations (in order of preference - commonly used final checkpoints)
 VALID_CHECKPOINTS = [15000, 10000, 80000, 20000, 40000]
+
+
+def get_target_iterations(weights_dir):
+    """Read max_iters from training_config.py in the weights directory.
+    
+    Returns:
+        int: Target iteration count from config, or None if not found
+    """
+    config_file = weights_dir / "training_config.py"
+    try:
+        if config_file.exists():
+            content = config_file.read_text()
+            # Parse: train_cfg = dict(max_iters=15000, ...)
+            import re
+            match = re.search(r'max_iters\s*=\s*(\d+)', content)
+            if match:
+                return int(match.group(1))
+    except (PermissionError, IOError):
+        pass
+    return None
 
 
 def find_checkpoint(weights_dir):
     """Find the best available checkpoint in a directory.
     
     Returns:
-        tuple: (checkpoint_path, iteration_number) or (None, None) if not found
+        tuple: (checkpoint_path, iteration_number, is_complete) or (None, None, False) if not found
     """
     if not weights_dir.exists():
-        return None, None
+        return None, None, False
     
+    # Get target iterations from config
+    target_iters = get_target_iterations(weights_dir)
+    
+    # First, check for the target checkpoint (this is "complete")
+    if target_iters:
+        target_ckpt = weights_dir / f"iter_{target_iters}.pth"
+        if target_ckpt.exists() and target_ckpt.stat().st_size > 1000:
+            return target_ckpt, target_iters, True
+    
+    # Otherwise, find any valid checkpoint
     for iter_num in VALID_CHECKPOINTS:
         ckpt = weights_dir / f"iter_{iter_num}.pth"
         if ckpt.exists() and ckpt.stat().st_size > 1000:
-            return ckpt, iter_num
+            # Check if this is the target
+            is_complete = (target_iters is not None and iter_num == target_iters)
+            return ckpt, iter_num, is_complete
     
-    return None, None
+    return None, None, False
 
 
 def find_test_results(weights_dir):
@@ -138,7 +170,7 @@ def get_checkpoint_status(weights_root, strategy, dataset, model):
     if lock_file.exists():
         result['status'] = 'running'
         # Still check if there's a partial checkpoint
-        ckpt_path, ckpt_iter = find_checkpoint(weights_dir)
+        ckpt_path, ckpt_iter, is_complete = find_checkpoint(weights_dir)
         if ckpt_path:
             result['checkpoint'] = True
             result['checkpoint_iter'] = ckpt_iter
@@ -147,12 +179,13 @@ def get_checkpoint_status(weights_root, strategy, dataset, model):
         return result
     
     # Check for checkpoint
-    ckpt_path, ckpt_iter = find_checkpoint(weights_dir)
+    ckpt_path, ckpt_iter, is_complete = find_checkpoint(weights_dir)
     if ckpt_path:
         result['checkpoint'] = True
         result['checkpoint_iter'] = ckpt_iter
         result['checkpoint_path'] = str(ckpt_path)
-        result['status'] = 'trained'
+        result['training_complete'] = is_complete
+        result['status'] = 'trained' if is_complete else 'partial'
     elif weights_dir.exists():
         # Directory exists but no checkpoint
         result['status'] = 'failed'
