@@ -51,7 +51,7 @@ Stages:
     Stage 2: Train on all conditions, test domain-inclusive performance
 
 Pre-flight Checks:
-    - Skips if checkpoint already exists (iter_10000.pth)
+    - Skips if checkpoint already exists (iter_15000.pth)
     - Skips if training lock is held by another job
     - Skips gen_* strategies if generated images don't exist for dataset
     
@@ -165,7 +165,7 @@ class LSFConfig:
 # Pre-flight Checks
 # ============================================================================
 
-def get_checkpoint_path(weights_dir: Path, max_iters: int = 10000) -> Optional[Path]:
+def get_checkpoint_path(weights_dir: Path, max_iters: int = 15000) -> Optional[Path]:
     """Get the final checkpoint path if it exists."""
     checkpoint = weights_dir / f'iter_{max_iters}.pth'
     if checkpoint.exists():
@@ -217,7 +217,7 @@ def get_checkpoint_iteration(checkpoint_path: Path) -> int:
         return 0
 
 
-def has_valid_results(weights_dir: Path, max_iters: int = 10000) -> bool:
+def has_valid_results(weights_dir: Path, max_iters: int = 15000) -> bool:
     """Check if valid training results already exist."""
     checkpoint = get_checkpoint_path(weights_dir, max_iters)
     if checkpoint is None:
@@ -498,12 +498,12 @@ def generate_job_script(
     MODEL_GMEM_REQUIREMENTS = {
         'pspnet_r50': '18G',
         'deeplabv3plus_r50': '18G',
-        'hrnet_hr48': '24G',
-        'segformer_mit-b3': '24G',
-        'segnext_mscan-b': '24G',
-        'mask2former_swin-b': '40G',
+        'hrnet_hr48': '20G',
+        'segformer_mit-b3': '20G',
+        'segnext_mscan-b': '20G',
+        'mask2former_swin-b': '38G',
     }
-    DEFAULT_GMEM = '24G'  # Safe default for unknown models
+    DEFAULT_GMEM = '20G'  # Safe default for unknown models
     
     # Determine effective max_iters for checkpoint paths
     # Default: 20k for Cityscapes (matches original 160k at BS=2), 15k for other stages
@@ -883,7 +883,7 @@ Examples:
     parser.add_argument('--ratios', type=float, nargs='+', default=[0.5],
                        help='Real/gen ratios for generative strategies (default: 0.5). Example: --ratios 0.0 0.25 0.5')
     parser.add_argument('--max-iters', type=int, default=None,
-                       help='Maximum training iterations (default: use config default, usually 10000)')
+                       help='Maximum training iterations (default: use config default, usually 15000)')
     parser.add_argument('--batch-size', type=int, default=None,
                        help='Training batch size (default: 16 for Cityscapes, 2 for others). Adjust LR and warmup automatically.')
     parser.add_argument('--checkpoint-interval', type=int, default=None,
