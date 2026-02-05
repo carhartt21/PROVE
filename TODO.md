@@ -1,6 +1,41 @@
 # PROVE Project TODO
 
-**Last Updated:** 2026-02-04 (17:00)
+**Last Updated:** 2026-02-05 (14:30)
+
+---
+
+## 🆕 Cityscapes Image Generation & Manifests (2026-02-05)
+
+### ✅ Manifest Generation Updated
+- Added Cityscapes support to `tools/generate_manifests.py`
+- 29/31 methods now have up-to-date manifests with Cityscapes images
+- All writable directories regenerated with `--all` flag
+
+### 📊 Manifest Status Summary
+| Status | Count | Notes |
+|--------|-------|-------|
+| ✅ Ready | 29 | 100% match rate for all |
+| ❌ Missing | 2 | Controlnet-Seg, Ip2p (musa7216 ownership - need chmod a+w) |
+
+### ⚠️ Still Running (Cityscapes Generation)
+- `step1x_new`: 91,959 images (~29% of full coverage)
+- `step1x_v1p2`: 110,439 images (~26% of full coverage)
+
+### 🆕 New Cityscapes Strategies with Manifests
+| Strategy | Cityscapes Images | Total Images |
+|----------|-------------------|--------------|
+| magicbrush | 17,850 (100%) | 17,850 |
+| visualcloze | 17,850 (100%) | 17,850 |
+| qwen | 14,654 (82%) | 14,654 |
+| Controlnet | 17,850 (100%) | 17,850 |
+| Ip2p_2 | 17,850 (100%) | 17,850 |
+| cyclediffusion | 17,850 (100%) | 17,850 |
+
+### ⚠️ Strategies Missing Cityscapes Manifests
+| Strategy | Owner | Issue |
+|----------|-------|-------|
+| Controlnet-Seg | musa7216 | Directory 755 - needs `chmod a+w` |
+| Ip2p | musa7216 | Directory 755 - needs `chmod a+w` |
 
 ---
 
