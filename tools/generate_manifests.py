@@ -77,7 +77,7 @@ DOMAIN_MAPPING = {
     "night": "night",
 }
 
-KNOWN_DATASETS = {'ACDC', 'BDD100k', 'BDD10k', 'IDD-AW', 'MapillaryVistas', 'OUTSIDE15k'}
+KNOWN_DATASETS = {'ACDC', 'BDD100k', 'BDD10k', 'IDD-AW', 'MapillaryVistas', 'OUTSIDE15k', 'Cityscapes', 'CITYSCAPES', 'Cityscapes_2'}
 SUPPORTED_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.tiff', '.tif', '.bmp', '.webp'}
 
 # Default paths (from environment or hardcoded)
@@ -90,6 +90,10 @@ DEFAULT_ORIGINAL_DIR = Path(os.environ.get(
     '/scratch/aaa_exchange/AWARE/FINAL_SPLITS'
 )) / 'train' / 'images'
 
+# Additional original image directories for datasets not in FINAL_SPLITS
+ADDITIONAL_ORIGINAL_DIRS = [
+    Path('/scratch/aaa_exchange/AWARE/CITYSCAPES/leftImg8bit/train'),
+]
 
 # =============================================================================
 # Helper Functions
@@ -368,10 +372,20 @@ def build_original_index(original_dir: Path, verbose: bool = False) -> Tuple[Dic
         - Dict mapping filename stem to dataset name
         - Dict mapping weather domain -> {stem -> path} for restoration source matching
     """
-    original_files = find_image_files(original_dir, recursive=True)
+    # Collect files from main original_dir and additional directories
+    all_original_files = []
+    all_original_files.extend(find_image_files(original_dir, recursive=True))
+    
+    # Add Cityscapes and other additional directories
+    for additional_dir in ADDITIONAL_ORIGINAL_DIRS:
+        if additional_dir.exists():
+            additional_files = find_image_files(additional_dir, recursive=True)
+            all_original_files.extend(additional_files)
+            if verbose:
+                logging.info("  Added %d images from %s", len(additional_files), additional_dir)
     
     if verbose:
-        logging.info("Found %d original images", len(original_files))
+        logging.info("Found %d original images", len(all_original_files))
     
     # Main index for generation tasks
     index: Dict[str, Path] = {}
@@ -381,7 +395,7 @@ def build_original_index(original_dir: Path, verbose: bool = False) -> Tuple[Dic
     # Weather domain indices for restoration tasks
     weather_indices: Dict[str, Dict[str, Path]] = defaultdict(dict)
     
-    for path in original_files:
+    for path in all_original_files:
         stem = path.stem
         
         # Extract dataset and domain from path
@@ -394,6 +408,10 @@ def build_original_index(original_dir: Path, verbose: bool = False) -> Tuple[Dic
                 if i + 1 < len(parts) - 1:
                     domain = parts[i + 1]
                 break
+        
+        # For Cityscapes images (no domain subfolder), assign dataset from path
+        if dataset is None and 'CITYSCAPES' in str(path).upper():
+            dataset = 'Cityscapes'
         
         # Add to weather domain index if domain is recognized
         if domain:
