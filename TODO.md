@@ -1,6 +1,55 @@
 # PROVE Project TODO
 
-**Last Updated:** 2026-02-05 (14:30)
+**Last Updated:** 2026-02-05 (17:00)
+
+---
+
+## 🆕 Cityscapes-Gen Evaluation Stage (2026-02-05)
+
+### ✅ New Stage Added to batch_training_submission.py
+- **Stage:** `cityscapes-gen` - Train SegFormer on Cityscapes with all augmentation strategies
+- **Testing:** Both Cityscapes validation AND ACDC cross-domain testing
+- **Output Directory:** `/scratch/aaa_exchange/AWARE/WEIGHTS_CITYSCAPES_GEN/`
+
+### Usage
+```bash
+# Dry run (recommended first)
+python scripts/batch_training_submission.py --stage cityscapes-gen --dry-run
+
+# Submit jobs
+python scripts/batch_training_submission.py --stage cityscapes-gen -y
+
+# Gen strategies only
+python scripts/batch_training_submission.py --stage cityscapes-gen --strategy-type gen --dry-run
+
+# Std strategies only
+python scripts/batch_training_submission.py --stage cityscapes-gen --strategy-type std --dry-run
+```
+
+### Job Summary (18 jobs)
+| Strategy Type | Count | Status |
+|---------------|-------|--------|
+| baseline | 1 | Ready |
+| std_* | 4 | Ready |
+| gen_* (with Cityscapes) | 13 | Ready |
+| gen_* (missing Cityscapes) | 8 | Skipped |
+
+### Gen Strategies with Cityscapes Coverage
+| ✅ Ready | ❌ Missing |
+|---------|----------|
+| gen_cycleGAN | gen_LANIT |
+| gen_flux_kontext | gen_IP2P |
+| gen_step1x_new | gen_Attribute_Hallucination |
+| gen_albumentations_weather | gen_CNetSeg |
+| gen_automold | gen_stargan_v2 |
+| gen_step1x_v1p2 | gen_Weather_Effect_Generator |
+| gen_VisualCloze | gen_TSIT |
+| gen_SUSTechGAN | gen_augmenters |
+| gen_cyclediffusion | |
+| gen_UniControl | |
+| gen_CUT | |
+| gen_Img2Img | |
+| gen_Qwen_Image_Edit | |
 
 ---
 
@@ -8,6 +57,7 @@
 
 ### ✅ Manifest Generation Updated
 - Added Cityscapes support to `tools/generate_manifests.py`
+- Added automold-specific domain mappings (bright, dark, fog_heavy, etc.)
 - 29/31 methods now have up-to-date manifests with Cityscapes images
 - All writable directories regenerated with `--all` flag
 

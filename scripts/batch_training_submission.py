@@ -90,6 +90,7 @@ WEIGHTS_ROOT_STAGE1 = Path('/scratch/aaa_exchange/AWARE/WEIGHTS')
 WEIGHTS_ROOT_STAGE2 = Path('/scratch/aaa_exchange/AWARE/WEIGHTS_STAGE_2')
 WEIGHTS_ROOT_RATIO_ABLATION = Path('/scratch/aaa_exchange/AWARE/WEIGHTS_RATIO_ABLATION')
 WEIGHTS_ROOT_CITYSCAPES = Path('/scratch/aaa_exchange/AWARE/WEIGHTS_CITYSCAPES')  # Pipeline verification
+WEIGHTS_ROOT_CITYSCAPES_GEN = Path('/scratch/aaa_exchange/AWARE/WEIGHTS_CITYSCAPES_GEN')  # Cityscapes gen evaluation
 GENERATED_IMAGES_ROOT = Path('/scratch/aaa_exchange/AWARE/GENERATED_IMAGES')
 
 # All datasets
@@ -181,7 +182,7 @@ def get_effective_max_iters(
     This is the single source of truth for determining the target checkpoint.
     
     Args:
-        stage: Training stage (1, 2, 'cityscapes', 'ratio', etc.)
+        stage: Training stage (1, 2, 'cityscapes', 'cityscapes-gen', 'ratio', etc.)
         model: Model name (used for model-specific iterations)
         override_max_iters: Manual override from command line
         
@@ -197,7 +198,7 @@ def get_effective_max_iters(
         return MODEL_SPECIFIC_MAX_ITERS[model]
     
     # Stage-specific defaults
-    if stage == 'cityscapes':
+    if stage in ('cityscapes', 'cityscapes-gen'):
         return 20000  # 20k iters (BS=16) = 320k samples = 160k iters (BS=2)
     else:
         # Stage 1, Stage 2, ratio ablation all use 15k iters
@@ -318,27 +319,31 @@ def has_generated_images(strategy: str, dataset: str) -> bool:
     if not gen_path.exists():
         return False
     
-    # Check manifest for this dataset
+    # Check manifest for this dataset (case-insensitive for Cityscapes variants)
     manifest = gen_path / 'manifest.csv'
     if manifest.exists():
         try:
             import csv
+            dataset_lower = dataset.lower()
             with open(manifest, 'r') as f:
                 reader = csv.DictReader(f)
                 for row in reader:
-                    if row.get('dataset', '') == dataset:
+                    row_dataset = row.get('dataset', '').lower()
+                    if row_dataset == dataset_lower:
                         return True
             return False
         except Exception:
             pass
     
-    # Fallback: check for dataset subdirectory
-    dataset_path = gen_path / dataset
-    if dataset_path.exists():
-        # Check for any images
-        for subdir in dataset_path.rglob('*'):
-            if subdir.suffix.lower() in ['.png', '.jpg', '.jpeg']:
-                return True
+    # Fallback: check for dataset subdirectory (try multiple case variants)
+    dataset_variants = [dataset, dataset.upper(), dataset.lower(), dataset.title()]
+    for variant in dataset_variants:
+        dataset_path = gen_path / variant
+        if dataset_path.exists():
+            # Check for any images
+            for subdir in dataset_path.rglob('*'):
+                if subdir.suffix.lower() in ['.png', '.jpg', '.jpeg']:
+                    return True
     
     return False
 
@@ -406,6 +411,8 @@ def get_weights_dir(
         base_root = WEIGHTS_ROOT_RATIO_ABLATION
     elif stage == 'cityscapes':
         base_root = WEIGHTS_ROOT_CITYSCAPES
+    elif stage == 'cityscapes-gen':
+        base_root = WEIGHTS_ROOT_CITYSCAPES_GEN
     else:
         base_root = WEIGHTS_ROOT_STAGE1
     
@@ -619,6 +626,40 @@ def generate_job_script(
     # Stage prefix for lock file (same as job name)
     stage_prefix = f's{job.stage}_' if isinstance(job.stage, int) else f'{job.stage}_'
     
+    # Build ACDC cross-domain test section for cityscapes-gen stage
+    if job.stage == 'cityscapes-gen':
+        backslash = '\\'
+        acdc_test_section = f'''
+        # ============================================================================
+        # Cross-domain testing on ACDC (cityscapes-gen stage only)
+        # ============================================================================
+        echo ""
+        echo "=========================================="
+        echo "Starting cross-domain testing on ACDC..."
+        echo "=========================================="
+        
+        ACDC_TEST_OUTPUT="{work_dir}/test_results_acdc"
+        
+        python {PROJECT_ROOT}/fine_grained_test.py {backslash}
+            --config "$CONFIG" {backslash}
+            --checkpoint "$CHECKPOINT" {backslash}
+            --output-dir "$ACDC_TEST_OUTPUT" {backslash}
+            --dataset ACDC {backslash}
+            --data-root "/scratch/aaa_exchange/AWARE/FINAL_SPLITS" {backslash}
+            --test-split "test" {backslash}
+            --batch-size 10
+        
+        ACDC_EXIT_CODE=$?
+        
+        if [ $ACDC_EXIT_CODE -eq 0 ]; then
+            echo "ACDC cross-domain testing completed successfully"
+        else
+            echo "WARNING: ACDC testing failed with exit code: $ACDC_EXIT_CODE"
+        fi
+'''
+    else:
+        acdc_test_section = ''
+    
     script = f'''#!/bin/bash
 #BSUB -J {job.job_name}
 #BSUB -q {lsf_config.queue}
@@ -753,6 +794,7 @@ if [ $TRAIN_EXIT_CODE -eq 0 ]; then
         else
             echo "WARNING: Testing failed with exit code: $TEST_EXIT_CODE"
         fi
+{acdc_test_section}
     else
         echo "WARNING: Checkpoint or config not found, skipping testing"
         echo "  Checkpoint: $CHECKPOINT"
@@ -975,10 +1017,10 @@ Examples:
     )
     
     # Validate and parse stage
-    stage_map = {'1': 1, '2': 2, 'ratio': 'ratio', 'cityscapes': 'cityscapes'}
+    stage_map = {'1': 1, '2': 2, 'ratio': 'ratio', 'cityscapes': 'cityscapes', 'cityscapes-gen': 'cityscapes-gen'}
     stage_input = str(args.stage).lower()
-    if stage_input not in stage_map and stage_input not in ['1', '2', 'ratio', 'cityscapes']:
-        print(f"Error: Invalid stage '{args.stage}'. Must be 1, 2, 'ratio', or 'cityscapes'")
+    if stage_input not in stage_map and stage_input not in ['1', '2', 'ratio', 'cityscapes', 'cityscapes-gen']:
+        print(f"Error: Invalid stage '{args.stage}'. Must be 1, 2, 'ratio', 'cityscapes', or 'cityscapes-gen'")
         return
     stage = stage_map.get(stage_input, args.stage if isinstance(args.stage, int) else stage_input)
     
@@ -992,6 +1034,20 @@ Examples:
         # Use Cityscapes validation models
         datasets = [CITYSCAPES_DATASET]
         models = args.models or CITYSCAPES_VALIDATION_MODELS
+    elif stage == 'cityscapes-gen':
+        # Use all augmentation strategies for Cityscapes generative evaluation
+        if args.strategies is None:
+            if args.strategy_type == 'std':
+                strategies = STD_STRATEGIES
+            elif args.strategy_type == 'gen':
+                strategies = GEN_STRATEGIES
+            else:  # 'all' - default includes all augmentation strategies
+                strategies = ALL_STRATEGIES
+        else:
+            strategies = args.strategies
+        # Use Cityscapes dataset with SegFormer by default
+        datasets = [CITYSCAPES_DATASET]
+        models = args.models or ['segformer_mit-b3']  # SegFormer for cityscapes-gen evaluation
     else:
         # Determine strategies based on --strategy-type or --strategies
         strategies = args.strategies
@@ -1014,6 +1070,11 @@ Examples:
         print(f"  Pipeline Verification Mode")
         print(f"  Dataset: {CITYSCAPES_DATASET}")
         print(f"  Models: {models}")
+    elif stage == 'cityscapes-gen':
+        print(f"  Cityscapes Generative Evaluation Mode")
+        print(f"  Dataset: {CITYSCAPES_DATASET}")
+        print(f"  Models: {models}")
+        print(f"  Cross-domain testing: Cityscapes val + ACDC")
     print(f"{'='*60}")
     print(f"\nStrategy type: {args.strategy_type}")
     print(f"Strategies: {len(strategies)}")
@@ -1022,7 +1083,7 @@ Examples:
     # Determine effective max_iters for job generation
     if args.max_iters is not None:
         effective_max_iters = args.max_iters
-    elif stage == 'cityscapes':
+    elif stage in ('cityscapes', 'cityscapes-gen'):
         effective_max_iters = 20000
     else:
         effective_max_iters = 15000

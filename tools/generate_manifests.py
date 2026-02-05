@@ -75,6 +75,18 @@ DOMAIN_MAPPING = {
     "dawn": "dawn_dusk",
     "dawn_dusk": "dawn_dusk",
     "night": "night",
+    # Automold-specific domain names
+    "bright": "clear_day",
+    "dark": "night",
+    "fog_heavy": "foggy",
+    "fog_light": "foggy",
+    "gravel": "clear_day",  # road condition, map to clear_day
+    "rain_drizzle": "rainy",
+    "rain_heavy": "rainy",
+    "rain_torrential": "rainy",
+    "shadow": "clear_day",  # lighting condition, map to clear_day
+    "snow_heavy": "snowy",
+    "sun_flare": "clear_day",  # lighting condition, map to clear_day
 }
 
 KNOWN_DATASETS = {'ACDC', 'BDD100k', 'BDD10k', 'IDD-AW', 'MapillaryVistas', 'OUTSIDE15k', 'Cityscapes', 'CITYSCAPES', 'Cityscapes_2'}
