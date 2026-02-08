@@ -1,6 +1,70 @@
 # PROVE Project TODO
 
-**Last Updated:** 2026-02-08 (11:45)
+**Last Updated:** 2026-02-08 (16:45)
+
+---
+
+## 🆕 Stage 1 Gap Analysis & Fixes (2026-02-08 16:30)
+
+### Tracker Analysis Results
+
+| Metric | Stage 1 Training | Stage 1 Testing | Stage 2 Training | Stage 2 Testing |
+|--------|-----------------|-----------------|------------------|-----------------|
+| Complete | 325/444 (73.2%) | 243/255 (95.3%) | 49/444 (11.0%) | 58 total |
+| Running | 11 | 0 | 2 | 0 |
+| Pending | 99 | 32 | 393 | 99 |
+| Failed | 13 | 12 missing | 4 | 0 |
+
+### 🐛 Bug Fix: Testing Tracker IDD-AW Directory Naming
+- **Issue:** `update_testing_tracker.py` uses `idd-aw` as directory name, but actual directories use `iddaw` (no hyphen)
+- **Impact:** ALL IDD-AW test results (26 strategies) reported as "pending" when they actually exist
+- Training tracker already normalizes (`dataset.replace('-', '')`) but testing tracker didn't
+- **Fix:** ✅ Added `dataset.replace('-', '')` normalization to testing tracker (3 locations)
+- **Result:** IDD-AW now shows **26 complete** (was 0); total tests: 340 complete (was 243)
+
+### 📊 Failed Training Investigation (26 stale trainings found)
+
+**Category 1: Wrong model variant — 6 entries (IGNORE)**
+All are `segformer_mit-b5_ratio0p50` (should be B3, not B5). Stale leftovers from incorrect config.
+- gen_LANIT, gen_VisualCloze, gen_albumentations_weather, gen_automold, gen_flux_kontext, gen_step1x_v1p2
+
+**Category 2: Resumable (>50% complete) — 3 entries (RESUME)**
+| Strategy | Dataset | Model | Progress | Action |
+|----------|---------|-------|----------|--------|
+| gen_LANIT | bdd10k | segnext_mscan-b | 50000/80000 (62%) | ⏳ Resume |
+| gen_flux_kontext | bdd10k | segnext_mscan-b | 65000/80000 (81%) | ⏳ Resume |
+| gen_step1x_new | bdd10k | segnext_mscan-b | 60000/80000 (75%) | ⏳ Resume |
+
+**Category 3: Early failures (<50% complete) — 17 entries**
+Affected strategies: gen_Img2Img (6), gen_albumentations_weather (4), gen_cyclediffusion (3),
+gen_VisualCloze (1), gen_UniControl (1), gen_automold (1), gen_step1x_v1p2 (1)
+Common pattern: SegNeXt and PSPNet models stopped at iter_2000-5000 of 15000-80000.
+Likely cause: OOM or training crash. Need restart.
+
+### 📋 Action Plan
+1. ✅ Fix testing tracker IDD-AW bug — IDD-AW: 0→26 complete, total: 243→340
+2. ✅ IDD-AW test gap was a tracker bug — tests actually exist (26/28 complete)
+3. ✅ 13 "missing" BDD10k tests are models with incomplete training (not untested)
+4. ✅ Investigated 26 stale trainings: 6 wrong model, 3 resumable, 17 early failures
+5. ✅ Submitted test jobs for 3 partially-complete models using best_val checkpoints:
+   - gen_LANIT/bdd10k/segnext: best_val_mIoU_iter_45000 → Job 2098551
+   - gen_flux_kontext/bdd10k/segnext: best_val_mIoU_iter_60000 → Job 2098668
+   - gen_step1x_new/bdd10k/segnext: best_val_mIoU_iter_60000 → Job 2098749
+   - These models have old 80k configs but trained 50-65k iters (well past current 15k standard)
+
+### 🐛 Bug Fix: max_iters Config Regex
+- **Issue:** `auto_submit_tests.py` and `update_training_tracker.py` used `r'max_iters\s*=\s*(\d+)'`
+  which only matches keyword format (`max_iters=15000`) but NOT dict format (`'max_iters': 80000`)
+- **Impact:** Older configs using dict literal syntax were silently skipped
+- **Fix:** Changed regex to `r"'?max_iters'?\s*[=:]\s*(\d+)"` to handle both formats
+
+### Current Cluster Status (2026-02-08 16:30)
+| Category | RUN | PEND |
+|----------|----:|-----:|
+| Stage 1 training | 2 | 0 |
+| Cityscapes-gen training | 4 | 67 |
+| Cityscapes-gen retests | 0 | 12 |
+| **Total** | **6** | **79** |
 
 ---
 

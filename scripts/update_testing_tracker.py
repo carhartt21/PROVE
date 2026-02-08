@@ -225,8 +225,8 @@ def load_miou_results():
     # Scan all strategies
     for strategy in ALL_STRATEGIES:
         for dataset in DATASETS:
-            # No more _cd suffix per new directory structure
-            dataset_dir = dataset
+            # Normalize: idd-aw -> iddaw (directory name uses no hyphen)
+            dataset_dir = dataset.replace('-', '')
             strategy_path = WEIGHTS_ROOT / strategy / dataset_dir
             
             if not safe_exists(strategy_path):
@@ -349,8 +349,8 @@ def check_test_results(strategy, dataset, test_dir='test_results_detailed'):
     Checks test_results_detailed first, then falls back to test_results_detailed_fixed
     for backward compatibility with the 32 IDD-AW cases that couldn't be renamed.
     """
-    # No more _cd suffix per new directory structure
-    dataset_dir = dataset
+    # Normalize: idd-aw -> iddaw (directory name uses no hyphen)
+    dataset_dir = dataset.replace('-', '')
     
     # Check for any model's test results
     strategy_path = WEIGHTS_ROOT / strategy / dataset_dir
@@ -830,8 +830,8 @@ def get_per_model_test_status():
     # Scan all model directories
     for strategy in ALL_STRATEGIES:
         for dataset in DATASETS:
-            # No more _cd suffix per new directory structure
-            dataset_dir = dataset
+            # Normalize: idd-aw -> iddaw (directory name uses no hyphen)
+            dataset_dir = dataset.replace('-', '')
             strategy_path = WEIGHTS_ROOT / strategy / dataset_dir
             
             if not safe_exists(strategy_path):

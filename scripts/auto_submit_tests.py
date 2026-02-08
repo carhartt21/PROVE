@@ -172,9 +172,11 @@ def find_configs_needing_tests(main_only=False, stage=None):
                         try:
                             with open(config_path, 'r') as f:
                                 config_content = f.read()
-                            # Parse max_iters from train_cfg = dict(max_iters=15000, ...)
+                            # Parse max_iters from both formats:
+                            #   train_cfg = dict(max_iters=15000, ...)  (keyword format)
+                            #   train_cfg = {'max_iters': 80000, ...}   (dict literal format)
                             import re
-                            match = re.search(r'max_iters\s*=\s*(\d+)', config_content)
+                            match = re.search(r"'?max_iters'?\s*[=:]\s*(\d+)", config_content)
                             if match:
                                 expected_max_iters = int(match.group(1))
                         except Exception as e:

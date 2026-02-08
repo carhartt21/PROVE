@@ -183,8 +183,10 @@ def get_target_iterations(weights_path):
     try:
         if config_file.exists():
             content = config_file.read_text()
-            # Parse: train_cfg = dict(max_iters=15000, ...)
-            match = re.search(r'max_iters\s*=\s*(\d+)', content)
+            # Parse max_iters from both formats:
+            #   train_cfg = dict(max_iters=15000, ...)  (keyword format)
+            #   train_cfg = {'max_iters': 80000, ...}   (dict literal format)
+            match = re.search(r"'?max_iters'?\s*[=:]\s*(\d+)", content)
             if match:
                 return int(match.group(1))
     except (PermissionError, IOError):

@@ -1,6 +1,6 @@
 # Training Tracker - Stage 1 (Clear Day)
 
-**Last Updated:** 2026-02-08 08:21
+**Last Updated:** 2026-02-08 16:29
 
 ---
 
@@ -23,17 +23,17 @@
 
 | Category | Configs | Complete (4/4) | Partial | Running | Pending | Failed |
 |----------|---------|----------------|---------|---------|---------|--------|
-| **Generative (gen_*)** | 83 | 27 | 37 | 7 | 1 | 12 |
+| **Generative (gen_*)** | 83 | 28 | 38 | 7 | 0 | 11 |
 | **Standard (std_*)** | 28 | 8 | 10 | 2 | 8 | 0 |
-| **TOTAL** | 111 | 35 | 47 | 9 | 9 | 12 |
+| **TOTAL** | 111 | 36 | 48 | 9 | 8 | 11 |
 
 ### Individual Model Trainings
 
 | Category | Total Models | ✅ Complete | 🔄 Running | ⏳ Pending | ❌ Failed |
 |----------|-------------|-------------|------------|-----------|----------|
-| **Generative (gen_*)** | 332 | 248 | 7 | 62 | 19 |
+| **Generative (gen_*)** | 332 | 258 | 8 | 57 | 13 |
 | **Standard (std_*)** | 112 | 68 | 2 | 42 | 0 |
-| **TOTAL** | 444 | 316 | 9 | 104 | 19 |
+| **TOTAL** | 444 | 326 | 10 | 99 | 13 |
 
 ### Generative Image Augmentation Strategies (❌ INVALID)
 
@@ -63,7 +63,7 @@
 ### Standard Augmentation Strategies
 
 | Strategy | BDD10k | IDD-AW | MapillaryVistas | OUTSIDE15k | Notes |
-|----------|--------|--------|-----------------|------------|-------|
+|----------|------ | ------ | --------------- | ----------|-------|
 | baseline | 🔄 | 🔄 | 3/4 | 3/4 |  |
 | std_minimal | ⏳ | ⏳ | ⏳ | ⏳ |  |
 | std_photometric_distort | ⏳ | ⏳ | ⏳ | ⏳ |  |
