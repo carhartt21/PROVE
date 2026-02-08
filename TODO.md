@@ -1,6 +1,6 @@
 # PROVE Project TODO
 
-**Last Updated:** 2026-02-08 (20:40)
+**Last Updated:** 2026-02-08 (21:50)
 
 ---
 
@@ -68,14 +68,14 @@ Common pattern: SegNeXt and PSPNet models stopped at iter_2000-5000 of 15000-800
 - **Impact:** Older configs using dict literal syntax were silently skipped
 - **Fix:** Changed regex to `r"'?max_iters'?\s*[=:]\s*(\d+)"` to handle both formats
 
-### Current Cluster Status (2026-02-08 20:40)
+### Current Cluster Status (2026-02-08 21:50)
 | Category | RUN | PEND |
 |----------|----:|-----:|
-| Stage 1 training | 2 | 0 |
-| Cityscapes-gen training | 5 | 65 |
-| Cityscapes-gen retests (new) | 0 | 28 |
-| gen_ strategy restarts | 0 | 28 |
-| **Total** | **7** | **121** |
+| Stage 1 training (IDD-AW) | 2 | 0 |
+| Cityscapes-gen training | 4 | ~115 |
+| Cityscapes-gen retests | 0 | 28 |
+| gen_ strategy restarts | 0 | ~4 |
+| **Total** | **6** | **~147** |
 
 ---
 
@@ -138,9 +138,10 @@ Five compounding bugs caused ALL Cityscapes test results to be empty (`mIoU=N/A`
 | mask2former_swin-b | 19 | 2 | 3 | 14 |
 | **Total** | **91** | **31** | **5** | **55** |
 
-**Testing: 28 re-test jobs submitted** (2119269-2119296):
-- Cover all 31 completed trainings minus 3 with valid results
-- Properly formatted using bash script files (no quoting issues)
+**Testing: 28 re-test jobs submitted** (2119367-2119394):
+- Cover all 28 completed trainings with buggy val-split test results
+- Properly formatted using bash script files via `scripts/retest_cityscapes_gen.py`
+- Duplicate submissions (rounds 2-4) discovered and cleaned up (~90 duplicates killed)
 - Status: PEND (waiting for GPU slots)
 
 **Valid results so far (3/35):**
@@ -181,23 +182,34 @@ Five compounding bugs caused ALL Cityscapes test results to be empty (`mIoU=N/A`
 
 ### 📋 Next Steps for Cityscapes-Gen Stage
 1. ✅ ~~Verify re-test results~~ → Found quoting bug, resubmitted 28 test jobs with proper bash scripts
-2. **Extend tracker scripts** - Add `--stage cityscapes-gen` to `update_training_tracker.py` and `update_testing_tracker.py`
+2. ✅ **Extend tracker scripts** - Added `--stage cityscapes-gen` to both `update_training_tracker.py` and `update_testing_tracker.py`
    - New WEIGHTS_ROOT: `/scratch/aaa_exchange/AWARE/WEIGHTS_CITYSCAPES_GEN`
    - Dataset: `['cityscapes']` (single dataset, not the usual 4)
-   - Models: same 4 models (pspnet, segformer, segnext, mask2former) with `_ratio0p50` for gen strategies
-   - Max iters: 20,000 (from `batch_training_submission.py`)
-   - Output files: `TRAINING_TRACKER_CITYSCAPES_GEN.md`, `TESTING_TRACKER_CITYSCAPES_GEN.md`, `TRAINING_COVERAGE_CITYSCAPES_GEN.md`, `TESTING_COVERAGE_CITYSCAPES_GEN.md`
-   - Strategy lists: same gen (21) + std (baseline + 4 augmentation)
-2. **Monitor 91 running/queued cityscapes-gen jobs** - ✅ 31/35 segformer complete, 5 still training
-3. **Re-test future completed trainings** - ✅ 28 test jobs submitted using bash script files (no quoting bug)
-4. **Monitor 7 running segformer jobs** - ✅ All segformer complete, remaining 4 are non-segformer
-5. **After training completes** - ACDC cross-domain tests are auto-included and working
-6. **Analyze results** - Compare gen_ vs baseline/std on Cityscapes val + ACDC
+   - Output files: `TRAINING_TRACKER_CITYSCAPES_GEN.md`, `TESTING_TRACKER_CITYSCAPES_GEN.md`
+   - Committed in `cf4480c` + verified with regression tests on Stage 1/2
+3. ✅ **Created retest script** - `scripts/retest_cityscapes_gen.py` for re-testing models with buggy val-split results
+   - Submits LSF jobs using standalone bash script files (no quoting issues)
+   - Committed in `67709bb`
+4. ✅ **28 retest jobs submitted** (IDs 2119367-2119394) - all PEND in BatchGPU queue
+   - Duplicate submissions (rounds 2-4, ~90+ jobs) discovered and killed
+   - Covers all 28 completed trainings with buggy empty test results
+5. **Monitor retests** - Once complete, run `python scripts/update_testing_tracker.py --stage cityscapes-gen`
+6. **Monitor ~125 remaining cityscapes-gen training jobs** - 4 running, ~115 PEND
+7. **After training completes** - ACDC cross-domain tests are auto-included and working
+8. **Analyze results** - Compare gen_ vs baseline/std on Cityscapes test + ACDC
 
 ### ✅ Completed Analysis (2026-02-08)
-- Full code review of `update_training_tracker.py` (1363 lines) and `update_testing_tracker.py` (1299 lines)
+- Full code review of `update_training_tracker.py` (1363→1406 lines) and `update_testing_tracker.py` (1299→1315 lines)
 - Documented structure, functions, stage handling, output files, constants, directory traversal, and markdown format
 - Identified all changes needed for cityscapes-gen stage extension
+- **Implemented cityscapes-gen stage** in both trackers (committed `cf4480c`):
+  - `WEIGHTS_ROOT_CITYSCAPES_GEN`, `DATASETS_CITYSCAPES_GEN`, `DATASET_DISPLAY` dict for dynamic headers
+  - `--stage cityscapes-gen` CLI option with proper routing in `main()`
+  - Global variable override pattern for `DATASETS`, `WEIGHTS_ROOT`, `TRACKER_PATH`
+  - Regression-tested: Stage 1 and Stage 2 output unchanged
+- **Created `scripts/retest_cityscapes_gen.py`** (285 lines, committed `67709bb`):
+  - Scans `WEIGHTS_CITYSCAPES_GEN` for models needing retest (buggy val-split results)
+  - Generates and submits LSF scripts with correct `test_split=test`
 
 ---
 
@@ -236,16 +248,15 @@ All missing baseline Mask2Former jobs submitted and moved to top of queue:
 6. **Cross-domain testing** — After training completes, verify ACDC results
 7. **Stage 2 completion** — Only 60/444 (13.5%) complete, 379 pending
 
-### 📊 Current Queue Status (2026-02-08 20:40)
+### 📊 Current Queue Status (2026-02-08 21:50)
 
 | Category | Running | Pending | Total |
 |----------|---------|---------|-------|
-| Stage 1 training | 2 | 0 | 2 |
-| Cityscapes-gen training | 5 | 55 | 60 |
-| Cityscapes-gen testing | 0 | 28 | 28 |
-| Stage 1 gen_ restarts | 0 | 28 | 28 |
-| Stage 1 test jobs | 0 | 10 | 10 |
-| **Total** | **7** | **121** | **128** |
+| Stage 1 training (IDD-AW) | 2 | 0 | 2 |
+| Cityscapes-gen training | 4 | ~115 | ~119 |
+| Cityscapes-gen testing (retests) | 0 | 28 | 28 |
+| Stage 1 gen_ restarts | 0 | ~4 | ~4 |
+| **Total** | **6** | **~147** | **~153** |
 
 ---
 
