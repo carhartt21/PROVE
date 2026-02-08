@@ -63,6 +63,7 @@ DATASET_DOMAINS = {
     'ACDC': ['foggy', 'night', 'rainy', 'snowy'],  # ACDC test split only has 4 domains
     'BDD10k': ['clear_day', 'cloudy', 'dawn_dusk', 'foggy', 'night', 'rainy', 'snowy'],
     'BDD100k': ['clear_day', 'cloudy', 'dawn_dusk', 'foggy', 'night', 'rainy', 'snowy'],
+    'Cityscapes': ['frankfurt', 'lindau', 'munster'],  # City-based splits, not weather domains
     'IDD-AW': ['clear_day', 'cloudy', 'dawn_dusk', 'foggy', 'night', 'rainy', 'snowy'],
     'MapillaryVistas': ['clear_day', 'cloudy', 'dawn_dusk', 'foggy', 'night', 'rainy', 'snowy'],
     'OUTSIDE15k': ['clear_day', 'cloudy', 'dawn_dusk', 'foggy', 'night', 'rainy', 'snowy'],
@@ -155,7 +156,7 @@ DATASET_LABEL_CONFIG = {
         'classes': None,
     },
     'Cityscapes': {
-        'label_type': 'cityscapes_trainid',
+        'label_type': 'cityscapes_labelid',  # FINAL_SPLITS has labelIDs (0-33), needs conversion to trainIds
         'num_classes': 19,
         'classes': None,
     },
@@ -804,8 +805,8 @@ def run_fine_grained_test(
     
     print(f"Model loaded on {device}")
     
-    # Get domains for this dataset
-    domains = ['clear_day', 'cloudy', 'dawn_dusk', 'foggy', 'night', 'rainy', 'snowy']
+    # Get domains for this dataset (use DATASET_DOMAINS if available, fallback to weather domains)
+    domains = DATASET_DOMAINS.get(folder_name, ['clear_day', 'cloudy', 'dawn_dusk', 'foggy', 'night', 'rainy', 'snowy'])
     
     # Get dataset-specific configuration (num_classes for GT, class_names)
     gt_num_classes, class_names = get_dataset_config(folder_name)
@@ -909,6 +910,11 @@ def run_fine_grained_test(
                     label_path = label_dir / (img_path.stem + ext)
                     if label_path.exists():
                         break
+            if not label_path.exists():
+                # Cityscapes-specific naming: image has _leftImg8bit, label has _gtFine_labelIds
+                if '_leftImg8bit' in img_path.name:
+                    cs_label_name = img_path.name.replace('_leftImg8bit', '_gtFine_labelIds')
+                    label_path = label_dir / cs_label_name
             if not label_path.exists():
                 # ACDC-specific naming: image has _rgb_anon, label has _gt_labelIds
                 if '_rgb_anon' in img_path.name:

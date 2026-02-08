@@ -788,10 +788,10 @@ if [ $TRAIN_EXIT_CODE -eq 0 ]; then
         echo "Starting fine-grained testing..."
         echo "=========================================="
         
-        # Cityscapes uses its own test structure (val set)
-        # Other datasets use FINAL_SPLITS structure
-        DATA_ROOT={'"' + '/scratch/aaa_exchange/AWARE/CITYSCAPES' + '"' if job.dataset == 'Cityscapes' else '"' + '/scratch/aaa_exchange/AWARE/FINAL_SPLITS' + '"'}
-        TEST_SPLIT={'"val"' if job.dataset == 'Cityscapes' else '"test"'}
+        # All datasets use FINAL_SPLITS structure for fine-grained testing
+        # Cityscapes test set in FINAL_SPLITS has city-based subfolders (frankfurt, lindau, munster)
+        DATA_ROOT="/scratch/aaa_exchange/AWARE/FINAL_SPLITS"
+        TEST_SPLIT="test"
         
         python {PROJECT_ROOT}/fine_grained_test.py \\
             --config "$CONFIG" \\
