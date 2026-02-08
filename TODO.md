@@ -1,12 +1,12 @@
 # PROVE Project TODO
 
-**Last Updated:** 2026-02-08 (12:00)
+**Last Updated:** 2026-02-08 (11:45)
 
 ---
 
 ## 🆕 Cityscapes-Gen Evaluation Stage (2026-02-08)
 
-### ✅ Bug Fixes Applied
+### ✅ Bug Fixes Applied (Training)
 Two critical bugs were found and fixed that caused ALL gen_ cityscapes-gen jobs to fail with `ValueError: No generated images found for dataset 'Cityscapes'`:
 
 1. **`generated_images_dataset.py`** (case sensitivity bug):
@@ -18,24 +18,55 @@ Two critical bugs were found and fixed that caused ALL gen_ cityscapes-gen jobs 
    - Attribute_Hallucination's Cityscapes at `Cityscapes/generated/{domain}/{city}/` was missed
    - **Fix:** Added intermediary directory traversal (`generated/`, `test_latest/`, etc.)
 
+### ✅ Bug Fixes Applied (Testing) — commit `0cc2d69`
+Five compounding bugs caused ALL Cityscapes test results to be empty (`mIoU=N/A`). ACDC cross-domain tests were unaffected.
+
+1. **`fine_grained_test.py`** — Hardcoded weather domains:
+   - `domains = ['clear_day', 'cloudy', ...]` was hardcoded; Cityscapes uses cities (`frankfurt`, `lindau`, `munster`)
+   - **Fix:** `domains = DATASET_DOMAINS.get(folder_name, [...])` + added `'Cityscapes': ['frankfurt', 'lindau', 'munster']`
+
+2. **`fine_grained_test.py`** — Label filename mismatch:
+   - Images named `*_leftImg8bit.png`, but code only matched `_rgb_anon` / `_leftImg8bit` for ACDC/Cityscapes style
+   - **Fix:** Added explicit Cityscapes matching: `_leftImg8bit` → `_gtFine_labelIds`
+
+3. **`fine_grained_test.py`** — Wrong label_type:
+   - `cityscapes_trainid` assumed labels contain train IDs; FINAL_SPLITS has `_gtFine_labelIds` (original label IDs needing remapping)
+   - **Fix:** Changed to `cityscapes_labelid`
+
+4. **`scripts/batch_training_submission.py`** — Wrong DATA_ROOT for tests:
+   - Used native Cityscapes path (`/scratch/.../CITYSCAPES`) instead of unified FINAL_SPLITS
+   - **Fix:** Always use `FINAL_SPLITS` + `test` split
+
+**Impact:** 12 completed segformer trainings had empty Cityscapes test results. 12 re-test jobs submitted (jobs 1996609-1996617, 2022051-2022053).
+
 ### ✅ Manifest Fixes
 - Regenerated Attribute_Hallucination CSV: now captures 14,875 Cityscapes entries
 - stargan_v2 reorganized: 205,248 images at 100% match (was 17,850)
 - All 25 method CSVs verified with Cityscapes coverage
 
-### 🔄 Jobs Submitted (2026-02-08)
-**91 cityscapes-gen jobs total** across 4 models:
+### 🔄 Jobs Status (2026-02-08 11:45)
+**Training: 91 cityscapes-gen jobs** across 4 models:
 
-| Model | Submitted | Skipped | Status |
-|-------|-----------|---------|--------|
-| segformer_mit-b3 | 19 | 7 (5 done + 2 no images) | 🔄 Running |
-| pspnet_r50 | 24 | 2 (no images) | 🔄 Queued |
-| segnext_mscan-b | 24 | 2 (no images) | 🔄 Queued |
-| mask2former_swin-b | 24 | 2 (no images) | 🔄 Queued |
-| **Total** | **91** | **13** | |
+| Model | Submitted | Completed | Running | Pending |
+|-------|-----------|-----------|---------|---------|
+| segformer_mit-b3 | 19 | 12 | 7 | 0 |
+| pspnet_r50 | 24 | 0 | 0 | 24 |
+| segnext_mscan-b | 24 | 0 | 0 | 24 |
+| mask2former_swin-b | 24 | 0 | 0 | 24 |
+| **Total** | **91** | **12** | **7** | **72** |
 
-**Previously completed (segformer only):**
-- ✅ baseline, std_autoaugment, std_cutmix, std_mixup, std_randaugment (10 ckpts + test results each)
+**Completed segformer trainings (12):**
+- ✅ baseline, std_autoaugment, std_cutmix, std_mixup, std_randaugment
+- ✅ gen_albumentations_weather, gen_automold, gen_flux_kontext, gen_step1x_new
+- ✅ gen_SUSTechGAN, gen_step1x_v1p2, gen_VisualCloze
+
+**Currently running segformer trainings (7):**
+- 🔄 gen_IP2P (iter ~18200/20000), gen_cyclediffusion (~14600), gen_Attribute_Hallucination (~13700)
+- 🔄 gen_CUT (~13050), gen_UniControl (~12600), gen_Img2Img (~8000), gen_Qwen_Image_Edit (~7900)
+
+**Re-test jobs:** 12 submitted (for completed trainings with fixed test code), pending in queue
+
+**⚠️ Note:** All remaining 79 training jobs (7 running + 72 pending) have the OLD buggy test code baked into their LSF scripts. Their auto-test for Cityscapes will still fail — they will need manual re-testing after completion. ACDC cross-domain tests are unaffected.
 
 **Strategies without Cityscapes (skipped):** gen_LANIT (all models)
 
@@ -56,16 +87,25 @@ Two critical bugs were found and fixed that caused ALL gen_ cityscapes-gen jobs 
 ### 📊 Weights Directory
 ```
 /scratch/aaa_exchange/AWARE/WEIGHTS_CITYSCAPES_GEN/
-├── baseline/cityscapes/segformer_mit-b3/          ✅ 10 ckpts, tested
-├── std_autoaugment/cityscapes/segformer_mit-b3/   ✅ 10 ckpts, tested
-├── std_cutmix/cityscapes/segformer_mit-b3/        ✅ 10 ckpts, tested
-├── std_mixup/cityscapes/segformer_mit-b3/         ✅ 10 ckpts, tested
-├── std_randaugment/cityscapes/segformer_mit-b3/   ✅ 10 ckpts, tested
-├── gen_*/cityscapes/{model}_ratio0p50/            🔄 91 jobs running/pending
+├── baseline/cityscapes/segformer_mit-b3/                   ✅ trained, re-testing
+├── std_autoaugment/cityscapes/segformer_mit-b3/            ✅ trained, re-testing
+├── std_cutmix/cityscapes/segformer_mit-b3/                 ✅ trained, re-testing
+├── std_mixup/cityscapes/segformer_mit-b3/                  ✅ trained, re-testing
+├── std_randaugment/cityscapes/segformer_mit-b3/            ✅ trained, re-testing
+├── gen_albumentations_weather/.../segformer_ratio0p50/     ✅ trained, re-testing
+├── gen_automold/.../segformer_ratio0p50/                   ✅ trained, re-testing
+├── gen_flux_kontext/.../segformer_ratio0p50/               ✅ trained, re-testing
+├── gen_step1x_new/.../segformer_ratio0p50/                 ✅ trained, re-testing
+├── gen_SUSTechGAN/.../segformer_ratio0p50/                 ✅ trained, re-testing
+├── gen_step1x_v1p2/.../segformer_ratio0p50/               ✅ trained, re-testing
+├── gen_VisualCloze/.../segformer_ratio0p50/                ✅ trained, re-testing
+├── gen_{7 others}/cityscapes/segformer_ratio0p50/         🔄 training (7 running)
+├── gen_*/cityscapes/{pspnet,segnext,mask2former}_ratio0p50/ ⏳ pending (72 jobs)
 ```
 
 ### 📋 Next Steps for Cityscapes-Gen Stage
-1. **Extend tracker scripts** - Add `--stage cityscapes-gen` to `update_training_tracker.py` and `update_testing_tracker.py`
+1. **Verify re-test results** - Confirm 12 re-test jobs produce valid mIoU for Cityscapes
+2. **Extend tracker scripts** - Add `--stage cityscapes-gen` to `update_training_tracker.py` and `update_testing_tracker.py`
    - New WEIGHTS_ROOT: `/scratch/aaa_exchange/AWARE/WEIGHTS_CITYSCAPES_GEN`
    - Dataset: `['cityscapes']` (single dataset, not the usual 4)
    - Models: same 4 models (pspnet, segformer, segnext, mask2former) with `_ratio0p50` for gen strategies
@@ -73,8 +113,10 @@ Two critical bugs were found and fixed that caused ALL gen_ cityscapes-gen jobs 
    - Output files: `TRAINING_TRACKER_CITYSCAPES_GEN.md`, `TESTING_TRACKER_CITYSCAPES_GEN.md`, `TRAINING_COVERAGE_CITYSCAPES_GEN.md`, `TESTING_COVERAGE_CITYSCAPES_GEN.md`
    - Strategy lists: same gen (21) + std (baseline + 4 augmentation)
 2. **Monitor 91 running/queued cityscapes-gen jobs** - Check for early failures
-3. **After training completes** - Run ACDC cross-domain tests + auto-submit tests
-4. **Analyze results** - Compare gen_ vs baseline/std on Cityscapes val + ACDC
+3. **Re-test future completed trainings** - The 79 remaining jobs have old buggy test scripts; run `bash /tmp/retest_cityscapes.sh` (or similar) after each batch completes
+4. **Monitor 7 running segformer jobs** - ETA ~1-3 hours for remaining
+5. **After training completes** - ACDC cross-domain tests are auto-included and working
+6. **Analyze results** - Compare gen_ vs baseline/std on Cityscapes val + ACDC
 
 ### ✅ Completed Analysis (2026-02-08)
 - Full code review of `update_training_tracker.py` (1363 lines) and `update_testing_tracker.py` (1299 lines)
@@ -115,13 +157,13 @@ All missing baseline Mask2Former jobs submitted and moved to top of queue:
 3. **Analyze results** - Compare gen_ vs baseline/std strategies on Cityscapes val + ACDC
 4. **Stage 1/2 completion** - Continue monitoring remaining Stage 1/2 training jobs
 
-### �📊 Current Queue Status (2026-02-08 03:00)
+### 📊 Current Queue Status (2026-02-08 11:45)
 
-| User | Running | Pending | Total |
-|------|---------|---------|-------|
-| mima2416 | 5 | 84 | 89 |
-
-Main jobs: 91 cityscapes-gen + 2 Stage 1 training
+| Category | Running | Pending | Total |
+|----------|---------|---------|-------|
+| Cityscapes-gen training | 7 | 72 | 79 |
+| Cityscapes re-test | 0 | 12 | 12 |
+| **Total** | **7** | **84** | **91** |
 
 ---
 
