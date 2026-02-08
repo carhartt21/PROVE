@@ -16,15 +16,15 @@ Shows mIoU improvement over baseline_clear_day for each dataset. Positive = bett
 
 **Columns:** Dataset gains from overall mIoU; Normal/Adverse Gain from per-domain metrics (may have different coverage).
 
-| Strategy | Type | bdd10k | Avg Gain | Normal Gain | Adverse Gain |
-| --- | --- | ---: | ---: | ---: | ---: |
-| baseline | Baseline Full | - | - | - | - |
-| std_autoaugment | Standard Aug | - | - | - | - |
-| std_cutmix | Standard Aug | - | - | - | - |
-| std_minimal | Standard Aug | - | - | - | - |
-| std_mixup | Standard Aug | - | - | - | - |
-| std_photometric_distort | Standard Aug | - | - | - | - |
-| std_randaugment | Standard Aug | - | - | - | - |
+| Strategy | Type | bdd10k | iddaw | mapillaryvistas | outside15k | Avg Gain | Normal Gain | Adverse Gain |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| baseline | Baseline Full | - | - | - | - | - | - | - |
+| std_autoaugment | Standard Aug | - | - | - | - | - | - | - |
+| std_cutmix | Standard Aug | - | - | - | - | - | - | - |
+| std_minimal | Standard Aug | - | - | - | - | - | - | - |
+| std_mixup | Standard Aug | - | - | - | - | - | - | - |
+| std_photometric_distort | Standard Aug | - | - | - | - | - | - | - |
+| std_randaugment | Standard Aug | - | - | - | - | - | - | - |
 
 ---
 

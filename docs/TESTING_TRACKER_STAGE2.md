@@ -1,6 +1,6 @@
 # Testing Progress Tracker
 
-**Last Updated:** 2026-02-03 06:57
+**Last Updated:** 2026-02-08 08:21
 
 
 This document tracks the progress of fine-grained testing for trained models.
@@ -52,7 +52,10 @@ This document tracks the progress of fine-grained testing for trained models.
 
 | Rank | Strategy | Avg mIoU | Best Dataset | Best mIoU | Datasets |
 |------|----------|----------|--------------|-----------|----------|
-| 🥇 | baseline | 46.0 | BDD10k | 49.8 | 4/4 |
+| 🥇 | baseline | 46.1 | BDD10k | 50.5 | 4/4 |
+| 🥈 | std_autoaugment | 43.2 | BDD10k | 48.4 | 3/4 |
+| 🥉 | std_cutmix | 43.1 | BDD10k | 48.6 | 3/4 |
+| 4. | std_mixup | 42.8 | BDD10k | 48.1 | 3/4 |
 
 
 ### Generative Image Augmentation Strategies
@@ -85,12 +88,12 @@ This document tracks the progress of fine-grained testing for trained models.
 
 | Strategy | BDD10k | IDD-AW | MapillaryVistas | OUTSIDE15k | Avg |
 |----------|-------:|-------:|-------:|-------:|-------:|
-| baseline | 49.8 | 44.4 | 41.9 | 47.6 | 46.0 |
+| baseline | 50.5 | 44.4 | 41.9 | 47.6 | 46.1 |
 | std_minimal | ⏳ | ⏳ | ⏳ | ⏳ | - |
 | std_photometric_distort | ⏳ | ⏳ | ⏳ | ⏳ | - |
-| std_autoaugment | ⏳ | ⏳ | ⏳ | ⏳ | - |
-| std_cutmix | ⏳ | ⏳ | ⏳ | ⏳ | - |
-| std_mixup | ⏳ | ⏳ | ⏳ | ⏳ | - |
+| std_autoaugment | 48.4 | ⏳ | 35.6 | 45.5 | 43.2 |
+| std_cutmix | 48.6 | ⏳ | 35.8 | 45.0 | 43.1 |
+| std_mixup | 48.1 | ⏳ | 35.7 | 44.5 | 42.8 |
 | std_randaugment | ⏳ | ⏳ | ⏳ | ⏳ | - |
 
 ---
@@ -140,9 +143,9 @@ This document tracks the progress of fine-grained testing for trained models.
 | baseline | ✅ | ✅ | ✅ | ✅ |
 | std_minimal | ⏳ | ⏳ | ⏳ | ⏳ |
 | std_photometric_distort | ⏳ | ⏳ | ⏳ | ⏳ |
-| std_autoaugment | ⏳ | ⏳ | ⏳ | ⏳ |
-| std_cutmix | ⏳ | ⏳ | ⏳ | ⏳ |
-| std_mixup | ⏳ | ⏳ | ⏳ | ⏳ |
+| std_autoaugment | ✅ | ⏳ | ✅ | ✅ |
+| std_cutmix | ✅ | ⏳ | ✅ | ✅ |
+| std_mixup | ✅ | ⏳ | ✅ | ✅ |
 | std_randaugment | ⏳ | ⏳ | ⏳ | ⏳ |
 
 ---
@@ -152,10 +155,10 @@ This document tracks the progress of fine-grained testing for trained models.
 
 | Dataset | Complete | Running | Pending | Skip |
 |---------|----------|---------|---------|------|
-| BDD10k | 1 | 0 | 27 | 0 |
+| BDD10k | 4 | 0 | 24 | 0 |
 | IDD-AW | 1 | 0 | 27 | 0 |
-| MapillaryVistas | 1 | 0 | 27 | 0 |
-| OUTSIDE15k | 1 | 0 | 27 | 0 |
+| MapillaryVistas | 4 | 0 | 24 | 0 |
+| OUTSIDE15k | 4 | 0 | 24 | 0 |
 
 ---
 

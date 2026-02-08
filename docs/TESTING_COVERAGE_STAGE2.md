@@ -1,23 +1,23 @@
 # Testing Coverage Report
 
-**Generated:** 2026-02-03 06:57
+**Generated:** 2026-02-08 08:21
 
 ## Summary
 
 | Status | Count | Percentage |
 |--------|------:|----------:|
-| ✅ Complete (valid mIoU) | 23 | 100.0% |
+| ✅ Complete (valid mIoU) | 58 | 100.0% |
 | 🔄 Running | 0 | 0.0% |
 | ⏳ Pending (in queue) | 0 | 0.0% |
 | ⚠️ Buggy (mIoU < 5%) | 0 | 0.0% |
 | 🔃 Stale (wrong checkpoint) | 0 | 0.0% |
 | ❌ Missing (no results) | 0 | 0.0% |
-| **Total** | **23** | **100%** |
+| **Total** | **58** | **100%** |
 
 ## Per-Dataset Breakdown
 
 ### BDD10k
-- Complete: 8/86 (9.3%)
+- Complete: 21/112 (18.8%)
 - Running: 0
 - Pending (in queue): 0
 - Buggy (mIoU < 5%): 0
@@ -31,14 +31,14 @@
 - Missing (no results): 0
 
 ### MapillaryVistas
-- Complete: 5/8 (62.5%)
+- Complete: 17/111 (15.3%)
 - Running: 0
 - Pending (in queue): 0
 - Buggy (mIoU < 5%): 0
 - Missing (no results): 0
 
 ### OUTSIDE15k
-- Complete: 5/8 (62.5%)
+- Complete: 15/111 (13.5%)
 - Running: 0
 - Pending (in queue): 0
 - Buggy (mIoU < 5%): 0
@@ -92,7 +92,7 @@
 | baseline | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF |
 | std_minimal | ⏳ | ⏳ | ⏳ | ⏳ |
 | std_photometric_distort | ⏳ | ⏳ | ⏳ | ⏳ |
-| std_autoaugment | ⏳ | ⏳ | ⏳ | ⏳ |
-| std_cutmix | ⏳ | ⏳ | ⏳ | ⏳ |
-| std_mixup | ⏳ | ⏳ | ⏳ | ⏳ |
+| std_autoaugment | ✅ PSP, SF | ⏳ | ✅ PSP, SF | ✅ PSP, SF |
+| std_cutmix | ✅ PSP, SF | ⏳ | ✅ PSP, SF | ✅ PSP, SF |
+| std_mixup | ✅ PSP, SF | ⏳ | ✅ PSP, SF | ✅ SF |
 | std_randaugment | ⏳ | ⏳ | ⏳ | ⏳ |

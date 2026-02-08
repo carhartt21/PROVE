@@ -30,8 +30,17 @@ PROJECT_ROOT = SCRIPT_DIR.parent
 # Stage 2 (all domains): WEIGHTS_STAGE_2
 WEIGHTS_ROOT = Path(os.environ.get('PROVE_WEIGHTS_ROOT', '/scratch/aaa_exchange/AWARE/WEIGHTS'))
 WEIGHTS_ROOT_STAGE2 = Path(os.environ.get('PROVE_WEIGHTS_ROOT_STAGE2', '/scratch/aaa_exchange/AWARE/WEIGHTS_STAGE_2'))
+WEIGHTS_ROOT_CITYSCAPES_GEN = Path('/scratch/aaa_exchange/AWARE/WEIGHTS_CITYSCAPES_GEN')
 TRACKER_PATH = PROJECT_ROOT / 'docs' / 'TRAINING_TRACKER.md'
 DATASETS = ['bdd10k', 'idd-aw', 'mapillaryvistas', 'outside15k']
+DATASETS_CITYSCAPES_GEN = ['cityscapes']
+DATASET_DISPLAY = {
+    'bdd10k': 'BDD10k',
+    'idd-aw': 'IDD-AW',
+    'mapillaryvistas': 'MapillaryVistas',
+    'outside15k': 'OUTSIDE15k',
+    'cityscapes': 'Cityscapes',
+}
 
 # Models - now using all 4 models per strategy per dataset
 # Domain filter is part of dataset directory, not model directory
@@ -48,6 +57,12 @@ MODELS = {
         # Stage 2 uses same 4 models as Stage 1
         # Generative strategies use _ratio0p50 suffix (trained with 0.5 real/gen ratio)
         # Standard strategies use base model names (no ratio suffix)
+        'gen': ['pspnet_r50_ratio0p50', 'segformer_mit-b3_ratio0p50', 'segnext_mscan-b_ratio0p50', 'mask2former_swin-b_ratio0p50'],
+        'std': ['pspnet_r50', 'segformer_mit-b3', 'segnext_mscan-b', 'mask2former_swin-b'],
+        'baseline': ['pspnet_r50', 'segformer_mit-b3', 'segnext_mscan-b', 'mask2former_swin-b'],
+    },
+    'cityscapes_gen': {
+        # Cityscapes generative evaluation: 4 models
         'gen': ['pspnet_r50_ratio0p50', 'segformer_mit-b3_ratio0p50', 'segnext_mscan-b_ratio0p50', 'mask2former_swin-b_ratio0p50'],
         'std': ['pspnet_r50', 'segformer_mit-b3', 'segnext_mscan-b', 'mask2former_swin-b'],
         'baseline': ['pspnet_r50', 'segformer_mit-b3', 'segnext_mscan-b', 'mask2former_swin-b'],
@@ -208,8 +223,11 @@ def check_weight_status(strategy, dataset, domain_filter='clear_day'):
     # Determine the appropriate weights root based on domain_filter
     # Stage 1 (clear_day): WEIGHTS_ROOT
     # Stage 2 (all_domains): WEIGHTS_ROOT_STAGE2
+    # Cityscapes-gen (cityscapes_gen): WEIGHTS_ROOT_CITYSCAPES_GEN
     if domain_filter == 'all_domains':
         weights_root = WEIGHTS_ROOT_STAGE2
+    elif domain_filter == 'cityscapes_gen':
+        weights_root = WEIGHTS_ROOT_CITYSCAPES_GEN
     else:
         weights_root = WEIGHTS_ROOT
     
@@ -551,10 +569,12 @@ def collect_status(domain_filter='clear_day', verbose=False):
         'partial': 0,  # New status for partial completion
     }
     
+    datasets = DATASETS_CITYSCAPES_GEN if domain_filter == 'cityscapes_gen' else DATASETS
+    
     for strategy in ALL_STRATEGIES:
         status_matrix[strategy] = {}
         
-        for dataset in DATASETS:
+        for dataset in datasets:
             status, path, model_info = check_weight_status(strategy, dataset, domain_filter)
             
             # Use LSF status to refine the status - but ONLY if checkpoint doesn't exist
@@ -594,6 +614,8 @@ def check_model_weight_status(strategy, dataset, model, domain_filter='clear_day
     # Determine the appropriate weights root based on domain_filter
     if domain_filter == 'all_domains':
         weights_root = WEIGHTS_ROOT_STAGE2
+    elif domain_filter == 'cityscapes_gen':
+        weights_root = WEIGHTS_ROOT_CITYSCAPES_GEN
     else:
         weights_root = WEIGHTS_ROOT
     
@@ -876,14 +898,23 @@ def collect_detailed_coverage(domain_filter='clear_day', verbose=False):
     if domain_filter == 'all_domains':
         strategies_to_check = [s for s in ALL_STRATEGIES if s not in STAGE2_EXCLUDED_STRATEGIES]
     
+    datasets = DATASETS_CITYSCAPES_GEN if domain_filter == 'cityscapes_gen' else DATASETS
+    
     for strategy in strategies_to_check:
         # Determine which models to check based on strategy type
-        if strategy.startswith('gen_'):
-            models_to_check = ['deeplabv3plus_r50_ratio0p50', 'pspnet_r50_ratio0p50', 'segformer_mit-b3_ratio0p50', 'segnext_mscan-b_ratio0p50', 'hrnet_hr48_ratio0p50', 'mask2former_swin-b_ratio0p50']
+        if domain_filter == 'cityscapes_gen':
+            # Cityscapes-gen uses 4 models (no deeplabv3plus, no hrnet)
+            if strategy.startswith('gen_'):
+                models_to_check = ['pspnet_r50_ratio0p50', 'segformer_mit-b3_ratio0p50', 'segnext_mscan-b_ratio0p50', 'mask2former_swin-b_ratio0p50']
+            else:
+                models_to_check = ['pspnet_r50', 'segformer_mit-b3', 'segnext_mscan-b', 'mask2former_swin-b']
         else:
-            models_to_check = ['deeplabv3plus_r50', 'pspnet_r50', 'segformer_mit-b3', 'segnext_mscan-b', 'hrnet_hr48', 'mask2former_swin-b']
+            if strategy.startswith('gen_'):
+                models_to_check = ['deeplabv3plus_r50_ratio0p50', 'pspnet_r50_ratio0p50', 'segformer_mit-b3_ratio0p50', 'segnext_mscan-b_ratio0p50', 'hrnet_hr48_ratio0p50', 'mask2former_swin-b_ratio0p50']
+            else:
+                models_to_check = ['deeplabv3plus_r50', 'pspnet_r50', 'segformer_mit-b3', 'segnext_mscan-b', 'hrnet_hr48', 'mask2former_swin-b']
         
-        for dataset in DATASETS:
+        for dataset in datasets:
             for model in models_to_check:
                 status, path = check_model_weight_status(strategy, dataset, model, domain_filter)
                 user = None
@@ -1022,8 +1053,10 @@ def generate_coverage_report(coverage, summary, output_file=None):
         for item in complete_items:
             by_strategy[item['strategy']].append(item)
         
-        lines.append("| Strategy | BDD10k | IDD-AW | MapillaryVistas | OUTSIDE15k |")
-        lines.append("|----------|--------|--------|-----------------|------------|")
+        ds_headers = ' | '.join(DATASET_DISPLAY.get(ds, ds) for ds in DATASETS)
+        lines.append(f"| Strategy | {ds_headers} |")
+        ds_seps = ' | '.join('---' + '-' * max(0, len(DATASET_DISPLAY.get(ds, ds)) - 3) for ds in DATASETS)
+        lines.append(f"|----------|{ds_seps}|")
         
         for strategy in ALL_STRATEGIES:
             items = by_strategy.get(strategy, [])
@@ -1074,12 +1107,19 @@ def update_tracker(status_matrix, summary, domain_filter='clear_day', tracker_pa
         tracker_path = TRACKER_PATH
     
     # Read current tracker (or create new one if doesn't exist)
+    # Build dynamic column headers from DATASETS
+    ds_headers = ' | '.join(DATASET_DISPLAY.get(ds, ds) for ds in DATASETS)
+    ds_separators = ' | '.join('---' + '-' * max(0, len(DATASET_DISPLAY.get(ds, ds)) - 3) for ds in DATASETS)
+    table_header = f'| Strategy | {ds_headers} | Notes |'
+    table_separator = f'|----------|{ds_separators}|-------|'
+    
     try:
         with open(tracker_path, 'r') as f:
             content = f.read()
     except FileNotFoundError:
         # Create a basic template if file doesn't exist
-        stage_name = "Stage 1 (Clear Day)" if domain_filter == 'clear_day' else "Stage 2 (All Domains)"
+        stage_names = {'clear_day': 'Stage 1 (Clear Day)', 'all_domains': 'Stage 2 (All Domains)', 'cityscapes_gen': 'Cityscapes-Gen'}
+        stage_name = stage_names.get(domain_filter, domain_filter)
         content = f"""# Training Tracker - {stage_name}
 
 **Last Updated:** {datetime.now().strftime('%Y-%m-%d %H:%M')}
@@ -1094,13 +1134,13 @@ def update_tracker(status_matrix, summary, domain_filter='clear_day', tracker_pa
 
 ### Generative Image Augmentation Strategies
 
-| Strategy | BDD10k | IDD-AW | MapillaryVistas | OUTSIDE15k | Notes |
-|----------|--------|--------|-----------------|------------|-------|
+{table_header}
+{table_separator}
 
 ### Standard Augmentation Strategies
 
-| Strategy | BDD10k | IDD-AW | MapillaryVistas | OUTSIDE15k | Notes |
-|----------|--------|--------|-----------------|------------|-------|
+{table_header}
+{table_separator}
 """
     
     # Update timestamp
@@ -1112,15 +1152,13 @@ def update_tracker(status_matrix, summary, domain_filter='clear_day', tracker_pa
     )
     
     # Build new generative strategies table
-    gen_rows = ['| Strategy | BDD10k | IDD-AW | MapillaryVistas | OUTSIDE15k | Notes |',
-                '|----------|--------|--------|-----------------|------------|-------|']
+    gen_rows = [table_header, table_separator]
     for strategy in GENERATIVE_STRATEGIES:
         gen_rows.append(format_status_row(strategy, status_matrix[strategy], DATASETS))
     gen_table = '\n'.join(gen_rows)
     
     # Build new standard strategies table
-    std_rows = ['| Strategy | BDD10k | IDD-AW | MapillaryVistas | OUTSIDE15k | Notes |',
-                '|----------|--------|--------|-----------------|------------|-------|']
+    std_rows = [table_header, table_separator]
     for strategy in STANDARD_STRATEGIES:
         std_rows.append(format_status_row(strategy, status_matrix[strategy], DATASETS))
     std_table = '\n'.join(std_rows)
@@ -1299,8 +1337,8 @@ def print_summary(stats):
 
 def main():
     parser = argparse.ArgumentParser(description='Update retraining progress tracker')
-    parser.add_argument('--stage', type=int, default=1, choices=[1, 2],
-                        help='Stage to check (1=clear_day, 2=all_domains)')
+    parser.add_argument('--stage', type=str, default='1', choices=['1', '2', 'cityscapes-gen'],
+                        help='Stage to check (1=clear_day, 2=all_domains, cityscapes-gen)')
     parser.add_argument('--verbose', '-v', action='store_true',
                         help='Show detailed status for all combinations')
     parser.add_argument('--no-update', action='store_true',
@@ -1311,7 +1349,13 @@ def main():
                         help='Output file for coverage report (default: docs/TRAINING_COVERAGE_STAGE1.md or STAGE2.md)')
     args = parser.parse_args()
     
-    domain_filter = 'clear_day' if args.stage == 1 else 'all_domains'
+    stage_map = {'1': 'clear_day', '2': 'all_domains', 'cityscapes-gen': 'cityscapes_gen'}
+    domain_filter = stage_map[args.stage]
+    
+    # Override global DATASETS for cityscapes-gen
+    global DATASETS
+    if domain_filter == 'cityscapes_gen':
+        DATASETS = DATASETS_CITYSCAPES_GEN
     
     # Coverage report mode
     if args.coverage_report:
@@ -1321,7 +1365,7 @@ def main():
         output_file = args.output
         if output_file is None:
             # Use stage-specific filenames
-            stage_suffix = "STAGE1" if args.stage == 1 else "STAGE2"
+            stage_suffix = {'1': 'STAGE1', '2': 'STAGE2', 'cityscapes-gen': 'CITYSCAPES_GEN'}[args.stage]
             output_file = PROJECT_ROOT / 'docs' / f'TRAINING_COVERAGE_{stage_suffix}.md'
         
         report = generate_coverage_report(coverage, summary, output_file)
@@ -1343,7 +1387,7 @@ def main():
     status_matrix, summary = collect_status(domain_filter, args.verbose)
     
     # Use stage-specific tracker file
-    stage_suffix = "STAGE1" if args.stage == 1 else "STAGE2"
+    stage_suffix = {'1': 'STAGE1', '2': 'STAGE2', 'cityscapes-gen': 'CITYSCAPES_GEN'}[args.stage]
     tracker_path = PROJECT_ROOT / 'docs' / f'TRAINING_TRACKER_{stage_suffix}.md'
     
     if not args.no_update:

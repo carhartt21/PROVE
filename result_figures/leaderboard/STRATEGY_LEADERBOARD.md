@@ -26,13 +26,13 @@ models that never saw adverse weather conditions during training.
 | Strategy | Type | Overall mIoU | Gain vs Clear Day | Normal mIoU | Normal Gain | Adverse mIoU | Adverse Gain | Domain Gap (Δ) | Gap Reduction vs Clear Day |
 |---|---|---|---|---|---|---|---|---|---|
 | baseline_clear_day | Baseline Clear Day | - | - | - | - | - | - | - | - |
-| baseline | Baseline Full | 30.0% | - | 32.5% | - | 28.4% | - | +4.0% | - |
-| std_autoaugment | Standard Aug | 45.5% | - | 49.4% | - | 44.3% | - | +5.1% | - |
+| baseline | Baseline Full | 32.1% | - | 32.9% | - | 26.9% | - | +6.0% | - |
 | std_photometric_distort | Standard Aug | 45.5% | - | 49.3% | - | 44.8% | - | +4.5% | - |
-| std_cutmix | Standard Aug | 45.3% | - | 48.9% | - | 43.5% | - | +5.3% | - |
-| std_randaugment | Standard Aug | 45.2% | - | 49.3% | - | 43.5% | - | +5.8% | - |
 | std_minimal | Standard Aug | 44.9% | - | 49.2% | - | 42.7% | - | +6.5% | - |
-| std_mixup | Standard Aug | 44.8% | - | 49.5% | - | 42.7% | - | +6.8% | - |
+| std_autoaugment | Standard Aug | 37.0% | - | 38.5% | - | 32.2% | - | +6.2% | - |
+| std_cutmix | Standard Aug | 36.9% | - | 38.3% | - | 32.0% | - | +6.3% | - |
+| std_randaugment | Standard Aug | 36.9% | - | 38.2% | - | 31.8% | - | +6.4% | - |
+| std_mixup | Standard Aug | 36.8% | - | 38.4% | - | 31.9% | - | +6.4% | - |
 
 
 

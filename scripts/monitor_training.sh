@@ -4,7 +4,15 @@
 
 INTERVAL=${1:-60}
 LOG_FILE=${2:-"/home/mima2416/repositories/PROVE/logs/monitor_training.log"}
-WEIGHTS_ROOT="/scratch/aaa_exchange/AWARE/WEIGHTS"
+WEIGHTS_ROOT="/scratch/aaa_exchange/AWARE"
+WEIGHTS_DIRS=(
+    "WEIGHTS_STAGE_1"
+    "WEIGHTS_STAGE_2"
+    "WEIGHTS_CITYSCAPES"
+    "WEIGHTS_RATIO_ABLATION"
+    "WEIGHTS_EXTENDED"
+    "WEIGHTS_LOSS_ABLATION"
+)
 LOCKS_DIR="/scratch/aaa_exchange/AWARE/training_locks"
 
 # Colors
@@ -74,6 +82,10 @@ while true; do
     MIMA_PEND=${MIMA_PEND:-0}
     MIMA_TOTAL=$((MIMA_RUN + MIMA_PEND))
     echo -e "${BLUE}[JOBS]${NC} mima2416: ${GREEN}RUN: $MIMA_RUN${NC} | ${YELLOW}PEND: $MIMA_PEND${NC} | Total: $MIMA_TOTAL"
+
+    OTHER_PEND=$(($(bjobs -u all -o 'stat' -q BatchGPU 2>/dev/null | tail -n +2 | grep -c '^PEND')-$((CHGE_PEND + MIMA_PEND))))
+    OTHER_PEND=${OTHER_PEND:-0}
+    echo -e "${BLUE}[JOBS]${NC} Other Users: ${YELLOW}PEND: $OTHER_PEND${NC}"
     
     # Count failed/done jobs in last 4 hours (240 minutes)
     echo ""
@@ -91,7 +103,7 @@ while true; do
     echo -e "${YELLOW}[LOCKS]${NC} $LOCK_COUNT active"
     
     # Recent checkpoints (compact)
-    RECENT_CKPT=$(find "$WEIGHTS_ROOT" -name "*.pth" -mmin -30 2>/dev/null | wc -l)
+    RECENT_CKPT=$(find "${WEIGHTS_DIRS[@]/#/$WEIGHTS_ROOT/}" -name "*.pth" -mmin -30 2>/dev/null | wc -l)
     echo -e "${YELLOW}[CHECKPOINTS]${NC} $RECENT_CKPT new in last 30 min"
     
     echo ""

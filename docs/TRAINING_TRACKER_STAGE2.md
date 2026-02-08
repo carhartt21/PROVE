@@ -1,6 +1,6 @@
 # Training Tracker - Stage 2 (All Domains)
 
-**Last Updated:** 2026-02-04 16:08
+**Last Updated:** 2026-02-08 08:21
 
 ---
 
@@ -24,16 +24,16 @@
 | Category | Configs | Complete (4/4) | Partial | Running | Pending | Failed |
 |----------|---------|----------------|---------|---------|---------|--------|
 | **Generative (gen_*)** | 83 | 0 | 0 | 0 | 82 | 2 |
-| **Standard (std_*)** | 28 | 3 | 10 | 1 | 14 | 0 |
-| **TOTAL** | 111 | 3 | 10 | 1 | 96 | 2 |
+| **Standard (std_*)** | 28 | 3 | 11 | 2 | 12 | 0 |
+| **TOTAL** | 111 | 3 | 11 | 2 | 94 | 2 |
 
 ### Individual Model Trainings
 
 | Category | Total Models | ✅ Complete | 🔄 Running | ⏳ Pending | ❌ Failed |
 |----------|-------------|-------------|------------|-----------|----------|
 | **Generative (gen_*)** | 332 | 0 | 0 | 333 | 3 |
-| **Standard (std_*)** | 112 | 45 | 1 | 66 | 0 |
-| **TOTAL** | 444 | 45 | 1 | 399 | 3 |
+| **Standard (std_*)** | 112 | 49 | 2 | 61 | 0 |
+| **TOTAL** | 444 | 49 | 2 | 394 | 3 |
 
 ### Generative Image Augmentation Strategies (❌ INVALID)
 
@@ -69,5 +69,5 @@
 | std_photometric_distort | ⏳ | ⏳ | ⏳ | ⏳ |  |
 | std_autoaugment | ✅ | ✅ | 3/4 | 3/4 |  |
 | std_cutmix | 3/4 | 3/4 | 3/4 | 3/4 |  |
-| std_mixup | 3/4 | 3/4 | ⏳ | ⏳ |  |
+| std_mixup | 3/4 | 3/4 | 3/4 | 🔄 |  |
 | std_randaugment | ⏳ | ⏳ | ⏳ | ⏳ |  |

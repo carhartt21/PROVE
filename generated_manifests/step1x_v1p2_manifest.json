@@ -2,17 +2,18 @@
   "method": "step1x_v1p2",
   "generated_dir": "/scratch/aaa_exchange/AWARE/GENERATED_IMAGES/step1x_v1p2",
   "original_dir": "/scratch/aaa_exchange/AWARE/FINAL_SPLITS/train/images",
+  "target_dir": "/scratch/aaa_exchange/AWARE/AWACS/train",
   "manifest_path": "/scratch/aaa_exchange/AWARE/GENERATED_IMAGES/step1x_v1p2/manifest.csv",
   "structure_type": "dataset_domain",
   "task_type": "generation",
-  "total_generated": 105075,
-  "total_matched": 105075,
+  "total_generated": 122813,
+  "total_matched": 122813,
   "total_unmatched": 0,
   "overall_match_rate": 100.0,
   "domains": {
     "cloudy": {
-      "total": 17511,
-      "matched": 17511,
+      "total": 20486,
+      "matched": 20486,
       "unmatched": 0,
       "match_rate": 100.0,
       "is_restoration": false,
@@ -32,6 +33,11 @@
           "matched": 2370,
           "unmatched": 0,
           "total": 2370
+        },
+        "Cityscapes": {
+          "matched": 2975,
+          "unmatched": 0,
+          "total": 2975
         },
         "IDD-AW": {
           "matched": 3847,
@@ -51,8 +57,8 @@
       }
     },
     "dawn_dusk": {
-      "total": 17512,
-      "matched": 17512,
+      "total": 20487,
+      "matched": 20487,
       "unmatched": 0,
       "match_rate": 100.0,
       "is_restoration": false,
@@ -72,6 +78,11 @@
           "matched": 2370,
           "unmatched": 0,
           "total": 2370
+        },
+        "Cityscapes": {
+          "matched": 2975,
+          "unmatched": 0,
+          "total": 2975
         },
         "IDD-AW": {
           "matched": 3847,
@@ -91,8 +102,8 @@
       }
     },
     "foggy": {
-      "total": 17514,
-      "matched": 17514,
+      "total": 20489,
+      "matched": 20489,
       "unmatched": 0,
       "match_rate": 100.0,
       "is_restoration": false,
@@ -112,6 +123,11 @@
           "matched": 2370,
           "unmatched": 0,
           "total": 2370
+        },
+        "Cityscapes": {
+          "matched": 2975,
+          "unmatched": 0,
+          "total": 2975
         },
         "IDD-AW": {
           "matched": 3847,
@@ -131,8 +147,8 @@
       }
     },
     "night": {
-      "total": 17511,
-      "matched": 17511,
+      "total": 20374,
+      "matched": 20374,
       "unmatched": 0,
       "match_rate": 100.0,
       "is_restoration": false,
@@ -152,6 +168,11 @@
           "matched": 2370,
           "unmatched": 0,
           "total": 2370
+        },
+        "Cityscapes": {
+          "matched": 2863,
+          "unmatched": 0,
+          "total": 2863
         },
         "IDD-AW": {
           "matched": 3847,
@@ -171,8 +192,8 @@
       }
     },
     "rainy": {
-      "total": 17513,
-      "matched": 17513,
+      "total": 20488,
+      "matched": 20488,
       "unmatched": 0,
       "match_rate": 100.0,
       "is_restoration": false,
@@ -193,6 +214,11 @@
           "unmatched": 0,
           "total": 2370
         },
+        "Cityscapes": {
+          "matched": 2975,
+          "unmatched": 0,
+          "total": 2975
+        },
         "IDD-AW": {
           "matched": 3847,
           "unmatched": 0,
@@ -211,8 +237,8 @@
       }
     },
     "snowy": {
-      "total": 17514,
-      "matched": 17514,
+      "total": 20489,
+      "matched": 20489,
       "unmatched": 0,
       "match_rate": 100.0,
       "is_restoration": false,
@@ -233,6 +259,11 @@
           "unmatched": 0,
           "total": 2370
         },
+        "Cityscapes": {
+          "matched": 2975,
+          "unmatched": 0,
+          "total": 2975
+        },
         "IDD-AW": {
           "matched": 3847,
           "unmatched": 0,
@@ -251,36 +282,5 @@
       }
     }
   },
-  "datasets_aggregate": {
-    "ACDC": {
-      "matched": 4206,
-      "unmatched": 0,
-      "total": 4206
-    },
-    "BDD100k": {
-      "matched": 12278,
-      "unmatched": 0,
-      "total": 12278
-    },
-    "BDD10k": {
-      "matched": 14220,
-      "unmatched": 0,
-      "total": 14220
-    },
-    "IDD-AW": {
-      "matched": 23082,
-      "unmatched": 0,
-      "total": 23082
-    },
-    "MapillaryVistas": {
-      "matched": 26727,
-      "unmatched": 0,
-      "total": 26727
-    },
-    "OUTSIDE15k": {
-      "matched": 24562,
-      "unmatched": 0,
-      "total": 24562
-    }
-  }
+  "generated_at": "2026-02-07T22:50:47.468984"
 }

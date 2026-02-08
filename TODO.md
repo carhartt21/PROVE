@@ -1,6 +1,6 @@
 # PROVE Project TODO
 
-**Last Updated:** 2026-02-08 (03:00)
+**Last Updated:** 2026-02-08 (12:00)
 
 ---
 
@@ -63,6 +63,23 @@ Two critical bugs were found and fixed that caused ALL gen_ cityscapes-gen jobs 
 ├── std_randaugment/cityscapes/segformer_mit-b3/   ✅ 10 ckpts, tested
 ├── gen_*/cityscapes/{model}_ratio0p50/            🔄 91 jobs running/pending
 ```
+
+### 📋 Next Steps for Cityscapes-Gen Stage
+1. **Extend tracker scripts** - Add `--stage cityscapes-gen` to `update_training_tracker.py` and `update_testing_tracker.py`
+   - New WEIGHTS_ROOT: `/scratch/aaa_exchange/AWARE/WEIGHTS_CITYSCAPES_GEN`
+   - Dataset: `['cityscapes']` (single dataset, not the usual 4)
+   - Models: same 4 models (pspnet, segformer, segnext, mask2former) with `_ratio0p50` for gen strategies
+   - Max iters: 20,000 (from `batch_training_submission.py`)
+   - Output files: `TRAINING_TRACKER_CITYSCAPES_GEN.md`, `TESTING_TRACKER_CITYSCAPES_GEN.md`, `TRAINING_COVERAGE_CITYSCAPES_GEN.md`, `TESTING_COVERAGE_CITYSCAPES_GEN.md`
+   - Strategy lists: same gen (21) + std (baseline + 4 augmentation)
+2. **Monitor 91 running/queued cityscapes-gen jobs** - Check for early failures
+3. **After training completes** - Run ACDC cross-domain tests + auto-submit tests
+4. **Analyze results** - Compare gen_ vs baseline/std on Cityscapes val + ACDC
+
+### ✅ Completed Analysis (2026-02-08)
+- Full code review of `update_training_tracker.py` (1363 lines) and `update_testing_tracker.py` (1299 lines)
+- Documented structure, functions, stage handling, output files, constants, directory traversal, and markdown format
+- Identified all changes needed for cityscapes-gen stage extension
 
 ---
 

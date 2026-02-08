@@ -319,13 +319,28 @@ def has_generated_images(strategy: str, dataset: str) -> bool:
     if not gen_path.exists():
         return False
     
-    # Check manifest for this dataset (case-insensitive for Cityscapes variants)
-    manifest = gen_path / 'manifest.csv'
-    if manifest.exists():
+    # Check manifest.json for this dataset (authoritative source)
+    manifest_json = gen_path / 'manifest.json'
+    if manifest_json.exists():
+        try:
+            with open(manifest_json, 'r') as f:
+                manifest_data = json.load(f)
+            # Check if any domain has this dataset with images
+            for domain_name, domain_data in manifest_data.get('domains', {}).items():
+                datasets = domain_data.get('datasets', {})
+                if dataset in datasets and datasets[dataset].get('total', 0) > 0:
+                    return True
+            return False
+        except Exception:
+            pass
+    
+    # Fallback: check manifest.csv (legacy format)
+    manifest_csv = gen_path / 'manifest.csv'
+    if manifest_csv.exists():
         try:
             import csv
             dataset_lower = dataset.lower()
-            with open(manifest, 'r') as f:
+            with open(manifest_csv, 'r') as f:
                 reader = csv.DictReader(f)
                 for row in reader:
                     row_dataset = row.get('dataset', '').lower()

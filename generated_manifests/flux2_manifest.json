@@ -2,6 +2,7 @@
   "method": "flux2",
   "generated_dir": "/scratch/aaa_exchange/AWARE/GENERATED_IMAGES/flux2",
   "original_dir": "/scratch/aaa_exchange/AWARE/FINAL_SPLITS/train/images",
+  "target_dir": "/scratch/aaa_exchange/AWARE/AWACS/train",
   "manifest_path": "/scratch/aaa_exchange/AWARE/GENERATED_IMAGES/flux2/manifest.csv",
   "structure_type": "domain_dataset",
   "task_type": "generation",
@@ -131,16 +132,5 @@
       }
     }
   },
-  "datasets_aggregate": {
-    "ACDC": {
-      "matched": 4206,
-      "unmatched": 0,
-      "total": 4206
-    },
-    "BDD100k": {
-      "matched": 25334,
-      "unmatched": 0,
-      "total": 25334
-    }
-  }
+  "generated_at": "2026-02-07T22:49:30.825247"
 }

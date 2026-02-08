@@ -95,18 +95,23 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = SCRIPT_DIR.parent
 WEIGHTS_ROOT = Path(os.environ.get('PROVE_WEIGHTS_ROOT', '/scratch/aaa_exchange/AWARE/WEIGHTS'))
 WEIGHTS_ROOT_STAGE2 = Path(os.environ.get('PROVE_WEIGHTS_ROOT_STAGE2', '/scratch/aaa_exchange/AWARE/WEIGHTS_STAGE_2'))
+WEIGHTS_ROOT_CITYSCAPES_GEN = Path('/scratch/aaa_exchange/AWARE/WEIGHTS_CITYSCAPES_GEN')
 TRACKER_PATH = PROJECT_ROOT / 'docs' / 'TESTING_TRACKER.md'
 TRACKER_PATH_STAGE2 = PROJECT_ROOT / 'docs' / 'TESTING_TRACKER_STAGE2.md'
+TRACKER_PATH_CITYSCAPES_GEN = PROJECT_ROOT / 'docs' / 'TESTING_TRACKER_CITYSCAPES_GEN.md'
 COVERAGE_PATH = PROJECT_ROOT / 'docs' / 'TESTING_COVERAGE.md'
 COVERAGE_PATH_STAGE2 = PROJECT_ROOT / 'docs' / 'TESTING_COVERAGE_STAGE2.md'
+COVERAGE_PATH_CITYSCAPES_GEN = PROJECT_ROOT / 'docs' / 'TESTING_COVERAGE_CITYSCAPES_GEN.md'
 TEST_RESULTS_CSV = PROJECT_ROOT / 'test_results_summary.csv'
 
 DATASETS = ['bdd10k', 'idd-aw', 'mapillaryvistas', 'outside15k']
+DATASETS_CITYSCAPES_GEN = ['cityscapes']
 DATASET_DISPLAY = {
     'bdd10k': 'BDD10k',
     'idd-aw': 'IDD-AW',
     'mapillaryvistas': 'MapillaryVistas',
     'outside15k': 'OUTSIDE15k',
+    'cityscapes': 'Cityscapes',
 }
 
 # Strategies
@@ -1226,28 +1231,37 @@ def main():
     parser = argparse.ArgumentParser(description='Update testing progress tracker')
     parser.add_argument('--verbose', '-v', action='store_true', help='Show detailed status')
     parser.add_argument('--coverage-only', action='store_true', help='Only generate TESTING_COVERAGE.md')
-    parser.add_argument('--stage', type=int, choices=[1, 2], default=1,
-                       help='Stage to check (1=clear_day training, 2=all_domains training)')
+    parser.add_argument('--stage', type=str, choices=['1', '2', 'cityscapes-gen'], default='1',
+                       help='Stage to check (1=clear_day training, 2=all_domains training, cityscapes-gen=cityscapes generative)')
     args = parser.parse_args()
     
     # Declare global variables at the start of the function
-    global WEIGHTS_ROOT, TRACKER_PATH
+    global WEIGHTS_ROOT, TRACKER_PATH, DATASETS
     
     # Select paths based on stage
-    if args.stage == 2:
+    if args.stage == 'cityscapes-gen':
+        weights_root = WEIGHTS_ROOT_CITYSCAPES_GEN
+        tracker_path = TRACKER_PATH_CITYSCAPES_GEN
+        coverage_path = COVERAGE_PATH_CITYSCAPES_GEN
+        datasets = DATASETS_CITYSCAPES_GEN
+        print(f"Cityscapes-gen mode: Using {weights_root}")
+    elif args.stage == '2':
         weights_root = WEIGHTS_ROOT_STAGE2
         tracker_path = TRACKER_PATH_STAGE2
         coverage_path = COVERAGE_PATH_STAGE2
+        datasets = DATASETS
         print(f"Stage 2 mode: Using {weights_root}")
     else:
         weights_root = WEIGHTS_ROOT
         tracker_path = TRACKER_PATH
         coverage_path = COVERAGE_PATH
+        datasets = DATASETS
         print(f"Stage 1 mode: Using {weights_root}")
     
     # Override global variables for functions that use them
     WEIGHTS_ROOT = weights_root
     TRACKER_PATH = tracker_path
+    DATASETS = datasets
     
     print("\nCollecting test status...")
     status_matrix, summary, retest_jobs, job_counts = collect_test_status(verbose=args.verbose)
