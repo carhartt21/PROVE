@@ -1,6 +1,6 @@
 # PROVE Project TODO
 
-**Last Updated:** 2026-02-08 (16:45)
+**Last Updated:** 2026-02-08 (20:40)
 
 ---
 
@@ -51,6 +51,10 @@ Likely cause: OOM or training crash. Need restart.
    - gen_flux_kontext/bdd10k/segnext: best_val_mIoU_iter_60000 → Job 2098668
    - gen_step1x_new/bdd10k/segnext: best_val_mIoU_iter_60000 → Job 2098749
    - These models have old 80k configs but trained 50-65k iters (well past current 15k standard)
+6. ✅ Submitted 28 gen_ strategy restart jobs (`batch_training_submission.py --resume`)
+7. ✅ Deleted 27 wrong-model `segformer_mit-b5` directories (~90GB reclaimed)
+8. ✅ Investigated Cityscapes-gen retests: **quoting bug** caused 10/12 original retests to fail silently
+9. ✅ Submitted 28 properly-formatted Cityscapes test jobs (2119269-2119296) using bash script files
 
 ### 🐛 Bug Fix: max_iters Config Regex
 - **Issue:** `auto_submit_tests.py` and `update_training_tracker.py` used `r'max_iters\s*=\s*(\d+)'`
@@ -58,13 +62,14 @@ Likely cause: OOM or training crash. Need restart.
 - **Impact:** Older configs using dict literal syntax were silently skipped
 - **Fix:** Changed regex to `r"'?max_iters'?\s*[=:]\s*(\d+)"` to handle both formats
 
-### Current Cluster Status (2026-02-08 16:30)
+### Current Cluster Status (2026-02-08 20:40)
 | Category | RUN | PEND |
 |----------|----:|-----:|
 | Stage 1 training | 2 | 0 |
-| Cityscapes-gen training | 4 | 67 |
-| Cityscapes-gen retests | 0 | 12 |
-| **Total** | **6** | **79** |
+| Cityscapes-gen training | 5 | 65 |
+| Cityscapes-gen retests (new) | 0 | 28 |
+| gen_ strategy restarts | 0 | 28 |
+| **Total** | **7** | **121** |
 
 ---
 
@@ -103,36 +108,37 @@ Five compounding bugs caused ALL Cityscapes test results to be empty (`mIoU=N/A`
 
 **Impact:** 12 completed segformer trainings had empty Cityscapes test results. 12 re-test jobs submitted (jobs 1996609-1996617, 2022051-2022053).
 
+### 🐛 Bug Fix: Retest Submission Quoting (2026-02-08 20:40)
+- **Issue:** Original 12 retest jobs used `bash -c '...'` with single-quoted echo statements inside, breaking shell quoting
+- **Root cause:** `echo 'Re-testing Cityscapes: ...'` inside `bash -c '...'` terminated the outer single quote
+- **Impact:** 10/12 retests ran for **0 seconds** (Python command never executed); 1 ran 23s but produced no output
+- **Only 1 of 12 retests worked** (gen_VisualCloze, job 2022053, 30s runtime → mIoU=63.27)
+- The other 2 valid results (gen_SUSTechGAN=63.48, gen_step1x_v1p2=62.85) came from **auto-tests** after training completed with fixed code
+- **Fix:** Re-submitted 28 test jobs (2119269-2119296) using standalone bash script files (`test_job.sh`) instead of inline `bash -c`
+
 ### ✅ Manifest Fixes
 - Regenerated Attribute_Hallucination CSV: now captures 14,875 Cityscapes entries
 - stargan_v2 reorganized: 205,248 images at 100% match (was 17,850)
 - All 25 method CSVs verified with Cityscapes coverage
 
-### 🔄 Jobs Status (2026-02-08 11:45)
-**Training: 91 cityscapes-gen jobs** across 4 models:
+### 🔄 Jobs Status (2026-02-08 20:40)
+**Training: 35 cityscapes-gen jobs** (of original 91):
 
-| Model | Submitted | Completed | Running | Pending |
-|-------|-----------|-----------|---------|---------|
-| segformer_mit-b3 | 19 | 12 | 7 | 0 |
-| pspnet_r50 | 24 | 0 | 0 | 24 |
-| segnext_mscan-b | 24 | 0 | 0 | 24 |
-| mask2former_swin-b | 24 | 0 | 0 | 24 |
-| **Total** | **91** | **12** | **7** | **72** |
+| Model | Total | Completed | Running | Still Pending |
+|-------|-------|-----------|---------|---------------|
+| segformer_mit-b3 | 24 | 22 | 0 | 2 (training) |
+| pspnet_r50 | 24 | 5 | 1 | 18 |
+| segnext_mscan-b | 24 | 2 | 1 | 21 |
+| mask2former_swin-b | 19 | 2 | 3 | 14 |
+| **Total** | **91** | **31** | **5** | **55** |
 
-**Completed segformer trainings (12):**
-- ✅ baseline, std_autoaugment, std_cutmix, std_mixup, std_randaugment
-- ✅ gen_albumentations_weather, gen_automold, gen_flux_kontext, gen_step1x_new
-- ✅ gen_SUSTechGAN, gen_step1x_v1p2, gen_VisualCloze
+**Testing: 28 re-test jobs submitted** (2119269-2119296):
+- Cover all 31 completed trainings minus 3 with valid results
+- Properly formatted using bash script files (no quoting issues)
+- Status: PEND (waiting for GPU slots)
 
-**Currently running segformer trainings (7):**
-- 🔄 gen_IP2P (iter ~18200/20000), gen_cyclediffusion (~14600), gen_Attribute_Hallucination (~13700)
-- 🔄 gen_CUT (~13050), gen_UniControl (~12600), gen_Img2Img (~8000), gen_Qwen_Image_Edit (~7900)
-
-**Re-test jobs:** 12 submitted (for completed trainings with fixed test code), pending in queue
-
-**⚠️ Note:** All remaining 79 training jobs (7 running + 72 pending) have the OLD buggy test code baked into their LSF scripts. Their auto-test for Cityscapes will still fail — they will need manual re-testing after completion. ACDC cross-domain tests are unaffected.
-
-**Strategies without Cityscapes (skipped):** gen_LANIT (all models)
+**Valid results so far (3/35):**
+- gen_SUSTechGAN: mIoU=63.48 | gen_VisualCloze: mIoU=63.27 | gen_step1x_v1p2: mIoU=62.85
 
 ### Cityscapes Images per Method
 | Method | Cityscapes Count | Total |
@@ -221,13 +227,16 @@ All missing baseline Mask2Former jobs submitted and moved to top of queue:
 3. **Analyze results** - Compare gen_ vs baseline/std strategies on Cityscapes val + ACDC
 4. **Stage 1/2 completion** - Continue monitoring remaining Stage 1/2 training jobs
 
-### 📊 Current Queue Status (2026-02-08 11:45)
+### 📊 Current Queue Status (2026-02-08 20:40)
 
 | Category | Running | Pending | Total |
 |----------|---------|---------|-------|
-| Cityscapes-gen training | 7 | 72 | 79 |
-| Cityscapes re-test | 0 | 12 | 12 |
-| **Total** | **7** | **84** | **91** |
+| Stage 1 training | 2 | 0 | 2 |
+| Cityscapes-gen training | 5 | 55 | 60 |
+| Cityscapes-gen testing | 0 | 28 | 28 |
+| Stage 1 gen_ restarts | 0 | 28 | 28 |
+| Stage 1 test jobs | 0 | 10 | 10 |
+| **Total** | **7** | **121** | **128** |
 
 ---
 
