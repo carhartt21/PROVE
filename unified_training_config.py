@@ -1146,6 +1146,18 @@ for gen_model in GENERATIVE_MODELS:
         generative_model=gen_model,  # Strategy-friendly name, converted to dir when needed
     )
 
+# Noise ablation strategy: replaces generated images with random noise
+# Uses cycleGAN manifest as reference for entry enumeration and label paths
+# This tests whether models learn from image content or just label layouts
+NOISE_ABLATION_REFERENCE_MODEL = 'cycleGAN'  # Reference manifest for noise entries
+
+AUGMENTATION_STRATEGIES['gen_random_noise'] = AugmentationStrategy(
+    name='gen_random_noise',
+    type='noise_ablation',
+    transforms=[],
+    generative_model=NOISE_ABLATION_REFERENCE_MODEL,  # Use cycleGAN manifest for labels
+)
+
 # Add standard augmentation strategies (SOTA baselines)
 # Reference: tools/standard_augmentations.py
 STANDARD_AUGMENTATION_METHODS = ['cutmix', 'mixup', 'autoaugment', 'randaugment']
@@ -1321,6 +1333,33 @@ class UnifiedTrainingConfig:
                 )
             else:
                 print(f"✓ Found {dataset_count} generated images for dataset '{dataset}' in strategy '{strategy}'")
+        
+        # Validate reference manifest exists for noise ablation strategy
+        if aug_strategy.type == 'noise_ablation' and aug_strategy.generative_model:
+            gen_model = aug_strategy.generative_model
+            gen_model_dir = _strategy_name_to_dir(gen_model)
+            manifest_path = os.path.join(self.gen_root, gen_model_dir, 'manifest.csv')
+            
+            if not os.path.exists(manifest_path):
+                raise ValueError(
+                    f"No reference manifest found for noise ablation strategy '{strategy}'.\n"
+                    f"Expected manifest at: {manifest_path}\n"
+                    f"The noise ablation uses '{gen_model}' manifest for label paths."
+                )
+            
+            from generated_images_dataset import GeneratedImagesManifest
+            manifest = GeneratedImagesManifest(manifest_path)
+            dataset_count = manifest.get_dataset_count(dataset)
+            
+            if dataset_count == 0:
+                available_datasets = manifest.get_available_datasets()
+                raise ValueError(
+                    f"No entries for dataset '{dataset}' in reference manifest for noise ablation.\n"
+                    f"Reference model: {gen_model}\n"
+                    f"Available datasets: {available_datasets}"
+                )
+            else:
+                print(f"✓ Noise ablation: {dataset_count} reference entries for '{dataset}' from '{gen_model}' manifest")
         
         # Apply custom training config if provided
         if custom_training_config:
@@ -2765,6 +2804,21 @@ class UnifiedTrainingConfig:
                 # Add StandardAugmentationHook to custom_hooks
                 self._add_standard_augmentation_hook(config, std_aug.standard_method, std_aug.p_aug)
         
+        elif aug_strategy.type == 'noise_ablation' and aug_strategy.generative_model:
+            # Noise ablation: uses reference manifest for label paths, replaces images with noise
+            gen_model = aug_strategy.generative_model  # Reference model for manifest
+            gen_model_dir = _strategy_name_to_dir(gen_model)
+            config['generated_augmentation'] = {
+                'enabled': True,
+                'generative_model': gen_model,
+                'manifest_path': os.path.join(self.gen_root, gen_model_dir, 'manifest.csv'),
+                'gen_root': os.path.join(self.gen_root, gen_model_dir),
+                'conditions': conditions,
+                'augmentation_multiplier': 1 + len(conditions),
+                'real_gen_ratio': real_gen_ratio,
+                'noise_ablation': True,  # Flag: replace generated images with random noise
+            }
+        
         elif aug_strategy.type == 'standard' and aug_strategy.standard_method:
             # Standard augmentation (CutMix, MixUp, AutoAugment, RandAugment)
             config['standard_augmentation'] = {
@@ -2812,7 +2866,7 @@ class UnifiedTrainingConfig:
             domain_filter: Optional domain to filter training data (e.g., 'clear_day')
         """
         
-        if aug_strategy.type != 'generated' or real_gen_ratio == 1.0:
+        if aug_strategy.type not in ('generated', 'noise_ablation') or real_gen_ratio == 1.0:
             # No mixed dataloader needed
             config['mixed_dataloader'] = {'enabled': False}
             return config
@@ -2820,6 +2874,9 @@ class UnifiedTrainingConfig:
         gen_model = aug_strategy.generative_model
         # Convert strategy name to actual directory name (handles hyphens)
         gen_model_dir = _strategy_name_to_dir(gen_model)
+        
+        # Determine if this is a noise ablation run
+        is_noise_ablation = aug_strategy.type == 'noise_ablation'
         
         # Apply domain filter to training directories if specified
         train_img_dir = dataset_cfg.train_img_dir
@@ -2840,6 +2897,7 @@ class UnifiedTrainingConfig:
             'enabled': True,
             'real_gen_ratio': real_gen_ratio,
             'domain_filter': domain_filter,
+            'noise_ablation': is_noise_ablation,  # Flag for noise replacement
             'real_dataset': {
                 'type': dataset_type,
                 'data_root': train_dataset.get('data_root', self.data_root),

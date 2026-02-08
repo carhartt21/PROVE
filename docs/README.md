@@ -58,6 +58,7 @@ These files are maintained by `update_training_tracker.py` and `update_testing_t
 | Document | Purpose |
 |----------|---------|
 | [EXTENDED_TRAINING.md](EXTENDED_TRAINING.md) | Extended training ablation (80k→320k iterations) |
+| [NOISE_ABLATION_STUDY.md](NOISE_ABLATION_STUDY.md) | Noise ablation: do models learn from image content or label layouts? |
 | [RATIO_ABLATION_SUBMISSION_GUIDE.md](RATIO_ABLATION_SUBMISSION_GUIDE.md) | How to submit ratio ablation jobs |
 
 ## Historical Reference

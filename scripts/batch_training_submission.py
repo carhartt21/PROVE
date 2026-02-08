@@ -91,6 +91,7 @@ WEIGHTS_ROOT_STAGE2 = Path('/scratch/aaa_exchange/AWARE/WEIGHTS_STAGE_2')
 WEIGHTS_ROOT_RATIO_ABLATION = Path('/scratch/aaa_exchange/AWARE/WEIGHTS_RATIO_ABLATION')
 WEIGHTS_ROOT_CITYSCAPES = Path('/scratch/aaa_exchange/AWARE/WEIGHTS_CITYSCAPES')  # Pipeline verification
 WEIGHTS_ROOT_CITYSCAPES_GEN = Path('/scratch/aaa_exchange/AWARE/WEIGHTS_CITYSCAPES_GEN')  # Cityscapes gen evaluation
+WEIGHTS_ROOT_NOISE_ABLATION = Path('/scratch/aaa_exchange/AWARE/WEIGHTS_NOISE_ABLATION')  # Noise ablation study
 GENERATED_IMAGES_ROOT = Path('/scratch/aaa_exchange/AWARE/GENERATED_IMAGES')
 
 # All datasets
@@ -313,6 +314,11 @@ def has_generated_images(strategy: str, dataset: str) -> bool:
     if not strategy.startswith('gen_'):
         return True  # Non-generative strategies don't need generated images
     
+    # Noise ablation uses reference manifest (cycleGAN) — no actual generated images needed
+    # The actual manifest validation happens in unified_training_config.py
+    if strategy == 'gen_random_noise':
+        return True
+    
     gen_dir = strategy_to_dir_name(strategy)
     gen_path = GENERATED_IMAGES_ROOT / gen_dir
     
@@ -428,6 +434,8 @@ def get_weights_dir(
         base_root = WEIGHTS_ROOT_CITYSCAPES
     elif stage == 'cityscapes-gen':
         base_root = WEIGHTS_ROOT_CITYSCAPES_GEN
+    elif stage == 'noise-ablation':
+        base_root = WEIGHTS_ROOT_NOISE_ABLATION
     else:
         base_root = WEIGHTS_ROOT_STAGE1
     
@@ -602,8 +610,8 @@ def generate_job_script(
         '--strategy', job.strategy,
     ]
     
-    # Add domain filter for Stage 1 and ratio ablation (not Stage 2 or Cityscapes)
-    if job.stage in [1, 'ratio']:
+    # Add domain filter for Stage 1, ratio ablation, and noise ablation (not Stage 2 or Cityscapes)
+    if job.stage in [1, 'ratio', 'noise-ablation']:
         cmd_parts.extend(['--domain-filter', 'clear_day'])
     # Note: Stage 2 and Cityscapes do NOT use domain filter
     
@@ -1032,10 +1040,10 @@ Examples:
     )
     
     # Validate and parse stage
-    stage_map = {'1': 1, '2': 2, 'ratio': 'ratio', 'cityscapes': 'cityscapes', 'cityscapes-gen': 'cityscapes-gen'}
+    stage_map = {'1': 1, '2': 2, 'ratio': 'ratio', 'cityscapes': 'cityscapes', 'cityscapes-gen': 'cityscapes-gen', 'noise-ablation': 'noise-ablation'}
     stage_input = str(args.stage).lower()
-    if stage_input not in stage_map and stage_input not in ['1', '2', 'ratio', 'cityscapes', 'cityscapes-gen']:
-        print(f"Error: Invalid stage '{args.stage}'. Must be 1, 2, 'ratio', 'cityscapes', or 'cityscapes-gen'")
+    if stage_input not in stage_map and stage_input not in ['1', '2', 'ratio', 'cityscapes', 'cityscapes-gen', 'noise-ablation']:
+        print(f"Error: Invalid stage '{args.stage}'. Must be 1, 2, 'ratio', 'cityscapes', 'cityscapes-gen', or 'noise-ablation'")
         return
     stage = stage_map.get(stage_input, args.stage if isinstance(args.stage, int) else stage_input)
     
@@ -1063,6 +1071,11 @@ Examples:
         # Use Cityscapes dataset with SegFormer by default
         datasets = [CITYSCAPES_DATASET]
         models = args.models or ['segformer_mit-b3']  # SegFormer for cityscapes-gen evaluation
+    elif stage == 'noise-ablation':
+        # Noise ablation: uses gen_random_noise strategy with baseline for comparison
+        strategies = args.strategies or ['gen_random_noise', 'baseline']
+        datasets = args.datasets or ALL_DATASETS
+        models = args.models or ALL_MODELS
     else:
         # Determine strategies based on --strategy-type or --strategies
         strategies = args.strategies
@@ -1090,6 +1103,11 @@ Examples:
         print(f"  Dataset: {CITYSCAPES_DATASET}")
         print(f"  Models: {models}")
         print(f"  Cross-domain testing: Cityscapes val + ACDC")
+    elif stage == 'noise-ablation':
+        print(f"  Noise Ablation Study")
+        print(f"  Purpose: Test if models learn from image content or label layouts")
+        print(f"  Datasets: {datasets}")
+        print(f"  Models: {models}")
     print(f"{'='*60}")
     print(f"\nStrategy type: {args.strategy_type}")
     print(f"Strategies: {len(strategies)}")

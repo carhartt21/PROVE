@@ -509,6 +509,13 @@ print(f"\\nBatch Composition: {{real_per_batch}} real + {{gen_per_batch}} genera
 gen_cfg = mixed_cfg.get('generated_dataset', {{}})
 generated_root = gen_cfg.get('generated_root', '')
 
+# Check if this is a noise ablation run
+is_noise_ablation = mixed_cfg.get('noise_ablation', False)
+if is_noise_ablation:
+    print("\\n*** NOISE ABLATION MODE ***")
+    print("Generated images will be replaced with random noise at load time.")
+    print("Labels from reference manifest are kept (tests if model learns from image content).")
+
 if real_gen_ratio >= 1.0 or not generated_root:
     print("\\nReal-gen ratio is 1.0 or no generated_root - using standard training")
     runner = Runner.from_cfg(cfg)
@@ -518,6 +525,19 @@ else:
     
     # CRITICAL: Disable serialization so we can modify data_list
     cfg.train_dataloader.dataset.serialize_data = False
+    
+    # For noise ablation, inject ReplaceWithNoise into the train pipeline
+    if is_noise_ablation:
+        # Insert ReplaceWithNoise after LoadImageFromFile in the pipeline
+        pipeline = cfg.train_pipeline if hasattr(cfg, 'train_pipeline') else cfg.train_dataloader.dataset.get('pipeline', [])
+        new_pipeline = []
+        for transform in pipeline:
+            new_pipeline.append(transform)
+            if isinstance(transform, dict) and transform.get('type') == 'LoadImageFromFile':
+                new_pipeline.append(dict(type='ReplaceWithNoise', noise_type='uniform'))
+        if hasattr(cfg, 'train_pipeline'):
+            cfg.train_pipeline = new_pipeline
+        print(f"Injected ReplaceWithNoise into train pipeline ({{len(new_pipeline)}} transforms)")
     
     # Build the runner first to get the real dataset initialized
     runner = Runner.from_cfg(cfg)
@@ -560,14 +580,28 @@ else:
         for ext in ['.jpg', '.png', '.jpeg']:
             label_path = label_path.replace(ext, seg_map_suffix)
         
-        if os.path.exists(gen_path):
-            generated_data_list.append({{
-                'img_path': gen_path,
-                'seg_map_path': label_path,
-                'reduce_zero_label': original_dataset_cfg.get('reduce_zero_label', False),
-                '_is_generated': True,
-                '_condition': target_domain,
-            }})
+        if is_noise_ablation:
+            # Noise ablation: use original image path (for shape info), flag for noise replacement
+            # The ReplaceWithNoise transform will replace pixel data with random noise
+            if os.path.exists(original_path):
+                generated_data_list.append({{
+                    'img_path': original_path,  # Load original for shape; will be replaced with noise
+                    'seg_map_path': label_path,
+                    'reduce_zero_label': original_dataset_cfg.get('reduce_zero_label', False),
+                    '_is_generated': True,
+                    '_replace_with_noise': True,  # Flag for ReplaceWithNoise transform
+                    '_condition': target_domain,
+                }})
+        else:
+            # Normal gen strategy: use actual generated image
+            if os.path.exists(gen_path):
+                generated_data_list.append({{
+                    'img_path': gen_path,
+                    'seg_map_path': label_path,
+                    'reduce_zero_label': original_dataset_cfg.get('reduce_zero_label', False),
+                    '_is_generated': True,
+                    '_condition': target_domain,
+                }})
     
     gen_size = len(generated_data_list)
     print(f"Valid generated images: {{gen_size}}")

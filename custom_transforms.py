@@ -652,3 +652,61 @@ class Outside15kNativeLabelClamp(BaseTransform):
         return f'{self.__class__.__name__}(num_classes={self.num_classes})'
 
 
+# ============================================================================
+# Noise Ablation Transform
+# ============================================================================
+
+@TRANSFORMS.register_module()
+class ReplaceWithNoise(BaseTransform):
+    """Replace loaded image data with random noise of the same shape.
+
+    Used in the noise ablation study to test whether models learn from
+    actual image content or just memorize segmentation map layouts.
+
+    Only applies to samples where ``_replace_with_noise`` is ``True``.
+    Real images (without this flag) pass through unchanged.
+
+    Args:
+        noise_type (str): Type of noise. ``'uniform'`` samples pixel values
+            uniformly from [0, 255]. ``'gaussian'`` samples from a clipped
+            Gaussian distribution. Defaults to ``'uniform'``.
+        mean (float): Mean for Gaussian noise. Defaults to ``128``.
+        std (float): Standard deviation for Gaussian noise. Defaults to ``64``.
+
+    Required Keys:
+        - img (np.ndarray): Loaded image data (H, W, C).
+
+    Modified Keys:
+        - img (np.ndarray): Replaced with random noise of same shape and dtype.
+    """
+
+    def __init__(self, noise_type: str = 'uniform', mean: float = 128, std: float = 64):
+        self.noise_type = noise_type
+        self.mean = mean
+        self.std = std
+
+    def transform(self, results: dict) -> dict:
+        if not results.get('_replace_with_noise', False):
+            return results
+
+        img = results['img']
+        shape = img.shape  # (H, W, C)
+
+        if self.noise_type == 'uniform':
+            noise = np.random.randint(0, 256, shape, dtype=np.uint8)
+        elif self.noise_type == 'gaussian':
+            noise = np.random.normal(self.mean, self.std, shape)
+            noise = np.clip(noise, 0, 255).astype(np.uint8)
+        else:
+            raise ValueError(f"Unknown noise_type: {self.noise_type}")
+
+        results['img'] = noise
+        return results
+
+    def __repr__(self) -> str:
+        return (f'{self.__class__.__name__}('
+                f'noise_type={self.noise_type!r}, '
+                f'mean={self.mean}, std={self.std})')
+
+
+
