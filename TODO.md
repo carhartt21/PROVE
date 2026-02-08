@@ -1,91 +1,68 @@
 # PROVE Project TODO
 
-**Last Updated:** 2026-02-05 (17:00)
+**Last Updated:** 2026-02-08 (03:00)
 
 ---
 
-## 🆕 Cityscapes-Gen Evaluation Stage (2026-02-05)
+## 🆕 Cityscapes-Gen Evaluation Stage (2026-02-08)
 
-### ✅ New Stage Added to batch_training_submission.py
-- **Stage:** `cityscapes-gen` - Train SegFormer on Cityscapes with all augmentation strategies
-- **Testing:** Both Cityscapes validation AND ACDC cross-domain testing
-- **Output Directory:** `/scratch/aaa_exchange/AWARE/WEIGHTS_CITYSCAPES_GEN/`
+### ✅ Bug Fixes Applied
+Two critical bugs were found and fixed that caused ALL gen_ cityscapes-gen jobs to fail with `ValueError: No generated images found for dataset 'Cityscapes'`:
 
-### Usage
-```bash
-# Dry run (recommended first)
-python scripts/batch_training_submission.py --stage cityscapes-gen --dry-run
+1. **`generated_images_dataset.py`** (case sensitivity bug):
+   - `get_dataset_entries('Cityscapes')` did case-sensitive substring match on `original_path` containing `CITYSCAPES` → always returned 0
+   - `get_available_datasets()` had hardcoded dataset list missing `'Cityscapes'`
+   - **Fix:** Now uses `dataset` CSV column with case-insensitive match
 
-# Submit jobs
-python scripts/batch_training_submission.py --stage cityscapes-gen -y
+2. **`tools/generate_manifests.py`** (nested directory bug):
+   - Attribute_Hallucination's Cityscapes at `Cityscapes/generated/{domain}/{city}/` was missed
+   - **Fix:** Added intermediary directory traversal (`generated/`, `test_latest/`, etc.)
 
-# Gen strategies only
-python scripts/batch_training_submission.py --stage cityscapes-gen --strategy-type gen --dry-run
+### ✅ Manifest Fixes
+- Regenerated Attribute_Hallucination CSV: now captures 14,875 Cityscapes entries
+- stargan_v2 reorganized: 205,248 images at 100% match (was 17,850)
+- All 25 method CSVs verified with Cityscapes coverage
 
-# Std strategies only
-python scripts/batch_training_submission.py --stage cityscapes-gen --strategy-type std --dry-run
+### 🔄 Jobs Submitted (2026-02-08)
+**91 cityscapes-gen jobs total** across 4 models:
+
+| Model | Submitted | Skipped | Status |
+|-------|-----------|---------|--------|
+| segformer_mit-b3 | 19 | 7 (5 done + 2 no images) | 🔄 Running |
+| pspnet_r50 | 24 | 2 (no images) | 🔄 Queued |
+| segnext_mscan-b | 24 | 2 (no images) | 🔄 Queued |
+| mask2former_swin-b | 24 | 2 (no images) | 🔄 Queued |
+| **Total** | **91** | **13** | |
+
+**Previously completed (segformer only):**
+- ✅ baseline, std_autoaugment, std_cutmix, std_mixup, std_randaugment (10 ckpts + test results each)
+
+**Strategies without Cityscapes (skipped):** gen_LANIT (all models)
+
+### Cityscapes Images per Method
+| Method | Cityscapes Count | Total |
+|--------|-----------------|-------|
+| automold | 38,675 | 134,375 |
+| CNetSeg, CUT, cycleGAN, cyclediffusion, Img2Img, IP2P, stargan_v2, SUSTechGAN, UniControl, VisualCloze | 17,850 each | varies |
+| Qwen-Image-Edit | 17,816 | 100,650 |
+| TSIT | 17,850 | 209,250 |
+| step1x_v1p2 | 17,738 | 122,813 |
+| Attribute_Hallucination, augmenters | 14,875 each | varies |
+| step1x_new | 11,053 | 97,761 |
+| albumentations_weather | 8,925 | 104,625 |
+| Weather_Effect_Generator | 8,185 | 90,364 |
+| flux_kontext | 5,185 | 94,142 |
+
+### 📊 Weights Directory
 ```
-
-### Job Summary (18 jobs)
-| Strategy Type | Count | Status |
-|---------------|-------|--------|
-| baseline | 1 | Ready |
-| std_* | 4 | Ready |
-| gen_* (with Cityscapes) | 13 | Ready |
-| gen_* (missing Cityscapes) | 8 | Skipped |
-
-### Gen Strategies with Cityscapes Coverage
-| ✅ Ready | ❌ Missing |
-|---------|----------|
-| gen_cycleGAN | gen_LANIT |
-| gen_flux_kontext | gen_IP2P |
-| gen_step1x_new | gen_Attribute_Hallucination |
-| gen_albumentations_weather | gen_CNetSeg |
-| gen_automold | gen_stargan_v2 |
-| gen_step1x_v1p2 | gen_Weather_Effect_Generator |
-| gen_VisualCloze | gen_TSIT |
-| gen_SUSTechGAN | gen_augmenters |
-| gen_cyclediffusion | |
-| gen_UniControl | |
-| gen_CUT | |
-| gen_Img2Img | |
-| gen_Qwen_Image_Edit | |
-
----
-
-## 🆕 Cityscapes Image Generation & Manifests (2026-02-05)
-
-### ✅ Manifest Generation Updated
-- Added Cityscapes support to `tools/generate_manifests.py`
-- Added automold-specific domain mappings (bright, dark, fog_heavy, etc.)
-- 29/31 methods now have up-to-date manifests with Cityscapes images
-- All writable directories regenerated with `--all` flag
-
-### 📊 Manifest Status Summary
-| Status | Count | Notes |
-|--------|-------|-------|
-| ✅ Ready | 29 | 100% match rate for all |
-| ❌ Missing | 2 | Controlnet-Seg, Ip2p (musa7216 ownership - need chmod a+w) |
-
-### ⚠️ Still Running (Cityscapes Generation)
-- `step1x_new`: 91,959 images (~29% of full coverage)
-- `step1x_v1p2`: 110,439 images (~26% of full coverage)
-
-### 🆕 New Cityscapes Strategies with Manifests
-| Strategy | Cityscapes Images | Total Images |
-|----------|-------------------|--------------|
-| magicbrush | 17,850 (100%) | 17,850 |
-| visualcloze | 17,850 (100%) | 17,850 |
-| qwen | 14,654 (82%) | 14,654 |
-| Controlnet | 17,850 (100%) | 17,850 |
-| Ip2p_2 | 17,850 (100%) | 17,850 |
-| cyclediffusion | 17,850 (100%) | 17,850 |
-
-### ⚠️ Strategies Missing Cityscapes Manifests
-| Strategy | Owner | Issue |
-|----------|-------|-------|
-| Controlnet-Seg | musa7216 | Directory 755 - needs `chmod a+w` |
-| Ip2p | musa7216 | Directory 755 - needs `chmod a+w` |
+/scratch/aaa_exchange/AWARE/WEIGHTS_CITYSCAPES_GEN/
+├── baseline/cityscapes/segformer_mit-b3/          ✅ 10 ckpts, tested
+├── std_autoaugment/cityscapes/segformer_mit-b3/   ✅ 10 ckpts, tested
+├── std_cutmix/cityscapes/segformer_mit-b3/        ✅ 10 ckpts, tested
+├── std_mixup/cityscapes/segformer_mit-b3/         ✅ 10 ckpts, tested
+├── std_randaugment/cityscapes/segformer_mit-b3/   ✅ 10 ckpts, tested
+├── gen_*/cityscapes/{model}_ratio0p50/            🔄 91 jobs running/pending
+```
 
 ---
 
@@ -115,11 +92,19 @@ All missing baseline Mask2Former jobs submitted and moved to top of queue:
 | 1187818 | 2 | MapillaryVistas | Mask2Former | PEND (top) |
 | 1187819 | 2 | OUTSIDE15k | Mask2Former | PEND (top) |
 
-### 📊 Current Queue Status (2026-02-04 17:00)
+### � Planned Next Steps
+1. **Monitor cityscapes-gen jobs** - Check for early failures, verify checkpoints
+2. **Cross-domain testing** - After training completes, run ACDC cross-domain tests (auto-included in job scripts)
+3. **Analyze results** - Compare gen_ vs baseline/std strategies on Cityscapes val + ACDC
+4. **Stage 1/2 completion** - Continue monitoring remaining Stage 1/2 training jobs
+
+### �📊 Current Queue Status (2026-02-08 03:00)
 
 | User | Running | Pending | Total |
 |------|---------|---------|-------|
-| mima2416 | 1 | 346 | 347 |
+| mima2416 | 5 | 84 | 89 |
+
+Main jobs: 91 cityscapes-gen + 2 Stage 1 training
 
 ---
 
