@@ -1,6 +1,6 @@
 # Training Tracker - Stage 2 (All Domains)
 
-**Last Updated:** 2026-02-08 16:06
+**Last Updated:** 2026-02-08 20:48
 
 ---
 
@@ -23,17 +23,17 @@
 
 | Category | Configs | Complete (4/4) | Partial | Running | Pending | Failed |
 |----------|---------|----------------|---------|---------|---------|--------|
-| **Generative (gen_*)** | 83 | 0 | 0 | 0 | 82 | 2 |
-| **Standard (std_*)** | 28 | 3 | 11 | 2 | 11 | 1 |
-| **TOTAL** | 111 | 3 | 11 | 2 | 93 | 3 |
+| **Generative (gen_*)** | 83 | 0 | 7 | 3 | 71 | 3 |
+| **Standard (std_*)** | 28 | 3 | 15 | 2 | 8 | 0 |
+| **TOTAL** | 111 | 3 | 22 | 5 | 79 | 3 |
 
 ### Individual Model Trainings
 
 | Category | Total Models | ✅ Complete | 🔄 Running | ⏳ Pending | ❌ Failed |
 |----------|-------------|-------------|------------|-----------|----------|
-| **Generative (gen_*)** | 332 | 0 | 0 | 333 | 3 |
-| **Standard (std_*)** | 112 | 49 | 2 | 60 | 1 |
-| **TOTAL** | 444 | 49 | 2 | 393 | 4 |
+| **Generative (gen_*)** | 332 | 7 | 3 | 322 | 4 |
+| **Standard (std_*)** | 112 | 53 | 2 | 57 | 0 |
+| **TOTAL** | 444 | 60 | 5 | 379 | 4 |
 
 ### Generative Image Augmentation Strategies (❌ INVALID)
 
@@ -70,4 +70,4 @@
 | std_autoaugment | ✅ | ✅ | 3/4 | 3/4 |  |
 | std_cutmix | 3/4 | 3/4 | 3/4 | 3/4 |  |
 | std_mixup | 3/4 | 3/4 | 3/4 | 🔄 |  |
-| std_randaugment | ❌ | ⏳ | ⏳ | ⏳ |  |
+| std_randaugment | 1/4 | 1/4 | 1/4 | 1/4 |  |

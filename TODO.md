@@ -6,14 +6,14 @@
 
 ## 🆕 Stage 1 Gap Analysis & Fixes (2026-02-08 16:30)
 
-### Tracker Analysis Results
+### Tracker Analysis Results (refreshed 20:45)
 
 | Metric | Stage 1 Training | Stage 1 Testing | Stage 2 Training | Stage 2 Testing |
 |--------|-----------------|-----------------|------------------|-----------------|
-| Complete | 325/444 (73.2%) | 243/255 (95.3%) | 49/444 (11.0%) | 58 total |
-| Running | 11 | 0 | 2 | 0 |
-| Pending | 99 | 32 | 393 | 99 |
-| Failed | 13 | 12 missing | 4 | 0 |
+| Complete | 327/444 (73.6%) | 104/112 (92.9%) | 60/444 (13.5%) | ~27 total |
+| Running | 9 | 0 | 5 | 0 |
+| Pending | 99 | 8 | 379 | ~85 |
+| Failed | 13 | 0 | 4 | 0 |
 
 ### 🐛 Bug Fix: Testing Tracker IDD-AW Directory Naming
 - **Issue:** `update_testing_tracker.py` uses `idd-aw` as directory name, but actual directories use `iddaw` (no hyphen)
@@ -24,22 +24,28 @@
 
 ### 📊 Failed Training Investigation (26 stale trainings found)
 
-**Category 1: Wrong model variant — 6 entries (IGNORE)**
-All are `segformer_mit-b5_ratio0p50` (should be B3, not B5). Stale leftovers from incorrect config.
+**Category 1: Wrong model variant — 6 entries (CLEANED UP ✅)**
+All were `segformer_mit-b5_ratio0p50` (should be B3, not B5). **27 directories deleted (~90GB reclaimed).**
 - gen_LANIT, gen_VisualCloze, gen_albumentations_weather, gen_automold, gen_flux_kontext, gen_step1x_v1p2
 
-**Category 2: Resumable (>50% complete) — 3 entries (RESUME)**
+**Category 2: Partially-trained (>50% complete) — 3 entries (TESTED ✅)**
 | Strategy | Dataset | Model | Progress | Action |
 |----------|---------|-------|----------|--------|
-| gen_LANIT | bdd10k | segnext_mscan-b | 50000/80000 (62%) | ⏳ Resume |
-| gen_flux_kontext | bdd10k | segnext_mscan-b | 65000/80000 (81%) | ⏳ Resume |
-| gen_step1x_new | bdd10k | segnext_mscan-b | 60000/80000 (75%) | ⏳ Resume |
+| gen_LANIT | bdd10k | segnext_mscan-b | 50000/80000 (62%) | ✅ Tested (Job 2098551) |
+| gen_flux_kontext | bdd10k | segnext_mscan-b | 65000/80000 (81%) | ✅ Tested (Job 2098668) |
+| gen_step1x_new | bdd10k | segnext_mscan-b | 60000/80000 (75%) | ✅ Tested (Job 2098749) |
 
-**Category 3: Early failures (<50% complete) — 17 entries**
+**Category 3: Early failures (<50% complete) — 17 entries (RESTARTED ✅)**
 Affected strategies: gen_Img2Img (6), gen_albumentations_weather (4), gen_cyclediffusion (3),
 gen_VisualCloze (1), gen_UniControl (1), gen_automold (1), gen_step1x_v1p2 (1)
 Common pattern: SegNeXt and PSPNet models stopped at iter_2000-5000 of 15000-80000.
-Likely cause: OOM or training crash. Need restart.
+**28 restart jobs submitted** via `batch_training_submission.py --resume` (PEND in queue).
+
+**Category 4: Systemic failure — mask2former on mapillaryvistas/outside15k (52 entries, UNRESOLVED)**
+- 0% completion rate on these datasets (26/26 fail each)
+- Works on bdd10k (26/26) and iddaw (26/26)
+- Likely OOM with higher class counts (66 classes MapillaryVistas, 24 classes OUTSIDE15k vs 19 for others)
+- Needs config adjustment (smaller batch/crop size)
 
 ### 📋 Action Plan
 1. ✅ Fix testing tracker IDD-AW bug — IDD-AW: 0→26 complete, total: 243→340
@@ -174,7 +180,7 @@ Five compounding bugs caused ALL Cityscapes test results to be empty (`mIoU=N/A`
 ```
 
 ### 📋 Next Steps for Cityscapes-Gen Stage
-1. **Verify re-test results** - Confirm 12 re-test jobs produce valid mIoU for Cityscapes
+1. ✅ ~~Verify re-test results~~ → Found quoting bug, resubmitted 28 test jobs with proper bash scripts
 2. **Extend tracker scripts** - Add `--stage cityscapes-gen` to `update_training_tracker.py` and `update_testing_tracker.py`
    - New WEIGHTS_ROOT: `/scratch/aaa_exchange/AWARE/WEIGHTS_CITYSCAPES_GEN`
    - Dataset: `['cityscapes']` (single dataset, not the usual 4)
@@ -182,9 +188,9 @@ Five compounding bugs caused ALL Cityscapes test results to be empty (`mIoU=N/A`
    - Max iters: 20,000 (from `batch_training_submission.py`)
    - Output files: `TRAINING_TRACKER_CITYSCAPES_GEN.md`, `TESTING_TRACKER_CITYSCAPES_GEN.md`, `TRAINING_COVERAGE_CITYSCAPES_GEN.md`, `TESTING_COVERAGE_CITYSCAPES_GEN.md`
    - Strategy lists: same gen (21) + std (baseline + 4 augmentation)
-2. **Monitor 91 running/queued cityscapes-gen jobs** - Check for early failures
-3. **Re-test future completed trainings** - The 79 remaining jobs have old buggy test scripts; run `bash /tmp/retest_cityscapes.sh` (or similar) after each batch completes
-4. **Monitor 7 running segformer jobs** - ETA ~1-3 hours for remaining
+2. **Monitor 91 running/queued cityscapes-gen jobs** - ✅ 31/35 segformer complete, 5 still training
+3. **Re-test future completed trainings** - ✅ 28 test jobs submitted using bash script files (no quoting bug)
+4. **Monitor 7 running segformer jobs** - ✅ All segformer complete, remaining 4 are non-segformer
 5. **After training completes** - ACDC cross-domain tests are auto-included and working
 6. **Analyze results** - Compare gen_ vs baseline/std on Cityscapes val + ACDC
 
@@ -221,11 +227,14 @@ All missing baseline Mask2Former jobs submitted and moved to top of queue:
 | 1187818 | 2 | MapillaryVistas | Mask2Former | PEND (top) |
 | 1187819 | 2 | OUTSIDE15k | Mask2Former | PEND (top) |
 
-### � Planned Next Steps
-1. **Monitor cityscapes-gen jobs** - Check for early failures, verify checkpoints
-2. **Cross-domain testing** - After training completes, run ACDC cross-domain tests (auto-included in job scripts)
-3. **Analyze results** - Compare gen_ vs baseline/std strategies on Cityscapes val + ACDC
-4. **Stage 1/2 completion** - Continue monitoring remaining Stage 1/2 training jobs
+### 📋 Planned Next Steps
+1. ✅ ~~Monitor cityscapes-gen jobs~~ → 31/35 training complete, 5 still running
+2. ✅ ~~Check retests~~ → Found bash quoting bug, resubmitted 28 test jobs
+3. **Monitor 28 Cityscapes test jobs** (2119269-2119296) — waiting for GPU slots
+4. **Monitor 28 Stage 1 gen_ restart jobs** — PEND in queue
+5. **Resolve mask2former on mapillaryvistas/outside15k** — systemic OOM (52 entries)
+6. **Cross-domain testing** — After training completes, verify ACDC results
+7. **Stage 2 completion** — Only 60/444 (13.5%) complete, 379 pending
 
 ### 📊 Current Queue Status (2026-02-08 20:40)
 

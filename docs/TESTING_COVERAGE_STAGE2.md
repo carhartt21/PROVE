@@ -1,44 +1,44 @@
 # Testing Coverage Report
 
-**Generated:** 2026-02-08 16:09
+**Generated:** 2026-02-08 20:48
 
 ## Summary
 
 | Status | Count | Percentage |
 |--------|------:|----------:|
-| ✅ Complete (valid mIoU) | 58 | 100.0% |
+| ✅ Complete (valid mIoU) | 79 | 97.5% |
 | 🔄 Running | 0 | 0.0% |
-| ⏳ Pending (in queue) | 0 | 0.0% |
+| ⏳ Pending (in queue) | 1 | 1.2% |
 | ⚠️ Buggy (mIoU < 5%) | 0 | 0.0% |
 | 🔃 Stale (wrong checkpoint) | 0 | 0.0% |
-| ❌ Missing (no results) | 0 | 0.0% |
-| **Total** | **58** | **100%** |
+| ❌ Missing (no results) | 1 | 1.2% |
+| **Total** | **81** | **100%** |
 
 ## Per-Dataset Breakdown
 
 ### BDD10k
-- Complete: 21/112 (18.8%)
+- Complete: 24/112 (21.4%)
 - Running: 0
-- Pending (in queue): 0
+- Pending (in queue): 1
 - Buggy (mIoU < 5%): 0
 - Missing (no results): 0
 
 ### IDD-AW
-- Complete: 5/5 (100.0%)
+- Complete: 18/106 (17.0%)
 - Running: 0
 - Pending (in queue): 0
 - Buggy (mIoU < 5%): 0
-- Missing (no results): 0
+- Missing (no results): 1
 
 ### MapillaryVistas
-- Complete: 17/111 (15.3%)
+- Complete: 20/111 (18.0%)
 - Running: 0
 - Pending (in queue): 0
 - Buggy (mIoU < 5%): 0
 - Missing (no results): 0
 
 ### OUTSIDE15k
-- Complete: 15/111 (13.5%)
+- Complete: 17/111 (15.3%)
 - Running: 0
 - Pending (in queue): 0
 - Buggy (mIoU < 5%): 0
@@ -50,7 +50,9 @@
 
 ## Pending Configurations (in queue)
 
-*No configurations pending in queue.*
+| Strategy | Dataset | Model |
+|----------|---------|-------|
+| gen_step1x_new | bdd10k | segformer_mit-b3_ratio0p50 |
 
 ## Buggy Configurations (need retesting)
 
@@ -62,7 +64,9 @@
 
 ## Missing Configurations (no test results)
 
-*No missing configurations.*
+| Strategy | Dataset | Model | Issue |
+|----------|---------|-------|-------|
+| baseline | idd-aw | SegFormer | missing |
 
 ## Complete Configurations
 
@@ -74,8 +78,8 @@
 | gen_CNetSeg | ⏳ | ⏳ | ⏳ | ⏳ |
 | gen_CUT | ⏳ | ⏳ | ⏳ | ⏳ |
 | gen_cyclediffusion | ⏳ | ⏳ | ⏳ | ⏳ |
-| gen_cycleGAN | ⏳ | ⏳ | ⏳ | ⏳ |
-| gen_flux_kontext | ⏳ | ⏳ | ⏳ | ⏳ |
+| gen_cycleGAN | ✅ SF | ✅ SF | ✅ SF | ✅ SF |
+| gen_flux_kontext | ✅ SF | ✅ SF | ✅ SF | ⏳ |
 | gen_Img2Img | ⏳ | ⏳ | ⏳ | ⏳ |
 | gen_IP2P | ⏳ | ⏳ | ⏳ | ⏳ |
 | gen_LANIT | ⏳ | ⏳ | ⏳ | ⏳ |
@@ -92,7 +96,7 @@
 | baseline | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF |
 | std_minimal | ⏳ | ⏳ | ⏳ | ⏳ |
 | std_photometric_distort | ⏳ | ⏳ | ⏳ | ⏳ |
-| std_autoaugment | ✅ PSP, SF | ⏳ | ✅ PSP, SF | ✅ PSP, SF |
-| std_cutmix | ✅ PSP, SF | ⏳ | ✅ PSP, SF | ✅ PSP, SF |
-| std_mixup | ✅ PSP, SF | ⏳ | ✅ PSP, SF | ✅ SF |
-| std_randaugment | ⏳ | ⏳ | ⏳ | ⏳ |
+| std_autoaugment | ✅ PSP, SF | ✅ PSP, SF | ✅ PSP, SF | ✅ PSP, SF |
+| std_cutmix | ✅ PSP, SF | ✅ PSP, SF | ✅ PSP, SF | ✅ PSP, SF |
+| std_mixup | ✅ PSP, SF | ✅ PSP, SF | ✅ PSP, SF | ✅ SF |
+| std_randaugment | ✅ SF | ✅ SF | ✅ SF | ✅ SF |

@@ -1,6 +1,6 @@
 # Testing Progress Tracker
 
-**Last Updated:** 2026-02-08 16:09
+**Last Updated:** 2026-02-08 20:48
 
 
 This document tracks the progress of fine-grained testing for trained models.
@@ -52,10 +52,13 @@ This document tracks the progress of fine-grained testing for trained models.
 
 | Rank | Strategy | Avg mIoU | Best Dataset | Best mIoU | Datasets |
 |------|----------|----------|--------------|-----------|----------|
-| 🥇 | baseline | 46.1 | BDD10k | 50.5 | 4/4 |
-| 🥈 | std_autoaugment | 43.2 | BDD10k | 48.4 | 3/4 |
-| 🥉 | std_cutmix | 43.1 | BDD10k | 48.6 | 3/4 |
-| 4. | std_mixup | 42.8 | BDD10k | 48.1 | 3/4 |
+| 🥇 | baseline | 45.8 | BDD10k | 50.5 | 4/4 |
+| 🥈 | std_autoaugment | 42.7 | BDD10k | 48.4 | 4/4 |
+| 🥉 | std_cutmix | 42.6 | BDD10k | 48.6 | 4/4 |
+| 4. | std_mixup | 42.3 | BDD10k | 48.1 | 4/4 |
+| 5. | std_randaugment | 42.0 | BDD10k | 47.7 | 4/4 |
+| 6. | gen_cycleGAN | 41.7 | BDD10k | 46.9 | 4/4 |
+| 7. | gen_flux_kontext | 40.8 | BDD10k | 47.0 | 3/4 |
 
 
 ### Generative Image Augmentation Strategies
@@ -68,8 +71,8 @@ This document tracks the progress of fine-grained testing for trained models.
 | gen_CNetSeg | ⏳ | ⏳ | ⏳ | ⏳ | - |
 | gen_CUT | ⏳ | ⏳ | ⏳ | ⏳ | - |
 | gen_cyclediffusion | ⏳ | ⏳ | ⏳ | ⏳ | - |
-| gen_cycleGAN | ⏳ | ⏳ | ⏳ | ⏳ | - |
-| gen_flux_kontext | ⏳ | ⏳ | ⏳ | ⏳ | - |
+| gen_cycleGAN | 46.9 | 40.5 | 34.9 | 44.7 | 41.7 |
+| gen_flux_kontext | 47.0 | 40.4 | 35.0 | ⏳ | 40.8 |
 | gen_Img2Img | ⏳ | ⏳ | ⏳ | ⏳ | - |
 | gen_IP2P | ⏳ | ⏳ | ⏳ | ⏳ | - |
 | gen_LANIT | ⏳ | ⏳ | ⏳ | ⏳ | - |
@@ -88,13 +91,13 @@ This document tracks the progress of fine-grained testing for trained models.
 
 | Strategy | BDD10k | IDD-AW | MapillaryVistas | OUTSIDE15k | Avg |
 |----------|-------:|-------:|-------:|-------:|-------:|
-| baseline | 50.5 | 44.4 | 41.9 | 47.6 | 46.1 |
+| baseline | 50.5 | 43.0 | 41.9 | 47.6 | 45.8 |
 | std_minimal | ⏳ | ⏳ | ⏳ | ⏳ | - |
 | std_photometric_distort | ⏳ | ⏳ | ⏳ | ⏳ | - |
-| std_autoaugment | 48.4 | ⏳ | 35.6 | 45.5 | 43.2 |
-| std_cutmix | 48.6 | ⏳ | 35.8 | 45.0 | 43.1 |
-| std_mixup | 48.1 | ⏳ | 35.7 | 44.5 | 42.8 |
-| std_randaugment | ⏳ | ⏳ | ⏳ | ⏳ | - |
+| std_autoaugment | 48.4 | 41.2 | 35.6 | 45.5 | 42.7 |
+| std_cutmix | 48.6 | 40.9 | 35.8 | 45.0 | 42.6 |
+| std_mixup | 48.1 | 40.9 | 35.7 | 44.5 | 42.3 |
+| std_randaugment | 47.7 | 40.5 | 35.1 | 44.7 | 42.0 |
 
 ---
 
@@ -120,8 +123,8 @@ This document tracks the progress of fine-grained testing for trained models.
 | gen_CNetSeg | ⏳ | ⏳ | ⏳ | ⏳ |
 | gen_CUT | ⏳ | ⏳ | ⏳ | ⏳ |
 | gen_cyclediffusion | ⏳ | ⏳ | ⏳ | ⏳ |
-| gen_cycleGAN | ⏳ | ⏳ | ⏳ | ⏳ |
-| gen_flux_kontext | ⏳ | ⏳ | ⏳ | ⏳ |
+| gen_cycleGAN | ✅ | ✅ | ✅ | ✅ |
+| gen_flux_kontext | ✅ | ✅ | ✅ | ⏳ |
 | gen_Img2Img | ⏳ | ⏳ | ⏳ | ⏳ |
 | gen_IP2P | ⏳ | ⏳ | ⏳ | ⏳ |
 | gen_LANIT | ⏳ | ⏳ | ⏳ | ⏳ |
@@ -143,10 +146,10 @@ This document tracks the progress of fine-grained testing for trained models.
 | baseline | ✅ | ✅ | ✅ | ✅ |
 | std_minimal | ⏳ | ⏳ | ⏳ | ⏳ |
 | std_photometric_distort | ⏳ | ⏳ | ⏳ | ⏳ |
-| std_autoaugment | ✅ | ⏳ | ✅ | ✅ |
-| std_cutmix | ✅ | ⏳ | ✅ | ✅ |
-| std_mixup | ✅ | ⏳ | ✅ | ✅ |
-| std_randaugment | ⏳ | ⏳ | ⏳ | ⏳ |
+| std_autoaugment | ✅ | ✅ | ✅ | ✅ |
+| std_cutmix | ✅ | ✅ | ✅ | ✅ |
+| std_mixup | ✅ | ✅ | ✅ | ✅ |
+| std_randaugment | ✅ | ✅ | ✅ | ✅ |
 
 ---
 
@@ -155,10 +158,10 @@ This document tracks the progress of fine-grained testing for trained models.
 
 | Dataset | Complete | Running | Pending | Skip |
 |---------|----------|---------|---------|------|
-| BDD10k | 4 | 0 | 24 | 0 |
-| IDD-AW | 1 | 0 | 27 | 0 |
-| MapillaryVistas | 4 | 0 | 24 | 0 |
-| OUTSIDE15k | 4 | 0 | 24 | 0 |
+| BDD10k | 7 | 0 | 21 | 0 |
+| IDD-AW | 7 | 0 | 21 | 0 |
+| MapillaryVistas | 7 | 0 | 21 | 0 |
+| OUTSIDE15k | 6 | 0 | 22 | 0 |
 
 ---
 

@@ -1,6 +1,6 @@
 # Testing Progress Tracker
 
-**Last Updated:** 2026-02-08 16:25
+**Last Updated:** 2026-02-08 20:48
 
 
 This document tracks the progress of fine-grained testing for trained models.
@@ -52,16 +52,16 @@ This document tracks the progress of fine-grained testing for trained models.
 
 | Rank | Strategy | Avg mIoU | Best Dataset | Best mIoU | Datasets |
 |------|----------|----------|--------------|-----------|----------|
-| 🥇 | std_photometric_distort | 45.5 | BDD10k | 45.5 | 1/4 |
-| 🥈 | std_minimal | 44.9 | BDD10k | 44.9 | 1/4 |
-| 🥉 | gen_VisualCloze | 42.4 | BDD10k | 51.6 | 4/4 |
-| 4. | gen_stargan_v2 | 42.3 | BDD10k | 50.9 | 4/4 |
-| 5. | gen_UniControl | 42.2 | BDD10k | 50.3 | 4/4 |
-| 6. | gen_Attribute_Hallucination | 42.2 | BDD10k | 50.5 | 4/4 |
-| 7. | gen_LANIT | 42.2 | BDD10k | 50.1 | 4/4 |
-| 8. | gen_Qwen_Image_Edit | 42.1 | BDD10k | 49.5 | 4/4 |
-| 9. | gen_step1x_new | 42.1 | BDD10k | 49.9 | 4/4 |
-| 10. | gen_CNetSeg | 42.1 | BDD10k | 49.8 | 4/4 |
+| 🥇 | gen_VisualCloze | 42.4 | BDD10k | 51.6 | 4/4 |
+| 🥈 | gen_stargan_v2 | 42.3 | BDD10k | 50.9 | 4/4 |
+| 🥉 | gen_UniControl | 42.2 | BDD10k | 50.3 | 4/4 |
+| 4. | gen_Attribute_Hallucination | 42.2 | BDD10k | 50.5 | 4/4 |
+| 5. | gen_LANIT | 42.2 | BDD10k | 50.1 | 4/4 |
+| 6. | gen_Qwen_Image_Edit | 42.1 | BDD10k | 49.5 | 4/4 |
+| 7. | gen_step1x_new | 42.1 | BDD10k | 49.9 | 4/4 |
+| 8. | gen_CNetSeg | 42.1 | BDD10k | 49.8 | 4/4 |
+| 9. | gen_automold | 42.1 | BDD10k | 49.5 | 4/4 |
+| 10. | gen_TSIT | 42.0 | BDD10k | 50.7 | 4/4 |
 
 
 ### Generative Image Augmentation Strategies
@@ -95,8 +95,8 @@ This document tracks the progress of fine-grained testing for trained models.
 | Strategy | BDD10k | IDD-AW | MapillaryVistas | OUTSIDE15k | Avg |
 |----------|-------:|-------:|-------:|-------:|-------:|
 | baseline | 51.6 | 41.6 | 34.6 | 38.7 | 41.6 |
-| std_minimal | 44.9 | ⏳ | ⏳ | ⏳ | 44.9 |
-| std_photometric_distort | 45.5 | ⏳ | ⏳ | ⏳ | 45.5 |
+| std_minimal | ⏳ | ⏳ | ⏳ | ⏳ | - |
+| std_photometric_distort | ⏳ | ⏳ | ⏳ | ⏳ | - |
 | std_autoaugment | 49.4 | 40.5 | 34.9 | 43.2 | 42.0 |
 | std_cutmix | 49.4 | 40.4 | 34.9 | 43.0 | 41.9 |
 | std_mixup | 49.4 | 40.0 | 34.9 | 42.8 | 41.8 |
@@ -147,8 +147,8 @@ This document tracks the progress of fine-grained testing for trained models.
 | Strategy | BDD10k | IDD-AW | MapillaryVistas | OUTSIDE15k |
 |----------|--------|--------|--------|--------|
 | baseline | ✅ | ✅ | ✅ | ✅ |
-| std_minimal | ✅ | ⏳ | ⏳ | ⏳ |
-| std_photometric_distort | ✅ | ⏳ | ⏳ | ⏳ |
+| std_minimal | ⏳ | ⏳ | ⏳ | ⏳ |
+| std_photometric_distort | ⏳ | ⏳ | ⏳ | ⏳ |
 | std_autoaugment | ✅ | ✅ | ✅ | ✅ |
 | std_cutmix | ✅ | ✅ | ✅ | ✅ |
 | std_mixup | ✅ | ✅ | ✅ | ✅ |
@@ -161,7 +161,7 @@ This document tracks the progress of fine-grained testing for trained models.
 
 | Dataset | Complete | Running | Pending | Skip |
 |---------|----------|---------|---------|------|
-| BDD10k | 28 | 0 | 0 | 0 |
+| BDD10k | 26 | 0 | 2 | 0 |
 | IDD-AW | 26 | 0 | 2 | 0 |
 | MapillaryVistas | 26 | 0 | 2 | 0 |
 | OUTSIDE15k | 26 | 0 | 2 | 0 |

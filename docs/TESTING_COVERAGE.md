@@ -1,27 +1,27 @@
 # Testing Coverage Report
 
-**Generated:** 2026-02-08 16:25
+**Generated:** 2026-02-08 20:48
 
 ## Summary
 
 | Status | Count | Percentage |
 |--------|------:|----------:|
-| ✅ Complete (valid mIoU) | 340 | 96.3% |
+| ✅ Complete (valid mIoU) | 332 | 97.9% |
 | 🔄 Running | 0 | 0.0% |
-| ⏳ Pending (in queue) | 0 | 0.0% |
+| ⏳ Pending (in queue) | 2 | 0.6% |
 | ⚠️ Buggy (mIoU < 5%) | 0 | 0.0% |
 | 🔃 Stale (wrong checkpoint) | 0 | 0.0% |
-| ❌ Missing (no results) | 13 | 3.7% |
-| **Total** | **353** | **100%** |
+| ❌ Missing (no results) | 5 | 1.5% |
+| **Total** | **339** | **100%** |
 
 ## Per-Dataset Breakdown
 
 ### BDD10k
-- Complete: 99/132 (75.0%)
+- Complete: 91/105 (86.7%)
 - Running: 0
-- Pending (in queue): 0
+- Pending (in queue): 2
 - Buggy (mIoU < 5%): 0
-- Missing (no results): 13
+- Missing (no results): 5
 
 ### IDD-AW
 - Complete: 97/105 (92.4%)
@@ -50,7 +50,10 @@
 
 ## Pending Configurations (in queue)
 
-*No configurations pending in queue.*
+| Strategy | Dataset | Model |
+|----------|---------|-------|
+| gen_step1x_new | bdd10k | SegNeXt |
+| gen_step1x_v1p2 | bdd10k | SegNeXt |
 
 ## Buggy Configurations (need retesting)
 
@@ -64,19 +67,11 @@
 
 | Strategy | Dataset | Model | Issue |
 |----------|---------|-------|-------|
-| gen_LANIT | bdd10k | SegFormer | missing |
 | gen_LANIT | bdd10k | SegNeXt | missing |
-| gen_VisualCloze | bdd10k | SegFormer | missing |
 | gen_VisualCloze | bdd10k | SegNeXt | missing |
-| gen_albumentations_weather | bdd10k | segformer_mit-b3_ratio0p50 | missing |
-| gen_albumentations_weather | bdd10k | SegFormer | missing |
 | gen_albumentations_weather | bdd10k | SegNeXt | missing |
-| gen_automold | bdd10k | SegFormer | missing |
 | gen_automold | bdd10k | SegNeXt | missing |
 | gen_flux_kontext | bdd10k | SegNeXt | missing |
-| gen_step1x_new | bdd10k | SegNeXt | missing |
-| gen_step1x_v1p2 | bdd10k | SegFormer | missing |
-| gen_step1x_v1p2 | bdd10k | SegNeXt | missing |
 
 ## Complete Configurations
 
@@ -102,10 +97,10 @@
 | gen_UniControl | ✅ SF | ✅ SF | ✅ SF | ✅ SF |
 | gen_VisualCloze | ✅ PSP, SF | ✅ PSP, SF | ✅ PSP, SF | ✅ PSP, SF |
 | gen_Weather_Effect_Generator | ✅ PSP, SF | ✅ PSP, SF | ✅ PSP, SF | ✅ PSP, SF |
-| gen_albumentations_weather | ⏳ | ✅ SF | ✅ SF | ✅ SF |
+| gen_albumentations_weather | ✅ SF | ✅ SF | ✅ SF | ✅ SF |
 | baseline | ✅ PSP, SF | ✅ PSP, SF | ✅ PSP, SF | ✅ PSP, SF |
-| std_minimal | ✅ SF | ⏳ | ⏳ | ⏳ |
-| std_photometric_distort | ✅ SF | ⏳ | ⏳ | ⏳ |
+| std_minimal | ⏳ | ⏳ | ⏳ | ⏳ |
+| std_photometric_distort | ⏳ | ⏳ | ⏳ | ⏳ |
 | std_autoaugment | ✅ PSP, SF | ✅ PSP, SF | ✅ PSP, SF | ✅ PSP, SF |
 | std_cutmix | ✅ PSP, SF | ✅ PSP, SF | ✅ PSP, SF | ✅ PSP, SF |
 | std_mixup | ✅ PSP, SF | ✅ PSP, SF | ✅ PSP, SF | ✅ PSP, SF |
