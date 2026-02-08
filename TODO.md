@@ -1,6 +1,6 @@
 # PROVE Project TODO
 
-**Last Updated:** 2026-02-08 (21:50)
+**Last Updated:** 2026-02-08 (23:00)
 
 ---
 
@@ -68,14 +68,14 @@ Common pattern: SegNeXt and PSPNet models stopped at iter_2000-5000 of 15000-800
 - **Impact:** Older configs using dict literal syntax were silently skipped
 - **Fix:** Changed regex to `r"'?max_iters'?\s*[=:]\s*(\d+)"` to handle both formats
 
-### Current Cluster Status (2026-02-08 21:50)
+### Current Cluster Status (2026-02-08 23:00)
 | Category | RUN | PEND |
 |----------|----:|-----:|
-| Stage 1 training (IDD-AW) | 2 | 0 |
-| Cityscapes-gen training | 4 | ~115 |
+| Stage 1 training (IDD-AW gen) | 2 | ~28 |
+| Cityscapes-gen training | 5 | ~58 |
 | Cityscapes-gen retests | 0 | 28 |
-| gen_ strategy restarts | 0 | ~4 |
-| **Total** | **6** | **~147** |
+| Other Stage 1 gen_ | 0 | ~32 |
+| **Total** | **7** | **~146** |
 
 ---
 
@@ -128,15 +128,15 @@ Five compounding bugs caused ALL Cityscapes test results to be empty (`mIoU=N/A`
 - All 25 method CSVs verified with Cityscapes coverage
 
 ### 🔄 Jobs Status (2026-02-08 20:40)
-**Training: 35 cityscapes-gen jobs** (of original 91):
+**Training: ~35 cityscapes-gen completed** (of 91 total):
 
 | Model | Total | Completed | Running | Still Pending |
 |-------|-------|-----------|---------|---------------|
-| segformer_mit-b3 | 24 | 22 | 0 | 2 (training) |
-| pspnet_r50 | 24 | 5 | 1 | 18 |
-| segnext_mscan-b | 24 | 2 | 1 | 21 |
-| mask2former_swin-b | 19 | 2 | 3 | 14 |
-| **Total** | **91** | **31** | **5** | **55** |
+| segformer_mit-b3 | 24 | 22 | 0 | 2 |
+| pspnet_r50 | 24 | ~6 | 2 | ~16 |
+| segnext_mscan-b | 24 | ~3 | 2 | ~19 |
+| mask2former_swin-b | 19 | ~4 | 3 | ~12 |
+| **Total** | **91** | **~35** | **7** | **~49** |
 
 **Testing: 28 re-test jobs submitted** (2119367-2119394):
 - Cover all 28 completed trainings with buggy val-split test results
@@ -248,15 +248,15 @@ All missing baseline Mask2Former jobs submitted and moved to top of queue:
 6. **Cross-domain testing** — After training completes, verify ACDC results
 7. **Stage 2 completion** — Only 60/444 (13.5%) complete, 379 pending
 
-### 📊 Current Queue Status (2026-02-08 21:50)
+### 📊 Current Queue Status (2026-02-08 23:00)
 
 | Category | Running | Pending | Total |
 |----------|---------|---------|-------|
-| Stage 1 training (IDD-AW) | 2 | 0 | 2 |
-| Cityscapes-gen training | 4 | ~115 | ~119 |
+| Stage 1 gen training (IDD-AW) | 2 | ~28 | ~30 |
+| Cityscapes-gen training | 5 | ~58 | ~63 |
 | Cityscapes-gen testing (retests) | 0 | 28 | 28 |
-| Stage 1 gen_ restarts | 0 | ~4 | ~4 |
-| **Total** | **6** | **~147** | **~153** |
+| Other Stage 1 gen_ | 0 | ~32 | ~32 |
+| **Total** | **7** | **~146** | **~153** |
 
 ---
 
@@ -547,6 +547,13 @@ Cityscapes replication with correct pipeline achieved expected results:
 ---
 
 ## ✅ Recently Completed
+
+### 2026-02-08
+- [x] ✅ **Repository cleanup:** Archived 7 outdated docs → `docs/archived_20260208/`, 13 obsolete scripts → `archived_scripts_20260208/`
+- [x] ✅ Rewrote `docs/README.md` with structured section index
+- [x] ✅ Extended tracker scripts with `--stage cityscapes-gen` support (commit `cf4480c`)
+- [x] ✅ Created `scripts/retest_cityscapes_gen.py` for proper retest submission (commit `67709bb`)
+- [x] ✅ Submitted 28 cityscapes-gen retests (IDs 2119367-2119394) — PEND in queue
 
 ### 2026-01-31
 - [x] ✅ **CRITICAL FIX:** Added RandomResize(0.5-2.0x) to all training pipelines
