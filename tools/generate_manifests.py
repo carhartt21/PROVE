@@ -87,6 +87,9 @@ DOMAIN_MAPPING = {
     "shadow": "clear_day",  # lighting condition, map to clear_day
     "snow_heavy": "snowy",
     "sun_flare": "clear_day",  # lighting condition, map to clear_day
+    # Augmenters-specific domain names
+    "clouds": "cloudy",
+    "snow_no_flakes": "snowy",
 }
 
 KNOWN_DATASETS = {'ACDC', 'BDD100k', 'BDD10k', 'IDD-AW', 'MapillaryVistas', 'OUTSIDE15k', 'Cityscapes', 'CITYSCAPES', 'Cityscapes_2'}
@@ -278,8 +281,20 @@ def detect_directory_structure(method_dir: Path) -> str:
     if not subdirs:
         return 'unknown'
     
-    first_subdir = subdirs[0]
-    first_name = first_subdir.name
+    # Try multiple subdirs - first recognized one determines structure
+    # (skip unrecognized dirs like Cityscapes_from_lat)
+    first_subdir = None
+    first_name = None
+    for sd in subdirs:
+        if sd.name in KNOWN_DATASETS or normalize_domain(sd.name) is not None:
+            first_subdir = sd
+            first_name = sd.name
+            break
+    
+    if first_subdir is None:
+        # No recognized subdirs - try the first one anyway
+        first_subdir = subdirs[0]
+        first_name = first_subdir.name
     
     # Check if first level is datasets
     if first_name in KNOWN_DATASETS:
@@ -558,6 +573,47 @@ def process_dataset_domain_structure(
             source_domain = extract_source_domain(domain_raw)
             
             if domain_canonical is None:
+                # Check for intermediary directories (e.g., 'generated', 'test_latest', 'images')
+                # that contain domain subdirs one level deeper
+                INTERMEDIARY_DIRS = {'generated', 'test_latest', 'images', 'output', 'results'}
+                if domain_dir.name.lower() in INTERMEDIARY_DIRS:
+                    try:
+                        nested_dirs = list(domain_dir.iterdir())
+                    except PermissionError:
+                        continue
+                    for nested_dir in nested_dirs:
+                        if not nested_dir.is_dir():
+                            continue
+                        nested_domain_raw = nested_dir.name
+                        nested_domain_canonical = normalize_domain(nested_domain_raw)
+                        if nested_domain_canonical is None:
+                            continue
+                        nested_source = extract_source_domain(nested_domain_raw)
+                        nested_is_restoration = is_restoration_domain(nested_domain_canonical)
+                        nested_restoration_source = get_restoration_source_domain(nested_domain_canonical) if nested_is_restoration else None
+                        if nested_is_restoration and nested_restoration_source and nested_restoration_source in weather_indices:
+                            nested_match_index = weather_indices[nested_restoration_source]
+                        else:
+                            nested_match_index = original_index
+                        images = find_image_files(nested_dir, recursive=True)
+                        for img_path in images:
+                            normalized_stem = normalize_filename(img_path.name)
+                            entry = ImageEntry(
+                                gen_path=img_path,
+                                name=normalized_stem,
+                                dataset=dataset,
+                                domain_raw=nested_domain_raw,
+                                domain_canonical=nested_domain_canonical,
+                                source_domain=nested_source,
+                                is_restoration=nested_is_restoration,
+                                restoration_source_weather=nested_restoration_source,
+                            )
+                            if normalized_stem in nested_match_index:
+                                entry.original_path = nested_match_index[normalized_stem]
+                                stats[nested_domain_canonical][dataset]["matched"] += 1
+                            else:
+                                stats[nested_domain_canonical][dataset]["unmatched"] += 1
+                            entries.append(entry)
                 continue
             
             is_restoration = is_restoration_domain(domain_canonical)

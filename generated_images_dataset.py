@@ -102,15 +102,20 @@ class GeneratedImagesManifest:
         Get all entries that match a specific dataset name.
         
         Args:
-            dataset_name: Dataset name to filter by (e.g., 'ACDC', 'BDD10k', 'MapillaryVistas')
+            dataset_name: Dataset name to filter by (e.g., 'ACDC', 'BDD10k', 'MapillaryVistas', 'Cityscapes')
             
         Returns:
             List of manifest entries for the specified dataset
         """
         results = []
+        dataset_lower = dataset_name.lower()
         for entry in self.entries:
-            # Check if dataset name is in the original path
-            if dataset_name in entry.get('original_path', ''):
+            # Primary: check the 'dataset' column (exact, case-insensitive)
+            entry_dataset = entry.get('dataset', '')
+            if entry_dataset and entry_dataset.lower() == dataset_lower:
+                results.append(entry)
+            # Fallback: check if dataset name is in the original path (case-insensitive)
+            elif dataset_lower in entry.get('original_path', '').lower():
                 results.append(entry)
         return results
     
@@ -135,12 +140,17 @@ class GeneratedImagesManifest:
         """
         dataset_counts = {}
         for entry in self.entries:
-            original_path = entry.get('original_path', '')
-            # Extract dataset name from path like /path/to/images/ACDC/...
-            for dataset in ['ACDC', 'BDD10k', 'BDD100k', 'IDD-AW', 'MapillaryVistas', 'OUTSIDE15k']:
-                if dataset in original_path:
-                    dataset_counts[dataset] = dataset_counts.get(dataset, 0) + 1
-                    break
+            # Primary: use the 'dataset' column if available
+            entry_dataset = entry.get('dataset', '')
+            if entry_dataset:
+                dataset_counts[entry_dataset] = dataset_counts.get(entry_dataset, 0) + 1
+            else:
+                # Fallback: extract dataset name from original_path
+                original_path = entry.get('original_path', '')
+                for dataset in ['ACDC', 'BDD10k', 'BDD100k', 'IDD-AW', 'MapillaryVistas', 'OUTSIDE15k', 'Cityscapes']:
+                    if dataset.lower() in original_path.lower():
+                        dataset_counts[dataset] = dataset_counts.get(dataset, 0) + 1
+                        break
         return dataset_counts
     
     def __len__(self):
