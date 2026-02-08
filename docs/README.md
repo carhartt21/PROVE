@@ -1,67 +1,76 @@
 # PROVE Documentation
 
-**Last Updated:** 2026-01-28 (13:30)
+**Last Updated:** 2026-02-08
 
 ---
 
-## ⚠️ CRITICAL: gen_* Results Invalid
+## Progress Tracking (auto-generated)
 
-> **MixedDataLoader Bug (Jan 28, 2026):** Generated images were **NEVER LOADED** during training.
-> All `gen_*` strategy results are **INVALID**. Bug is **FIXED** - retraining required.
-> 
-> See [BUG_REPORT](BUG_REPORT_CROSS_DATASET_CONTAMINATION.md) for details.
+These files are maintained by `update_training_tracker.py` and `update_testing_tracker.py`.
 
----
+### Training Trackers
 
-## Primary Documentation
+| Stage | Tracker | Coverage |
+|-------|---------|----------|
+| **Stage 1** (clear_day) | [TRAINING_TRACKER_STAGE1.md](TRAINING_TRACKER_STAGE1.md) | [TRAINING_COVERAGE_STAGE1.md](TRAINING_COVERAGE_STAGE1.md) |
+| **Stage 2** (all domains) | [TRAINING_TRACKER_STAGE2.md](TRAINING_TRACKER_STAGE2.md) | [TRAINING_COVERAGE_STAGE2.md](TRAINING_COVERAGE_STAGE2.md) |
+| **Cityscapes-Gen** | [TRAINING_TRACKER_CITYSCAPES_GEN.md](TRAINING_TRACKER_CITYSCAPES_GEN.md) | — |
 
-| Document | Purpose | Status |
-|----------|---------|--------|
-| **[STUDY_COVERAGE_ANALYSIS.md](STUDY_COVERAGE_ANALYSIS.md)** | Main reference - all study findings | ⚠️ gen_* findings invalid |
-| **[BUG_REPORT_CROSS_DATASET_CONTAMINATION.md](BUG_REPORT_CROSS_DATASET_CONTAMINATION.md)** | MixedDataLoader bug details | ✅ **READ THIS FIRST** |
-| [EVALUATION_STAGE_STATUS.md](EVALUATION_STAGE_STATUS.md) | Stage 1 & Stage 2 status | ⚠️ gen_* invalid |
-| [ABLATION_STUDIES_ANALYSIS.md](ABLATION_STUDIES_ANALYSIS.md) | Ablation study findings | ⚠️ Ratio ablation invalid |
+### Testing Trackers
 
-## Study-Specific Documentation
+| Stage | Tracker | Coverage |
+|-------|---------|----------|
+| **Stage 1** | [TESTING_TRACKER.md](TESTING_TRACKER.md) | [TESTING_COVERAGE.md](TESTING_COVERAGE.md) |
+| **Stage 2** | [TESTING_TRACKER_STAGE2.md](TESTING_TRACKER_STAGE2.md) | [TESTING_COVERAGE_STAGE2.md](TESTING_COVERAGE_STAGE2.md) |
+| **Cityscapes-Gen** | [TESTING_TRACKER_CITYSCAPES_GEN.md](TESTING_TRACKER_CITYSCAPES_GEN.md) | [TESTING_COVERAGE_CITYSCAPES_GEN.md](TESTING_COVERAGE_CITYSCAPES_GEN.md) |
 
-| Document | Study | Status |
-|----------|-------|--------|
-| [EXTENDED_TRAINING.md](EXTENDED_TRAINING.md) | Extended training (80K→320K) | ⚠️ Baseline only valid |
-
-## Technical Reference (Still Valid)
+### Status Overviews
 
 | Document | Purpose |
 |----------|---------|
-| [UNIFIED_TRAINING.md](UNIFIED_TRAINING.md) | Training pipeline documentation |
-| [UNIFIED_TESTING.md](UNIFIED_TESTING.md) | Testing pipeline documentation |
-| [LABEL_HANDLING.md](LABEL_HANDLING.md) | Dataset label format reference |
-| [MAPILLARYVISTAS_CLASS_ANALYSIS.md](MAPILLARYVISTAS_CLASS_ANALYSIS.md) | MapillaryVistas 66-class mapping |
+| [BASELINE_OVERVIEW.md](BASELINE_OVERVIEW.md) | Auto-generated baseline training & testing status |
+
+---
+
+## Technical Reference
+
+| Document | Purpose |
+|----------|---------|
+| [UNIFIED_TRAINING.md](UNIFIED_TRAINING.md) | Training pipeline (`unified_training.py`, `mixed_dataloader.py`) |
+| [UNIFIED_TESTING.md](UNIFIED_TESTING.md) | Testing pipeline (`test_unified.sh`, `fine_grained_test.py`) |
+| [EVALUATION_CONCEPT.md](EVALUATION_CONCEPT.md) | Experimental design: two-variant training, domain gap analysis |
+| [LABEL_HANDLING.md](LABEL_HANDLING.md) | Dataset label formats (RGB-encoded, trainIds, channel order) |
+| [LOSS_CONFIGURATION.md](LOSS_CONFIGURATION.md) | Multi-loss training setup (CE + auxiliary losses) |
 | [RESULT_VISUALIZATION.md](RESULT_VISUALIZATION.md) | Visualization scripts reference |
-| [EVALUATION_CONCEPT.md](EVALUATION_CONCEPT.md) | Original evaluation design |
 
-## Progress Tracking (⚠️ gen_* Invalid)
+## Dataset & Model Analysis
 
-| Stage | Training | Testing | Status |
-|-------|----------|---------|--------|
-| **Stage 1** | [TRAINING_TRACKER_STAGE1.md](TRAINING_TRACKER_STAGE1.md) | — | ⚠️ gen_* invalid |
-| **Stage 2** | [TRAINING_TRACKER_STAGE2.md](TRAINING_TRACKER_STAGE2.md) | [TESTING_TRACKER_STAGE2.md](TESTING_TRACKER_STAGE2.md) | ⚠️ gen_* invalid |
+| Document | Purpose |
+|----------|---------|
+| [MAPILLARYVISTAS_CLASS_ANALYSIS.md](MAPILLARYVISTAS_CLASS_ANALYSIS.md) | Only 23/66 classes have GT in test set — dataset characteristic |
+| [CROP_SIZE_IMPACT_ANALYSIS.md](CROP_SIZE_IMPACT_ANALYSIS.md) | CNN models lose 8-15% mIoU at small crops; Transformers are robust |
+| [CITYSCAPES_COMPARISON_RESULTS.md](CITYSCAPES_COMPARISON_RESULTS.md) | Pipeline verification: PROVE vs reference mmseg configs |
+| [CITYSCAPES_ACDC_CROSS_DOMAIN_RESULTS.md](CITYSCAPES_ACDC_CROSS_DOMAIN_RESULTS.md) | Cross-domain evaluation (Cityscapes → ACDC per-domain) |
+
+## Ablation Study Guides
+
+| Document | Purpose |
+|----------|---------|
+| [EXTENDED_TRAINING.md](EXTENDED_TRAINING.md) | Extended training ablation (80k→320k iterations) |
+| [RATIO_ABLATION_SUBMISSION_GUIDE.md](RATIO_ABLATION_SUBMISSION_GUIDE.md) | How to submit ratio ablation jobs |
+
+## Historical Reference
+
+| Document | Purpose |
+|----------|---------|
+| [BUG_REPORT_CROSS_DATASET_CONTAMINATION.md](BUG_REPORT_CROSS_DATASET_CONTAMINATION.md) | MixedDataLoader bug (Jan 28, 2026) — gen images never loaded. **FIXED.** |
+
+---
 
 ## Archived Documentation
 
 | Archive | Contents |
 |---------|----------|
-| [archived_invalid_results_20260128/](archived_invalid_results_20260128/) | Analysis files containing invalid gen_* results |
+| [archived_20260208/](archived_20260208/) | Outdated status overviews, stale trackers, pre-bug-fix analysis |
 | [archived_20260128/](archived_20260128/) | Historical bug fix records and planning docs |
-
-## Key Findings Quick Reference
-
-| Study | Best Strategy | Key Insight |
-|-------|--------------|-------------|
-| **Stage 1** | gen_Attribute_Hallucination (39.83%) | +1.4 mIoU over baseline |
-| **Stage 2** | gen_stargan_v2 (41.73%) | Domain gap shrinks 5-6× |
-| **Ratio Ablation** | 0.75 ratio (25% gen) | +1.56% mIoU optimal |
-| **Extended Training** | 77% configs improve | Baseline overfits after 90K |
-| **Combinations** | std_mixup+photometric (45.22%) | std_std_photometric_distort dominates |
-| **Domain Adaptation** | All 15/15 beat baseline | +1.03% to +1.96% |
-
-See [STUDY_COVERAGE_ANALYSIS.md](STUDY_COVERAGE_ANALYSIS.md) for detailed findings and recommended figures.
+| [archived_invalid_results_20260128/](archived_invalid_results_20260128/) | Analysis files containing invalid gen_* results |
