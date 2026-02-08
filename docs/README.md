@@ -28,6 +28,7 @@ These files are maintained by `update_training_tracker.py` and `update_testing_t
 
 | Document | Purpose |
 |----------|---------|
+| [EVALUATION_STAGE_STATUS.md](EVALUATION_STAGE_STATUS.md) | **Master overview** of all stages, leaderboards, ablation studies, and next steps |
 | [BASELINE_OVERVIEW.md](BASELINE_OVERVIEW.md) | Auto-generated baseline training & testing status |
 
 ---
