@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 """
+DEPRECATED: Use generate_strategy_leaderboard.py --stage 1 instead.
+
 Generate Stage 1 Strategy Leaderboard
 
 Stage 1: All models are trained with clear_day domain filter only.
