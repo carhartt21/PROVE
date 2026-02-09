@@ -105,13 +105,21 @@ COVERAGE_PATH_CITYSCAPES_GEN = PROJECT_ROOT / 'docs' / 'TESTING_COVERAGE_CITYSCA
 TEST_RESULTS_CSV = PROJECT_ROOT / 'test_results_summary.csv'
 
 DATASETS = ['bdd10k', 'idd-aw', 'mapillaryvistas', 'outside15k']
-DATASETS_CITYSCAPES_GEN = ['cityscapes']
+DATASETS_CITYSCAPES_GEN = ['cityscapes', 'acdc']
 DATASET_DISPLAY = {
     'bdd10k': 'BDD10k',
     'idd-aw': 'IDD-AW',
     'mapillaryvistas': 'MapillaryVistas',
     'outside15k': 'OUTSIDE15k',
     'cityscapes': 'Cityscapes',
+    'acdc': 'ACDC (cross-domain)',
+}
+
+# Cross-domain test mapping: dataset -> (training_dataset_dir, test_results_subdir)
+# For cross-domain tests, model dirs are under the training dataset but results
+# are in a different subdirectory (e.g., test_results_acdc instead of test_results_detailed)
+CROSS_DOMAIN_TEST_MAP = {
+    'acdc': ('cityscapes', 'test_results_acdc'),
 }
 
 # Strategies
@@ -208,6 +216,34 @@ def load_per_model_results():
         return {}
 
 
+def resolve_dataset_paths(dataset):
+    """Resolve dataset to its filesystem paths.
+    
+    For standard datasets, the model directory is under the dataset name
+    and test results are in test_results_detailed/.
+    
+    For cross-domain tests (e.g., ACDC), the model directory is under the
+    training dataset (cityscapes) but results are in a different subdir
+    (test_results_acdc/).
+    
+    Args:
+        dataset: Dataset name (e.g., 'bdd10k', 'cityscapes', 'acdc')
+        
+    Returns:
+        tuple: (dataset_dir, test_results_subdir, fallback_subdir)
+            - dataset_dir: Directory name under the strategy dir (e.g., 'cityscapes')
+            - test_results_subdir: Primary test results directory name
+            - fallback_subdir: Fallback test results directory name (or None)
+    """
+    if dataset in CROSS_DOMAIN_TEST_MAP:
+        training_dataset, test_subdir = CROSS_DOMAIN_TEST_MAP[dataset]
+        dataset_dir = training_dataset.replace('-', '')
+        return dataset_dir, test_subdir, None
+    else:
+        dataset_dir = dataset.replace('-', '')
+        return dataset_dir, 'test_results_detailed', 'test_results_detailed_fixed'
+
+
 def load_miou_results():
     """Load mIoU results directly from the weights folder.
     
@@ -225,8 +261,7 @@ def load_miou_results():
     # Scan all strategies
     for strategy in ALL_STRATEGIES:
         for dataset in DATASETS:
-            # Normalize: idd-aw -> iddaw (directory name uses no hyphen)
-            dataset_dir = dataset.replace('-', '')
+            dataset_dir, test_subdir, fallback_subdir = resolve_dataset_paths(dataset)
             strategy_path = WEIGHTS_ROOT / strategy / dataset_dir
             
             if not safe_exists(strategy_path):
@@ -238,12 +273,10 @@ def load_miou_results():
                 if not safe_is_dir(model_dir) or model_dir.name.endswith('_backup'):
                     continue
                 
-                # Look for test_results_detailed first, then fall back to _fixed
-                # (Most results are now in test_results_detailed after cleanup,
-                # but some IDD-AW results remain in _fixed due to permission issues)
-                results_path = model_dir / 'test_results_detailed'
-                if not safe_exists(results_path):
-                    results_path = model_dir / 'test_results_detailed_fixed'
+                # Look for primary test results dir, then fall back
+                results_path = model_dir / test_subdir
+                if not safe_exists(results_path) and fallback_subdir:
+                    results_path = model_dir / fallback_subdir
                 if not safe_exists(results_path):
                     continue
                 
@@ -343,14 +376,15 @@ def get_retest_jobs():
     return jobs, dict(job_counts)
 
 
-def check_test_results(strategy, dataset, test_dir='test_results_detailed'):
+def check_test_results(strategy, dataset, test_dir=None):
     """Check if test results exist for a strategy/dataset combination.
     
-    Checks test_results_detailed first, then falls back to test_results_detailed_fixed
-    for backward compatibility with the 32 IDD-AW cases that couldn't be renamed.
+    Uses resolve_dataset_paths() to handle cross-domain tests (e.g., ACDC).
+    Falls back to test_results_detailed_fixed for backward compatibility.
     """
-    # Normalize: idd-aw -> iddaw (directory name uses no hyphen)
-    dataset_dir = dataset.replace('-', '')
+    dataset_dir, test_subdir, fallback_subdir = resolve_dataset_paths(dataset)
+    if test_dir is None:
+        test_dir = test_subdir
     
     # Check for any model's test results
     strategy_path = WEIGHTS_ROOT / strategy / dataset_dir
@@ -362,10 +396,10 @@ def check_test_results(strategy, dataset, test_dir='test_results_detailed'):
     
     for model_dir in safe_iterdir(strategy_path):
         if safe_is_dir(model_dir):
-            # Check both test_results_detailed and _fixed
+            # Check primary test dir, then fallback
             test_path = model_dir / test_dir
-            if not safe_exists(test_path):
-                test_path = model_dir / 'test_results_detailed_fixed'
+            if not safe_exists(test_path) and fallback_subdir:
+                test_path = model_dir / fallback_subdir
             if safe_exists(test_path):
                 # Check for any timestamped results
                 result_dirs = safe_glob(test_path, '*/')
@@ -830,8 +864,7 @@ def get_per_model_test_status():
     # Scan all model directories
     for strategy in ALL_STRATEGIES:
         for dataset in DATASETS:
-            # Normalize: idd-aw -> iddaw (directory name uses no hyphen)
-            dataset_dir = dataset.replace('-', '')
+            dataset_dir, test_subdir, fallback_subdir = resolve_dataset_paths(dataset)
             strategy_path = WEIGHTS_ROOT / strategy / dataset_dir
             
             if not safe_exists(strategy_path):
@@ -856,9 +889,9 @@ def get_per_model_test_status():
                     continue
                 
                 # Check for test results
-                test_path = model_dir / 'test_results_detailed'
-                if not safe_exists(test_path):
-                    test_path = model_dir / 'test_results_detailed_fixed'
+                test_path = model_dir / test_subdir
+                if not safe_exists(test_path) and fallback_subdir:
+                    test_path = model_dir / fallback_subdir
                 
                 if not safe_exists(test_path):
                     # No test results - check if job is running
