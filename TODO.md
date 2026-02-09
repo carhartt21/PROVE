@@ -1,27 +1,27 @@
 # PROVE Project TODO
 
-**Last Updated:** 2026-02-09 (22:00)
+**Last Updated:** 2026-02-09 (23:30)
 
 ---
 
-## 📊 Current Status (2026-02-09 22:00)
+## 📊 Current Status (2026-02-09 23:30)
 
 ### Queue Summary
 | User | Category | RUN | PEND | Total |
 |------|----------|----:|-----:|------:|
-| mima2416 | Stage 1 training | 4 | 43 | 47 |
+| mima2416 | Stage 1 training | 4 | 103 | 107 |
 | mima2416 | Cityscapes-gen training | 5 | 29 | 34 |
 | mima2416 | Testing (fg_) | 0 | 4 | 4 |
-| **mima2416 subtotal** | | **9** | **76** | **85** |
+| **mima2416 subtotal** | | **9** | **116** | **125** |
 | chge7185 | Stage 1 training | 8 | 13 | 21 |
 | chge7185 | Stage 2 training | 0 | 20 | 20 |
 | **chge7185 subtotal** | | **8** | **33** | **41** |
-| **Grand Total** | | **17** | **109** | **126** |
+| **Grand Total** | | **17** | **149** | **166** |
 
 ### Training Progress
 | Stage | Complete | Running | Pending | Not Started | Total | Coverage |
 |-------|----------|---------|---------|-------------|-------|----------|
-| Stage 1 (15k) | 340 | 3 | 26 | 303 | 672 | 50.6% |
+| Stage 1 (15k) | 340 | 3 | 86 | 243 | 672 | 50.6% |
 | Stage 2 (15k) | 89 | 3 | 31 | 477 | 600 | 14.8% |
 | Cityscapes-Gen (20k) | 66 | 5 | 41 | — | 108 | 61.1% |
 
