@@ -149,6 +149,118 @@ MODEL_DISPLAY = {
     'mask2former_swin-b_ratio0p50': 'Mask2Former (0.5)',
 }
 
+# ============================================================================
+# LSF Job Status Detection
+# ============================================================================
+
+# Map from short model names (used in LSF job names) to model directory prefixes
+_MODEL_SHORT_TO_PREFIX = {
+    'pspnet': 'pspnet_r50',
+    'segformer': 'segformer_mit-b3',
+    'segnext': 'segnext_mscan-b',
+    'mask2former': 'mask2former_swin-b',
+    'hrnet': 'hrnet_hr48',
+    'deeplabv3plus': 'deeplabv3plus_r50',
+}
+
+# Dataset name normalization for job name parsing
+_DATASET_PATTERNS = {
+    'bdd10k': 'bdd10k',
+    'iddaw': 'idd-aw',
+    'mapillaryvistas': 'mapillaryvistas',
+    'outside15k': 'outside15k',
+    'cityscapes': 'cityscapes',
+}
+
+
+def get_training_jobs():
+    """Query bjobs to get currently running/pending training jobs.
+
+    Returns:
+        dict: {(strategy, dataset, model_prefix): status} where status is 'RUN' or 'PEND'.
+              - strategy: e.g. 'gen_cycleGAN', 'baseline'
+              - dataset: e.g. 'bdd10k', 'idd-aw' (normalized with hyphen)
+              - model_prefix: e.g. 'pspnet_r50', 'segformer_mit-b3'
+    """
+    jobs = {}
+    try:
+        result = subprocess.run(
+            ['bjobs', '-u', os.environ.get('USER', 'mima2416'), '-o', 'JOBID JOB_NAME STAT'],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        for line in result.stdout.strip().split('\n')[1:]:  # Skip header
+            parts = line.split()
+            if len(parts) < 3:
+                continue
+            job_name = parts[1]
+            stat = parts[2]
+            if stat not in ('RUN', 'PEND'):
+                continue
+
+            # Determine stage prefix and strip it
+            # Training jobs: s1_<strategy>_<dataset>_<model>, s2_..., cityscapes-gen_..., noise-ablation_...
+            # Skip test/retest jobs: fg_, test_, rt_, retest_
+            if any(job_name.startswith(p) for p in ('fg_', 'test_', 'rt_', 'retest_')):
+                continue
+
+            # Parse stage prefix
+            stage_prefix = None
+            remainder = None
+            for prefix in ('s1_', 's2_', 'cityscapes-gen_', 'noise-ablation_', 'ratio_'):
+                if job_name.startswith(prefix):
+                    stage_prefix = prefix.rstrip('_')
+                    remainder = job_name[len(prefix):]
+                    break
+            if stage_prefix is None or remainder is None:
+                continue
+
+            # Parse model (last segment after final underscore matching known model shorts)
+            model_prefix = None
+            for short_name, full_name in _MODEL_SHORT_TO_PREFIX.items():
+                if remainder.endswith(f'_{short_name}'):
+                    model_prefix = full_name
+                    remainder = remainder[:-(len(short_name) + 1)]  # Strip _<model>
+                    break
+            if model_prefix is None:
+                continue
+
+            # Parse dataset (last segment of remainder)
+            dataset = None
+            for ds_short, ds_norm in _DATASET_PATTERNS.items():
+                if remainder.endswith(f'_{ds_short}') or remainder == ds_short:
+                    dataset = ds_norm
+                    strategy = remainder[:-(len(ds_short) + 1)] if remainder.endswith(f'_{ds_short}') else ''
+                    break
+            if dataset is None:
+                continue
+
+            # The remaining string is the strategy
+            if not strategy:
+                continue
+
+            key = (strategy, dataset, model_prefix)
+            # RUN takes priority over PEND
+            if stat == 'RUN' or key not in jobs:
+                jobs[key] = stat
+
+    except Exception as e:
+        print(f"Warning: Could not query bjobs for training status: {e}")
+
+    return jobs
+
+# Global cache for training jobs (populated on first call)
+_training_jobs_cache = None
+
+
+def _get_cached_training_jobs():
+    """Get training jobs with caching (queried once per tracker run)."""
+    global _training_jobs_cache
+    if _training_jobs_cache is None:
+        _training_jobs_cache = get_training_jobs()
+    return _training_jobs_cache
+
 
 def get_status_emoji(status, model_info=None):
     """Convert status to emoji. For partial completion, show count."""
@@ -317,6 +429,17 @@ def check_weight_status(strategy, dataset, domain_filter='clear_day'):
                             elif any(f"iter_{n}.pth" in files for n in [4000, 2000, 1250]): 
                                 status = 'failed'  # Early OOM
                     except: pass
+                
+                # If filesystem shows pending, check LSF queue for running/pending jobs
+                if status == 'pending':
+                    training_jobs = _get_cached_training_jobs()
+                    # Build model prefix by stripping _ratio* suffix
+                    model_base = model_variant.split('_ratio')[0] if '_ratio' in model_variant else model_variant
+                    lsf_status = training_jobs.get((strategy, dataset, model_base))
+                    if lsf_status == 'RUN':
+                        status = 'running'
+                    elif lsf_status == 'PEND':
+                        status = 'pending'  # Keep as pending but it IS in queue (vs missing)
                     
                 if status == 'complete':
                     best_status = 'complete'
@@ -627,13 +750,32 @@ def check_model_weight_status(strategy, dataset, model, domain_filter='clear_day
         
     for d in dirs_to_try:
         weights_path = weights_root / strategy / d / model
-        # Check for valid checkpoints: iter_15000.pth, iter_10000.pth, or iter_80000.pth
+        
+        # Get target iterations from config
+        target_iters = get_target_iterations(weights_path)
+        
+        # Check for the final checkpoint first (exact target)
+        final_ckpt = weights_path / f"iter_{target_iters}.pth"
+        is_complete = False
         checkpoint = None
-        for iter_num in [15000, 10000, 80000]:
-            ckpt = weights_path / f"iter_{iter_num}.pth"
-            if ckpt.exists():
-                checkpoint = ckpt
-                break
+        highest_iter = 0
+        
+        if final_ckpt.exists():
+            checkpoint = final_ckpt
+            is_complete = True
+        else:
+            # Find highest checkpoint
+            for iter_num in [80000, 75000, 70000, 65000, 60000, 55000, 50000, 45000, 40000,
+                             35000, 30000, 25000, 20000, 15000, 14000, 12000, 10000, 8750,
+                             8000, 7500, 6250, 6000, 5000, 3750, 4000, 2500, 2000, 1250]:
+                ckpt = weights_path / f"iter_{iter_num}.pth"
+                if ckpt.exists():
+                    checkpoint = ckpt
+                    highest_iter = iter_num
+                    if iter_num == target_iters:
+                        is_complete = True
+                    break
+        
         lock_file = weights_path / ".training_lock"
         
         try:
@@ -642,7 +784,12 @@ def check_model_weight_status(strategy, dataset, model, domain_filter='clear_day
             
             if checkpoint and checkpoint.exists():
                 if checkpoint.stat().st_size > 1000:
-                    return 'complete', weights_path
+                    if is_complete:
+                        return 'complete', weights_path
+                    elif highest_iter >= min(5000, target_iters * 0.3):
+                        return 'running', weights_path  # Significant progress
+                    else:
+                        return 'failed', weights_path  # Early failure
                 else:
                     return 'failed', weights_path
         except PermissionError:
@@ -650,232 +797,57 @@ def check_model_weight_status(strategy, dataset, model, domain_filter='clear_day
                 if weights_path.exists():
                     files = os.listdir(weights_path)
                     if ".training_lock" in files: return 'running', weights_path
-                    if any(f"iter_{n}.pth" in files for n in [15000, 10000, 80000]): return 'complete', weights_path
+                    if f"iter_{target_iters}.pth" in files: return 'complete', weights_path
+                    if any(f"iter_{n}.pth" in files for n in [80000, 75000, 70000, 65000, 60000, 55000, 50000,
+                            45000, 40000, 35000, 30000, 25000, 20000, 15000, 10000, 8000, 6000, 5000]):
+                        return 'running', weights_path
+                    if any(f"iter_{n}.pth" in files for n in [4000, 2000, 1250]):
+                        return 'failed', weights_path
             except: pass
             
     return 'pending', weights_path
 
 
 def get_running_jobs_detailed(verbose=False):
-    """Get detailed list of running jobs including model info and user.
+    """Get detailed list of running/pending training jobs from LSF queue.
     
-    Only tracks Stage 1 (clear_day) jobs with _cd suffix.
-    Excludes Stage 2 jobs (s2_ prefix) and all_domains jobs (_ad suffix).
+    Uses the centralized bjobs parser (get_training_jobs) and reformats for
+    coverage report compatibility.
     
     Returns:
         dict: {(strategy, dataset, model_type): {'status': str, 'user': str}}
+              model_type is short name like 'pspnet', 'segformer', etc.
     """
-    jobs = {}  # {(strategy, dataset, model_type): {'status': str, 'user': str}}
+    jobs = {}
+    training_jobs = _get_cached_training_jobs()
     
-    # Model suffix patterns
-    model_patterns = {
-        'dlv3p': 'deeplabv3plus',
-        'pspn': 'pspnet',
-        'segf': 'segformer',
-        'deeplabv3plus': 'deeplabv3plus',
-        'pspnet': 'pspnet',
-        'segformer': 'segformer',
+    # Map from full model prefix to short model type used by coverage report
+    prefix_to_short = {
+        'pspnet_r50': 'pspnet',
+        'segformer_mit-b3': 'segformer',
+        'segnext_mscan-b': 'segnext',
+        'mask2former_swin-b': 'mask2former',
+        'hrnet_hr48': 'hrnet',
+        'deeplabv3plus_r50': 'deeplabv3plus',
     }
     
-    known_datasets = ['bdd10k', 'idd-aw', 'mapillaryvistas', 'outside15k']
-    known_datasets_cd = ['bdd10k_cd', 'idd-aw_cd', 'mapillaryvistas_cd', 'outside15k_cd']
-    # Only match Stage 1 job prefixes (not s2_ or ratio ablation jobs)
-    job_prefixes = ['retrain_', 'train_', 'fix_', 'rt3_', 'rt4_', 'rt5_']
-    # Skip prefixes for other job types
-    skip_prefixes = ['s2_', 'ratio_', 'retest_']
+    user = os.environ.get('USER', 'mima2416')
     
-    # Mapping from abbreviated job names to full strategy names (for rt3_/rt4_ jobs)
-    abbrev_to_strategy = {
-        'AttrHall': 'gen_Attribute_Hallucination',
-        'baseline': 'baseline',
-        'CNetSeg': 'gen_CNetSeg',
-        'CUT': 'gen_CUT',
-        'IP2P': 'gen_IP2P',
-        'autoaug': 'std_autoaugment',
-        'cutmix': 'std_cutmix',
-        'mixup': 'std_mixup',
-        'photom': 'std_std_photometric_distort',
-        'randaug': 'std_randaugment',
-        'minimal': 'std_minimal',
-        'WEG': 'gen_Weather_Effect_Generator',
-        'gen_WEG': 'gen_Weather_Effect_Generator',
-        'step1x_new': 'gen_step1x_new',
-        'step1x_v1p2': 'gen_step1x_v1p2',
-    }
+    for (strategy, dataset, model_prefix), stat in training_jobs.items():
+        model_short = prefix_to_short.get(model_prefix, model_prefix)
+        key = (strategy, dataset, model_short)
+        current = jobs.get(key)
+        current_status = current['status'] if current else None
+        if stat == 'RUN':
+            jobs[key] = {'status': 'RUN', 'user': user}
+        elif stat == 'PEND' and current_status != 'RUN':
+            jobs[key] = {'status': 'PEND', 'user': user}
     
-    users_to_check = ['', '-u chge7185']
-    
-    for user_flag in users_to_check:
-        try:
-            cmd = ['bjobs', '-a', '-o', 'JOBID JOB_NAME STAT USER']
-            if user_flag:
-                cmd = ['bjobs'] + user_flag.split() + ['-a', '-o', 'JOBID JOB_NAME STAT USER']
-            
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
-            
-            for line in result.stdout.strip().split('\n')[1:]:
-                parts = line.split()
-                if len(parts) >= 4:
-                    job_name = parts[1]
-                    stat = parts[2]
-                    user = parts[3]
-                    
-                    if any(job_name.startswith(skip) for skip in skip_prefixes):
-                        continue
-                    
-                    # Skip all_domains jobs (_ad suffix)
-                    if '_ad' in job_name:
-                        continue
-                    
-                    job_part = None
-                    for prefix in job_prefixes:
-                        if job_name.startswith(prefix):
-                            job_part = job_name[len(prefix):]
-                            break
-                    
-                    if job_part is None:
-                        continue
-                    
-                    # Find dataset
-                    dataset = None
-                    strategy = None
-                    model_type = None
-                    remaining = ''
-                    
-                    # 1. Fuzzy/truncated matching for jobs (check for truncated dataset names)
-                    # Order matters: check more specific patterns first
-                    ds_trunc_map = [
-                        ('iddaw', 'idd-aw'),  # iddaw -> idd-aw
-                        ('mapillary', 'mapillaryvistas'),  # mapillary -> mapillaryvistas  
-                        ('mapill', 'mapillaryvistas'),  # mapill -> mapillaryvistas
-                        ('outsid', 'outside15k'),  # outsid -> outside15k
-                        ('bdd10k', 'bdd10k'),  # exact match
-                    ]
-                    for trunc_ds, full_ds in ds_trunc_map:
-                        # Check for the truncated dataset name with underscores around it
-                        patterns_to_check = [
-                            f'_{trunc_ds}_',  # middle position
-                            f'_{trunc_ds}',   # at end (but not followed by more chars)
-                        ]
-                        for pattern in patterns_to_check:
-                            if pattern in job_part:
-                                idx = job_part.find(pattern)
-                                # Make sure it's not a partial match (e.g., "mapillary" in "mapillaryvistas")
-                                end_idx = idx + len(pattern)
-                                if pattern.endswith('_') or end_idx == len(job_part) or job_part[end_idx] == '_':
-                                    dataset = full_ds
-                                    strategy_part = job_part[:idx]
-                                    remaining = job_part[end_idx:].lstrip('_') if end_idx < len(job_part) else ''
-                                    
-                                    # Find matching full strategy
-                                    # First check abbreviation mapping
-                                    if strategy_part in abbrev_to_strategy:
-                                        strategy = abbrev_to_strategy[strategy_part]
-                                    else:
-                                        # Try exact or fuzzy match
-                                        for full_s in ALL_STRATEGIES:
-                                            if full_s == strategy_part or \
-                                               (len(strategy_part) >= 10 and (full_s.startswith(strategy_part) or strategy_part.startswith(full_s[:15]))):
-                                                strategy = full_s
-                                                break
-                                    break
-                        if dataset:
-                            break
-                    
-                    # 2. Match _cd suffix datasets (train_gen_xxx_dataset_cd format)
-                    if dataset is None:
-                        for ds_cd, ds in zip(known_datasets_cd, known_datasets):
-                            if ds_cd in job_part:
-                                dataset = ds
-                                idx = job_part.find(ds_cd)
-                                strategy = job_part[:idx].rstrip('_')
-                                remaining = job_part[idx + len(ds_cd):]
-                                break
-                    
-                    # 3. Match dataset at the end (fix_gen_xxx_model_dataset format)
-                    if dataset is None:
-                        for ds in known_datasets:
-                            # Check if job_part ends with the dataset name
-                            if job_part.endswith(f'_{ds}') or job_part.endswith(ds):
-                                dataset = ds
-                                # Find where the dataset starts
-                                if job_part.endswith(f'_{ds}'):
-                                    remaining_part = job_part[:-len(f'_{ds}')]
-                                else:
-                                    remaining_part = job_part[:-len(ds)].rstrip('_')
-                                
-                                # Now extract strategy and model from remaining_part
-                                found_model = False
-                                for model_suffix, model_name in model_patterns.items():
-                                    if remaining_part.endswith(f'_{model_suffix}'):
-                                        model_type = model_name
-                                        strategy = remaining_part[:-len(f'_{model_suffix}')]
-                                        found_model = True
-                                        break
-                                
-                                if not found_model:
-                                    strategy = remaining_part
-                                break
-                    
-                    # 4. Original middle matching (strategy_dataset_xxx format)
-                    if dataset is None:
-                        for ds in known_datasets:
-                            ds_pattern = f'_{ds}_'
-                            if ds_pattern in job_part:
-                                dataset = ds
-                                strategy = job_part.split(ds_pattern)[0]
-                                remaining = job_part.split(ds_pattern)[1]
-                                break
-                    
-                        # Use ALL_STRATEGIES to validate strategy
-                    if strategy and strategy not in ALL_STRATEGIES:
-                        # First check abbreviation mapping
-                        if strategy in abbrev_to_strategy:
-                            strategy = abbrev_to_strategy[strategy]
-                        else:
-                            # Try fuzzy matching
-                            for full_s in ALL_STRATEGIES:
-                                if (len(strategy) >= 10 and (full_s.startswith(strategy) or strategy.startswith(full_s[:15]))):
-                                    strategy = full_s
-                                    break
-                    
-                    # 5. Handle rt3_/rt4_ job format: <abbrev>_iddaw_<model>
-                    # Example: rt4_randaug_iddaw_psp -> std_randaugment / idd-aw / pspnet
-                    if dataset is None and any(job_name.startswith(p) for p in ['rt3_', 'rt4_', 'rt5_']):
-                        parts_list = job_part.split('_')
-                        if len(parts_list) >= 2:
-                            abbrev = parts_list[0]
-                            # Check for iddaw in second position
-                            if len(parts_list) >= 3 and parts_list[1] == 'iddaw':
-                                dataset = 'idd-aw'
-                                if abbrev in abbrev_to_strategy:
-                                    strategy = abbrev_to_strategy[abbrev]
-                                # Check for model in third position
-                                if len(parts_list) >= 3:
-                                    model_suffix = parts_list[2] if len(parts_list) > 2 else ''
-                                    for pattern, model_name in model_patterns.items():
-                                        if model_suffix == pattern or model_suffix.lower() == pattern.lower():
-                                            model_type = model_name
-                                            break
-
-                    if dataset and strategy:
-                        # Try to extract model type from remaining part
-                        remaining = remaining.lstrip('_') if remaining else ''
-                        if not model_type:
-                            for pattern, model_name in model_patterns.items():
-                                if pattern in remaining.lower():
-                                    model_type = model_name
-                                    break
-                        
-                        key = (strategy, dataset, model_type)
-                        current = jobs.get(key)
-                        current_status = current['status'] if current else None
-                        if stat == 'RUN':
-                            jobs[key] = {'status': 'RUN', 'user': user}
-                        elif stat == 'PEND' and current_status != 'RUN':
-                            jobs[key] = {'status': 'PEND', 'user': user}
-        except Exception as e:
-            pass
+    if verbose and jobs:
+        print(f"  Found {len(jobs)} training jobs in LSF queue")
+        run_count = sum(1 for v in jobs.values() if v['status'] == 'RUN')
+        pend_count = sum(1 for v in jobs.values() if v['status'] == 'PEND')
+        print(f"    RUN: {run_count}, PEND: {pend_count}")
     
     return jobs
 
@@ -924,7 +896,23 @@ def collect_detailed_coverage(domain_filter='clear_day', verbose=False):
                 # Check job status for refinement - but ONLY if checkpoint doesn't already exist
                 # Jobs that train multiple models will skip existing checkpoints via pre-flight checks
                 if status != 'complete':
-                    model_type = 'deeplabv3plus' if 'deeplabv3plus' in model else ('pspnet' if 'pspnet' in model else 'segformer')
+                    # Map model name to short type for job lookup
+                    model_type_map = {
+                        'deeplabv3plus': 'deeplabv3plus',
+                        'pspnet': 'pspnet',
+                        'segformer': 'segformer',
+                        'segnext': 'segnext',
+                        'hrnet': 'hrnet',
+                        'mask2former': 'mask2former',
+                    }
+                    model_type = None
+                    for key_str, val in model_type_map.items():
+                        if key_str in model:
+                            model_type = val
+                            break
+                    if model_type is None:
+                        model_type = model.split('_')[0]
+                    
                     job_key = (strategy, dataset, model_type)
                     job_info = running_jobs.get(job_key)
                     

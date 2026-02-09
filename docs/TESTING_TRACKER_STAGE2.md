@@ -1,6 +1,6 @@
 # Testing Progress Tracker
 
-**Last Updated:** 2026-02-08 20:51
+**Last Updated:** 2026-02-09 21:41
 
 
 This document tracks the progress of fine-grained testing for trained models.
@@ -57,35 +57,38 @@ This document tracks the progress of fine-grained testing for trained models.
 | 🥉 | std_cutmix | 42.6 | BDD10k | 48.6 | 4/4 |
 | 4. | std_mixup | 42.3 | BDD10k | 48.1 | 4/4 |
 | 5. | std_randaugment | 42.0 | BDD10k | 47.7 | 4/4 |
-| 6. | gen_cycleGAN | 41.7 | BDD10k | 46.9 | 4/4 |
-| 7. | gen_flux_kontext | 40.8 | BDD10k | 47.0 | 3/4 |
+| 6. | gen_IP2P | 42.0 | BDD10k | 47.7 | 4/4 |
+| 7. | gen_VisualCloze | 41.9 | BDD10k | 47.2 | 4/4 |
+| 8. | gen_albumentations_weather | 41.9 | BDD10k | 47.1 | 4/4 |
+| 9. | gen_cyclediffusion | 41.8 | BDD10k | 46.9 | 4/4 |
+| 10. | gen_flux_kontext | 41.8 | BDD10k | 47.0 | 4/4 |
 
 
 ### Generative Image Augmentation Strategies
 
 | Strategy | BDD10k | IDD-AW | MapillaryVistas | OUTSIDE15k | Avg |
 |----------|-------:|-------:|-------:|-------:|-------:|
-| gen_Attribute_Hallucination | ⏳ | ⏳ | ⏳ | ⏳ | - |
+| gen_Attribute_Hallucination | 46.7 | 40.6 | 34.8 | 45.0 | 41.8 |
 | gen_augmenters | ⏳ | ⏳ | ⏳ | ⏳ | - |
-| gen_automold | ⏳ | ⏳ | ⏳ | ⏳ | - |
+| gen_automold | 47.1 | 40.6 | 35.0 | 44.4 | 41.8 |
 | gen_CNetSeg | ⏳ | ⏳ | ⏳ | ⏳ | - |
-| gen_CUT | ⏳ | ⏳ | ⏳ | ⏳ | - |
-| gen_cyclediffusion | ⏳ | ⏳ | ⏳ | ⏳ | - |
+| gen_CUT | 46.8 | 40.5 | 35.0 | 44.7 | 41.7 |
+| gen_cyclediffusion | 46.9 | 40.7 | 35.0 | 44.8 | 41.8 |
 | gen_cycleGAN | 46.9 | 40.5 | 34.9 | 44.7 | 41.7 |
-| gen_flux_kontext | 47.0 | 40.4 | 35.0 | ⏳ | 40.8 |
-| gen_Img2Img | ⏳ | ⏳ | ⏳ | ⏳ | - |
-| gen_IP2P | ⏳ | ⏳ | ⏳ | ⏳ | - |
-| gen_LANIT | ⏳ | ⏳ | ⏳ | ⏳ | - |
+| gen_flux_kontext | 47.0 | 40.4 | 35.0 | 44.9 | 41.8 |
+| gen_Img2Img | 47.0 | 40.4 | 35.0 | 44.8 | 41.8 |
+| gen_IP2P | 47.7 | 40.5 | 35.0 | 44.7 | 42.0 |
+| gen_LANIT | 46.6 | 40.6 | 34.7 | 45.1 | 41.8 |
 | gen_Qwen_Image_Edit | ⏳ | ⏳ | ⏳ | ⏳ | - |
 | gen_stargan_v2 | ⏳ | ⏳ | ⏳ | ⏳ | - |
-| gen_step1x_new | ⏳ | ⏳ | ⏳ | ⏳ | - |
-| gen_step1x_v1p2 | ⏳ | ⏳ | ⏳ | ⏳ | - |
-| gen_SUSTechGAN | ⏳ | ⏳ | ⏳ | ⏳ | - |
+| gen_step1x_new | 46.4 | 40.5 | 35.1 | 45.1 | 41.8 |
+| gen_step1x_v1p2 | 46.4 | 40.5 | 35.0 | 44.9 | 41.7 |
+| gen_SUSTechGAN | 46.4 | 40.7 | 34.9 | 44.8 | 41.7 |
 | gen_TSIT | ⏳ | ⏳ | ⏳ | ⏳ | - |
-| gen_UniControl | ⏳ | ⏳ | ⏳ | ⏳ | - |
-| gen_VisualCloze | ⏳ | ⏳ | ⏳ | ⏳ | - |
+| gen_UniControl | 46.4 | 40.7 | 35.0 | 45.0 | 41.8 |
+| gen_VisualCloze | 47.2 | 40.7 | 35.0 | 44.7 | 41.9 |
 | gen_Weather_Effect_Generator | ⏳ | ⏳ | ⏳ | ⏳ | - |
-| gen_albumentations_weather | ⏳ | ⏳ | ⏳ | ⏳ | - |
+| gen_albumentations_weather | 47.1 | 40.6 | 35.1 | 44.7 | 41.9 |
 
 ### Standard Augmentation Strategies
 
@@ -117,27 +120,27 @@ This document tracks the progress of fine-grained testing for trained models.
 
 | Strategy | BDD10k | IDD-AW | MapillaryVistas | OUTSIDE15k |
 |----------|--------|--------|--------|--------|
-| gen_Attribute_Hallucination | ⏳ | ⏳ | ⏳ | ⏳ |
+| gen_Attribute_Hallucination | ✅ | ✅ | ✅ | ✅ |
 | gen_augmenters | ⏳ | ⏳ | ⏳ | ⏳ |
-| gen_automold | ⏳ | ⏳ | ⏳ | ⏳ |
+| gen_automold | ✅ | ✅ | ✅ | ✅ |
 | gen_CNetSeg | ⏳ | ⏳ | ⏳ | ⏳ |
-| gen_CUT | ⏳ | ⏳ | ⏳ | ⏳ |
-| gen_cyclediffusion | ⏳ | ⏳ | ⏳ | ⏳ |
+| gen_CUT | ✅ | ✅ | ✅ | ✅ |
+| gen_cyclediffusion | ✅ | ✅ | ✅ | ✅ |
 | gen_cycleGAN | ✅ | ✅ | ✅ | ✅ |
-| gen_flux_kontext | ✅ | ✅ | ✅ | ⏳ |
-| gen_Img2Img | ⏳ | ⏳ | ⏳ | ⏳ |
-| gen_IP2P | ⏳ | ⏳ | ⏳ | ⏳ |
-| gen_LANIT | ⏳ | ⏳ | ⏳ | ⏳ |
+| gen_flux_kontext | ✅ | ✅ | ✅ | ✅ |
+| gen_Img2Img | ✅ | ✅ | ✅ | ✅ |
+| gen_IP2P | ✅ | ✅ | ✅ | ✅ |
+| gen_LANIT | ✅ | ✅ | ✅ | ✅ |
 | gen_Qwen_Image_Edit | ⏳ | ⏳ | ⏳ | ⏳ |
 | gen_stargan_v2 | ⏳ | ⏳ | ⏳ | ⏳ |
-| gen_step1x_new | ⏳ | ⏳ | ⏳ | ⏳ |
-| gen_step1x_v1p2 | ⏳ | ⏳ | ⏳ | ⏳ |
-| gen_SUSTechGAN | ⏳ | ⏳ | ⏳ | ⏳ |
+| gen_step1x_new | ✅ | ✅ | ✅ | ✅ |
+| gen_step1x_v1p2 | ✅ | ✅ | ✅ | ✅ |
+| gen_SUSTechGAN | ✅ | ✅ | ✅ | ✅ |
 | gen_TSIT | ⏳ | ⏳ | ⏳ | ⏳ |
-| gen_UniControl | ⏳ | ⏳ | ⏳ | ⏳ |
-| gen_VisualCloze | ⏳ | ⏳ | ⏳ | ⏳ |
+| gen_UniControl | ✅ | ✅ | ✅ | ✅ |
+| gen_VisualCloze | ✅ | ✅ | ✅ | ✅ |
 | gen_Weather_Effect_Generator | ⏳ | ⏳ | ⏳ | ⏳ |
-| gen_albumentations_weather | ⏳ | ⏳ | ⏳ | ⏳ |
+| gen_albumentations_weather | ✅ | ✅ | ✅ | ✅ |
 
 ### Standard Strategies Status
 
@@ -158,10 +161,10 @@ This document tracks the progress of fine-grained testing for trained models.
 
 | Dataset | Complete | Running | Pending | Skip |
 |---------|----------|---------|---------|------|
-| BDD10k | 7 | 0 | 21 | 0 |
-| IDD-AW | 7 | 0 | 21 | 0 |
-| MapillaryVistas | 7 | 0 | 21 | 0 |
-| OUTSIDE15k | 6 | 0 | 22 | 0 |
+| BDD10k | 20 | 0 | 8 | 0 |
+| IDD-AW | 20 | 0 | 8 | 0 |
+| MapillaryVistas | 20 | 0 | 8 | 0 |
+| OUTSIDE15k | 20 | 0 | 8 | 0 |
 
 ---
 

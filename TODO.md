@@ -1,41 +1,33 @@
 # PROVE Project TODO
 
-**Last Updated:** 2026-02-09 (13:20)
+**Last Updated:** 2026-02-09 (21:00)
 
 ---
 
-## 🔴 CRITICAL: /usr/tmp Disk Full — Blocking Job Submissions
-
-The root partition (`/`) is at **100%** — `/usr/tmp/` has **51GB** from other users. This blocks all `bsub` submissions.
-- **Impact:** 51 Stage 1 resume jobs cannot be submitted
-- **Action Required:** Contact sysadmin to clean `/usr/tmp/` on makalu48
-- **Workaround:** Small batches sometimes work (try `--limit 5`)
-
-## 📊 Current Status (2026-02-09 13:15)
+## 📊 Current Status (2026-02-09 21:00)
 
 ### Queue Summary
 | Category | RUN | PEND | Total |
 |----------|----:|-----:|------:|
-| Stage 1 training (resume) | 2 | 64 | 66 |
-| Cityscapes-gen training | 7 | 34 | 41 |
-| Cityscapes-gen retests | 0 | 28 | 28 |
+| Stage 1 training | 3 | 46 | 49 |
+| Cityscapes-gen training | 5 | 29 | 34 |
+| Cityscapes-gen tests | 1 | 6 | 7 |
 | Stage 1 tests (fg_) | 0 | 4 | 4 |
-| **Total** | **9** | **~130** | **~139** |
+| **Total** | **9** | **85** | **94** |
 
 ### Training Progress
-| Stage | Complete | At 15k | Empty | Total |
-|-------|----------|--------|-------|-------|
-| Stage 1 (80k target) | 15 (3.6%) | 306 | 68 | 420 |
-| Stage 2 (80k target) | 23 (5.1%) | 112 | 302 | 448 |
-| Cityscapes-Gen (20k target) | 54 (56.2%) | 6 | 36 | 96 |
+| Stage | Complete | Running | Pending | Missing | Total | Coverage |
+|-------|----------|---------|---------|---------|-------|----------|
+| Stage 1 (15k) | 340 | 3 | 26 | 303 | 672 | 50.6% |
+| Stage 2 (15k) | 89 | 3 | 31 | 477 | 600 | 14.8% |
+| Cityscapes-Gen (20k) | 66 | 5 | 41 | — | 108 | 61.1% |
 
 ### Testing Progress
-| Stage | Valid Tests | Notes |
-|-------|------------|-------|
-| Stage 1 | 375 | Tested at 15k checkpoints |
-| Cityscapes-Gen (Cityscapes) | 23/54 | 20 from retests (all valid ✅), 28 retests pending |
-| Cityscapes-Gen (ACDC) | 54/54 | All valid ✅ |
-| Stage 2 | 139 | Stale/pre-fix |
+| Stage | Complete | Running | Pending | Total | Coverage |
+|-------|----------|---------|---------|-------|----------|
+| Stage 1 | 351 | 0 | 2 | 360 | 97.5% |
+| Stage 2 | 132 | 0 | 0 | 133 | 99.2% |
+| Cityscapes-Gen | 63 | 0 | 0 | 69 | 91.3% |
 
 ---
 
@@ -154,14 +146,14 @@ Common pattern: SegNeXt and PSPNet models stopped at iter_2000-5000 of 15000-800
 - **Impact:** Older configs using dict literal syntax were silently skipped
 - **Fix:** Changed regex to `r"'?max_iters'?\s*[=:]\s*(\d+)"` to handle both formats
 
-### Current Cluster Status (2026-02-09 13:15)
+### Current Cluster Status (2026-02-09 21:00)
 | Category | RUN | PEND |
 |----------|----:|-----:|
-| Stage 1 training (resume+new) | 2 | 64 |
-| Cityscapes-gen training | 7 | 34 |
-| Cityscapes-gen retests | 0 | 28 |
+| Stage 1 training | 3 | 46 |
+| Cityscapes-gen training | 5 | 29 |
+| Cityscapes-gen tests | 1 | 6 |
 | Stage 1 tests (fg_) | 0 | 4 |
-| **Total** | **9** | **~130** |
+| **Total** | **9** | **85** |
 
 ---
 

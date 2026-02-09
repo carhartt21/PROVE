@@ -1,6 +1,6 @@
 # Testing Progress Tracker
 
-**Last Updated:** 2026-02-08 20:48
+**Last Updated:** 2026-02-09 21:41
 
 
 This document tracks the progress of fine-grained testing for trained models.
@@ -73,7 +73,7 @@ This document tracks the progress of fine-grained testing for trained models.
 | gen_automold | 49.5 | 40.6 | 35.0 | 43.1 | 42.1 |
 | gen_CNetSeg | 49.8 | 40.2 | 35.0 | 43.3 | 42.1 |
 | gen_CUT | 48.3 | 40.2 | 34.9 | 43.1 | 41.6 |
-| gen_cyclediffusion | 48.9 | 39.9 | 34.4 | 42.8 | 41.5 |
+| gen_cyclediffusion | 48.9 | 39.9 | 34.7 | 43.1 | 41.6 |
 | gen_cycleGAN | 49.6 | 40.4 | 35.0 | 43.1 | 42.0 |
 | gen_flux_kontext | 48.7 | 40.4 | 35.2 | 43.2 | 41.9 |
 | gen_Img2Img | 46.7 | 40.1 | 34.8 | 43.0 | 41.2 |
@@ -88,7 +88,7 @@ This document tracks the progress of fine-grained testing for trained models.
 | gen_UniControl | 50.3 | 40.3 | 35.1 | 43.1 | 42.2 |
 | gen_VisualCloze | 51.6 | 40.4 | 34.9 | 42.7 | 42.4 |
 | gen_Weather_Effect_Generator | 48.8 | 39.8 | 35.2 | 42.9 | 41.7 |
-| gen_albumentations_weather | 46.4 | 39.9 | 34.7 | 42.6 | 40.9 |
+| gen_albumentations_weather | 46.4 | 39.9 | 34.7 | 42.8 | 41.0 |
 
 ### Standard Augmentation Strategies
 

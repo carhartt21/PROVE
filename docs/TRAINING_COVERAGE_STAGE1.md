@@ -1,58 +1,87 @@
 # Training Coverage Report
 
-**Generated:** 2026-02-08 23:57
+**Generated:** 2026-02-09 21:40
 
 ## Summary
 
 | Status | Count | Percentage |
 |--------|------:|----------:|
-| ✅ Complete | 339 | 50.4% |
-| 🔄 Running | 0 | 0.0% |
-| ⏳ Pending (in queue) | 0 | 0.0% |
-| ⚠️ Missing (not started) | 333 | 49.6% |
+| ✅ Complete | 340 | 50.6% |
+| 🔄 Running | 3 | 0.4% |
+| ⏳ Pending (in queue) | 26 | 3.9% |
+| ⚠️ Missing (not started) | 303 | 45.1% |
 | ❌ Failed | 0 | 0.0% |
 | **Total** | **672** | **100%** |
 
 ## Per-Dataset Breakdown
 
 ### BDD10K
-- Complete: 98/168 (58.3%)
-- Running: 0
-- Pending (in queue): 0
-- Missing (not started): 70
+- Complete: 90/168 (53.6%)
+- Running: 1
+- Pending (in queue): 3
+- Missing (not started): 74
 - Failed: 0
 
 ### IDD-AW
 - Complete: 97/168 (57.7%)
-- Running: 0
-- Pending (in queue): 0
-- Missing (not started): 71
+- Running: 2
+- Pending (in queue): 3
+- Missing (not started): 66
 - Failed: 0
 
 ### MAPILLARYVISTAS
-- Complete: 73/168 (43.5%)
+- Complete: 77/168 (45.8%)
 - Running: 0
-- Pending (in queue): 0
-- Missing (not started): 95
+- Pending (in queue): 10
+- Missing (not started): 81
 - Failed: 0
 
 ### OUTSIDE15K
-- Complete: 71/168 (42.3%)
+- Complete: 76/168 (45.2%)
 - Running: 0
-- Pending (in queue): 0
-- Missing (not started): 97
+- Pending (in queue): 10
+- Missing (not started): 82
 - Failed: 0
 
 
 ## Running Configurations
 
-*No configurations currently running.*
-
+| Strategy | Dataset | Model | User |
+|----------|---------|-------|------|
+| gen_VisualCloze | idd-aw | Mask2Former (0.5) | mima2416 |
+| gen_albumentations_weather | bdd10k | Mask2Former (0.5) | mima2416 |
+| gen_albumentations_weather | idd-aw | Mask2Former (0.5) | mima2416 |
 
 ## Pending Configurations (in queue)
 
-*No configurations pending in queue.*
-
+| Strategy | Dataset | Model | User |
+|----------|---------|-------|------|
+| gen_Attribute_Hallucination | mapillaryvistas | Mask2Former (0.5) | mima2416 |
+| gen_IP2P | mapillaryvistas | Mask2Former (0.5) | mima2416 |
+| gen_IP2P | outside15k | Mask2Former (0.5) | mima2416 |
+| gen_Img2Img | bdd10k | PSPNet (0.5) | mima2416 |
+| gen_Img2Img | bdd10k | SegNeXt (0.5) | mima2416 |
+| gen_Img2Img | idd-aw | PSPNet (0.5) | mima2416 |
+| gen_Img2Img | idd-aw | SegNeXt (0.5) | mima2416 |
+| gen_Img2Img | mapillaryvistas | PSPNet (0.5) | mima2416 |
+| gen_Img2Img | outside15k | PSPNet (0.5) | mima2416 |
+| gen_Img2Img | outside15k | SegNeXt (0.5) | mima2416 |
+| gen_SUSTechGAN | mapillaryvistas | Mask2Former (0.5) | mima2416 |
+| gen_SUSTechGAN | outside15k | Mask2Former (0.5) | mima2416 |
+| gen_UniControl | mapillaryvistas | PSPNet (0.5) | mima2416 |
+| gen_UniControl | outside15k | PSPNet (0.5) | mima2416 |
+| gen_VisualCloze | mapillaryvistas | Mask2Former (0.5) | mima2416 |
+| gen_VisualCloze | outside15k | Mask2Former (0.5) | mima2416 |
+| gen_albumentations_weather | mapillaryvistas | Mask2Former (0.5) | mima2416 |
+| gen_albumentations_weather | outside15k | Mask2Former (0.5) | mima2416 |
+| gen_automold | mapillaryvistas | Mask2Former (0.5) | mima2416 |
+| gen_automold | outside15k | Mask2Former (0.5) | mima2416 |
+| gen_cyclediffusion | bdd10k | Mask2Former (0.5) | mima2416 |
+| gen_cyclediffusion | idd-aw | Mask2Former (0.5) | mima2416 |
+| gen_cyclediffusion | mapillaryvistas | Mask2Former (0.5) | mima2416 |
+| gen_cyclediffusion | outside15k | Mask2Former (0.5) | mima2416 |
+| gen_step1x_v1p2 | mapillaryvistas | Mask2Former (0.5) | mima2416 |
+| gen_step1x_v1p2 | outside15k | Mask2Former (0.5) | mima2416 |
 
 ## Missing Configurations (not started)
 
@@ -60,7 +89,9 @@
 |----------|---------|-------|
 | baseline | bdd10k | DeepLabV3+ |
 | baseline | bdd10k | HRNet |
+| baseline | bdd10k | PSPNet |
 | baseline | idd-aw | DeepLabV3+ |
+| baseline | idd-aw | SegNeXt |
 | baseline | mapillaryvistas | DeepLabV3+ |
 | baseline | mapillaryvistas | Mask2Former |
 | baseline | outside15k | DeepLabV3+ |
@@ -71,7 +102,6 @@
 | gen_Attribute_Hallucination | idd-aw | HRNet (0.5) |
 | gen_Attribute_Hallucination | mapillaryvistas | DeepLabV3+ (0.5) |
 | gen_Attribute_Hallucination | mapillaryvistas | HRNet (0.5) |
-| gen_Attribute_Hallucination | mapillaryvistas | Mask2Former (0.5) |
 | gen_Attribute_Hallucination | outside15k | DeepLabV3+ (0.5) |
 | gen_Attribute_Hallucination | outside15k | HRNet (0.5) |
 | gen_Attribute_Hallucination | outside15k | Mask2Former (0.5) |
@@ -101,29 +131,23 @@
 | gen_IP2P | idd-aw | HRNet (0.5) |
 | gen_IP2P | mapillaryvistas | DeepLabV3+ (0.5) |
 | gen_IP2P | mapillaryvistas | HRNet (0.5) |
-| gen_IP2P | mapillaryvistas | Mask2Former (0.5) |
 | gen_IP2P | outside15k | DeepLabV3+ (0.5) |
 | gen_IP2P | outside15k | HRNet (0.5) |
-| gen_IP2P | outside15k | Mask2Former (0.5) |
 | gen_Img2Img | bdd10k | DeepLabV3+ (0.5) |
 | gen_Img2Img | bdd10k | HRNet (0.5) |
-| gen_Img2Img | bdd10k | PSPNet (0.5) |
-| gen_Img2Img | bdd10k | SegNeXt (0.5) |
+| gen_Img2Img | bdd10k | Mask2Former (0.5) |
 | gen_Img2Img | idd-aw | DeepLabV3+ (0.5) |
 | gen_Img2Img | idd-aw | HRNet (0.5) |
-| gen_Img2Img | idd-aw | PSPNet (0.5) |
-| gen_Img2Img | idd-aw | SegNeXt (0.5) |
+| gen_Img2Img | idd-aw | Mask2Former (0.5) |
 | gen_Img2Img | mapillaryvistas | DeepLabV3+ (0.5) |
 | gen_Img2Img | mapillaryvistas | HRNet (0.5) |
 | gen_Img2Img | mapillaryvistas | Mask2Former (0.5) |
-| gen_Img2Img | mapillaryvistas | PSPNet (0.5) |
 | gen_Img2Img | outside15k | DeepLabV3+ (0.5) |
 | gen_Img2Img | outside15k | HRNet (0.5) |
 | gen_Img2Img | outside15k | Mask2Former (0.5) |
-| gen_Img2Img | outside15k | PSPNet (0.5) |
-| gen_Img2Img | outside15k | SegNeXt (0.5) |
 | gen_LANIT | bdd10k | DeepLabV3+ (0.5) |
 | gen_LANIT | bdd10k | HRNet (0.5) |
+| gen_LANIT | bdd10k | SegNeXt (0.5) |
 | gen_LANIT | idd-aw | DeepLabV3+ (0.5) |
 | gen_LANIT | idd-aw | HRNet (0.5) |
 | gen_LANIT | mapillaryvistas | DeepLabV3+ (0.5) |
@@ -148,10 +172,8 @@
 | gen_SUSTechGAN | idd-aw | HRNet (0.5) |
 | gen_SUSTechGAN | mapillaryvistas | DeepLabV3+ (0.5) |
 | gen_SUSTechGAN | mapillaryvistas | HRNet (0.5) |
-| gen_SUSTechGAN | mapillaryvistas | Mask2Former (0.5) |
 | gen_SUSTechGAN | outside15k | DeepLabV3+ (0.5) |
 | gen_SUSTechGAN | outside15k | HRNet (0.5) |
-| gen_SUSTechGAN | outside15k | Mask2Former (0.5) |
 | gen_TSIT | bdd10k | DeepLabV3+ (0.5) |
 | gen_TSIT | bdd10k | HRNet (0.5) |
 | gen_TSIT | idd-aw | DeepLabV3+ (0.5) |
@@ -164,31 +186,25 @@
 | gen_TSIT | outside15k | Mask2Former (0.5) |
 | gen_UniControl | bdd10k | DeepLabV3+ (0.5) |
 | gen_UniControl | bdd10k | HRNet (0.5) |
-| gen_UniControl | bdd10k | PSPNet (0.5) |
-| gen_UniControl | bdd10k | SegNeXt (0.5) |
+| gen_UniControl | bdd10k | Mask2Former (0.5) |
 | gen_UniControl | idd-aw | DeepLabV3+ (0.5) |
 | gen_UniControl | idd-aw | HRNet (0.5) |
-| gen_UniControl | idd-aw | PSPNet (0.5) |
-| gen_UniControl | idd-aw | SegNeXt (0.5) |
+| gen_UniControl | idd-aw | Mask2Former (0.5) |
 | gen_UniControl | mapillaryvistas | DeepLabV3+ (0.5) |
 | gen_UniControl | mapillaryvistas | HRNet (0.5) |
 | gen_UniControl | mapillaryvistas | Mask2Former (0.5) |
-| gen_UniControl | mapillaryvistas | PSPNet (0.5) |
 | gen_UniControl | outside15k | DeepLabV3+ (0.5) |
 | gen_UniControl | outside15k | HRNet (0.5) |
 | gen_UniControl | outside15k | Mask2Former (0.5) |
-| gen_UniControl | outside15k | PSPNet (0.5) |
-| gen_UniControl | outside15k | SegNeXt (0.5) |
 | gen_VisualCloze | bdd10k | DeepLabV3+ (0.5) |
 | gen_VisualCloze | bdd10k | HRNet (0.5) |
+| gen_VisualCloze | bdd10k | SegNeXt (0.5) |
 | gen_VisualCloze | idd-aw | DeepLabV3+ (0.5) |
 | gen_VisualCloze | idd-aw | HRNet (0.5) |
 | gen_VisualCloze | mapillaryvistas | DeepLabV3+ (0.5) |
 | gen_VisualCloze | mapillaryvistas | HRNet (0.5) |
-| gen_VisualCloze | mapillaryvistas | Mask2Former (0.5) |
 | gen_VisualCloze | outside15k | DeepLabV3+ (0.5) |
 | gen_VisualCloze | outside15k | HRNet (0.5) |
-| gen_VisualCloze | outside15k | Mask2Former (0.5) |
 | gen_Weather_Effect_Generator | bdd10k | DeepLabV3+ (0.5) |
 | gen_Weather_Effect_Generator | bdd10k | HRNet (0.5) |
 | gen_Weather_Effect_Generator | idd-aw | DeepLabV3+ (0.5) |
@@ -201,21 +217,13 @@
 | gen_Weather_Effect_Generator | outside15k | Mask2Former (0.5) |
 | gen_albumentations_weather | bdd10k | DeepLabV3+ (0.5) |
 | gen_albumentations_weather | bdd10k | HRNet (0.5) |
-| gen_albumentations_weather | bdd10k | PSPNet (0.5) |
+| gen_albumentations_weather | bdd10k | SegNeXt (0.5) |
 | gen_albumentations_weather | idd-aw | DeepLabV3+ (0.5) |
 | gen_albumentations_weather | idd-aw | HRNet (0.5) |
-| gen_albumentations_weather | idd-aw | PSPNet (0.5) |
-| gen_albumentations_weather | idd-aw | SegNeXt (0.5) |
 | gen_albumentations_weather | mapillaryvistas | DeepLabV3+ (0.5) |
 | gen_albumentations_weather | mapillaryvistas | HRNet (0.5) |
-| gen_albumentations_weather | mapillaryvistas | Mask2Former (0.5) |
-| gen_albumentations_weather | mapillaryvistas | PSPNet (0.5) |
-| gen_albumentations_weather | mapillaryvistas | SegNeXt (0.5) |
 | gen_albumentations_weather | outside15k | DeepLabV3+ (0.5) |
 | gen_albumentations_weather | outside15k | HRNet (0.5) |
-| gen_albumentations_weather | outside15k | Mask2Former (0.5) |
-| gen_albumentations_weather | outside15k | PSPNet (0.5) |
-| gen_albumentations_weather | outside15k | SegNeXt (0.5) |
 | gen_augmenters | bdd10k | DeepLabV3+ (0.5) |
 | gen_augmenters | bdd10k | HRNet (0.5) |
 | gen_augmenters | idd-aw | DeepLabV3+ (0.5) |
@@ -228,14 +236,13 @@
 | gen_augmenters | outside15k | Mask2Former (0.5) |
 | gen_automold | bdd10k | DeepLabV3+ (0.5) |
 | gen_automold | bdd10k | HRNet (0.5) |
+| gen_automold | bdd10k | SegNeXt (0.5) |
 | gen_automold | idd-aw | DeepLabV3+ (0.5) |
 | gen_automold | idd-aw | HRNet (0.5) |
 | gen_automold | mapillaryvistas | DeepLabV3+ (0.5) |
 | gen_automold | mapillaryvistas | HRNet (0.5) |
-| gen_automold | mapillaryvistas | Mask2Former (0.5) |
 | gen_automold | outside15k | DeepLabV3+ (0.5) |
 | gen_automold | outside15k | HRNet (0.5) |
-| gen_automold | outside15k | Mask2Former (0.5) |
 | gen_cycleGAN | bdd10k | DeepLabV3+ (0.5) |
 | gen_cycleGAN | bdd10k | HRNet (0.5) |
 | gen_cycleGAN | idd-aw | DeepLabV3+ (0.5) |
@@ -248,23 +255,15 @@
 | gen_cycleGAN | outside15k | Mask2Former (0.5) |
 | gen_cyclediffusion | bdd10k | DeepLabV3+ (0.5) |
 | gen_cyclediffusion | bdd10k | HRNet (0.5) |
-| gen_cyclediffusion | bdd10k | SegNeXt (0.5) |
 | gen_cyclediffusion | idd-aw | DeepLabV3+ (0.5) |
 | gen_cyclediffusion | idd-aw | HRNet (0.5) |
-| gen_cyclediffusion | idd-aw | PSPNet (0.5) |
-| gen_cyclediffusion | idd-aw | SegNeXt (0.5) |
 | gen_cyclediffusion | mapillaryvistas | DeepLabV3+ (0.5) |
 | gen_cyclediffusion | mapillaryvistas | HRNet (0.5) |
-| gen_cyclediffusion | mapillaryvistas | Mask2Former (0.5) |
-| gen_cyclediffusion | mapillaryvistas | PSPNet (0.5) |
-| gen_cyclediffusion | mapillaryvistas | SegNeXt (0.5) |
 | gen_cyclediffusion | outside15k | DeepLabV3+ (0.5) |
 | gen_cyclediffusion | outside15k | HRNet (0.5) |
-| gen_cyclediffusion | outside15k | Mask2Former (0.5) |
-| gen_cyclediffusion | outside15k | PSPNet (0.5) |
-| gen_cyclediffusion | outside15k | SegNeXt (0.5) |
 | gen_flux_kontext | bdd10k | DeepLabV3+ (0.5) |
 | gen_flux_kontext | bdd10k | HRNet (0.5) |
+| gen_flux_kontext | bdd10k | SegNeXt (0.5) |
 | gen_flux_kontext | idd-aw | DeepLabV3+ (0.5) |
 | gen_flux_kontext | idd-aw | HRNet (0.5) |
 | gen_flux_kontext | mapillaryvistas | DeepLabV3+ (0.5) |
@@ -285,6 +284,7 @@
 | gen_stargan_v2 | outside15k | Mask2Former (0.5) |
 | gen_step1x_new | bdd10k | DeepLabV3+ (0.5) |
 | gen_step1x_new | bdd10k | HRNet (0.5) |
+| gen_step1x_new | bdd10k | SegNeXt (0.5) |
 | gen_step1x_new | idd-aw | DeepLabV3+ (0.5) |
 | gen_step1x_new | idd-aw | HRNet (0.5) |
 | gen_step1x_new | mapillaryvistas | DeepLabV3+ (0.5) |
@@ -295,14 +295,13 @@
 | gen_step1x_new | outside15k | Mask2Former (0.5) |
 | gen_step1x_v1p2 | bdd10k | DeepLabV3+ (0.5) |
 | gen_step1x_v1p2 | bdd10k | HRNet (0.5) |
+| gen_step1x_v1p2 | bdd10k | SegNeXt (0.5) |
 | gen_step1x_v1p2 | idd-aw | DeepLabV3+ (0.5) |
 | gen_step1x_v1p2 | idd-aw | HRNet (0.5) |
 | gen_step1x_v1p2 | mapillaryvistas | DeepLabV3+ (0.5) |
 | gen_step1x_v1p2 | mapillaryvistas | HRNet (0.5) |
-| gen_step1x_v1p2 | mapillaryvistas | Mask2Former (0.5) |
 | gen_step1x_v1p2 | outside15k | DeepLabV3+ (0.5) |
 | gen_step1x_v1p2 | outside15k | HRNet (0.5) |
-| gen_step1x_v1p2 | outside15k | Mask2Former (0.5) |
 | std_autoaugment | bdd10k | DeepLabV3+ |
 | std_autoaugment | bdd10k | HRNet |
 | std_autoaugment | idd-aw | DeepLabV3+ |
@@ -403,26 +402,26 @@
 |----------|------ | ------ | --------------- | ----------|
 | gen_Attribute_Hallucination | ✅ Mask2Former, PSPNet, SegFormer, SegNeXt | ✅ Mask2Former, PSPNet, SegFormer, SegNeXt | ✅ PSPNet, SegFormer, SegNeXt | ✅ PSPNet, SegFormer, SegNeXt |
 | gen_augmenters | ✅ Mask2Former, PSPNet, SegFormer, SegNeXt | ✅ Mask2Former, PSPNet, SegFormer, SegNeXt | ✅ PSPNet, SegFormer, SegNeXt | ✅ PSPNet, SegFormer, SegNeXt |
-| gen_automold | ✅ Mask2Former, PSPNet, SegFormer, SegNeXt | ✅ Mask2Former, PSPNet, SegFormer, SegNeXt | ✅ PSPNet, SegFormer, SegNeXt | ✅ PSPNet, SegFormer, SegNeXt |
+| gen_automold | ✅ Mask2Former, PSPNet, SegFormer | ✅ Mask2Former, PSPNet, SegFormer, SegNeXt | ✅ PSPNet, SegFormer, SegNeXt | ✅ PSPNet, SegFormer, SegNeXt |
 | gen_CNetSeg | ✅ Mask2Former, PSPNet, SegFormer, SegNeXt | ✅ Mask2Former, PSPNet, SegFormer, SegNeXt | ✅ PSPNet, SegFormer, SegNeXt | ✅ PSPNet, SegFormer, SegNeXt |
 | gen_CUT | ✅ Mask2Former, PSPNet, SegFormer, SegNeXt | ✅ Mask2Former, PSPNet, SegFormer, SegNeXt | ✅ PSPNet, SegFormer, SegNeXt | ✅ PSPNet, SegFormer, SegNeXt |
-| gen_cyclediffusion | ✅ Mask2Former, PSPNet, SegFormer | ✅ Mask2Former, SegFormer | ✅ SegFormer | ✅ SegFormer |
+| gen_cyclediffusion | ✅ PSPNet, SegFormer, SegNeXt | ✅ PSPNet, SegFormer, SegNeXt | ✅ PSPNet, SegFormer, SegNeXt | ✅ PSPNet, SegFormer, SegNeXt |
 | gen_cycleGAN | ✅ Mask2Former, PSPNet, SegFormer, SegNeXt | ✅ Mask2Former, PSPNet, SegFormer, SegNeXt | ✅ PSPNet, SegFormer, SegNeXt | ✅ PSPNet, SegFormer, SegNeXt |
-| gen_flux_kontext | ✅ Mask2Former, PSPNet, SegFormer, SegNeXt | ✅ Mask2Former, PSPNet, SegFormer, SegNeXt | ✅ PSPNet, SegFormer, SegNeXt | ✅ PSPNet, SegFormer, SegNeXt |
-| gen_Img2Img | ✅ Mask2Former, SegFormer | ✅ Mask2Former, SegFormer | ✅ SegFormer, SegNeXt | ✅ SegFormer |
+| gen_flux_kontext | ✅ Mask2Former, PSPNet, SegFormer | ✅ Mask2Former, PSPNet, SegFormer, SegNeXt | ✅ PSPNet, SegFormer, SegNeXt | ✅ PSPNet, SegFormer, SegNeXt |
+| gen_Img2Img | ✅ SegFormer | ✅ SegFormer | ✅ SegFormer, SegNeXt | ✅ SegFormer |
 | gen_IP2P | ✅ Mask2Former, PSPNet, SegFormer, SegNeXt | ✅ Mask2Former, PSPNet, SegFormer, SegNeXt | ✅ PSPNet, SegFormer, SegNeXt | ✅ PSPNet, SegFormer, SegNeXt |
-| gen_LANIT | ✅ Mask2Former, PSPNet, SegFormer, SegNeXt | ✅ Mask2Former, PSPNet, SegFormer, SegNeXt | ✅ PSPNet, SegFormer, SegNeXt | ✅ PSPNet, SegFormer, SegNeXt |
+| gen_LANIT | ✅ Mask2Former, PSPNet, SegFormer | ✅ Mask2Former, PSPNet, SegFormer, SegNeXt | ✅ PSPNet, SegFormer, SegNeXt | ✅ PSPNet, SegFormer, SegNeXt |
 | gen_Qwen_Image_Edit | ✅ Mask2Former, PSPNet, SegFormer, SegNeXt | ✅ Mask2Former, PSPNet, SegFormer, SegNeXt | ✅ PSPNet, SegFormer, SegNeXt | ✅ PSPNet, SegFormer, SegNeXt |
 | gen_stargan_v2 | ✅ Mask2Former, PSPNet, SegFormer, SegNeXt | ✅ Mask2Former, PSPNet, SegFormer, SegNeXt | ✅ PSPNet, SegFormer, SegNeXt | ✅ PSPNet, SegFormer, SegNeXt |
-| gen_step1x_new | ✅ Mask2Former, PSPNet, SegFormer, SegNeXt | ✅ Mask2Former, PSPNet, SegFormer, SegNeXt | ✅ PSPNet, SegFormer, SegNeXt | ✅ PSPNet, SegFormer, SegNeXt |
-| gen_step1x_v1p2 | ✅ Mask2Former, PSPNet, SegFormer, SegNeXt | ✅ Mask2Former, PSPNet, SegFormer, SegNeXt | ✅ PSPNet, SegFormer, SegNeXt | ✅ PSPNet, SegFormer, SegNeXt |
+| gen_step1x_new | ✅ Mask2Former, PSPNet, SegFormer | ✅ Mask2Former, PSPNet, SegFormer, SegNeXt | ✅ PSPNet, SegFormer, SegNeXt | ✅ PSPNet, SegFormer, SegNeXt |
+| gen_step1x_v1p2 | ✅ Mask2Former, PSPNet, SegFormer | ✅ Mask2Former, PSPNet, SegFormer, SegNeXt | ✅ PSPNet, SegFormer, SegNeXt | ✅ PSPNet, SegFormer, SegNeXt |
 | gen_SUSTechGAN | ✅ Mask2Former, PSPNet, SegFormer, SegNeXt | ✅ Mask2Former, PSPNet, SegFormer, SegNeXt | ✅ PSPNet, SegFormer, SegNeXt | ✅ PSPNet, SegFormer, SegNeXt |
 | gen_TSIT | ✅ Mask2Former, PSPNet, SegFormer, SegNeXt | ✅ Mask2Former, PSPNet, SegFormer, SegNeXt | ✅ PSPNet, SegFormer, SegNeXt | ✅ PSPNet, SegFormer, SegNeXt |
-| gen_UniControl | ✅ Mask2Former, SegFormer | ✅ Mask2Former, SegFormer | ✅ SegFormer, SegNeXt | ✅ SegFormer |
-| gen_VisualCloze | ✅ Mask2Former, PSPNet, SegFormer, SegNeXt | ✅ Mask2Former, PSPNet, SegFormer, SegNeXt | ✅ PSPNet, SegFormer, SegNeXt | ✅ PSPNet, SegFormer, SegNeXt |
+| gen_UniControl | ✅ PSPNet, SegFormer, SegNeXt | ✅ PSPNet, SegFormer, SegNeXt | ✅ SegFormer, SegNeXt | ✅ SegFormer, SegNeXt |
+| gen_VisualCloze | ✅ Mask2Former, PSPNet, SegFormer | ✅ PSPNet, SegFormer, SegNeXt | ✅ PSPNet, SegFormer, SegNeXt | ✅ PSPNet, SegFormer, SegNeXt |
 | gen_Weather_Effect_Generator | ✅ Mask2Former, PSPNet, SegFormer, SegNeXt | ✅ Mask2Former, PSPNet, SegFormer, SegNeXt | ✅ PSPNet, SegFormer, SegNeXt | ✅ PSPNet, SegFormer, SegNeXt |
-| gen_albumentations_weather | ✅ Mask2Former, SegFormer, SegNeXt | ✅ Mask2Former, SegFormer | ✅ SegFormer | ✅ SegFormer |
-| baseline | ✅ Mask2Former, PSPNet, SegFormer, SegNeXt | ✅ HRNet, Mask2Former, PSPNet, SegFormer, SegNeXt | ✅ HRNet, PSPNet, SegFormer, SegNeXt | ✅ HRNet, PSPNet, SegFormer, SegNeXt |
+| gen_albumentations_weather | ✅ PSPNet, SegFormer | ✅ PSPNet, SegFormer, SegNeXt | ✅ PSPNet, SegFormer, SegNeXt | ✅ PSPNet, SegFormer, SegNeXt |
+| baseline | ✅ Mask2Former, SegFormer, SegNeXt | ✅ HRNet, Mask2Former, PSPNet, SegFormer | ✅ HRNet, PSPNet, SegFormer, SegNeXt | ✅ HRNet, PSPNet, SegFormer, SegNeXt |
 | std_minimal | ⏳ | ⏳ | ⏳ | ⏳ |
 | std_photometric_distort | ⏳ | ⏳ | ⏳ | ⏳ |
 | std_autoaugment | ✅ Mask2Former, PSPNet, SegFormer, SegNeXt | ✅ Mask2Former, PSPNet, SegFormer, SegNeXt | ✅ PSPNet, SegFormer, SegNeXt | ✅ PSPNet, SegFormer, SegNeXt |
