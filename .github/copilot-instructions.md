@@ -152,9 +152,11 @@ python fine_grained_test.py --config /path/config.py --checkpoint /path/iter_800
     --dataset BDD10k --output-dir /path/test_results_detailed
 
 # Auto-submit missing tests (always dry-run first!)
-python scripts/auto_submit_tests.py --dry-run        # Stage 1
-python scripts/auto_submit_tests_stage2.py --dry-run # Stage 2
-python scripts/auto_submit_tests_stage2.py --limit 20
+python scripts/auto_submit_tests.py --stage 1 --dry-run
+python scripts/auto_submit_tests.py --stage 2 --dry-run
+python scripts/auto_submit_tests.py --stage cityscapes --dry-run
+python scripts/auto_submit_tests.py --stage cityscapes-gen --dry-run
+python scripts/auto_submit_tests.py --stage 1 --limit 20
 ```
 
 ### Update Trackers (after job completion)
