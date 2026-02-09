@@ -167,11 +167,6 @@ class LSFConfig:
 # Iteration Configuration
 # ============================================================================
 
-# Model-specific max iterations (some models need longer training)
-MODEL_SPECIFIC_MAX_ITERS = {
-    'mask2former_swin-b': 20000,  # Transformer models benefit from longer training
-}
-
 def get_effective_max_iters(
     stage: int,
     model: Optional[str] = None,
@@ -194,11 +189,9 @@ def get_effective_max_iters(
     if override_max_iters is not None:
         return override_max_iters
     
-    # Model-specific iterations (some models need longer training)
-    if model and model in MODEL_SPECIFIC_MAX_ITERS:
-        return MODEL_SPECIFIC_MAX_ITERS[model]
-    
     # Stage-specific defaults
+    # Note: mask2former_swin-b uses the same target as other models per stage.
+    # Cityscapes stages already default to 20k which provides sufficient training.
     if stage in ('cityscapes', 'cityscapes-gen'):
         return 20000  # 20k iters (BS=16) = 320k samples = 160k iters (BS=2)
     else:
