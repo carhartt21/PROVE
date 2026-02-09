@@ -7,12 +7,16 @@
 ## 📊 Current Status (2026-02-09 22:00)
 
 ### Queue Summary
-| Category | RUN | PEND | Total |
-|----------|----:|-----:|------:|
-| Stage 1 training | 4 | 43 | 47 |
-| Cityscapes-gen training | 5 | 29 | 34 |
-| Testing (fg_) | 0 | 4 | 4 |
-| **Total** | **9** | **76** | **85** |
+| User | Category | RUN | PEND | Total |
+|------|----------|----:|-----:|------:|
+| mima2416 | Stage 1 training | 4 | 43 | 47 |
+| mima2416 | Cityscapes-gen training | 5 | 29 | 34 |
+| mima2416 | Testing (fg_) | 0 | 4 | 4 |
+| **mima2416 subtotal** | | **9** | **76** | **85** |
+| chge7185 | Stage 1 training | 8 | 13 | 21 |
+| chge7185 | Stage 2 training | 0 | 20 | 20 |
+| **chge7185 subtotal** | | **8** | **33** | **41** |
+| **Grand Total** | | **17** | **109** | **126** |
 
 ### Training Progress
 | Stage | Complete | Running | Pending | Not Started | Total | Coverage |
@@ -49,11 +53,16 @@
 
 ### 1. 🔴 HIGH: Complete Stage 1 Training (68 missing jobs)
 Stage 1 is the core experiment — every strategy needs all 4 datasets × 6 models (24 configs).
+
+**⚠️ Note:** chge7185 has ~21 S1 jobs already submitted (8 RUN + 13 PEND), mostly gen_Img2Img + gen_UniControl.
+At least 4 overlap with our "missing" list. Flock prevents duplicate training, but wastes queue slots.
+`batch_training_submission.py` does NOT check other users' queues — coordinate before submitting.
 ```bash
 # Preview what's missing
 python scripts/batch_training_submission.py --stage 1 --dry-run
 
 # Submit missing jobs (68 jobs — mostly mask2former + gen_Img2Img gaps)
+# Coordinate with chge7185 to avoid ~20 duplicate queue slots
 python scripts/batch_training_submission.py --stage 1 -y
 ```
 **Estimated time:** ~2-3 days at current queue throughput (9 RUN slots).
@@ -81,6 +90,7 @@ python scripts/auto_submit_tests_stage2.py --dry-run    # Stage 2
 
 ### 5. 🟡 MEDIUM: Start Stage 2 Gap Training (292 missing jobs)
 Stage 2 is the weakest (14.8% complete). Currently only baseline + a few std/gen strategies have 4+ configs.
+**Note:** chge7185 already has 20 S2 PEND jobs (segformer-model jobs for gen_Qwen_Image_Edit, gen_CNetSeg, gen_Weather_Effect_Generator, gen_TSIT, gen_augmenters × 4 datasets).
 ```bash
 # Preview scope
 python scripts/batch_training_submission.py --stage 2 --dry-run
