@@ -1,34 +1,110 @@
 # PROVE Project TODO
 
-**Last Updated:** 2026-02-09 (21:00)
+**Last Updated:** 2026-02-09 (22:00)
 
 ---
 
-## 📊 Current Status (2026-02-09 21:00)
+## 📊 Current Status (2026-02-09 22:00)
 
 ### Queue Summary
 | Category | RUN | PEND | Total |
 |----------|----:|-----:|------:|
-| Stage 1 training | 3 | 46 | 49 |
+| Stage 1 training | 4 | 43 | 47 |
 | Cityscapes-gen training | 5 | 29 | 34 |
-| Cityscapes-gen tests | 1 | 6 | 7 |
-| Stage 1 tests (fg_) | 0 | 4 | 4 |
-| **Total** | **9** | **85** | **94** |
+| Testing (fg_) | 0 | 4 | 4 |
+| **Total** | **9** | **76** | **85** |
 
 ### Training Progress
-| Stage | Complete | Running | Pending | Missing | Total | Coverage |
-|-------|----------|---------|---------|---------|-------|----------|
+| Stage | Complete | Running | Pending | Not Started | Total | Coverage |
+|-------|----------|---------|---------|-------------|-------|----------|
 | Stage 1 (15k) | 340 | 3 | 26 | 303 | 672 | 50.6% |
 | Stage 2 (15k) | 89 | 3 | 31 | 477 | 600 | 14.8% |
 | Cityscapes-Gen (20k) | 66 | 5 | 41 | — | 108 | 61.1% |
 
 ### Testing Progress
-| Stage | Complete | Running | Pending | Total | Coverage |
-|-------|----------|---------|---------|-------|----------|
-| Stage 1 | 351 | 0 | 2 | 360 | 97.5% |
-| Stage 2 | 132 | 0 | 0 | 133 | 99.2% |
-| Cityscapes-Gen (Cityscapes) | 63 | 0 | 0 | 69 | 91.3% |
-| Cityscapes-Gen (ACDC) | 66 | 0 | 0 | 69 | 95.7% |
+| Stage | Complete | Buggy | Missing | Total | Coverage |
+|-------|----------|-------|---------|-------|----------|
+| Stage 1 | 351 | 0 | 8 | 361 | 97.2% |
+| Stage 2 | 132 | 0 | 1 | 133 | 99.2% |
+| Cityscapes-Gen (Cityscapes) | 63 | 3 | 3 | 69 | 91.3% |
+| Cityscapes-Gen (ACDC) | 66 | 0 | 3 | 69 | 95.7% |
+
+### Strategy Completion Overview (Stage 1 — per strategy, target: 24 models each)
+| Status | Strategies | Detail |
+|--------|-----------|--------|
+| ✅ Full (24/24) | 0 | — |
+| 🔶 Near-complete (≥14/24) | 25 | baseline (17), all std_* (14ea), most gen_* (14ea) |
+| 🔶 Partial (<14/24) | 3 | gen_VisualCloze (13), gen_cyclediffusion (12), gen_albumentations_weather (12) |
+| ❌ Low (<10/24) | 2 | gen_UniControl (10), gen_Img2Img (5) |
+| ❌ Not started | 1 | std_minimal (0), std_photometric_distort (0) |
+
+### Key Bottleneck: mask2former_swin-b
+- Most "missing" Stage 1 configs are mask2former (20k target, longer training)
+- 68 jobs would be submitted by `batch_training_submission.py --stage 1 --dry-run`
+- pspnet and segnext also have gaps in some strategies
+
+---
+
+## 🎯 Recommended Next Steps (Priority Order)
+
+### 1. 🔴 HIGH: Complete Stage 1 Training (68 missing jobs)
+Stage 1 is the core experiment — every strategy needs all 4 datasets × 6 models (24 configs).
+```bash
+# Preview what's missing
+python scripts/batch_training_submission.py --stage 1 --dry-run
+
+# Submit missing jobs (68 jobs — mostly mask2former + gen_Img2Img gaps)
+python scripts/batch_training_submission.py --stage 1 -y
+```
+**Estimated time:** ~2-3 days at current queue throughput (9 RUN slots).
+
+### 2. 🔴 HIGH: Complete Cityscapes-Gen Training (1 remaining job)
+Only 1 job left to submit — nearly complete.
+```bash
+python scripts/batch_training_submission.py --stage cityscapes-gen --dry-run
+python scripts/batch_training_submission.py --stage cityscapes-gen -y
+```
+
+### 3. 🟡 MEDIUM: Submit Missing Stage 1 & CS-Gen Tests
+Once training completes, auto-test submissions catch most cases, but some may need manual submission.
+```bash
+# Check for completed training without test results
+python scripts/auto_submit_tests.py --dry-run          # Stage 1
+python scripts/auto_submit_tests_stage2.py --dry-run    # Stage 2
+```
+
+### 4. 🟡 MEDIUM: Fix 3 Buggy Cityscapes-Gen Tests
+3 configs have mIoU < 5% on Cityscapes (likely test bugs, not training failures):
+- `gen_Attribute_Hallucination/cityscapes/pspnet_r50`
+- `gen_SUSTechGAN/cityscapes/mask2former_swin-b`
+- `gen_cyclediffusion/cityscapes/mask2former_swin-b`
+
+### 5. 🟡 MEDIUM: Start Stage 2 Gap Training (292 missing jobs)
+Stage 2 is the weakest (14.8% complete). Currently only baseline + a few std/gen strategies have 4+ configs.
+```bash
+# Preview scope
+python scripts/batch_training_submission.py --stage 2 --dry-run
+
+# Submit in batches to avoid queue saturation
+python scripts/batch_training_submission.py --stage 2 --strategies baseline --dry-run
+python scripts/batch_training_submission.py --stage 2 --strategy-type std --dry-run
+python scripts/batch_training_submission.py --stage 2 --strategy-type gen --limit 50 --dry-run
+```
+**Note:** Stage 2 trains on ALL domains (no `--domain-filter`), so jobs are larger.
+
+### 6. 🟢 LOW: Noise Ablation Study
+32 jobs designed but not yet submitted (commit `4262e8b`). Wait until Stage 1 queue clears.
+```bash
+python scripts/noise_ablation_submission.py --dry-run
+```
+
+### 7. 🟢 LOW: Analysis & Paper Figures
+Once Stage 1 is ≥90% complete, generate comprehensive analysis:
+```bash
+python analysis_scripts/generate_stage1_leaderboard.py
+python analysis_scripts/analyze_strategy_families.py
+python analysis_scripts/analyze_domain_gap_corrected.py
+```
 
 ---
 
