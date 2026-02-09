@@ -1,117 +1,127 @@
 # PROVE Project TODO
 
-**Last Updated:** 2026-02-09 (23:30)
+**Last Updated:** 2026-02-10 (00:40)
 
 ---
 
-## 📊 Current Status (2026-02-09 23:30)
+## 📊 Current Status (2026-02-10 00:40)
 
 ### Queue Summary
 | User | Category | RUN | PEND | Total |
 |------|----------|----:|-----:|------:|
-| mima2416 | Stage 1 training | 4 | 103 | 107 |
-| mima2416 | Cityscapes-gen training | 5 | 29 | 34 |
-| mima2416 | Testing (fg_) | 0 | 4 | 4 |
-| **mima2416 subtotal** | | **9** | **116** | **125** |
-| chge7185 | Stage 1 training | 8 | 13 | 21 |
-| chge7185 | Stage 2 training | 0 | 20 | 20 |
-| **chge7185 subtotal** | | **8** | **33** | **41** |
-| **Grand Total** | | **17** | **149** | **166** |
+| mima2416 | Stage 1 training | 4 | 72 | 76 |
+| mima2416 | Stage 2 training | 0 | 183 | 183 |
+| mima2416 | Cityscapes-gen training | 6 | 34 | 40 |
+| mima2416 | Testing (fg_ S1) | 0 | 4 | 4 |
+| mima2416 | Testing (fgcg_ CS-Gen) | 0 | 6 | 6 |
+| mima2416 | Testing (fgcs_ CS) | 0 | 6 | 6 |
+| **mima2416 subtotal** | | **10** | **305** | **315** |
+| chge7185 | Other | 6 | 3 | 9 |
+| **Grand Total** | | **16** | **308** | **324** |
 
 ### Training Progress
-| Stage | Complete | Running | Pending | Not Started | Total | Coverage |
-|-------|----------|---------|---------|-------------|-------|----------|
-| Stage 1 (15k) | 340 | 3 | 86 | 243 | 672 | 50.6% |
-| Stage 2 (15k) | 89 | 3 | 31 | 477 | 600 | 14.8% |
-| Cityscapes-Gen (20k) | 66 | 5 | 41 | — | 108 | 61.1% |
+| Stage | Complete | In Queue | Remaining | Total Target | Coverage |
+|-------|----------|----------|-----------|--------------|----------|
+| Stage 1 (15k) | 351 | 76 | 0¹ | 416 | 84.4% |
+| Stage 2 (15k) | 137 | 183 | 109² | 416 | 32.9% |
+| Cityscapes-Gen (20k) | 69 | 40 | ~1 | ~110 | 62.7% |
+| Cityscapes (20k) | 3 | 0 | 5 | 8 | 37.5% |
+
+¹ 56 remaining jobs already submitted (76 in queue minus running)
+² 292 total remaining − 183 already queued
+All Stage 1 missing jobs are mask2former (56 configs across mapillaryvistas + outside15k).
 
 ### Testing Progress
-| Stage | Complete | Buggy | Missing | Total | Coverage |
-|-------|----------|-------|---------|-------|----------|
-| Stage 1 | 351 | 0 | 8 | 361 | 97.2% |
-| Stage 2 | 132 | 0 | 1 | 133 | 99.2% |
-| Cityscapes-Gen (Cityscapes) | 63 | 3 | 3 | 69 | 91.3% |
-| Cityscapes-Gen (ACDC) | 66 | 0 | 3 | 69 | 95.7% |
+| Stage | Tested | Pending | Notes |
+|-------|--------|---------|-------|
+| Stage 1 | 405 | 0 | Fully tested (includes partially trained models) |
+| Stage 2 | 139 | ~0 | All completed training tested |
+| Cityscapes-Gen (Cityscapes) | 64 | 6 | 6 retest jobs queued (empty results cleaned) |
+| Cityscapes-Gen (ACDC) | 69 | 0 | Fully tested |
+| Cityscapes (Cityscapes) | 0 | 3 | 3 baseline test jobs queued |
+| Cityscapes (ACDC) | 0 | 3 | 3 baseline ACDC test jobs queued |
 
-### Strategy Completion Overview (Stage 1 — per strategy, target: 24 models each)
-| Status | Strategies | Detail |
-|--------|-----------|--------|
-| ✅ Full (24/24) | 0 | — |
-| 🔶 Near-complete (≥14/24) | 25 | baseline (17), all std_* (14ea), most gen_* (14ea) |
-| 🔶 Partial (<14/24) | 3 | gen_VisualCloze (13), gen_cyclediffusion (12), gen_albumentations_weather (12) |
-| ❌ Low (<10/24) | 2 | gen_UniControl (10), gen_Img2Img (5) |
-| ❌ Not started | 1 | std_minimal (0), std_photometric_distort (0) |
+### Strategy Completion (Stage 1 — per strategy, target: ~16 models each)
+| Status | Count | Detail |
+|--------|-------|--------|
+| 15/16 | 1 | baseline (15/40 total configs, but 40 includes old/backup) |
+| 14/16 | 17 | Most gen_* and all std_* strategies |
+| 13/16 | 6 | gen_VisualCloze, gen_step1x_new/v1p2, gen_LANIT, gen_flux_kontext, gen_automold, gen_albumentations_weather |
+| 12/16 | 3 | gen_cyclediffusion, gen_Img2Img, gen_UniControl |
 
-### Key Bottleneck: mask2former_swin-b
-- Most "missing" Stage 1 configs are mask2former (20k target, longer training)
-- 68 jobs would be submitted by `batch_training_submission.py --stage 1 --dry-run`
-- pspnet and segnext also have gaps in some strategies
+Key bottleneck: mask2former_swin-b on mapillaryvistas + outside15k (56 jobs in queue).
 
 ---
 
 ## 🎯 Recommended Next Steps (Priority Order)
 
-### 1. 🔴 HIGH: Complete Stage 1 Training (68 missing jobs)
-Stage 1 is the core experiment — every strategy needs all 4 datasets × 6 models (24 configs).
-
-**⚠️ Note:** chge7185 has ~21 S1 jobs already submitted (8 RUN + 13 PEND), mostly gen_Img2Img + gen_UniControl.
-At least 4 overlap with our "missing" list. Flock prevents duplicate training, but wastes queue slots.
-`batch_training_submission.py` does NOT check other users' queues — coordinate before submitting.
+### 1. 🔴 HIGH: Monitor Stage 1 Training Completion (56 remaining)
+All 56 remaining S1 jobs are submitted and in queue. Mostly mask2former on mapillaryvistas/outside15k.
 ```bash
-# Preview what's missing
-python scripts/batch_training_submission.py --stage 1 --dry-run
-
-# Submit missing jobs (68 jobs — mostly mask2former + gen_Img2Img gaps)
-# Coordinate with chge7185 to avoid ~20 duplicate queue slots
-python scripts/batch_training_submission.py --stage 1 -y
+# Check progress
+bjobs -u mima2416 -w | grep "s1_"
+python scripts/update_training_tracker.py --stage 1
 ```
-**Estimated time:** ~2-3 days at current queue throughput (9 RUN slots).
+**Estimated time:** ~2-3 days at current queue throughput.
 
-### 2. 🔴 HIGH: Complete Cityscapes-Gen Training (1 remaining job)
-Only 1 job left to submit — nearly complete.
+### 2. 🔴 HIGH: Monitor Stage 2 Training (292 total, 183 queued)
+183 S2 jobs already queued. 109 not yet submitted (will auto-submit as queue clears).
+```bash
+# Check what's missing after current batch completes
+python scripts/batch_training_submission.py --stage 2 --dry-run
+
+# Submit remaining batches
+python scripts/batch_training_submission.py --stage 2 -y
+```
+
+### 3. 🔴 HIGH: Complete Cityscapes-Gen Training (40 jobs in queue + 1 remaining)
+69/~110 complete, 40 in queue. Only 1 additional job to submit (gen_cycleGAN/segformer).
 ```bash
 python scripts/batch_training_submission.py --stage cityscapes-gen --dry-run
 python scripts/batch_training_submission.py --stage cityscapes-gen -y
 ```
 
-### 3. 🟡 MEDIUM: Submit Missing Stage 1 & CS-Gen Tests
-Once training completes, auto-test submissions catch most cases, but some may need manual submission.
+### 4. 🟡 MEDIUM: Auto-Submit Tests as Training Completes
+Use the consolidated test submission script for all stages:
 ```bash
-# Check for completed training without test results
-python scripts/auto_submit_tests.py --dry-run          # Stage 1
-python scripts/auto_submit_tests_stage2.py --dry-run    # Stage 2
+python scripts/auto_submit_tests.py --stage 1 --dry-run
+python scripts/auto_submit_tests.py --stage 2 --dry-run
+python scripts/auto_submit_tests.py --stage cityscapes --dry-run
+python scripts/auto_submit_tests.py --stage cityscapes-gen --dry-run
 ```
 
-### 4. 🟡 MEDIUM: Fix 3 Buggy Cityscapes-Gen Tests
-3 configs have mIoU < 5% on Cityscapes (likely test bugs, not training failures):
-- `gen_Attribute_Hallucination/cityscapes/pspnet_r50`
-- `gen_SUSTechGAN/cityscapes/mask2former_swin-b`
-- `gen_cyclediffusion/cityscapes/mask2former_swin-b`
-
-### 5. 🟡 MEDIUM: Start Stage 2 Gap Training (292 missing jobs)
-Stage 2 is the weakest (14.8% complete). Currently only baseline + a few std/gen strategies have 4+ configs.
-**Note:** chge7185 already has 20 S2 PEND jobs (segformer-model jobs for gen_Qwen_Image_Edit, gen_CNetSeg, gen_Weather_Effect_Generator, gen_TSIT, gen_augmenters × 4 datasets).
+### 5. 🟡 MEDIUM: Complete Cityscapes Pipeline Verification
+Only 3/8 Cityscapes baseline models have final checkpoints. 3 main + 3 ACDC test jobs submitted.
 ```bash
-# Preview scope
-python scripts/batch_training_submission.py --stage 2 --dry-run
-
-# Submit in batches to avoid queue saturation
-python scripts/batch_training_submission.py --stage 2 --strategies baseline --dry-run
-python scripts/batch_training_submission.py --stage 2 --strategy-type std --dry-run
-python scripts/batch_training_submission.py --stage 2 --strategy-type gen --limit 50 --dry-run
+python scripts/batch_training_submission.py --stage cityscapes --dry-run
 ```
-**Note:** Stage 2 trains on ALL domains (no `--domain-filter`), so jobs are larger.
 
-### 6. 🟢 LOW: Noise Ablation Study
-32 jobs designed but not yet submitted (commit `4262e8b`). Wait until Stage 1 queue clears.
+### 6. 🟡 MEDIUM: Noise Ablation Study
+32 jobs designed but not yet submitted (commit `4262e8b`). Tests whether models learn from image content or just label layouts. Wait until S1 queue clears.
 ```bash
 python scripts/noise_ablation_submission.py --dry-run
 ```
 
-### 7. 🟢 LOW: Analysis & Paper Figures
-Once Stage 1 is ≥90% complete, generate comprehensive analysis:
+### 7. 🟢 LOW: Refresh Ablation Studies (Ratio, Extended, Combinations)
+These studies used old training regime (80k iters, 3 models). Consider:
+- **Ratio ablation refresh**: Re-run with current 15k iter / 6 model setup on at least top-5 gen strategies
+- **Extended training refresh**: Not needed (demonstrated diminishing returns pattern holds)
+- **Combination strategies**: Low priority — original study showed std_photometric_distort dominates all combos
+
+Old studies (reference only):
+| Study | Path | Status |
+|-------|------|--------|
+| Ratio Ablation | `WEIGHTS_RATIO_ABLATION/` | 284 ckpts (old regime, ❌ gen_* invalid due to earlier bug) |
+| Extended Training | `WEIGHTS_EXTENDED/` | 970 ckpts (old regime, baseline-only valid) |
+| Combinations | `WEIGHTS_COMBINATIONS/` | 53 ckpts (IDD-AW only, std_* valid) |
+| Batch Size Ablation | `WEIGHTS_BATCH_SIZE_ABLATION/` | BS 2/4/8/16 with LR scaling |
+
+### 8. 🟢 LOW: Analysis & Paper Figures
+Once Stage 1 is ~100% complete:
 ```bash
-python analysis_scripts/generate_stage1_leaderboard.py
+python analysis_scripts/generate_strategy_leaderboard.py --stage 1
+python analysis_scripts/generate_strategy_leaderboard.py --stage 2
+python analysis_scripts/generate_strategy_leaderboard.py --stage cityscapes-gen
 python analysis_scripts/analyze_strategy_families.py
 python analysis_scripts/analyze_domain_gap_corrected.py
 ```
@@ -712,6 +722,16 @@ Cityscapes replication with correct pipeline achieved expected results:
 ---
 
 ## ✅ Recently Completed
+
+### 2026-02-10
+- [x] ✅ **Consolidated leaderboard scripts** — Unified `generate_stage1_leaderboard.py` + `generate_stage2_leaderboard.py` into `generate_strategy_leaderboard.py --stage {1,2,cityscapes-gen}` (commit `74670b9`)
+- [x] ✅ **Fixed mask2former pre-flight detection** — Removed incorrect `MODEL_SPECIFIC_MAX_ITERS` override that masked 45 S1 + 2 S2 completed trainings (commit `babff1d`)
+- [x] ✅ **Consolidated test submission scripts** — Unified `auto_submit_tests.py` + `auto_submit_tests_stage2.py` into single script with `--stage {1,2,cityscapes,cityscapes-gen}` + ACDC cross-domain support (commit `0109bb6`)
+- [x] ✅ **Verified step1x manifests** — Both step1x_new (17,850) and step1x_v1p2 (~17,738) have Cityscapes images; all 8 model dirs already complete in CS-Gen
+- [x] ✅ **Cleaned 6 buggy CS-Gen test results** — All had `overall: {}` (empty). Re-test jobs submitted (6 fgcg_ jobs)
+- [x] ✅ **Submitted 12 test jobs** — 6 cityscapes-gen + 3 cityscapes main + 3 cityscapes ACDC cross-domain
+- [x] ✅ **Submitted 183 Stage 2 training jobs** — Full S2 batch submission
+- [x] ✅ **Updated TODO.md** — Refreshed all status numbers, added ablation study recommendations
 
 ### 2026-02-08
 - [x] ✅ **Repository cleanup:** Archived 7 outdated docs → `docs/archived_20260208/`, 13 obsolete scripts → `archived_scripts_20260208/`
