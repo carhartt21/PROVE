@@ -27,12 +27,10 @@ models that never saw adverse weather conditions during training.
 |---|---|---|---|---|---|---|---|---|---|
 | baseline_clear_day | Baseline Clear Day | - | - | - | - | - | - | - | - |
 | baseline | Baseline Full | 32.1% | - | 32.9% | - | 26.9% | - | +6.0% | - |
-| std_photometric_distort | Standard Aug | 45.5% | - | 49.3% | - | 44.8% | - | +4.5% | - |
-| std_minimal | Standard Aug | 44.9% | - | 49.2% | - | 42.7% | - | +6.5% | - |
-| std_autoaugment | Standard Aug | 37.0% | - | 38.5% | - | 32.2% | - | +6.2% | - |
-| std_cutmix | Standard Aug | 36.9% | - | 38.3% | - | 32.0% | - | +6.3% | - |
-| std_randaugment | Standard Aug | 36.9% | - | 38.2% | - | 31.8% | - | +6.4% | - |
-| std_mixup | Standard Aug | 36.8% | - | 38.4% | - | 31.9% | - | +6.4% | - |
+| std_autoaugment | Standard Aug | 34.9% | - | 35.7% | - | 29.2% | - | +6.5% | - |
+| std_cutmix | Standard Aug | 34.8% | - | 35.7% | - | 29.1% | - | +6.6% | - |
+| std_mixup | Standard Aug | 34.8% | - | 35.6% | - | 29.2% | - | +6.3% | - |
+| std_randaugment | Standard Aug | 34.8% | - | 35.5% | - | 28.9% | - | +6.6% | - |
 
 
 

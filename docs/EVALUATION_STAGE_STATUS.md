@@ -1,6 +1,6 @@
 # Evaluation Stage Status
 
-**Last Updated:** 2026-02-09 (00:30)
+**Last Updated:** 2026-02-09 (13:15)
 
 ---
 
@@ -9,7 +9,7 @@
 > **MixedDataLoader Bug (Jan 28, 2026):** Generated images were **NEVER LOADED** during training.
 > All `gen_*` strategy results from the original training round are **INVALID** — only pipeline augmentation was used.
 >
-> **Bug Status:** ✅ FIXED | **Retraining:** 🔄 In Progress (50.4% Stage 1)
+> **Bug Status:** ✅ FIXED | **Retraining:** 🔄 In Progress (3.6% at 80k — 306 models at 15k/80k need resume)
 >
 > See [BUG_REPORT](BUG_REPORT_CROSS_DATASET_CONTAMINATION.md) for details.
 
@@ -19,19 +19,19 @@
 
 | Stage | Training | Testing | Status |
 |-------|----------|---------|--------|
-| **Stage 1** (retrained) | 🔄 339/672 (50.4%) | 332 results (26 strategies) | 🔄 Active retraining |
-| **Stage 2** (retrained) | 🔶 216/288 (75.0%) — stale | Pending retraining | ⏳ Awaiting Stage 1 |
+| **Stage 1** (retrained) | 🔄 15/420 complete (3.6%), 306 at 15k/80k | 375 results (at 15k checkpoints) | 🔄 Resume jobs submitted |
+| **Stage 2** (retrained) | 🔶 23/448 (5.1%) — stale/pre-fix | 139 results (stale) | ⏳ Awaiting Stage 1 |
 | **Cityscapes Replication** | ✅ Complete (5 models) | ✅ Complete | ✅ Pipeline verified |
-| **Cityscapes-Gen** | 🔄 ~9/108 complete | 0 valid (9 buggy retests pending) | 🔄 Active training |
+| **Cityscapes-Gen** | 🔄 54/96 complete (56.2%) | 23 valid Cityscapes + 54 valid ACDC | 🔄 Active training + retests |
 
-**Active LSF Jobs:** 151 total (7 RUN, 144 PEND)  
-**Job Breakdown:** 30 Stage 1 gen | 61 Cityscapes-gen training | 28 Cityscapes-gen retests | 32 Stage 1 fine-grained tests
+**Active LSF Jobs:** 140 total (9 RUN, ~131 PEND)  
+**Job Breakdown:** 66 Stage 1 (2 RUN + 64 PEND) | 41 Cityscapes-gen training (7 RUN + 34 PEND) | 28 Cityscapes-gen retests | 5 other
 
 ---
 
 ## Stage 1: Clear-Day Domain Training
 
-**Status: 🔄 RETRAINING (50.4% complete)**
+**Status: 🔄 RETRAINING (3.6% at 80k — 306 models need resume from 15k)**
 
 ### Description
 - **Training Domain Filter:** `clear_day` only
@@ -43,10 +43,11 @@
 
 | Metric | Count | Percentage |
 |--------|-------|------------|
-| Training Complete | 339/672 | 🔄 50.4% |
-| Per-Config Complete (4/4 datasets) | 36/111 | 🔶 32.4% |
-| Individual models trained | 327/444 | 🔄 73.6% |
-| Testing Complete | 332 results | — |
+| Training Complete (80k) | 15/420 | 🔄 3.6% |
+| Training at 15k (need resume) | 306/420 | ⚠️ 72.9% |
+| Training empty (not started) | 68/420 | ⏳ 16.2% |
+| Training partial (other) | 31/420 | 🔄 7.4% |
+| Testing Complete | 375 results | — |
 
 #### Per-Dataset Training
 
@@ -126,11 +127,10 @@ The `--fair` flag filters to (dataset, model) configurations where **all 26 stra
 
 | Metric | Count | Percentage |
 |--------|-------|------------|
-| Training Complete | 216/288 | 🔶 75.0% (stale) |
-| BDD10K | 72/72 | ✅ 100% |
-| IDD-AW | 72/72 | ✅ 100% |
-| MapillaryVistas | 0/72 | ❌ 0% |
-| OUTSIDE15k | 72/72 | ✅ 100% |
+| Training Complete (80k) | 23/448 | 🔶 5.1% |
+| Training at 15k (partial) | 112/448 | 🔄 25.0% |
+| Training empty | 302/448 | ⏳ 67.4% |
+| Valid test results | 139 | — |
 
 **Note:** Stage 2 coverage numbers are from the **pre-fix** round (Jan 22). These models used the buggy MixedDataLoader and will need to be retrained once Stage 1 retraining stabilizes. Priority is currently on Stage 1.
 
@@ -171,30 +171,33 @@ See [CITYSCAPES_ACDC_CROSS_DOMAIN_RESULTS.md](CITYSCAPES_ACDC_CROSS_DOMAIN_RESUL
 
 ## Cityscapes-Gen: Strategy Augmentation on Cityscapes
 
-**Status: 🔄 TRAINING IN PROGRESS**
+**Status: 🔄 TRAINING + RETESTING IN PROGRESS**
 
 ### Description
-- **Weights Directory:** `/scratch/aaa_exchange/AWARE/WEIGHTS_CITYSCAPES/`
-- **Iterations:** 160,000
-- **Purpose:** Test all 26 strategies on Cityscapes benchmark, then evaluate cross-domain transfer to ACDC
+- **Weights Directory:** `/scratch/aaa_exchange/AWARE/WEIGHTS_CITYSCAPES_GEN/`
+- **Iterations:** 20,000
+- **Models:** 4 (segformer_mit-b3, pspnet_r50, segnext_mscan-b, mask2former_swin-b)
+- **Strategies:** 24 (1 baseline + 4 std + 19 gen) × 4 models = 96 configs
+- **Purpose:** Test strategies on Cityscapes benchmark, evaluate cross-domain transfer to ACDC
 
 ### Coverage
 
 | Metric | Count | Status |
 |--------|-------|--------|
-| Training configs | 27 × 4 models = 108 | 🔄 ~9 complete |
-| Testing (valid results) | 0/9 | ⚠️ 9 buggy (mIoU < 5%), retests submitted |
-| Active training jobs | 5 RUN + 56 PEND | 🔄 |
-| Retest jobs | 28 PEND | ⏳ |
+| Training complete (20k) | 54/96 (56.2%) | 🔄 |
+| Training partial (running) | 6/96 | 🔄 |
+| Training empty (pending) | 36/96 | ⏳ |
+| Cityscapes test results (valid mIoU) | 23/54 | 🔄 Retests in progress |
+| ACDC test results (valid mIoU) | 54/54 | ✅ |
+| Active training jobs | 7 RUN + 34 PEND | 🔄 |
+| Retest jobs (Cityscapes val→test fix) | 28 PEND | ⏳ |
 
-### Active Running Jobs
-| Job | Strategy | Model | Since |
-|-----|----------|-------|-------|
-| Cityscapes-gen | std_mixup | mask2former | Feb 8 |
-| Cityscapes-gen | std_randaugment | pspnet | Feb 8 |
-| Cityscapes-gen | std_randaugment | mask2former | Feb 8 |
-| Cityscapes-gen | std_randaugment | segnext | Feb 8 |
-| Cityscapes-gen | gen_flux_kontext | pspnet | Feb 8 |
+### ⚠️ Cityscapes Test Bug (Fixed Feb 9)
+- **Bug:** Auto-tests in submitted training jobs used `DATA_ROOT=CITYSCAPES` + `TEST_SPLIT=val` (wrong)
+- **Fix:** Should use `DATA_ROOT=FINAL_SPLITS` + `TEST_SPLIT=test`
+- **Status:** 20/49 retests completed successfully (all valid mIoU ✅), 28 pending
+- **On-disk fix:** All 96 submit_job.sh files corrected via sed
+- **Retest script:** `scripts/retest_cityscapes_gen.py`
 
 ### Cityscapes-Gen Key Files
 - Training Tracker: [TRAINING_TRACKER_CITYSCAPES_GEN.md](TRAINING_TRACKER_CITYSCAPES_GEN.md)
@@ -296,10 +299,17 @@ python analysis_scripts/generate_stage2_leaderboard.py
 
 ## Next Steps
 
-1. **Complete Stage 1 retraining** — 333 remaining configurations (49.6%)
-   - Priority: Complete all models for more datasets to expand fair comparison pool beyond 6 configs
-2. **Cityscapes-Gen training** — 61 jobs queued, 5 running
-   - After completion: retest (28 retests already queued) and generate cross-domain ACDC results
-3. **Stage 2 retraining** — Blocked on Stage 1 completion and cluster availability
-4. **Ratio ablation completion** — Continue training remaining ratio configurations
-5. **Publication preparation** — Finalize figures using `--fair` leaderboard data
+1. **⚠️ CRITICAL: Free /usr/tmp disk space** — Root partition at 100% blocks all job submissions
+   - 51GB in `/usr/tmp/` from other users; needs sysadmin intervention
+   - ~51 more Stage 1 resume jobs need submission once disk space available
+2. **Complete Stage 1 resume cycle** — 306 models at 15k/80k need multiple resume cycles
+   - 36 resume jobs submitted (Feb 9), ~51 more blocked by disk space
+   - Each cycle advances ~15k iters; need ~4 more cycles to reach 80k
+   - Use: `python scripts/batch_training_submission.py --stage 1 --resume -y`
+3. **Cityscapes-Gen completion** — 42 configs still training, 28 retests pending
+   - After completion: re-run `scripts/retest_cityscapes_gen.py` for new completions
+   - Generate cross-domain ACDC results analysis
+4. **Auto-submit Stage 1 tests** — Run after resume cycle produces new completions at 80k
+   - `python scripts/auto_submit_tests.py --dry-run`
+5. **Stage 2 retraining** — Blocked on Stage 1 completion and cluster availability
+6. **Publication preparation** — Finalize figures using `--fair` leaderboard data

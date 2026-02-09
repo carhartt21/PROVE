@@ -48,6 +48,9 @@ unified_training.py → unified_training_config.py → MMSegmentation training
 
 ## Critical Conventions
 
+### ⚠️ Filesystem Rules
+- **NEVER write temporary files to `/tmp`** — the `/tmp` partition has very limited space and fills up easily on the cluster. Use the project directory or `/scratch/aaa_exchange/AWARE/` for any temporary file writes.
+
 ### ⚠️ Label Handling (Common Bug Source)
 - **mmcv.imfrombytes() returns BGR**, not RGB - always account for channel order
 - MapillaryVistas/OUTSIDE15k use RGB-encoded labels requiring `MapillaryRGBToClassId` transform

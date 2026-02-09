@@ -73,8 +73,12 @@ gen_IP2P,outside15k,pspnet_r50_ratio0p50,True,True,True,True,True,True,True,2,5,
 gen_IP2P,outside15k,segformer_mit-b3_ratio0p50,True,True,True,True,True,True,True,2,5,7
 gen_IP2P,outside15k,segnext_mscan-b_ratio0p50,True,True,True,True,True,True,True,2,5,7
 gen_Img2Img,bdd10k,mask2former_swin-b_ratio0p50,True,True,True,True,True,True,True,2,5,7
+gen_Img2Img,bdd10k,segformer_mit-b3_ratio0p50,True,True,True,True,True,True,True,2,5,7
 gen_Img2Img,iddaw,mask2former_swin-b_ratio0p50,True,True,True,True,True,True,True,2,5,7
+gen_Img2Img,iddaw,segformer_mit-b3_ratio0p50,True,True,True,True,True,True,True,2,5,7
+gen_Img2Img,mapillaryvistas,segformer_mit-b3_ratio0p50,True,True,True,True,True,True,True,2,5,7
 gen_Img2Img,mapillaryvistas,segnext_mscan-b_ratio0p50,True,True,True,True,True,True,True,2,5,7
+gen_Img2Img,outside15k,segformer_mit-b3_ratio0p50,True,True,True,True,True,True,True,2,5,7
 gen_LANIT,bdd10k,mask2former_swin-b_ratio0p50,True,True,True,True,True,True,True,2,5,7
 gen_LANIT,bdd10k,pspnet_r50_ratio0p50,True,True,True,True,True,True,True,2,5,7
 gen_LANIT,bdd10k,segformer_mit-b3_ratio0p50,True,True,True,True,True,True,True,2,5,7
@@ -108,6 +112,7 @@ gen_SUSTechGAN,bdd10k,segformer_mit-b3_ratio0p50,True,True,True,True,True,True,T
 gen_SUSTechGAN,bdd10k,segnext_mscan-b_ratio0p50,True,True,True,True,True,True,True,2,5,7
 gen_SUSTechGAN,iddaw,mask2former_swin-b_ratio0p50,True,True,True,True,True,True,True,2,5,7
 gen_SUSTechGAN,iddaw,pspnet_r50_ratio0p50,True,True,True,True,True,True,True,2,5,7
+gen_SUSTechGAN,iddaw,segformer_mit-b3_ratio0p50,True,True,True,True,True,True,True,2,5,7
 gen_SUSTechGAN,iddaw,segnext_mscan-b_ratio0p50,True,True,True,True,True,True,True,2,5,7
 gen_SUSTechGAN,mapillaryvistas,pspnet_r50_ratio0p50,True,True,True,True,True,True,True,2,5,7
 gen_SUSTechGAN,mapillaryvistas,segformer_mit-b3_ratio0p50,True,True,True,True,True,True,True,2,5,7
@@ -130,8 +135,12 @@ gen_TSIT,outside15k,pspnet_r50_ratio0p50,True,True,True,True,True,True,True,2,5,
 gen_TSIT,outside15k,segformer_mit-b3_ratio0p50,True,True,True,True,True,True,True,2,5,7
 gen_TSIT,outside15k,segnext_mscan-b_ratio0p50,True,True,True,True,True,True,True,2,5,7
 gen_UniControl,bdd10k,mask2former_swin-b_ratio0p50,True,True,True,True,True,True,True,2,5,7
+gen_UniControl,bdd10k,segformer_mit-b3_ratio0p50,True,True,True,True,True,True,True,2,5,7
 gen_UniControl,iddaw,mask2former_swin-b_ratio0p50,True,True,True,True,True,True,True,2,5,7
+gen_UniControl,iddaw,segformer_mit-b3_ratio0p50,True,True,True,True,True,True,True,2,5,7
+gen_UniControl,mapillaryvistas,segformer_mit-b3_ratio0p50,True,True,True,True,True,True,True,2,5,7
 gen_UniControl,mapillaryvistas,segnext_mscan-b_ratio0p50,True,True,True,True,True,True,True,2,5,7
+gen_UniControl,outside15k,segformer_mit-b3_ratio0p50,True,True,True,True,True,True,True,2,5,7
 gen_VisualCloze,bdd10k,mask2former_swin-b_ratio0p50,True,True,True,True,True,True,True,2,5,7
 gen_VisualCloze,bdd10k,pspnet_r50_ratio0p50,True,True,True,True,True,True,True,2,5,7
 gen_VisualCloze,bdd10k,segformer_mit-b3_ratio0p50,True,True,True,True,True,True,True,2,5,7
@@ -160,7 +169,11 @@ gen_Weather_Effect_Generator,outside15k,pspnet_r50_ratio0p50,True,True,True,True
 gen_Weather_Effect_Generator,outside15k,segformer_mit-b3_ratio0p50,True,True,True,True,True,True,True,2,5,7
 gen_Weather_Effect_Generator,outside15k,segnext_mscan-b_ratio0p50,True,True,True,True,True,True,True,2,5,7
 gen_albumentations_weather,bdd10k,mask2former_swin-b_ratio0p50,True,True,True,True,True,True,True,2,5,7
+gen_albumentations_weather,bdd10k,segformer_mit-b3_ratio0p50,True,True,True,True,True,True,True,2,5,7
 gen_albumentations_weather,iddaw,mask2former_swin-b_ratio0p50,True,True,True,True,True,True,True,2,5,7
+gen_albumentations_weather,iddaw,segformer_mit-b3_ratio0p50,True,True,True,True,True,True,True,2,5,7
+gen_albumentations_weather,mapillaryvistas,segformer_mit-b3_ratio0p50,True,True,True,True,True,True,True,2,5,7
+gen_albumentations_weather,outside15k,segformer_mit-b3_ratio0p50,True,True,True,True,True,True,True,2,5,7
 gen_augmenters,bdd10k,mask2former_swin-b_ratio0p50,True,True,True,True,True,True,True,2,5,7
 gen_augmenters,bdd10k,pspnet_r50_ratio0p50,True,True,True,True,True,True,True,2,5,7
 gen_augmenters,bdd10k,segformer_mit-b3_ratio0p50,True,True,True,True,True,True,True,2,5,7
@@ -191,7 +204,6 @@ gen_automold,outside15k,segnext_mscan-b_ratio0p50,True,True,True,True,True,True,
 gen_cycleGAN,bdd10k,mask2former_swin-b_ratio0p50,True,True,True,True,True,True,True,2,5,7
 gen_cycleGAN,bdd10k,pspnet_r50_ratio0p50,True,True,True,True,True,True,True,2,5,7
 gen_cycleGAN,bdd10k,segformer_mit-b3_ratio0p50,True,True,True,True,True,True,True,2,5,7
-gen_cycleGAN,bdd10k,segformer_mit-b5_ratio0p50,True,True,True,True,True,True,True,2,5,7
 gen_cycleGAN,bdd10k,segnext_mscan-b_ratio0p50,True,True,True,True,True,True,True,2,5,7
 gen_cycleGAN,iddaw,mask2former_swin-b_ratio0p50,True,True,True,True,True,True,True,2,5,7
 gen_cycleGAN,iddaw,pspnet_r50_ratio0p50,True,True,True,True,True,True,True,2,5,7
@@ -205,12 +217,14 @@ gen_cycleGAN,outside15k,segformer_mit-b3_ratio0p50,True,True,True,True,True,True
 gen_cycleGAN,outside15k,segnext_mscan-b_ratio0p50,True,True,True,True,True,True,True,2,5,7
 gen_cyclediffusion,bdd10k,mask2former_swin-b_ratio0p50,True,True,True,True,True,True,True,2,5,7
 gen_cyclediffusion,bdd10k,pspnet_r50_ratio0p50,True,True,True,True,True,True,True,2,5,7
+gen_cyclediffusion,bdd10k,segformer_mit-b3_ratio0p50,True,True,True,True,True,True,True,2,5,7
 gen_cyclediffusion,iddaw,mask2former_swin-b_ratio0p50,True,True,True,True,True,True,True,2,5,7
+gen_cyclediffusion,iddaw,segformer_mit-b3_ratio0p50,True,True,True,True,True,True,True,2,5,7
 gen_cyclediffusion,mapillaryvistas,segformer_mit-b3_ratio0p50,True,True,True,True,True,True,True,2,5,7
+gen_cyclediffusion,outside15k,segformer_mit-b3_ratio0p50,True,True,True,True,True,True,True,2,5,7
 gen_flux_kontext,bdd10k,mask2former_swin-b_ratio0p50,True,True,True,True,True,True,True,2,5,7
 gen_flux_kontext,bdd10k,pspnet_r50_ratio0p50,True,True,True,True,True,True,True,2,5,7
 gen_flux_kontext,bdd10k,segformer_mit-b3_ratio0p50,True,True,True,True,True,True,True,2,5,7
-gen_flux_kontext,bdd10k,segformer_mit-b5_ratio0p50,True,True,True,True,True,True,True,2,5,7
 gen_flux_kontext,iddaw,mask2former_swin-b_ratio0p50,True,True,True,True,True,True,True,2,5,7
 gen_flux_kontext,iddaw,pspnet_r50_ratio0p50,True,True,True,True,True,True,True,2,5,7
 gen_flux_kontext,iddaw,segformer_mit-b3_ratio0p50,True,True,True,True,True,True,True,2,5,7
@@ -238,7 +252,6 @@ gen_stargan_v2,outside15k,segnext_mscan-b_ratio0p50,True,True,True,True,True,Tru
 gen_step1x_new,bdd10k,mask2former_swin-b_ratio0p50,True,True,True,True,True,True,True,2,5,7
 gen_step1x_new,bdd10k,pspnet_r50_ratio0p50,True,True,True,True,True,True,True,2,5,7
 gen_step1x_new,bdd10k,segformer_mit-b3_ratio0p50,True,True,True,True,True,True,True,2,5,7
-gen_step1x_new,bdd10k,segformer_mit-b5_ratio0p50,True,True,True,True,True,True,True,2,5,7
 gen_step1x_new,iddaw,mask2former_swin-b_ratio0p50,True,True,True,True,True,True,True,2,5,7
 gen_step1x_new,iddaw,pspnet_r50_ratio0p50,True,True,True,True,True,True,True,2,5,7
 gen_step1x_new,iddaw,segformer_mit-b3_ratio0p50,True,True,True,True,True,True,True,2,5,7
@@ -265,7 +278,6 @@ gen_step1x_v1p2,outside15k,segnext_mscan-b_ratio0p50,True,True,True,True,True,Tr
 std_autoaugment,bdd10k,mask2former_swin-b,True,True,True,True,True,True,True,2,5,7
 std_autoaugment,bdd10k,pspnet_r50,True,True,True,True,True,True,True,2,5,7
 std_autoaugment,bdd10k,segformer_mit-b3,True,True,True,True,True,True,True,2,5,7
-std_autoaugment,bdd10k,segformer_mit-b5,True,True,True,True,True,True,True,2,5,7
 std_autoaugment,bdd10k,segnext_mscan-b,True,True,True,True,True,True,True,2,5,7
 std_autoaugment,iddaw,mask2former_swin-b,True,True,True,True,True,True,True,2,5,7
 std_autoaugment,iddaw,pspnet_r50,True,True,True,True,True,True,True,2,5,7
@@ -280,7 +292,6 @@ std_autoaugment,outside15k,segnext_mscan-b,True,True,True,True,True,True,True,2,
 std_cutmix,bdd10k,mask2former_swin-b,True,True,True,True,True,True,True,2,5,7
 std_cutmix,bdd10k,pspnet_r50,True,True,True,True,True,True,True,2,5,7
 std_cutmix,bdd10k,segformer_mit-b3,True,True,True,True,True,True,True,2,5,7
-std_cutmix,bdd10k,segformer_mit-b5,True,True,True,True,True,True,True,2,5,7
 std_cutmix,bdd10k,segnext_mscan-b,True,True,True,True,True,True,True,2,5,7
 std_cutmix,iddaw,mask2former_swin-b,True,True,True,True,True,True,True,2,5,7
 std_cutmix,iddaw,pspnet_r50,True,True,True,True,True,True,True,2,5,7
@@ -292,11 +303,9 @@ std_cutmix,mapillaryvistas,segnext_mscan-b,True,True,True,True,True,True,True,2,
 std_cutmix,outside15k,pspnet_r50,True,True,True,True,True,True,True,2,5,7
 std_cutmix,outside15k,segformer_mit-b3,True,True,True,True,True,True,True,2,5,7
 std_cutmix,outside15k,segnext_mscan-b,True,True,True,True,True,True,True,2,5,7
-std_minimal,bdd10k,segformer_mit-b5,True,True,True,True,True,True,True,2,5,7
 std_mixup,bdd10k,mask2former_swin-b,True,True,True,True,True,True,True,2,5,7
 std_mixup,bdd10k,pspnet_r50,True,True,True,True,True,True,True,2,5,7
 std_mixup,bdd10k,segformer_mit-b3,True,True,True,True,True,True,True,2,5,7
-std_mixup,bdd10k,segformer_mit-b5,True,True,True,True,True,True,True,2,5,7
 std_mixup,bdd10k,segnext_mscan-b,True,True,True,True,True,True,True,2,5,7
 std_mixup,iddaw,mask2former_swin-b,True,True,True,True,True,True,True,2,5,7
 std_mixup,iddaw,pspnet_r50,True,True,True,True,True,True,True,2,5,7
@@ -308,11 +317,9 @@ std_mixup,mapillaryvistas,segnext_mscan-b,True,True,True,True,True,True,True,2,5
 std_mixup,outside15k,pspnet_r50,True,True,True,True,True,True,True,2,5,7
 std_mixup,outside15k,segformer_mit-b3,True,True,True,True,True,True,True,2,5,7
 std_mixup,outside15k,segnext_mscan-b,True,True,True,True,True,True,True,2,5,7
-std_photometric_distort,bdd10k,segformer_mit-b5,True,True,True,True,True,True,True,2,5,7
 std_randaugment,bdd10k,mask2former_swin-b,True,True,True,True,True,True,True,2,5,7
 std_randaugment,bdd10k,pspnet_r50,True,True,True,True,True,True,True,2,5,7
 std_randaugment,bdd10k,segformer_mit-b3,True,True,True,True,True,True,True,2,5,7
-std_randaugment,bdd10k,segformer_mit-b5,True,True,True,True,True,True,True,2,5,7
 std_randaugment,bdd10k,segnext_mscan-b,True,True,True,True,True,True,True,2,5,7
 std_randaugment,iddaw,mask2former_swin-b,True,True,True,True,True,True,True,2,5,7
 std_randaugment,iddaw,pspnet_r50,True,True,True,True,True,True,True,2,5,7

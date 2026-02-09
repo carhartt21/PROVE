@@ -21,9 +21,7 @@ Shows mIoU improvement over baseline_clear_day for each dataset. Positive = bett
 | baseline | Baseline Full | - | - | - | - | - | - | - |
 | std_autoaugment | Standard Aug | - | - | - | - | - | - | - |
 | std_cutmix | Standard Aug | - | - | - | - | - | - | - |
-| std_minimal | Standard Aug | - | - | - | - | - | - | - |
 | std_mixup | Standard Aug | - | - | - | - | - | - | - |
-| std_photometric_distort | Standard Aug | - | - | - | - | - | - | - |
 | std_randaugment | Standard Aug | - | - | - | - | - | - | - |
 
 ---
@@ -37,9 +35,7 @@ Shows mIoU improvement over baseline_clear_day for each weather domain. Normal =
 | baseline | Baseline Full | - | - | - | - | - | - | - | - | - | - |
 | std_autoaugment | Standard Aug | - | - | - | - | - | - | - | - | - | - |
 | std_cutmix | Standard Aug | - | - | - | - | - | - | - | - | - | - |
-| std_minimal | Standard Aug | - | - | - | - | - | - | - | - | - | - |
 | std_mixup | Standard Aug | - | - | - | - | - | - | - | - | - | - |
-| std_photometric_distort | Standard Aug | - | - | - | - | - | - | - | - | - | - |
 | std_randaugment | Standard Aug | - | - | - | - | - | - | - | - | - | - |
 
 ---
