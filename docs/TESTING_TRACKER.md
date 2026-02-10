@@ -1,6 +1,6 @@
 # Testing Progress Tracker
 
-**Last Updated:** 2026-02-09 21:41
+**Last Updated:** 2026-02-10 09:52
 
 
 This document tracks the progress of fine-grained testing for trained models.
@@ -52,16 +52,16 @@ This document tracks the progress of fine-grained testing for trained models.
 
 | Rank | Strategy | Avg mIoU | Best Dataset | Best mIoU | Datasets |
 |------|----------|----------|--------------|-----------|----------|
-| 🥇 | gen_VisualCloze | 42.4 | BDD10k | 51.6 | 4/4 |
-| 🥈 | gen_stargan_v2 | 42.3 | BDD10k | 50.9 | 4/4 |
-| 🥉 | gen_UniControl | 42.2 | BDD10k | 50.3 | 4/4 |
-| 4. | gen_Attribute_Hallucination | 42.2 | BDD10k | 50.5 | 4/4 |
-| 5. | gen_LANIT | 42.2 | BDD10k | 50.1 | 4/4 |
-| 6. | gen_Qwen_Image_Edit | 42.1 | BDD10k | 49.5 | 4/4 |
-| 7. | gen_step1x_new | 42.1 | BDD10k | 49.9 | 4/4 |
-| 8. | gen_CNetSeg | 42.1 | BDD10k | 49.8 | 4/4 |
-| 9. | gen_automold | 42.1 | BDD10k | 49.5 | 4/4 |
-| 10. | gen_TSIT | 42.0 | BDD10k | 50.7 | 4/4 |
+| 🥇 | gen_Img2Img | 42.8 | BDD10k | 51.7 | 4/4 |
+| 🥈 | gen_VisualCloze | 42.5 | BDD10k | 51.6 | 4/4 |
+| 🥉 | gen_UniControl | 42.5 | BDD10k | 50.3 | 4/4 |
+| 4. | gen_stargan_v2 | 42.3 | BDD10k | 50.9 | 4/4 |
+| 5. | gen_Attribute_Hallucination | 42.2 | BDD10k | 50.5 | 4/4 |
+| 6. | gen_LANIT | 42.2 | BDD10k | 50.1 | 4/4 |
+| 7. | gen_Qwen_Image_Edit | 42.1 | BDD10k | 49.5 | 4/4 |
+| 8. | gen_step1x_new | 42.1 | BDD10k | 49.9 | 4/4 |
+| 9. | gen_CNetSeg | 42.1 | BDD10k | 49.8 | 4/4 |
+| 10. | gen_automold | 42.1 | BDD10k | 49.5 | 4/4 |
 
 
 ### Generative Image Augmentation Strategies
@@ -76,7 +76,7 @@ This document tracks the progress of fine-grained testing for trained models.
 | gen_cyclediffusion | 48.9 | 39.9 | 34.7 | 43.1 | 41.6 |
 | gen_cycleGAN | 49.6 | 40.4 | 35.0 | 43.1 | 42.0 |
 | gen_flux_kontext | 48.7 | 40.4 | 35.2 | 43.2 | 41.9 |
-| gen_Img2Img | 46.7 | 40.1 | 34.8 | 43.0 | 41.2 |
+| gen_Img2Img | 51.7 | 41.5 | 34.8 | 43.0 | 42.8 |
 | gen_IP2P | 49.0 | 40.4 | 34.8 | 43.5 | 41.9 |
 | gen_LANIT | 50.1 | 40.2 | 35.1 | 43.3 | 42.2 |
 | gen_Qwen_Image_Edit | 49.5 | 40.4 | 35.1 | 43.5 | 42.1 |
@@ -85,10 +85,10 @@ This document tracks the progress of fine-grained testing for trained models.
 | gen_step1x_v1p2 | 47.0 | 40.1 | 34.7 | 42.9 | 41.2 |
 | gen_SUSTechGAN | 49.3 | 40.6 | 34.7 | 42.9 | 41.9 |
 | gen_TSIT | 50.7 | 40.0 | 34.5 | 43.0 | 42.0 |
-| gen_UniControl | 50.3 | 40.3 | 35.1 | 43.1 | 42.2 |
-| gen_VisualCloze | 51.6 | 40.4 | 34.9 | 42.7 | 42.4 |
+| gen_UniControl | 50.3 | 41.3 | 35.1 | 43.1 | 42.5 |
+| gen_VisualCloze | 51.6 | 40.7 | 34.9 | 42.7 | 42.5 |
 | gen_Weather_Effect_Generator | 48.8 | 39.8 | 35.2 | 42.9 | 41.7 |
-| gen_albumentations_weather | 46.4 | 39.9 | 34.7 | 42.8 | 41.0 |
+| gen_albumentations_weather | 46.5 | 40.0 | 34.7 | 42.8 | 41.0 |
 
 ### Standard Augmentation Strategies
 

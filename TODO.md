@@ -1,55 +1,43 @@
 # PROVE Project TODO
 
-**Last Updated:** 2026-02-10 (00:40)
+**Last Updated:** 2026-02-10 (12:15)
 
 ---
 
-## 📊 Current Status (2026-02-10 00:40)
+## 📊 Current Status (2026-02-10 12:15)
 
 ### Queue Summary
 | User | Category | RUN | PEND | Total |
 |------|----------|----:|-----:|------:|
-| mima2416 | Stage 1 training | 4 | 72 | 76 |
+| mima2416 | Stage 1 training | 2 | 48 | 50 |
 | mima2416 | Stage 2 training | 0 | 183 | 183 |
-| mima2416 | Cityscapes-gen training | 6 | 34 | 40 |
+| mima2416 | Cityscapes-gen training | 6 | 15 | 21 |
 | mima2416 | Testing (fg_ S1) | 0 | 4 | 4 |
 | mima2416 | Testing (fgcg_ CS-Gen) | 0 | 6 | 6 |
-| mima2416 | Testing (fgcs_ CS) | 0 | 6 | 6 |
-| **mima2416 subtotal** | | **10** | **305** | **315** |
-| chge7185 | Other | 6 | 3 | 9 |
-| **Grand Total** | | **16** | **308** | **324** |
+| mima2416 | Testing (fgcs_ CS-Gen→CS) | 0 | 6 | 6 |
+| **mima2416 subtotal** | | **8** | **262** | **270** |
 
 ### Training Progress
-| Stage | Complete | In Queue | Remaining | Total Target | Coverage |
-|-------|----------|----------|-----------|--------------|----------|
-| Stage 1 (15k) | 351 | 76 | 0¹ | 416 | 84.4% |
-| Stage 2 (15k) | 137 | 183 | 109² | 416 | 32.9% |
-| Cityscapes-Gen (20k) | 69 | 40 | ~1 | ~110 | 62.7% |
-| Cityscapes (20k) | 3 | 0 | 5 | 8 | 37.5% |
-
-¹ 56 remaining jobs already submitted (76 in queue minus running)
-² 292 total remaining − 183 already queued
-All Stage 1 missing jobs are mask2former (56 configs across mapillaryvistas + outside15k).
+| Stage | Complete (models) | In Queue | Total Target | Coverage |
+|-------|-------------------|----------|--------------|----------|
+| Stage 1 (15k) | 353/444 | 50 (2 RUN, 48 PEND) | 444 | 79.5% |
+| Stage 2 (15k) | 113/444 | 183 (0 RUN, 183 PEND) | 444 | 25.5% |
+| Cityscapes-Gen (20k) | 91/108 | 21 (6 RUN, 15 PEND) | 108 | 84.3% |
 
 ### Testing Progress
-| Stage | Tested | Pending | Notes |
-|-------|--------|---------|-------|
-| Stage 1 | 405 | 0 | Fully tested (includes partially trained models) |
-| Stage 2 | 139 | ~0 | All completed training tested |
-| Cityscapes-Gen (Cityscapes) | 64 | 6 | 6 retest jobs queued (empty results cleaned) |
-| Cityscapes-Gen (ACDC) | 69 | 0 | Fully tested |
-| Cityscapes (Cityscapes) | 0 | 3 | 3 baseline test jobs queued |
-| Cityscapes (ACDC) | 0 | 3 | 3 baseline ACDC test jobs queued |
+| Stage | Valid Tests | Buggy | Missing | Notes |
+|-------|------------|-------|---------|-------|
+| Stage 1 | 360 | 0 | 5 | 2 pending in queue |
+| Stage 2 | 132 | 0 | 1 | All completed training tested |
+| Cityscapes-Gen (Cityscapes) | CS valid | 13 buggy | 10 missing | 6 retest jobs queued |
+| Cityscapes-Gen (ACDC) | 163 total valid (CS+ACDC) | — | — | 6 CS retest jobs queued |
 
-### Strategy Completion (Stage 1 — per strategy, target: ~16 models each)
-| Status | Count | Detail |
-|--------|-------|--------|
-| 15/16 | 1 | baseline (15/40 total configs, but 40 includes old/backup) |
-| 14/16 | 17 | Most gen_* and all std_* strategies |
-| 13/16 | 6 | gen_VisualCloze, gen_step1x_new/v1p2, gen_LANIT, gen_flux_kontext, gen_automold, gen_albumentations_weather |
-| 12/16 | 3 | gen_cyclediffusion, gen_Img2Img, gen_UniControl |
-
-Key bottleneck: mask2former_swin-b on mapillaryvistas + outside15k (56 jobs in queue).
+### Strategy Leaderboard Highlights
+| Stage | Top Strategy | mIoU | Baseline mIoU | Strategies > Baseline |
+|-------|-------------|------|---------------|----------------------|
+| Stage 1 | gen_Img2Img | 39.99% | 33.63% | 25/25 (all!) |
+| Stage 2 | std_randaugment | 42.01% | 40.80% | 16/19 |
+| Cityscapes-Gen | gen_augmenters | 52.09% | 50.85% | 4/24 |
 
 ---
 
@@ -82,12 +70,22 @@ python scripts/batch_training_submission.py --stage cityscapes-gen -y
 ```
 
 ### 4. 🟡 MEDIUM: Auto-Submit Tests as Training Completes
-Use the consolidated test submission script for all stages:
+Use the batch test submission script for all stages:
 ```bash
+# NEW: Use batch_test_submission.py (replaces auto_submit_tests.py for cityscapes-gen)
+python scripts/batch_test_submission.py --stage cityscapes-gen --dry-run
+python scripts/batch_test_submission.py --stage cityscapes-gen -y
+
+# Legacy: auto_submit_tests.py still works for Stage 1/2
 python scripts/auto_submit_tests.py --stage 1 --dry-run
 python scripts/auto_submit_tests.py --stage 2 --dry-run
-python scripts/auto_submit_tests.py --stage cityscapes --dry-run
-python scripts/auto_submit_tests.py --stage cityscapes-gen --dry-run
+```
+
+### 4b. 🟡 MEDIUM: Update All Trackers (use --stage all)
+```bash
+python scripts/update_training_tracker.py --stage all
+python scripts/update_testing_tracker.py --stage all
+python analysis_scripts/generate_strategy_leaderboard.py --stage all
 ```
 
 ### 5. 🟡 MEDIUM: Complete Cityscapes Pipeline Verification
@@ -724,6 +722,10 @@ Cityscapes replication with correct pipeline achieved expected results:
 ## ✅ Recently Completed
 
 ### 2026-02-10
+- [x] ✅ **Added `--stage all` to tracker/leaderboard scripts** — `update_training_tracker.py`, `update_testing_tracker.py`, and `generate_strategy_leaderboard.py` now support `--stage all` to run all stages at once
+- [x] ✅ **Created `batch_test_submission.py`** — Comprehensive test job submission script analogous to `batch_training_submission.py` with pre-flight checks, duplicate detection, proper GPU specs
+- [x] ✅ **Submitted 16 Cityscapes-Gen test retests** — Jobs 2269727-2269803 via new batch_test_submission.py
+- [x] ✅ **Refreshed all trackers and leaderboards** — Used `--stage all` for all 3 scripts
 - [x] ✅ **Consolidated leaderboard scripts** — Unified `generate_stage1_leaderboard.py` + `generate_stage2_leaderboard.py` into `generate_strategy_leaderboard.py --stage {1,2,cityscapes-gen}` (commit `74670b9`)
 - [x] ✅ **Fixed mask2former pre-flight detection** — Removed incorrect `MODEL_SPECIFIC_MAX_ITERS` override that masked 45 S1 + 2 S2 completed trainings (commit `babff1d`)
 - [x] ✅ **Consolidated test submission scripts** — Unified `auto_submit_tests.py` + `auto_submit_tests_stage2.py` into single script with `--stage {1,2,cityscapes,cityscapes-gen}` + ACDC cross-domain support (commit `0109bb6`)

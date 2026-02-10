@@ -15,6 +15,7 @@ Usage:
     python generate_strategy_leaderboard.py --stage 1
     python generate_strategy_leaderboard.py --stage 2
     python generate_strategy_leaderboard.py --stage cityscapes-gen
+    python generate_strategy_leaderboard.py --stage all
     python generate_strategy_leaderboard.py --stage 1 --metric aAcc --fair
     python generate_strategy_leaderboard.py --stage 2 --no-refresh --verbose
 """
@@ -885,8 +886,8 @@ Examples:
   %(prog)s --stage 2 --no-refresh              # Use cached results
 """
     )
-    parser.add_argument('--stage', required=True, choices=['1', '2', 'cityscapes-gen'],
-                        help='Training stage to generate leaderboard for')
+    parser.add_argument('--stage', required=True, choices=['1', '2', 'cityscapes-gen', 'all'],
+                        help='Training stage to generate leaderboard for (all=run all stages)')
     parser.add_argument('--metric', type=str, default='mIoU', choices=VALID_METRICS,
                         help='Metric for ranking (default: mIoU)')
     parser.add_argument('--fair', action='store_true',
@@ -902,9 +903,23 @@ Examples:
 
     args = parser.parse_args()
 
-    # Resolve stage config
-    stage_config = STAGE_CONFIGS[args.stage]
+    all_stages = ['1', '2', 'cityscapes-gen']
+    stages = all_stages if args.stage == 'all' else [args.stage]
+    
+    for stage in stages:
+        if len(stages) > 1:
+            print(f"\n{'#' * 70}")
+            print(f"# STAGE {stage.upper()}")
+            print(f"{'#' * 70}")
+        run_stage(stage, args)
+
+
+def run_stage(stage, args):
+    """Run leaderboard generation for a single stage."""
     metric = args.metric
+
+    # Resolve stage config
+    stage_config = STAGE_CONFIGS[stage]
     weights_root = Path(args.weights_root) if args.weights_root else Path(stage_config['weights_root'])
     output_dir = Path(args.output_dir) if args.output_dir else (PROJECT_ROOT / 'result_figures' / 'leaderboard')
 

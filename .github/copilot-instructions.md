@@ -151,7 +151,12 @@ python unified_training.py --dataset MapillaryVistas --model deeplabv3plus_r50 \
 python fine_grained_test.py --config /path/config.py --checkpoint /path/iter_80000.pth \
     --dataset BDD10k --output-dir /path/test_results_detailed
 
-# Auto-submit missing tests (always dry-run first!)
+# Batch test submission (PREFERRED - analogous to batch_training_submission.py)
+python scripts/batch_test_submission.py --stage cityscapes-gen --dry-run
+python scripts/batch_test_submission.py --stage cityscapes-gen -y
+python scripts/batch_test_submission.py --stage cityscapes-gen --test-type acdc --dry-run
+
+# Auto-submit missing tests (legacy, still works for Stage 1/2)
 python scripts/auto_submit_tests.py --stage 1 --dry-run
 python scripts/auto_submit_tests.py --stage 2 --dry-run
 python scripts/auto_submit_tests.py --stage cityscapes --dry-run
@@ -161,6 +166,12 @@ python scripts/auto_submit_tests.py --stage 1 --limit 20
 
 ### Update Trackers (after job completion)
 ```bash
+# Run all stages at once (PREFERRED)
+python scripts/update_training_tracker.py --stage all
+python scripts/update_testing_tracker.py --stage all
+python analysis_scripts/generate_strategy_leaderboard.py --stage all
+
+# Or run individual stages
 python scripts/update_training_tracker.py --stage 1
 python scripts/update_training_tracker.py --stage 2
 python scripts/update_testing_tracker.py --stage 1
@@ -178,7 +189,8 @@ python scripts/test_cityscapes_replication_on_acdc.py --submit-jobs  # Submit LS
 
 | File | Purpose |
 |------|---------|
-| `scripts/batch_training_submission.py` | **PREFERRED** for batch job submission - handles locks, checks, parameters |
+| `scripts/batch_training_submission.py` | **PREFERRED** for batch training job submission - handles locks, checks, parameters |
+| `scripts/batch_test_submission.py` | **PREFERRED** for batch test job submission - pre-flight checks, duplicate detection |
 | `scripts/test_cityscapes_replication_on_acdc.py` | Cross-domain testing (Cityscapes → ACDC) with per-domain breakdown |
 | `unified_training.py` | Main training entry point, handles job submission |
 | `fine_grained_test.py` | Per-domain/per-class evaluation with optimized inference |
