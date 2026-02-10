@@ -1,6 +1,6 @@
 # Testing Progress Tracker
 
-**Last Updated:** 2026-02-09 21:48
+**Last Updated:** 2026-02-10 09:52
 
 
 This document tracks the progress of fine-grained testing for trained models.
@@ -66,26 +66,26 @@ This document tracks the progress of fine-grained testing for trained models.
 
 | Strategy | Cityscapes | ACDC (cross-domain) | Avg |
 |----------|-------:|-------:|-------:|
-| gen_Attribute_Hallucination | 63.0 | 45.3 | 54.1 |
+| gen_Attribute_Hallucination | 63.0 | 51.9 | 57.5 |
 | gen_augmenters | 64.0 | 47.1 | 55.5 |
 | gen_automold | 66.0 | 50.3 | 58.2 |
-| gen_CNetSeg | 62.4 | 43.7 | 53.1 |
-| gen_CUT | 62.1 | 45.1 | 53.6 |
+| gen_CNetSeg | 64.3 | 44.3 | 54.3 |
+| gen_CUT | 62.1 | 52.7 | 57.4 |
 | gen_cyclediffusion | 63.3 | 52.3 | 57.8 |
-| gen_cycleGAN | ⏳ | ⏳ | - |
+| gen_cycleGAN | 63.7 | 47.2 | 55.4 |
 | gen_flux_kontext | 68.7 | 51.8 | 60.3 |
-| gen_Img2Img | 63.7 | 46.1 | 54.9 |
-| gen_IP2P | 63.5 | 44.4 | 53.9 |
+| gen_Img2Img | 64.0 | 51.5 | 57.8 |
+| gen_IP2P | 63.5 | 51.5 | 57.5 |
 | gen_LANIT | ⏳ | ⏳ | - |
-| gen_Qwen_Image_Edit | 63.9 | 45.9 | 54.9 |
+| gen_Qwen_Image_Edit | 64.3 | 50.9 | 57.6 |
 | gen_stargan_v2 | 63.1 | 45.5 | 54.3 |
 | gen_step1x_new | 66.6 | 51.0 | 58.8 |
 | gen_step1x_v1p2 | 69.7 | 51.0 | 60.3 |
 | gen_SUSTechGAN | 63.8 | 50.9 | 57.3 |
-| gen_TSIT | 63.5 | 43.9 | 53.7 |
-| gen_UniControl | 62.6 | 46.1 | 54.3 |
+| gen_TSIT | 63.6 | 44.8 | 54.2 |
+| gen_UniControl | 62.6 | 51.1 | 56.8 |
 | gen_VisualCloze | 69.8 | 51.6 | 60.7 |
-| gen_Weather_Effect_Generator | 63.5 | 46.5 | 55.0 |
+| gen_Weather_Effect_Generator | 63.9 | 46.5 | 55.2 |
 | gen_albumentations_weather | 67.8 | 50.3 | 59.0 |
 
 ### Standard Augmentation Strategies
@@ -124,7 +124,7 @@ This document tracks the progress of fine-grained testing for trained models.
 | gen_CNetSeg | ✅ | ✅ |
 | gen_CUT | ✅ | ✅ |
 | gen_cyclediffusion | ✅ | ✅ |
-| gen_cycleGAN | ⏳ | ⏳ |
+| gen_cycleGAN | ✅ | ✅ |
 | gen_flux_kontext | ✅ | ✅ |
 | gen_Img2Img | ✅ | ✅ |
 | gen_IP2P | ✅ | ✅ |
@@ -159,8 +159,8 @@ This document tracks the progress of fine-grained testing for trained models.
 
 | Dataset | Complete | Running | Pending | Skip |
 |---------|----------|---------|---------|------|
-| Cityscapes | 24 | 0 | 4 | 0 |
-| ACDC (cross-domain) | 24 | 0 | 4 | 0 |
+| Cityscapes | 25 | 0 | 3 | 0 |
+| ACDC (cross-domain) | 25 | 0 | 3 | 0 |
 
 ---
 

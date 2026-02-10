@@ -105,6 +105,7 @@ COVERAGE_PATH_CITYSCAPES_GEN = PROJECT_ROOT / 'docs' / 'TESTING_COVERAGE_CITYSCA
 TEST_RESULTS_CSV = PROJECT_ROOT / 'test_results_summary.csv'
 
 DATASETS = ['bdd10k', 'idd-aw', 'mapillaryvistas', 'outside15k']
+DATASETS_DEFAULT = list(DATASETS)  # Save original for --stage all reset
 DATASETS_CITYSCAPES_GEN = ['cityscapes', 'acdc']
 DATASET_DISPLAY = {
     'bdd10k': 'BDD10k',
@@ -1264,31 +1265,44 @@ def main():
     parser = argparse.ArgumentParser(description='Update testing progress tracker')
     parser.add_argument('--verbose', '-v', action='store_true', help='Show detailed status')
     parser.add_argument('--coverage-only', action='store_true', help='Only generate TESTING_COVERAGE.md')
-    parser.add_argument('--stage', type=str, choices=['1', '2', 'cityscapes-gen'], default='1',
-                       help='Stage to check (1=clear_day training, 2=all_domains training, cityscapes-gen=cityscapes generative)')
+    parser.add_argument('--stage', type=str, choices=['1', '2', 'cityscapes-gen', 'all'], default='1',
+                       help='Stage to check (1=clear_day training, 2=all_domains training, cityscapes-gen, all=run all stages)')
     args = parser.parse_args()
     
+    all_stages = ['1', '2', 'cityscapes-gen']
+    stages = all_stages if args.stage == 'all' else [args.stage]
+    
+    for stage in stages:
+        if len(stages) > 1:
+            print(f"\n{'#' * 70}")
+            print(f"# STAGE {stage.upper()}")
+            print(f"{'#' * 70}")
+        run_stage(stage, verbose=args.verbose, coverage_only=args.coverage_only)
+
+
+def run_stage(stage, verbose=False, coverage_only=False):
+    """Run testing tracker for a single stage."""
     # Declare global variables at the start of the function
     global WEIGHTS_ROOT, TRACKER_PATH, DATASETS
     
     # Select paths based on stage
-    if args.stage == 'cityscapes-gen':
+    if stage == 'cityscapes-gen':
         weights_root = WEIGHTS_ROOT_CITYSCAPES_GEN
         tracker_path = TRACKER_PATH_CITYSCAPES_GEN
         coverage_path = COVERAGE_PATH_CITYSCAPES_GEN
         datasets = DATASETS_CITYSCAPES_GEN
         print(f"Cityscapes-gen mode: Using {weights_root}")
-    elif args.stage == '2':
+    elif stage == '2':
         weights_root = WEIGHTS_ROOT_STAGE2
         tracker_path = TRACKER_PATH_STAGE2
         coverage_path = COVERAGE_PATH_STAGE2
-        datasets = DATASETS
+        datasets = DATASETS_DEFAULT
         print(f"Stage 2 mode: Using {weights_root}")
     else:
-        weights_root = WEIGHTS_ROOT
-        tracker_path = TRACKER_PATH
+        weights_root = Path(os.environ.get('PROVE_WEIGHTS_ROOT', '/scratch/aaa_exchange/AWARE/WEIGHTS'))
+        tracker_path = PROJECT_ROOT / 'docs' / 'TESTING_TRACKER.md'
         coverage_path = COVERAGE_PATH
-        datasets = DATASETS
+        datasets = DATASETS_DEFAULT
         print(f"Stage 1 mode: Using {weights_root}")
     
     # Override global variables for functions that use them
@@ -1297,9 +1311,9 @@ def main():
     DATASETS = datasets
     
     print("\nCollecting test status...")
-    status_matrix, summary, retest_jobs, job_counts = collect_test_status(verbose=args.verbose)
+    status_matrix, summary, retest_jobs, job_counts = collect_test_status(verbose=verbose)
     
-    if not args.coverage_only:
+    if not coverage_only:
         print(f"\nUpdating {tracker_path.name}...")
         update_tracker(status_matrix, summary, retest_jobs, job_counts)
     

@@ -33,6 +33,7 @@ WEIGHTS_ROOT_STAGE2 = Path(os.environ.get('PROVE_WEIGHTS_ROOT_STAGE2', '/scratch
 WEIGHTS_ROOT_CITYSCAPES_GEN = Path('/scratch/aaa_exchange/AWARE/WEIGHTS_CITYSCAPES_GEN')
 TRACKER_PATH = PROJECT_ROOT / 'docs' / 'TRAINING_TRACKER.md'
 DATASETS = ['bdd10k', 'idd-aw', 'mapillaryvistas', 'outside15k']
+DATASETS_DEFAULT = list(DATASETS)  # Save original for --stage all reset
 DATASETS_CITYSCAPES_GEN = ['cityscapes']
 DATASET_DISPLAY = {
     'bdd10k': 'BDD10k',
@@ -1325,37 +1326,27 @@ def print_summary(stats):
             print(f"    Failed:   {data['model_failed']}")
 
 
-def main():
-    parser = argparse.ArgumentParser(description='Update retraining progress tracker')
-    parser.add_argument('--stage', type=str, default='1', choices=['1', '2', 'cityscapes-gen'],
-                        help='Stage to check (1=clear_day, 2=all_domains, cityscapes-gen)')
-    parser.add_argument('--verbose', '-v', action='store_true',
-                        help='Show detailed status for all combinations')
-    parser.add_argument('--no-update', action='store_true',
-                        help='Only show status without updating tracker')
-    parser.add_argument('--coverage-report', '-c', action='store_true',
-                        help='Generate detailed coverage report showing each (strategy, dataset, model)')
-    parser.add_argument('--output', '-o', type=str, default=None,
-                        help='Output file for coverage report (default: docs/TRAINING_COVERAGE_STAGE1.md or STAGE2.md)')
-    args = parser.parse_args()
-    
+def run_stage(stage, verbose=False, no_update=False, coverage_report=False, output=None):
+    """Run training tracker for a single stage."""
     stage_map = {'1': 'clear_day', '2': 'all_domains', 'cityscapes-gen': 'cityscapes_gen'}
-    domain_filter = stage_map[args.stage]
+    domain_filter = stage_map[stage]
     
     # Override global DATASETS for cityscapes-gen
     global DATASETS
     if domain_filter == 'cityscapes_gen':
         DATASETS = DATASETS_CITYSCAPES_GEN
+    else:
+        DATASETS = DATASETS_DEFAULT
     
     # Coverage report mode
-    if args.coverage_report:
-        print(f"Generating detailed coverage report for Stage {args.stage} ({domain_filter})...")
-        coverage, summary = collect_detailed_coverage(domain_filter, args.verbose)
+    if coverage_report:
+        print(f"Generating detailed coverage report for Stage {stage} ({domain_filter})...")
+        coverage, summary = collect_detailed_coverage(domain_filter, verbose)
         
-        output_file = args.output
+        output_file = output
         if output_file is None:
             # Use stage-specific filenames
-            stage_suffix = {'1': 'STAGE1', '2': 'STAGE2', 'cityscapes-gen': 'CITYSCAPES_GEN'}[args.stage]
+            stage_suffix = {'1': 'STAGE1', '2': 'STAGE2', 'cityscapes-gen': 'CITYSCAPES_GEN'}[stage]
             output_file = PROJECT_ROOT / 'docs' / f'TRAINING_COVERAGE_{stage_suffix}.md'
         
         report = generate_coverage_report(coverage, summary, output_file)
@@ -1373,14 +1364,14 @@ def main():
         print(f"  ❌ Failed:             {summary['failed']} ({summary['failed']/total*100:.1f}%)")
         return
     
-    print(f"Checking Stage {args.stage} ({domain_filter}) status...")
-    status_matrix, summary = collect_status(domain_filter, args.verbose)
+    print(f"Checking Stage {stage} ({domain_filter}) status...")
+    status_matrix, summary = collect_status(domain_filter, verbose)
     
     # Use stage-specific tracker file
-    stage_suffix = {'1': 'STAGE1', '2': 'STAGE2', 'cityscapes-gen': 'CITYSCAPES_GEN'}[args.stage]
+    stage_suffix = {'1': 'STAGE1', '2': 'STAGE2', 'cityscapes-gen': 'CITYSCAPES_GEN'}[stage]
     tracker_path = PROJECT_ROOT / 'docs' / f'TRAINING_TRACKER_{stage_suffix}.md'
     
-    if not args.no_update:
+    if not no_update:
         print(f"\nUpdating tracker: {tracker_path}")
         stats = update_tracker(status_matrix, summary, domain_filter, tracker_path)
         print_summary(stats)
@@ -1391,6 +1382,34 @@ def main():
         print(f"  Running:  {summary['running']}")
         print(f"  Pending:  {summary['pending']}")
         print(f"  Failed:   {summary['failed']}")
+
+
+ALL_STAGES = ['1', '2', 'cityscapes-gen']
+
+
+def main():
+    parser = argparse.ArgumentParser(description='Update retraining progress tracker')
+    parser.add_argument('--stage', type=str, default='1', choices=['1', '2', 'cityscapes-gen', 'all'],
+                        help='Stage to check (1=clear_day, 2=all_domains, cityscapes-gen, all=run all stages)')
+    parser.add_argument('--verbose', '-v', action='store_true',
+                        help='Show detailed status for all combinations')
+    parser.add_argument('--no-update', action='store_true',
+                        help='Only show status without updating tracker')
+    parser.add_argument('--coverage-report', '-c', action='store_true',
+                        help='Generate detailed coverage report showing each (strategy, dataset, model)')
+    parser.add_argument('--output', '-o', type=str, default=None,
+                        help='Output file for coverage report (default: docs/TRAINING_COVERAGE_STAGE1.md or STAGE2.md)')
+    args = parser.parse_args()
+    
+    stages = ALL_STAGES if args.stage == 'all' else [args.stage]
+    
+    for i, stage in enumerate(stages):
+        if len(stages) > 1:
+            print(f"\n{'#' * 70}")
+            print(f"# STAGE {stage.upper()}")
+            print(f"{'#' * 70}")
+        run_stage(stage, verbose=args.verbose, no_update=args.no_update,
+                  coverage_report=args.coverage_report, output=args.output)
 
 
 if __name__ == '__main__':

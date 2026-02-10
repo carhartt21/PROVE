@@ -1,48 +1,48 @@
 # Testing Coverage Report
 
-**Generated:** 2026-02-09 21:41
+**Generated:** 2026-02-10 09:52
 
 ## Summary
 
 | Status | Count | Percentage |
 |--------|------:|----------:|
-| ✅ Complete (valid mIoU) | 351 | 97.5% |
+| ✅ Complete (valid mIoU) | 360 | 98.1% |
 | 🔄 Running | 0 | 0.0% |
-| ⏳ Pending (in queue) | 2 | 0.6% |
+| ⏳ Pending (in queue) | 2 | 0.5% |
 | ⚠️ Buggy (mIoU < 5%) | 0 | 0.0% |
 | 🔃 Stale (wrong checkpoint) | 0 | 0.0% |
-| ❌ Missing (no results) | 7 | 1.9% |
-| **Total** | **360** | **100%** |
+| ❌ Missing (no results) | 5 | 1.4% |
+| **Total** | **367** | **100%** |
 
 ## Per-Dataset Breakdown
 
 ### BDD10k
-- Complete: 95/105 (90.5%)
+- Complete: 97/105 (92.4%)
 - Running: 0
 - Pending (in queue): 2
 - Buggy (mIoU < 5%): 0
 - Missing (no results): 5
 
 ### IDD-AW
-- Complete: 103/105 (98.1%)
+- Complete: 105/105 (100.0%)
 - Running: 0
 - Pending (in queue): 0
 - Buggy (mIoU < 5%): 0
 - Missing (no results): 0
 
 ### MapillaryVistas
-- Complete: 77/105 (73.3%)
+- Complete: 79/105 (75.2%)
 - Running: 0
 - Pending (in queue): 0
 - Buggy (mIoU < 5%): 0
-- Missing (no results): 1
+- Missing (no results): 0
 
 ### OUTSIDE15k
-- Complete: 76/105 (72.4%)
+- Complete: 79/105 (75.2%)
 - Running: 0
 - Pending (in queue): 0
 - Buggy (mIoU < 5%): 0
-- Missing (no results): 1
+- Missing (no results): 0
 
 ## Running Configurations
 
@@ -68,8 +68,6 @@
 | Strategy | Dataset | Model | Issue |
 |----------|---------|-------|-------|
 | gen_LANIT | bdd10k | SegNeXt | missing |
-| gen_UniControl | mapillaryvistas | PSPNet | missing |
-| gen_UniControl | outside15k | PSPNet | missing |
 | gen_VisualCloze | bdd10k | SegNeXt | missing |
 | gen_albumentations_weather | bdd10k | SegNeXt | missing |
 | gen_automold | bdd10k | SegNeXt | missing |
@@ -87,7 +85,7 @@
 | gen_cyclediffusion | ✅ PSP, SF | ✅ PSP, SF | ✅ PSP, SF | ✅ PSP, SF |
 | gen_cycleGAN | ✅ PSP, SF | ✅ PSP, SF | ✅ PSP, SF | ✅ PSP, SF |
 | gen_flux_kontext | ✅ PSP, SF | ✅ PSP, SF | ✅ PSP, SF | ✅ PSP, SF |
-| gen_Img2Img | ✅ SF | ✅ SF | ✅ SF | ✅ SF |
+| gen_Img2Img | ✅ PSP, SF | ✅ PSP, SF | ✅ PSP, SF | ✅ PSP, SF |
 | gen_IP2P | ✅ PSP, SF | ✅ PSP, SF | ✅ PSP, SF | ✅ PSP, SF |
 | gen_LANIT | ✅ PSP, SF | ✅ PSP, SF | ✅ PSP, SF | ✅ PSP, SF |
 | gen_Qwen_Image_Edit | ✅ PSP, SF | ✅ PSP, SF | ✅ PSP, SF | ✅ PSP, SF |
@@ -96,7 +94,7 @@
 | gen_step1x_v1p2 | ✅ PSP, SF | ✅ PSP, SF | ✅ PSP, SF | ✅ PSP, SF |
 | gen_SUSTechGAN | ✅ PSP, SF | ✅ PSP, SF | ✅ PSP, SF | ✅ PSP, SF |
 | gen_TSIT | ✅ PSP, SF | ✅ PSP, SF | ✅ PSP, SF | ✅ PSP, SF |
-| gen_UniControl | ✅ PSP, SF | ✅ PSP, SF | ✅ SF | ✅ SF |
+| gen_UniControl | ✅ PSP, SF | ✅ PSP, SF | ✅ PSP, SF | ✅ PSP, SF |
 | gen_VisualCloze | ✅ PSP, SF | ✅ PSP, SF | ✅ PSP, SF | ✅ PSP, SF |
 | gen_Weather_Effect_Generator | ✅ PSP, SF | ✅ PSP, SF | ✅ PSP, SF | ✅ PSP, SF |
 | gen_albumentations_weather | ✅ PSP, SF | ✅ PSP, SF | ✅ PSP, SF | ✅ PSP, SF |

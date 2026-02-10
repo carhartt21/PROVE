@@ -1,20 +1,18 @@
 #!/usr/bin/env python3
 """
-Auto-submit fine-grained test jobs for completed Stage 2 training checkpoints.
+DEPRECATED: Use scripts/auto_submit_tests.py --stage 2 instead.
 
-Scans the Stage 2 weights directory (WEIGHTS_STAGE_2) for models with iter_80000.pth
-that need testing and submits test jobs for them.
+This script has been replaced by the unified auto_submit_tests.py which supports
+all stages (1, 2, cityscapes, cityscapes-gen) via the --stage argument.
 
-Stage 2 models are trained on all domains (no domain filter).
-
-Usage:
-    python scripts/auto_submit_tests_stage2.py                    # Submit all missing tests
-    python scripts/auto_submit_tests_stage2.py --main-only        # Only main datasets  
-    python scripts/auto_submit_tests_stage2.py --dry-run          # Show what would be submitted
-    python scripts/auto_submit_tests_stage2.py --limit 10         # Submit max 10 jobs
-    python scripts/auto_submit_tests_stage2.py --shared-gpu       # Use shared GPU mode
-    python scripts/auto_submit_tests_stage2.py --include-ratio1p0 # Include ratio1p0 models
+Examples:
+    python scripts/auto_submit_tests.py --stage 2 --dry-run
+    python scripts/auto_submit_tests.py --stage 2 --include-ratio1p0
+    python scripts/auto_submit_tests.py --stage 2 --limit 10
 """
+import sys
+print("DEPRECATED: Use 'python scripts/auto_submit_tests.py --stage 2' instead.", file=sys.stderr)
+sys.exit(1)
 
 import os
 import subprocess

@@ -1,6 +1,6 @@
 # Training Tracker - Stage 2 (All Domains)
 
-**Last Updated:** 2026-02-08 20:51
+**Last Updated:** 2026-02-10 09:52
 
 ---
 
@@ -23,17 +23,17 @@
 
 | Category | Configs | Complete (4/4) | Partial | Running | Pending | Failed |
 |----------|---------|----------------|---------|---------|---------|--------|
-| **Generative (gen_*)** | 83 | 0 | 7 | 3 | 71 | 3 |
+| **Generative (gen_*)** | 83 | 0 | 58 | 1 | 23 | 2 |
 | **Standard (std_*)** | 28 | 3 | 15 | 2 | 8 | 0 |
-| **TOTAL** | 111 | 3 | 22 | 5 | 79 | 3 |
+| **TOTAL** | 111 | 3 | 73 | 3 | 31 | 2 |
 
 ### Individual Model Trainings
 
 | Category | Total Models | ✅ Complete | 🔄 Running | ⏳ Pending | ❌ Failed |
 |----------|-------------|-------------|------------|-----------|----------|
-| **Generative (gen_*)** | 332 | 7 | 3 | 322 | 4 |
+| **Generative (gen_*)** | 332 | 60 | 1 | 272 | 3 |
 | **Standard (std_*)** | 112 | 53 | 2 | 57 | 0 |
-| **TOTAL** | 444 | 60 | 5 | 379 | 4 |
+| **TOTAL** | 444 | 113 | 3 | 329 | 3 |
 
 ### Generative Image Augmentation Strategies (❌ INVALID)
 
