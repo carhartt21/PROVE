@@ -114,14 +114,28 @@ ADDITIONAL_ORIGINAL_DIRS = [
 # Helper Functions
 # =============================================================================
 
-def find_image_files(directory: Path, recursive: bool = True) -> List[Path]:
-    """Find all supported image files in a directory."""
+def find_image_files(directory: Path, recursive: bool = True, follow_symlinks: bool = True) -> List[Path]:
+    """Find all supported image files in a directory.
+    
+    Args:
+        directory: Directory to search in
+        recursive: Whether to search recursively in subdirectories
+        follow_symlinks: Whether to follow symbolic links (default True)
+    """
     image_files = []
     try:
-        glob_func = directory.rglob if recursive else directory.glob
-        for ext in SUPPORTED_EXTENSIONS:
-            image_files.extend(glob_func(f"*{ext}"))
-            image_files.extend(glob_func(f"*{ext.upper()}"))
+        if recursive and follow_symlinks:
+            # os.walk follows symlinks by default, unlike pathlib.rglob
+            for root, dirs, files in os.walk(directory, followlinks=True):
+                root_path = Path(root)
+                for f in files:
+                    if any(f.lower().endswith(ext) for ext in SUPPORTED_EXTENSIONS):
+                        image_files.append(root_path / f)
+        else:
+            glob_func = directory.rglob if recursive else directory.glob
+            for ext in SUPPORTED_EXTENSIONS:
+                image_files.extend(glob_func(f"*{ext}"))
+                image_files.extend(glob_func(f"*{ext.upper()}"))
     except PermissionError:
         pass
     return sorted(image_files)
