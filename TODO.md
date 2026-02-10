@@ -1,24 +1,26 @@
 # PROVE Project TODO
 
-**Last Updated:** 2026-02-11 (21:00)
+**Last Updated:** 2026-02-11 (21:45)
 
 ---
 
-## 📊 Current Status (2026-02-11 21:00)
+## 📊 Current Status (2026-02-11 21:45)
 
 ### Queue Summary
 | User | Category | RUN | PEND | Total |
 |------|----------|----:|-----:|------:|
-| chge7185 | Cityscapes-ratio ablation | 6 | 13 | 19 |
-| chge7185 | Cityscapes-gen training | 0 | 19 | 19 |
-| **chge7185 subtotal** | | **6** | **32** | **38** |
+| chge7185 | Cityscapes-ratio ablation | 6 | ~28 | ~34 |
+| chge7185 | Cityscapes-gen deeplabv3plus | 0 | 19 | 19 |
+| **chge7185 subtotal** | | **6** | **~47** | **~53** |
 | mima2416 | Stage 1 training | 2 | 0 | 2 |
-| mima2416 | Stage 2 training | 4 | 0 | 4 |
-| mima2416 | Testing (fgcg_ CG) | 0 | 5 | 5 |
-| mima2416 | Testing (fgcs_ CS) | 0 | 6 | 6 |
-| **mima2416 subtotal** | | **6** | **11** | **17** |
+| mima2416 | Stage 2 training | 3 | 0 | 3 |
+| mima2416 | Testing (fgcg_ CG) | 1 | 24 | 25 |
+| mima2416 | Testing (fgcs_ CS) | 0 | 5 | 5 |
+| **mima2416 subtotal** | | **6** | **29** | **35** |
 
-**Note:** 168 pending S2 training jobs were killed on 2026-02-11. S2 training will resume with a curated strategy subset after S1 and CG analysis is complete.
+**Notes:**
+- 168 pending S2 training jobs were killed on 2026-02-11. S2 training will resume with a curated strategy subset after S1 and CG analysis is complete.
+- 83 buggy CG test results cleaned (all had `overall: {}` from pre-fix test code). 20 retest jobs submitted.
 
 ---
 
@@ -42,19 +44,49 @@
 | Stage | Complete | In Queue | Total Target | Coverage |
 |-------|----------|----------|--------------|----------|
 | Stage 1 (15k) | 366/416 | 2 RUN + 50 to submit | 416 | 88.0% |
-| Stage 2 (15k) | 135/416 | 4 RUN (pending killed) | 416 | 32.5% |
-| Cityscapes-Gen (20k) | **105/105** | 0 | 105 | **100%** ✅ |
+| Stage 2 (15k) | 135/416 | 3 RUN (pending killed) | 416 | 32.5% |
+| CG baseline+std (20k) | **25/25** | 0 | 25 | **100%** ✅ |
+| CG gen_* (20k) | 80/99 | 19 PEND (chge7185) | 99 | 80.8% |
+| CG total (20k) | **105/124** | 19 PEND | 124 | 84.7% |
 | Cityscapes (20k) | 3/4 | 1 to submit | 4 | 75% |
-| CS-Ratio Ablation (20k) | ~27/48 | 6 RUN + 13 PEND | 48 | ~56% |
+| CS-Ratio Ablation (20k) | ~27/48 | 6 RUN + ~28 PEND | 48 | ~56% |
 
 ### Testing Progress
-| Stage | Valid Tests | Total Trained | Notes |
-|-------|------------|---------------|-------|
-| Stage 1 | 416 | 366 | Complete (includes old-regime tests) |
-| Stage 2 | 150 | 135 | Good coverage |
-| Cityscapes-Gen (Cityscapes) | 81 | 105 | 24 missing, 5 retest jobs PEND |
-| Cityscapes-Gen (ACDC) | 105 | 105 | **Complete** ✅ |
-| Cityscapes | 0 | 3 | 6 test jobs PEND (3 main + 3 ACDC) |
+| Stage | Valid Tests | Total Trained | In Queue | Notes |
+|-------|------------|---------------|----------|-------|
+| Stage 1 | 366 | 366 | 0 | **100% of trained** ✅ |
+| Stage 2 | 150 | 135 | 0 | Complete for trained |
+| CG Cityscapes | 81 | 105 | 24 (20 new + 4 old) | Will be 105/105 when queue clears |
+| CG ACDC | **105** | 105 | 0 | **100%** ✅ |
+| Cityscapes | 0 | 3 | 5 (3 main + 2 ACDC) | Pending |
+
+### 100% Coverage Plan (S1 + CG)
+
+#### CG Path to 100% — ON TRACK ✅
+| Step | Items | Status | ETA |
+|------|-------|--------|-----|
+| 1. Clean 83 buggy test results | 83 deleted | ✅ Done | — |
+| 2. Submit 20 missing CG Cityscapes tests | 20 jobs | ✅ Submitted (+ 4 already PEND) | ~12 hrs |
+| 3. Deeplabv3plus training (chge7185) | 19 jobs PEND | 🔄 In queue | ~2 days |
+| 4. Test deeplabv3plus after training | 19 Cityscapes + 19 ACDC | ⏳ After step 3 | ~1 day after |
+| **CG Total** | **105/124 → 124/124** | | |
+
+After step 2 completes: 101/105 tested (81 existing + 20 new). The 4 already-PEND jobs give 105/105.
+After step 4 completes: 124/124 Cityscapes + 124/124 ACDC = **full CG coverage**.
+
+#### S1 Path to 100% — BLOCKED by mask2former OOM 🔴
+| Step | Items | Status | Notes |
+|------|-------|--------|-------|
+| 1. S1 testing of trained models | 366/366 | ✅ 100% | Already complete |
+| 2. Remaining S1 training | 50 configs | ❌ Blocked | ALL mask2former on MapillaryVistas (25) + OUTSIDE15k (25) |
+| 3. Submit tests for new completions | Auto | ⏳ After step 2 | `auto_submit_tests.py --stage 1` |
+
+**Root Cause:** mask2former_swin-b OOMs on MapillaryVistas (66 classes) and OUTSIDE15k (24 classes). Works fine on BDD10k/IDD-AW (19 classes).
+- Current config: crop_size=(512,512), batch_size=8, 40GB GPU
+- 0/50 attempts have produced any checkpoint (no partial progress)
+- **Possible fixes:** Reduce batch_size to 2-4, or reduce crop_size to (384,384), or use gradient accumulation
+
+**Decision needed:** Either fix the OOM blocker or exclude mask2former from MapillaryVistas/OUTSIDE15k in the analysis (reduces S1 from 416 to 366 target = already 100%).
 
 ### Strategy Leaderboard Highlights
 | Stage | Top Strategy | mIoU | Baseline mIoU | Strategies > Baseline |
@@ -67,32 +99,35 @@
 
 ## 🎯 Recommended Next Steps (Priority Order)
 
-### 1. 🔴 HIGH: Complete Stage 1 Training (50 remaining)
-50 S1 configs still need training (2 currently running). Remaining are mostly mask2former on mapillaryvistas/outside15k (systemic OOM).
-```bash
-bjobs -u mima2416 -w | grep "s1_"
-python scripts/batch_training_submission.py --stage 1 --dry-run
-```
-**Blocker:** mask2former on mapillaryvistas/outside15k has 0% success rate (52 entries). May need smaller crop/batch.
+### 1. ✅ DONE: Clean CG Buggy Tests & Submit Retests
+- ✅ Cleaned 83 buggy test results (`overall: {}` from pre-fix era, test_split=val bug)
+- ✅ Submitted 20 missing CG Cityscapes test jobs
+- ✅ 4 more already pending in queue = 24 total in queue
+- ⏳ Wait for 24 test jobs to complete → 105/105 CG Cityscapes coverage
 
-### 2. 🔴 HIGH: Submit Missing CG Cityscapes Tests (24 missing)
-CG training is 100% complete but 24 Cityscapes test results missing (5 retest jobs PEND in queue).
+### 2. 🔴 HIGH: Resolve mask2former OOM on MapillaryVistas/OUTSIDE15k
+50 S1 configs blocked — ALL are mask2former_swin-b on MapillaryVistas (25) and OUTSIDE15k (25).
+**Options:**
+- **Option A:** Reduce batch_size from 8 to 2 and crop_size from (512,512) to (384,384)
+- **Option B:** Exclude mask2former from these 2 datasets (redefine S1 target as 366 = already 100%)
+- **Option C:** Use gradient accumulation (batch_size=2, accumulative_counts=4)
 ```bash
-python scripts/auto_submit_tests.py --stage cityscapes-gen --dry-run
-python scripts/auto_submit_tests.py --stage cityscapes-gen -y
+# Test with smaller config
+python unified_training.py --dataset MapillaryVistas --model mask2former_swin-b \
+    --strategy baseline --domain-filter clear_day --use-native-classes --submit-job
+python scripts/batch_training_submission.py --stage 1 --dry-run  # Shows 50 remaining
 ```
 
-### 3. 🟡 MEDIUM: Complete Cityscapes Pipeline (1 training + 6 tests)
-3/4 Cityscapes baseline models done. 1 more training + 6 test jobs (3 main + 3 ACDC) pending.
+### 3. 🟡 MEDIUM: Complete Cityscapes Pipeline (1 training + 5 tests)
+3/4 Cityscapes baseline models done. 1 more training + 5 test jobs pending.
 ```bash
 python scripts/batch_training_submission.py --stage cityscapes -y
 ```
 
 ### 4. 🟡 MEDIUM: S1 & CG Analysis → S2 Strategy Selection
-With CG at 100% and S1 at 88%, generate leaderboards to identify top strategies for S2 subset.
+With CG at 100% testing and S1 at 100% testing (of trained), generate final leaderboards.
 ```bash
-python analysis_scripts/generate_strategy_leaderboard.py --stage 1
-python analysis_scripts/generate_strategy_leaderboard.py --stage cityscapes-gen
+python analysis_scripts/generate_strategy_leaderboard.py --stage all
 python analysis_scripts/analyze_strategy_families.py
 ```
 
@@ -216,12 +251,15 @@ python analysis_scripts/analyze_domain_gap_corrected.py
 ## 🆕 Recently Completed (2026-02-11)
 
 - ✅ Killed 168 pending S2 training jobs — will select strategy subset based on S1/CG results
-- ✅ CG training reached **100%** (105/105 actual configs complete across all 5 models)
+- ✅ CG training reached **100%** (105/105 actual configs; 19 deeplabv3plus pending in chge7185 queue for 124/124)
 - ✅ CG ACDC cross-domain testing complete (105/105 valid results)
-- ✅ S1 testing at 416 valid results (all trained models tested)
+- ✅ S1 testing at 366/366 (100% of trained models tested)
 - ✅ S2 testing at 150 valid results
 - ✅ Consolidated `auto_submit_tests.py` for all stages (commit `0109bb6`)
-- ✅ Cleaned 6 buggy CG test results (empty `overall: {}`) and re-queued tests
+- ✅ Cleaned 6 buggy CG test results (first pass)
+- ✅ **Cleaned 83 buggy CG Cityscapes test results** (all had `overall: {}` from pre-fix test code with test_split=val)
+- ✅ **Submitted 20 CG Cityscapes retest jobs** (+ 4 already PEND = 24 in queue → 105/105 when done)
+- ✅ Confirmed S1 50 remaining configs = ALL mask2former on MapillaryVistas/OUTSIDE15k (OOM blocker)
 
 ---
 
