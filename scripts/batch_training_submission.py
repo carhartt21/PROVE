@@ -91,6 +91,7 @@ WEIGHTS_ROOT_STAGE2 = Path('/scratch/aaa_exchange/AWARE/WEIGHTS_STAGE_2')
 WEIGHTS_ROOT_RATIO_ABLATION = Path('/scratch/aaa_exchange/AWARE/WEIGHTS_RATIO_ABLATION')
 WEIGHTS_ROOT_CITYSCAPES = Path('/scratch/aaa_exchange/AWARE/WEIGHTS_CITYSCAPES')  # Pipeline verification
 WEIGHTS_ROOT_CITYSCAPES_GEN = Path('/scratch/aaa_exchange/AWARE/WEIGHTS_CITYSCAPES_GEN')  # Cityscapes gen evaluation
+WEIGHTS_ROOT_CITYSCAPES_RATIO = Path('/scratch/aaa_exchange/AWARE/WEIGHTS_CITYSCAPES_RATIO')  # Cityscapes ratio ablation
 WEIGHTS_ROOT_NOISE_ABLATION = Path('/scratch/aaa_exchange/AWARE/WEIGHTS_NOISE_ABLATION')  # Noise ablation study
 GENERATED_IMAGES_ROOT = Path('/scratch/aaa_exchange/AWARE/GENERATED_IMAGES')
 
@@ -102,16 +103,128 @@ CITYSCAPES_DATASET = 'Cityscapes'
 
 # All models
 ALL_MODELS = [
-    # 'deeplabv3plus_r50', 
+    'deeplabv3plus_r50', 
     'pspnet_r50', 
     'segformer_mit-b3', 
     'segnext_mscan-b', 
-    # 'hrnet_hr48',
+    'hrnet_hr48',
     'mask2former_swin-b',
     ]
 
 # Cityscapes validation models (all 5 models for full pipeline verification)
-CITYSCAPES_VALIDATION_MODELS = ALL_MODELS  # Use all 5 models for comprehensive verification
+CITYSCAPES_VALIDATION_MODELS = [
+    'pspnet_r50', 
+    'segformer_mit-b3', 
+    'segnext_mscan-b', 
+    'mask2former_swin-b',
+    ]  # Use all 5 models for comprehensive verification
+
+# ============================================================================
+# Cityscapes Ratio Ablation Configuration
+# ============================================================================
+# Selected based on cityscapes-gen performance analysis:
+# - Top performing strategies from DIFFERENT generation families
+# - All 4 models used in cityscapes-gen for consistency
+# - Reduced ratio range (0.5 and 1.0 already available from cityscapes-gen)
+
+CITYSCAPES_RATIO_STRATEGIES = [
+    'gen_VisualCloze',      # Diffusion: 63.27% - visual cloze completion
+    'gen_step1x_v1p2',      # Diffusion: 62.85% - modern diffusion editing
+    'gen_flux_kontext',     # Diffusion: 62.90% - FLUX flow-matching
+    'gen_TSIT',             # GAN: 63.49% - provides GAN vs Diffusion comparison
+]
+
+CITYSCAPES_RATIO_MODELS = [
+    'pspnet_r50',           # Fast CNN baseline for quick ablation
+    'segformer_mit-b3',     # Efficient transformer
+    'segnext_mscan-b',      # MSCAN attention - different architecture family
+    'mask2former_swin-b',   # Best overall (slower but important)
+]
+
+# Reduced ratio ablation values:
+# - 0.5 already exists from cityscapes-gen (default ratio)
+# - 1.0 baseline results available from cityscapes-gen/cityscapes baseline
+# Only test: 0.0 (all generated), 0.25 (mostly generated), 0.75 (mostly real)
+CITYSCAPES_RATIO_VALUES = [0.0, 0.25, 0.75]
+
+# ============================================================================
+# Stage 1 Ratio Ablation Configuration  
+# ============================================================================
+# Stage 1 shows 20-24% spreads (10x larger than Cityscapes!) due to:
+# - Training on clear_day only → cross-domain testing on adverse conditions
+# - More challenging domains (BDD10k, IDD-AW) with real-world variation
+
+# Path for Stage 1 ratio ablation results
+WEIGHTS_ROOT_STAGE1_RATIO = Path('/scratch/aaa_exchange/AWARE/WEIGHTS_STAGE1_RATIO')
+
+# Focus on datasets with best signal (highest spreads in Stage 1 analysis)
+STAGE1_RATIO_DATASETS = [
+    'BDD10k',               # 21.54% spread - US driving scenes
+    'IDD-AW',               # 20.90% spread - Indian adverse weather
+]
+
+# Top strategies from cityscapes-gen (same family diversity as cityscapes-ratio)
+STAGE1_RATIO_STRATEGIES = [
+    'gen_VisualCloze',      # Diffusion - top performer
+    'gen_TSIT',             # GAN - provides family comparison
+]
+
+# Efficient subset of models for quicker ablation
+STAGE1_RATIO_MODELS = [
+    'pspnet_r50',           # Fast CNN baseline
+    'segformer_mit-b3',     # Efficient transformer
+]
+
+# Same ratio values as cityscapes-ratio for comparison
+STAGE1_RATIO_VALUES = [0.0, 0.25, 0.75]
+
+# Total: 2 datasets × 2 strategies × 2 models × 3 ratios = 24 jobs
+
+# ============================================================================
+# Combination Ablation Configuration (gen_* + std_*)
+# ============================================================================
+# Tests synergy between generative weather augmentation and standard augmentations.
+# gen_* provides weather domain shift, std_* provides additional robustness.
+# Option A: std_* transforms applied to BOTH real and generated images.
+
+WEIGHTS_ROOT_COMBINATION = Path('/scratch/aaa_exchange/AWARE/WEIGHTS_COMBINATION_ABLATION')
+
+# Top gen_* from cityscapes-gen analysis (different families)
+COMBINATION_GEN_STRATEGIES = [
+    'gen_augmenters',        # Diffusion: 63.96% - top overall gen_*
+    'gen_TSIT',              # GAN: 63.52% - provides GAN family comparison
+    'gen_VisualCloze',       # Diffusion: 63.56% - visual cloze completion
+]
+
+# Top std_* from Stage 1 analysis (high gains +5-8% over baseline)
+COMBINATION_STD_STRATEGIES = [
+    'std_photometric_distort',  # +7.93% in Stage 1 - appearance modification
+    'std_mixup',                # +5.50% in Stage 1 - feature regularization  
+    'std_randaugment',          # +5.48% in Stage 1 - automated augmentation
+]
+
+# Efficient model subset for quick ablation
+COMBINATION_MODELS = [
+    'pspnet_r50',           # Fast CNN baseline
+    'segformer_mit-b3',     # Efficient transformer
+]
+
+# Total: 3 gen × 3 std × 2 models = 18 combinations
+# Each runs on Cityscapes with 20k iterations
+
+STAGE_1_MODELS = [
+    'pspnet_r50', 
+    'segformer_mit-b3', 
+    'segnext_mscan-b', 
+    'mask2former_swin-b',
+]
+
+STAGE_2_MODELS = [
+    'pspnet_r50', 
+    'segformer_mit-b3', 
+    'segnext_mscan-b', 
+    'mask2former_swin-b',
+    ]
 
 # 21 gen_* strategies with full dataset coverage
 # (excluding gen_EDICT, gen_StyleID, gen_flux2, gen_AOD-Net - no/insufficient coverage)
@@ -143,7 +256,7 @@ GEN_STRATEGIES = [
 STD_STRATEGIES = [
     'baseline',           # No augmentation at all
     # 'std_minimal',        # RandomCrop + RandomFlip only
-    # 'std_photometric_distort',  # PhotoMetricDistortion only
+    'std_photometric_distort',  # PhotoMetricDistortion only
     'std_autoaugment',    # AutoAugment (batch-level)
     'std_cutmix',         # CutMix (batch-level)
     'std_mixup',          # MixUp (batch-level)
@@ -375,6 +488,7 @@ class TrainingJob:
     stage: int  # Can be 1, 2, or 'ratio' for ratio ablation
     ratio: float = 0.5
     aux_loss: Optional[str] = None
+    std_strategy: Optional[str] = None  # For combination ablation (gen_* + std_*)
     weights_dir: Optional[Path] = None
     skip_reason: Optional[str] = None
     resume_from: Optional[Path] = None  # Checkpoint to resume from
@@ -392,11 +506,12 @@ class TrainingJob:
         dataset_short = self.dataset.lower().replace('-', '')
         model_short = self.model.split('_')[0]
         aux_tag = f"_aux-{self.aux_loss}" if self.aux_loss else ''
+        std_tag = f"+{self.std_strategy}" if self.std_strategy else ''
         if self.strategy.startswith('gen_'):
             if self.ratio != 0.5:
-                base = f'{self.strategy}_{dataset_short}_{model_short}_{self.ratio:.2f}'.replace('.', 'p')
+                base = f'{self.strategy}{std_tag}_{dataset_short}_{model_short}_{self.ratio:.2f}'.replace('.', 'p')
             else:
-                base = f'{self.strategy}_{dataset_short}_{model_short}'
+                base = f'{self.strategy}{std_tag}_{dataset_short}_{model_short}'
         else:
             base = f'{self.strategy}_{dataset_short}_{model_short}'
         return f'{stage_prefix}{base}{aux_tag}'
@@ -427,6 +542,12 @@ def get_weights_dir(
         base_root = WEIGHTS_ROOT_CITYSCAPES
     elif stage == 'cityscapes-gen':
         base_root = WEIGHTS_ROOT_CITYSCAPES_GEN
+    elif stage == 'cityscapes-ratio':
+        base_root = WEIGHTS_ROOT_CITYSCAPES_RATIO
+    elif stage == 'stage1-ratio':
+        base_root = WEIGHTS_ROOT_STAGE1_RATIO
+    elif stage == 'combination':
+        base_root = WEIGHTS_ROOT_COMBINATION
     elif stage == 'noise-ablation':
         base_root = WEIGHTS_ROOT_NOISE_ABLATION
     else:
@@ -443,7 +564,6 @@ def get_weights_dir(
         model_dir = f'{model_dir}_aux-{aux_loss}'
     
     return base_root / strategy / dataset_dir / model_dir
-
 
 def generate_job_list(
     stage: int,
@@ -476,8 +596,17 @@ def generate_job_list(
     """
     strategies = strategies or ALL_STRATEGIES  # Now includes baseline + std_* + gen_*
     datasets = datasets or ALL_DATASETS
-    models = models or ALL_MODELS
+    if stage == 1:
+        models = models or STAGE_1_MODELS
+    elif stage == 2:
+        models = models or STAGE_2_MODELS
+    else:
+        models = models or ALL_MODELS
+    
     ratios = ratios or [0.5]  # Default to single ratio of 0.5
+    
+    # For combination stage, also iterate over std_strategies
+    std_strategies_list = COMBINATION_STD_STRATEGIES if stage == 'combination' else [None]
     
     jobs = []
     
@@ -488,57 +617,65 @@ def generate_job_list(
                 strategy_ratios = ratios if strategy.startswith('gen_') else [1.0]
                 
                 for ratio in strategy_ratios:
-                    job = TrainingJob(
-                        strategy=strategy,
-                        dataset=dataset,
-                        model=model,
-                        stage=stage,
-                        ratio=ratio,
-                        aux_loss=aux_loss,
-                    )
-                    
-                    # Get weights directory
-                    job.weights_dir = get_weights_dir(strategy, dataset, model, stage, ratio, aux_loss)
-                    
-                    # Compute effective max_iters for this job
-                    # Uses stage and model to determine target checkpoint
-                    effective_max_iters = get_effective_max_iters(stage, model, max_iters)
-                    
-                    # Store effective max_iters on job for later use in job script
-                    job.effective_max_iters = effective_max_iters
-                    
-                    # Pre-flight checks
-                    if check_existing and has_valid_results(job.weights_dir, effective_max_iters):
-                        job.skip_reason = 'Results exist'
-                    elif strategy.startswith('gen_') and not has_generated_images(strategy, dataset):
-                        job.skip_reason = 'No generated images'
-                    elif resume:
-                        # Look for existing checkpoint to resume from
-                        latest_ckpt = get_latest_checkpoint(job.weights_dir)
-                        if latest_ckpt:
-                            ckpt_iter = get_checkpoint_iteration(latest_ckpt)
-                            if ckpt_iter >= effective_max_iters:
-                                job.skip_reason = f'Already complete (iter {ckpt_iter})'
-                            else:
-                                job.resume_from = latest_ckpt
-                        # If no checkpoint, will start fresh (resume_from stays None)
-                    elif check_locks:
-                        lock = TrainingLock(
-                            strategy,
-                            dataset,
-                            model,
-                            ratio if strategy.startswith('gen_') else None,
+                    for std_strategy in std_strategies_list:
+                        job = TrainingJob(
+                            strategy=strategy,
+                            dataset=dataset,
+                            model=model,
+                            stage=stage,
+                            ratio=ratio,
                             aux_loss=aux_loss,
-                            stage=stage if isinstance(stage, int) else None,
+                            std_strategy=std_strategy,
                         )
-                        if lock.is_locked():
-                            holder = lock.get_lock_holder()
-                            if holder:
-                                job.skip_reason = f"Locked by {holder.get('user', 'unknown')}@{holder.get('hostname', 'unknown')}"
-                            else:
-                                job.skip_reason = 'Locked'
-                    
-                    jobs.append(job)
+                        
+                        # Get weights directory - for combination, include std_strategy in path
+                        if std_strategy:
+                            combo_strategy = f"{strategy}+{std_strategy}"
+                            job.weights_dir = get_weights_dir(combo_strategy, dataset, model, stage, ratio, aux_loss)
+                        else:
+                            job.weights_dir = get_weights_dir(strategy, dataset, model, stage, ratio, aux_loss)
+                        
+                        # Compute effective max_iters for this job
+                        # Uses stage and model to determine target checkpoint
+                        effective_max_iters = get_effective_max_iters(stage, model, max_iters)
+                        
+                        # Store effective max_iters on job for later use in job script
+                        job.effective_max_iters = effective_max_iters
+                        
+                        # Pre-flight checks
+                        if check_existing and has_valid_results(job.weights_dir, effective_max_iters):
+                            job.skip_reason = 'Results exist'
+                        elif strategy.startswith('gen_') and not has_generated_images(strategy, dataset):
+                            job.skip_reason = 'No generated images'
+                        elif resume:
+                            # Look for existing checkpoint to resume from
+                            latest_ckpt = get_latest_checkpoint(job.weights_dir)
+                            if latest_ckpt:
+                                ckpt_iter = get_checkpoint_iteration(latest_ckpt)
+                                if ckpt_iter >= effective_max_iters:
+                                    job.skip_reason = f'Already complete (iter {ckpt_iter})'
+                                else:
+                                    job.resume_from = latest_ckpt
+                            # If no checkpoint, will start fresh (resume_from stays None)
+                        elif check_locks:
+                            # Note: Don't include ratio in lock check because job scripts
+                            # don't include ratio in their lock file names
+                            lock = TrainingLock(
+                                strategy,
+                                dataset,
+                                model,
+                                ratio=None,  # Lock files don't include ratio
+                                aux_loss=aux_loss,
+                                stage=stage,  # Pass stage (int or string like 'cityscapes-gen')
+                            )
+                            if lock.is_locked():
+                                holder = lock.get_lock_holder()
+                                if holder:
+                                    job.skip_reason = f"Locked by {holder.get('user', 'unknown')}@{holder.get('hostname', 'unknown')}"
+                                else:
+                                    job.skip_reason = 'Locked'
+                        
+                        jobs.append(job)
     
     return jobs
 
@@ -628,6 +765,10 @@ def generate_job_script(
     # Add auxiliary loss if specified
     if aux_loss:
         cmd_parts.extend(['--aux-loss', aux_loss])
+    
+    # Add std-strategy for combination ablation
+    if job.std_strategy:
+        cmd_parts.extend(['--std-strategy', job.std_strategy])
     
     # Add resume-from if resuming from a checkpoint
     if job.resume_from:
@@ -1033,10 +1174,10 @@ Examples:
     )
     
     # Validate and parse stage
-    stage_map = {'1': 1, '2': 2, 'ratio': 'ratio', 'cityscapes': 'cityscapes', 'cityscapes-gen': 'cityscapes-gen', 'noise-ablation': 'noise-ablation'}
+    stage_map = {'1': 1, '2': 2, 'ratio': 'ratio', 'cityscapes': 'cityscapes', 'cityscapes-gen': 'cityscapes-gen', 'cityscapes-ratio': 'cityscapes-ratio', 'stage1-ratio': 'stage1-ratio', 'combination': 'combination', 'noise-ablation': 'noise-ablation'}
     stage_input = str(args.stage).lower()
-    if stage_input not in stage_map and stage_input not in ['1', '2', 'ratio', 'cityscapes', 'cityscapes-gen', 'noise-ablation']:
-        print(f"Error: Invalid stage '{args.stage}'. Must be 1, 2, 'ratio', 'cityscapes', 'cityscapes-gen', or 'noise-ablation'")
+    if stage_input not in stage_map:
+        print(f"Error: Invalid stage '{args.stage}'. Must be 1, 2, 'ratio', 'cityscapes', 'cityscapes-gen', 'cityscapes-ratio', 'stage1-ratio', 'combination', or 'noise-ablation'")
         return
     stage = stage_map.get(stage_input, args.stage if isinstance(args.stage, int) else stage_input)
     
@@ -1064,6 +1205,37 @@ Examples:
         # Use Cityscapes dataset with SegFormer by default
         datasets = [CITYSCAPES_DATASET]
         models = args.models or ['segformer_mit-b3']  # SegFormer for cityscapes-gen evaluation
+    elif stage == 'cityscapes-ratio':
+        # Cityscapes ratio ablation: systematic study of real/gen ratios
+        # Uses top-performing gen strategies from cityscapes-gen evaluation
+        if args.strategies is None:
+            strategies = CITYSCAPES_RATIO_STRATEGIES
+        else:
+            strategies = args.strategies
+        datasets = [CITYSCAPES_DATASET]
+        models = args.models or CITYSCAPES_RATIO_MODELS
+        # Override ratios if not specified - use full ablation range
+        if args.ratios == [0.5]:  # Default value means user didn't specify
+            args.ratios = CITYSCAPES_RATIO_VALUES
+    elif stage == 'stage1-ratio':
+        # Stage 1 ratio ablation: larger effect sizes due to cross-domain testing
+        # Uses clear_day domain filter (Stage 1 setup)
+        if args.strategies is None:
+            strategies = STAGE1_RATIO_STRATEGIES
+        else:
+            strategies = args.strategies
+        datasets = args.datasets or STAGE1_RATIO_DATASETS
+        models = args.models or STAGE1_RATIO_MODELS
+        # Override ratios if not specified
+        if args.ratios == [0.5]:  # Default value means user didn't specify
+            args.ratios = STAGE1_RATIO_VALUES
+    elif stage == 'combination':
+        # Combination ablation: gen_* + std_* strategies together
+        # Tests synergy between generative weather augmentation and standard augmentations
+        strategies = COMBINATION_GEN_STRATEGIES  # gen_* strategies to combine
+        datasets = [CITYSCAPES_DATASET]
+        models = args.models or COMBINATION_MODELS
+        # std_strategies will be iterated over in job generation
     elif stage == 'noise-ablation':
         # Noise ablation: uses gen_random_noise strategy with baseline for comparison
         strategies = args.strategies or ['gen_random_noise', 'baseline']
@@ -1096,6 +1268,29 @@ Examples:
         print(f"  Dataset: {CITYSCAPES_DATASET}")
         print(f"  Models: {models}")
         print(f"  Cross-domain testing: Cityscapes val + ACDC")
+    elif stage == 'cityscapes-ratio':
+        print(f"  Cityscapes Ratio Ablation Study")
+        print(f"  Purpose: Systematic evaluation of real/gen image ratios")
+        print(f"  Strategies: {strategies}")
+        print(f"  Models: {models}")
+        print(f"  Ratios: {args.ratios}")
+        print(f"  Total configurations: {len(strategies)} × {len(models)} × {len(args.ratios)} = {len(strategies)*len(models)*len(args.ratios)}")
+    elif stage == 'stage1-ratio':
+        print(f"  Stage 1 Ratio Ablation Study")
+        print(f"  Purpose: Ratio ablation with larger effect sizes (20-24% spreads)")
+        print(f"  Datasets: {datasets}")
+        print(f"  Strategies: {strategies}")
+        print(f"  Models: {models}")
+        print(f"  Ratios: {args.ratios}")
+        print(f"  Note: Uses clear_day domain filter (Stage 1 cross-domain testing)")
+        print(f"  Total configurations: {len(datasets)} × {len(strategies)} × {len(models)} × {len(args.ratios)} = {len(datasets)*len(strategies)*len(models)*len(args.ratios)}")
+    elif stage == 'combination':
+        print(f"  Combination Ablation Study (gen_* + std_*)")
+        print(f"  Purpose: Test synergy between generative and standard augmentations")
+        print(f"  gen_* strategies: {COMBINATION_GEN_STRATEGIES}")
+        print(f"  std_* strategies: {COMBINATION_STD_STRATEGIES}")
+        print(f"  Models: {models}")
+        print(f"  Total configurations: {len(COMBINATION_GEN_STRATEGIES)} × {len(COMBINATION_STD_STRATEGIES)} × {len(models)} = {len(COMBINATION_GEN_STRATEGIES)*len(COMBINATION_STD_STRATEGIES)*len(models)}")
     elif stage == 'noise-ablation':
         print(f"  Noise Ablation Study")
         print(f"  Purpose: Test if models learn from image content or label layouts")
@@ -1109,8 +1304,10 @@ Examples:
     # Determine effective max_iters for job generation
     if args.max_iters is not None:
         effective_max_iters = args.max_iters
-    elif stage in ('cityscapes', 'cityscapes-gen'):
+    elif stage in ('cityscapes', 'cityscapes-gen', 'cityscapes-ratio', 'combination'):
         effective_max_iters = 20000
+    elif stage == 'stage1-ratio':
+        effective_max_iters = 15000  # Standard Stage 1 iterations
     else:
         effective_max_iters = 15000
     

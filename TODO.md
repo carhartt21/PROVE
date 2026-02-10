@@ -1,14 +1,18 @@
 # PROVE Project TODO
 
-**Last Updated:** 2026-02-10 (12:15)
+**Last Updated:** 2026-02-10 (17:00)
 
 ---
 
-## 📊 Current Status (2026-02-10 12:15)
+## 📊 Current Status (2026-02-10 17:00)
 
 ### Queue Summary
 | User | Category | RUN | PEND | Total |
 |------|----------|----:|-----:|------:|
+| chge7185 | Cityscapes-gen training | 7 | 12 | 19 |
+| chge7185 | Cityscapes-ratio ablation | 0 | 48 | 48 |
+| chge7185 | Stage 1/2 training | 0 | 14 | 14 |
+| **chge7185 subtotal** | | **7** | **74** | **81** |
 | mima2416 | Stage 1 training | 2 | 48 | 50 |
 | mima2416 | Stage 2 training | 0 | 183 | 183 |
 | mima2416 | Cityscapes-gen training | 6 | 15 | 21 |
@@ -100,9 +104,81 @@ python scripts/batch_training_submission.py --stage cityscapes --dry-run
 python scripts/noise_ablation_submission.py --dry-run
 ```
 
-### 7. 🟢 LOW: Refresh Ablation Studies (Ratio, Extended, Combinations)
+### 7. � ACTIVE: Ratio Ablation Studies (NEW STAGES ADDED 2026-02-10)
+
+Two new ratio ablation stages have been implemented in `batch_training_submission.py`:
+
+#### Cityscapes Ratio Ablation (48 jobs SUBMITTED)
+- **Status:** ✅ Jobs submitted and queued
+- **Ratios:** 0.0, 0.25, 0.75 (0.5 and 1.0 already available from cityscapes-gen)
+- **Strategies:** 3 Diffusion (gen_VisualCloze, gen_step1x_v1p2, gen_flux_kontext) + 1 GAN (gen_TSIT)
+- **Models:** pspnet_r50, segformer_mit-b3, segnext_mscan-b, mask2former_swin-b
+- **Note:** Cityscapes in-domain shows only ~2% spread (near-optimal), so focus analysis on ACDC cross-domain results (3.5% spread)
+```bash
+python scripts/batch_training_submission.py --stage cityscapes-ratio --dry-run
+```
+
+#### Stage 1 Ratio Ablation (24 jobs READY TO SUBMIT)
+- **Status:** ⏳ Stage prepared, ready to submit after cityscapes-ratio analysis
+- **Ratios:** 0.0, 0.25, 0.75
+- **Datasets:** BDD10k (21.5% spread), IDD-AW (20.9% spread) — **10x larger effect sizes than Cityscapes!**
+- **Strategies:** gen_VisualCloze (Diffusion), gen_TSIT (GAN)
+- **Models:** pspnet_r50, segformer_mit-b3
+- **Recommendation:** Run this after cityscapes-ratio if patterns warrant larger-scale validation
+```bash
+python scripts/batch_training_submission.py --stage stage1-ratio --dry-run
+# Submit when ready:
+python scripts/batch_training_submission.py --stage stage1-ratio -y
+```
+
+| Study | Spread | Jobs | Status |
+|-------|--------|------|--------|
+| Cityscapes-ratio | 2-3.5% | 48 | ✅ Submitted |
+| Stage1-ratio | 20-24% | 24 | ⏳ Ready |
+
+### 7b. 🔶 PREPARED: Combination Ablation Study (gen_* + std_*)
+
+Tests synergy between generative augmentation (gen_*) and standard augmentation (std_*) strategies. Uses **Option A**: std_* transforms applied to BOTH real and generated images.
+
+#### Design Rationale
+- **Hypothesis:** gen_* provides diverse weather conditions; std_* adds photometric variation → combined effect may be synergistic
+- **Top gen_* selected:** gen_augmenters (63.96%), gen_TSIT (63.52%), gen_VisualCloze (63.56%) — best from Cityscapes-gen leaderboard
+- **Top std_* selected:** std_photometric_distort (+7.93%), std_mixup (+5.50%), std_randaugment (+5.48%) — best Stage 1 gains over baseline
+- **Interesting observation:** std_* shows *negative* effect on Cityscapes-gen but *positive* on Stage 1 cross-domain
+
+#### Configuration
+| Parameter | Value |
+|-----------|-------|
+| gen_* strategies | gen_augmenters, gen_TSIT, gen_VisualCloze (3) |
+| std_* strategies | std_photometric_distort, std_mixup, std_randaugment (3) |
+| Models | pspnet_r50, segformer_mit-b3 (2) |
+| Dataset | Cityscapes |
+| Ratio | 0.50 (fixed) |
+| Max iters | 20,000 |
+| **Total jobs** | 3 × 3 × 2 = **18 jobs** |
+
+#### Output Directory
+```
+/scratch/aaa_exchange/AWARE/WEIGHTS_COMBINATION_ABLATION/
+  {gen_strategy}+{std_strategy}/cityscapes/{model}_ratio0p50/
+```
+
+#### Commands
+```bash
+# Preview jobs
+python scripts/batch_training_submission.py --stage combination --dry-run
+
+# Submit all 18 combination jobs
+python scripts/batch_training_submission.py --stage combination -y
+```
+
+#### Analysis Questions
+1. **Synergy vs redundancy:** Does gen_* + std_* outperform either alone?
+2. **Best combination:** Which gen_*/std_* pair gives highest ACDC cross-domain?
+3. **Diminishing returns:** Does combining 2 augmentation types hit a ceiling?
+
+### 8. 🟢 LOW: Old Ablation Studies (Reference Only)
 These studies used old training regime (80k iters, 3 models). Consider:
-- **Ratio ablation refresh**: Re-run with current 15k iter / 6 model setup on at least top-5 gen strategies
 - **Extended training refresh**: Not needed (demonstrated diminishing returns pattern holds)
 - **Combination strategies**: Low priority — original study showed std_photometric_distort dominates all combos
 
@@ -114,7 +190,7 @@ Old studies (reference only):
 | Combinations | `WEIGHTS_COMBINATIONS/` | 53 ckpts (IDD-AW only, std_* valid) |
 | Batch Size Ablation | `WEIGHTS_BATCH_SIZE_ABLATION/` | BS 2/4/8/16 with LR scaling |
 
-### 8. 🟢 LOW: Analysis & Paper Figures
+### 9. 🟢 LOW: Analysis & Paper Figures
 Once Stage 1 is ~100% complete:
 ```bash
 python analysis_scripts/generate_strategy_leaderboard.py --stage 1

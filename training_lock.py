@@ -28,7 +28,7 @@ import socket
 import atexit
 from pathlib import Path
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Union
 
 
 # Default lock directory
@@ -41,7 +41,7 @@ class TrainingLock:
     def __init__(self, strategy: str, dataset: str, model: str, 
                  ratio: Optional[float] = None,
                  aux_loss: Optional[str] = None,
-                 stage: Optional[int] = None,
+                 stage: Optional[Union[int, str]] = None,
                  lock_dir: str = DEFAULT_LOCK_DIR):
         """
         Initialize a training lock.
@@ -52,7 +52,7 @@ class TrainingLock:
             model: Model name (e.g., 'deeplabv3plus_r50')
             ratio: Optional ratio for generative strategies
             aux_loss: Optional auxiliary loss
-            stage: Training stage (1 or 2) for lock file naming
+            stage: Training stage (1, 2, or string like 'cityscapes-gen') for lock file naming
             lock_dir: Directory to store lock files
         """
         self.strategy = strategy
@@ -64,7 +64,13 @@ class TrainingLock:
         self.lock_dir = Path(lock_dir)
         
         # Build lock filename with stage prefix
-        stage_prefix = f's{stage}_' if stage else ''
+        # Integer stages get 's{N}_' prefix, string stages use themselves as prefix
+        if stage is None:
+            stage_prefix = ''
+        elif isinstance(stage, int):
+            stage_prefix = f's{stage}_'
+        else:
+            stage_prefix = f'{stage}_'
         lock_name = f'{stage_prefix}{strategy}_{self.dataset}_{model}'
         if ratio is not None:
             lock_name += f'_ratio{ratio:.2f}'.replace('.', 'p')
