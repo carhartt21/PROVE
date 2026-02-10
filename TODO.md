@@ -1,24 +1,24 @@
 # PROVE Project TODO
 
-**Last Updated:** 2026-02-10 (17:30)
+**Last Updated:** 2026-02-11 (21:00)
 
 ---
 
-## 📊 Current Status (2026-02-10 17:30)
+## 📊 Current Status (2026-02-11 21:00)
 
 ### Queue Summary
 | User | Category | RUN | PEND | Total |
 |------|----------|----:|-----:|------:|
-| chge7185 | Cityscapes-ratio ablation | 5 | 35 | 40 |
+| chge7185 | Cityscapes-ratio ablation | 6 | 13 | 19 |
 | chge7185 | Cityscapes-gen training | 0 | 19 | 19 |
-| **chge7185 subtotal** | | **5** | **54** | **59** |
-| mima2416 | Stage 1 training | 2 | 48 | 50 |
-| mima2416 | Stage 2 training | 0 | 183 | 183 |
-| mima2416 | Cityscapes-gen training | 6 | 15 | 21 |
-| mima2416 | Testing (fg_ S1) | 0 | 4 | 4 |
-| mima2416 | Testing (fgcg_ CS-Gen) | 0 | 6 | 6 |
-| mima2416 | Testing (fgcs_ CS-Gen→CS) | 0 | 6 | 6 |
-| **mima2416 subtotal** | | **8** | **262** | **270** |
+| **chge7185 subtotal** | | **6** | **32** | **38** |
+| mima2416 | Stage 1 training | 2 | 0 | 2 |
+| mima2416 | Stage 2 training | 4 | 0 | 4 |
+| mima2416 | Testing (fgcg_ CG) | 0 | 5 | 5 |
+| mima2416 | Testing (fgcs_ CS) | 0 | 6 | 6 |
+| **mima2416 subtotal** | | **6** | **11** | **17** |
+
+**Note:** 168 pending S2 training jobs were killed on 2026-02-11. S2 training will resume with a curated strategy subset after S1 and CG analysis is complete.
 
 ---
 
@@ -39,19 +39,22 @@
 ---
 
 ### Training Progress
-| Stage | Complete (models) | In Queue | Total Target | Coverage |
-|-------|-------------------|----------|--------------|----------|
-| Stage 1 (15k) | 353/444 | 50 (2 RUN, 48 PEND) | 444 | 79.5% |
-| Stage 2 (15k) | 113/444 | 183 (0 RUN, 183 PEND) | 444 | 25.5% |
-| Cityscapes-Gen (20k) | 91/108 | 21 (6 RUN, 15 PEND) | 108 | 84.3% |
+| Stage | Complete | In Queue | Total Target | Coverage |
+|-------|----------|----------|--------------|----------|
+| Stage 1 (15k) | 366/416 | 2 RUN + 50 to submit | 416 | 88.0% |
+| Stage 2 (15k) | 135/416 | 4 RUN (pending killed) | 416 | 32.5% |
+| Cityscapes-Gen (20k) | **105/105** | 0 | 105 | **100%** ✅ |
+| Cityscapes (20k) | 3/4 | 1 to submit | 4 | 75% |
+| CS-Ratio Ablation (20k) | ~27/48 | 6 RUN + 13 PEND | 48 | ~56% |
 
 ### Testing Progress
-| Stage | Valid Tests | Buggy | Missing | Notes |
-|-------|------------|-------|---------|-------|
-| Stage 1 | 360 | 0 | 5 | 2 pending in queue |
-| Stage 2 | 132 | 0 | 1 | All completed training tested |
-| Cityscapes-Gen (Cityscapes) | CS valid | 13 buggy | 10 missing | 6 retest jobs queued |
-| Cityscapes-Gen (ACDC) | 163 total valid (CS+ACDC) | — | — | 6 CS retest jobs queued |
+| Stage | Valid Tests | Total Trained | Notes |
+|-------|------------|---------------|-------|
+| Stage 1 | 416 | 366 | Complete (includes old-regime tests) |
+| Stage 2 | 150 | 135 | Good coverage |
+| Cityscapes-Gen (Cityscapes) | 81 | 105 | 24 missing, 5 retest jobs PEND |
+| Cityscapes-Gen (ACDC) | 105 | 105 | **Complete** ✅ |
+| Cityscapes | 0 | 3 | 6 test jobs PEND (3 main + 3 ACDC) |
 
 ### Strategy Leaderboard Highlights
 | Stage | Top Strategy | mIoU | Baseline mIoU | Strategies > Baseline |
@@ -64,59 +67,43 @@
 
 ## 🎯 Recommended Next Steps (Priority Order)
 
-### 1. 🔴 HIGH: Monitor Stage 1 Training Completion (56 remaining)
-All 56 remaining S1 jobs are submitted and in queue. Mostly mask2former on mapillaryvistas/outside15k.
+### 1. 🔴 HIGH: Complete Stage 1 Training (50 remaining)
+50 S1 configs still need training (2 currently running). Remaining are mostly mask2former on mapillaryvistas/outside15k (systemic OOM).
 ```bash
-# Check progress
 bjobs -u mima2416 -w | grep "s1_"
-python scripts/update_training_tracker.py --stage 1
+python scripts/batch_training_submission.py --stage 1 --dry-run
 ```
-**Estimated time:** ~2-3 days at current queue throughput.
+**Blocker:** mask2former on mapillaryvistas/outside15k has 0% success rate (52 entries). May need smaller crop/batch.
 
-### 2. 🔴 HIGH: Monitor Stage 2 Training (292 total, 183 queued)
-183 S2 jobs already queued. 109 not yet submitted (will auto-submit as queue clears).
+### 2. 🔴 HIGH: Submit Missing CG Cityscapes Tests (24 missing)
+CG training is 100% complete but 24 Cityscapes test results missing (5 retest jobs PEND in queue).
 ```bash
-# Check what's missing after current batch completes
-python scripts/batch_training_submission.py --stage 2 --dry-run
-
-# Submit remaining batches
-python scripts/batch_training_submission.py --stage 2 -y
+python scripts/auto_submit_tests.py --stage cityscapes-gen --dry-run
+python scripts/auto_submit_tests.py --stage cityscapes-gen -y
 ```
 
-### 3. 🔴 HIGH: Complete Cityscapes-Gen Training (40 jobs in queue + 1 remaining)
-69/~110 complete, 40 in queue. Only 1 additional job to submit (gen_cycleGAN/segformer).
+### 3. 🟡 MEDIUM: Complete Cityscapes Pipeline (1 training + 6 tests)
+3/4 Cityscapes baseline models done. 1 more training + 6 test jobs (3 main + 3 ACDC) pending.
 ```bash
-python scripts/batch_training_submission.py --stage cityscapes-gen --dry-run
-python scripts/batch_training_submission.py --stage cityscapes-gen -y
+python scripts/batch_training_submission.py --stage cityscapes -y
 ```
 
-### 4. 🟡 MEDIUM: Auto-Submit Tests as Training Completes
-Use the batch test submission script for all stages:
+### 4. 🟡 MEDIUM: S1 & CG Analysis → S2 Strategy Selection
+With CG at 100% and S1 at 88%, generate leaderboards to identify top strategies for S2 subset.
 ```bash
-# NEW: Use batch_test_submission.py (replaces auto_submit_tests.py for cityscapes-gen)
-python scripts/batch_test_submission.py --stage cityscapes-gen --dry-run
-python scripts/batch_test_submission.py --stage cityscapes-gen -y
-
-# Legacy: auto_submit_tests.py still works for Stage 1/2
-python scripts/auto_submit_tests.py --stage 1 --dry-run
-python scripts/auto_submit_tests.py --stage 2 --dry-run
+python analysis_scripts/generate_strategy_leaderboard.py --stage 1
+python analysis_scripts/generate_strategy_leaderboard.py --stage cityscapes-gen
+python analysis_scripts/analyze_strategy_families.py
 ```
 
-### 4b. 🟡 MEDIUM: Update All Trackers (use --stage all)
+### 5. 🟡 MEDIUM: Select S2 Strategy Subset & Resume Training
+Based on S1/CG analysis, select top-performing strategies for S2 instead of running all 416 configs.
 ```bash
-python scripts/update_training_tracker.py --stage all
-python scripts/update_testing_tracker.py --stage all
-python analysis_scripts/generate_strategy_leaderboard.py --stage all
-```
-
-### 5. 🟡 MEDIUM: Complete Cityscapes Pipeline Verification
-Only 3/8 Cityscapes baseline models have final checkpoints. 3 main + 3 ACDC test jobs submitted.
-```bash
-python scripts/batch_training_submission.py --stage cityscapes --dry-run
+python scripts/batch_training_submission.py --stage 2 --strategies <selected> -y
 ```
 
 ### 6. 🟡 MEDIUM: Noise Ablation Study
-32 jobs designed but not yet submitted (commit `4262e8b`). Tests whether models learn from image content or just label layouts. Wait until S1 queue clears.
+32 jobs designed (commit `4262e8b`). Tests whether models learn from image content or just label layouts.
 ```bash
 python scripts/noise_ablation_submission.py --dry-run
 ```
@@ -223,6 +210,18 @@ python analysis_scripts/generate_strategy_leaderboard.py --stage cityscapes-gen
 python analysis_scripts/analyze_strategy_families.py
 python analysis_scripts/analyze_domain_gap_corrected.py
 ```
+
+---
+
+## 🆕 Recently Completed (2026-02-11)
+
+- ✅ Killed 168 pending S2 training jobs — will select strategy subset based on S1/CG results
+- ✅ CG training reached **100%** (105/105 actual configs complete across all 5 models)
+- ✅ CG ACDC cross-domain testing complete (105/105 valid results)
+- ✅ S1 testing at 416 valid results (all trained models tested)
+- ✅ S2 testing at 150 valid results
+- ✅ Consolidated `auto_submit_tests.py` for all stages (commit `0109bb6`)
+- ✅ Cleaned 6 buggy CG test results (empty `overall: {}`) and re-queued tests
 
 ---
 
