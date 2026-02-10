@@ -9,19 +9,19 @@ gen_augmenters,Generative,46.13,+3.85,-,-,32.87,+6.22,40.98,+8.12
 std_autoaugment,Standard Aug,46.38,+4.10,-,-,32.82,+6.17,40.75,+7.89
 std_randaugment,Standard Aug,46.16,+3.88,-,-,32.83,+6.18,40.89,+8.04
 gen_IP2P,Generative,46.28,+4.00,-,-,32.88,+6.23,40.67,+7.82
-gen_VisualCloze,Generative,46.36,+4.08,-,-,32.94,+6.29,40.48,+7.62
 std_cutmix,Standard Aug,46.28,+3.99,-,-,32.90,+6.25,40.51,+7.66
 std_mixup,Standard Aug,46.37,+4.09,-,-,32.83,+6.18,40.43,+7.57
 gen_automold,Generative,46.07,+3.79,-,-,32.90,+6.25,40.59,+7.74
 gen_Weather_Effect_Generator,Generative,45.82,+3.54,-,-,33.04,+6.39,40.52,+7.67
 gen_cyclediffusion,Generative,46.06,+3.78,-,-,32.68,+6.03,40.63,+7.78
 gen_CUT,Generative,45.98,+3.70,-,-,32.68,+6.03,40.57,+7.71
+gen_VisualCloze,Generative,45.74,+3.46,-,-,32.94,+6.29,40.48,+7.62
+gen_flux_kontext,Generative,44.53,+2.25,-,-,32.98,+6.33,40.86,+8.00
 gen_albumentations_weather,Generative,45.01,+2.73,-,-,32.76,+6.11,40.39,+7.54
+gen_LANIT,Generative,44.56,+2.28,-,-,32.88,+6.23,40.66,+7.81
+gen_step1x_new,Generative,44.70,+2.42,-,-,32.94,+6.29,40.44,+7.59
 gen_SUSTechGAN,Generative,44.84,+2.56,-,-,32.77,+6.12,40.44,+7.58
 gen_TSIT,Generative,46.56,+4.28,-,-,30.09,+3.44,40.68,+7.83
-gen_flux_kontext,Generative,43.45,+1.17,-,-,32.98,+6.33,40.86,+8.00
-gen_LANIT,Generative,43.75,+1.46,-,-,32.88,+6.23,40.66,+7.81
-gen_step1x_new,Generative,43.56,+1.28,-,-,32.94,+6.29,40.44,+7.59
 gen_cycleGAN,Generative,43.27,+0.99,-,-,32.90,+6.25,40.61,+7.76
 gen_step1x_v1p2,Generative,43.03,+0.75,-,-,32.85,+6.20,40.53,+7.68
 baseline,Baseline,42.28,+0.00,-,-,26.65,+0.00,32.85,+0.00

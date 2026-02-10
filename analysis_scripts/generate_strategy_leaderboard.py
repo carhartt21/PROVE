@@ -99,6 +99,12 @@ STAGE_CONFIGS = {
             'adverse': ['foggy', 'night', 'rainy', 'snowy'],  # ACDC domains
             'transition': [],
         },
+        # For Normal/Adverse computation: use dataset-level overall mIoU
+        # Cityscapes val = all clear/day → Normal, ACDC = adverse weather → Adverse
+        'normal_adverse_from_datasets': {
+            'normal': ['cityscapes'],  # Overall Cityscapes mIoU = Normal mIoU
+            'adverse': ['acdc'],       # Overall ACDC mIoU = Adverse mIoU
+        },
         # ACDC cross-domain results are in test_results_acdc/ instead of test_results_detailed/
         'cross_domain_datasets': {
             'acdc': {
@@ -450,13 +456,18 @@ def compute_normal_adverse_metric(domain_metrics: Dict[str, float],
 # Leaderboard generation
 # ============================================================================
 
-def generate_leaderboard(df: pd.DataFrame, metric: str, domain_classification: dict) -> pd.DataFrame:
+def generate_leaderboard(df: pd.DataFrame, metric: str, domain_classification: dict,
+                         normal_adverse_from_datasets: dict = None) -> pd.DataFrame:
     """Generate the main strategy leaderboard.
 
     Args:
         df: DataFrame with test results
         metric: Which metric to use for ranking ('mIoU', 'aAcc', 'mAcc', 'fwIoU')
         domain_classification: Stage-specific normal/adverse domain mapping
+        normal_adverse_from_datasets: Optional dict with 'normal' and 'adverse'
+            keys mapping to dataset names. When provided, Normal/Adverse mIoU
+            is computed from dataset-level overall metrics instead of per-domain
+            breakdown. E.g., {'normal': ['cityscapes'], 'adverse': ['acdc']}.
 
     Returns:
         DataFrame with strategy leaderboard sorted by selected metric
@@ -475,21 +486,37 @@ def generate_leaderboard(df: pd.DataFrame, metric: str, domain_classification: d
         overall_std = strat_df[metric].std()
         num_results = len(strat_df)
 
-        # Compute Normal/Adverse from per-domain metrics
-        normal_vals = []
-        adverse_vals = []
+        normal_avg = None
+        adverse_avg = None
 
-        for _, row in strat_df.iterrows():
-            domain_metrics = parse_per_domain_metrics(row, metric)
-            if domain_metrics:
-                normal, adverse = compute_normal_adverse_metric(domain_metrics, domain_classification)
-                if normal is not None:
-                    normal_vals.append(normal)
-                if adverse is not None:
-                    adverse_vals.append(adverse)
+        if normal_adverse_from_datasets:
+            # Compute Normal/Adverse from dataset-level overall metrics
+            # e.g., Cityscapes overall mIoU = Normal, ACDC overall mIoU = Adverse
+            normal_datasets = normal_adverse_from_datasets.get('normal', [])
+            adverse_datasets = normal_adverse_from_datasets.get('adverse', [])
 
-        normal_avg = np.mean(normal_vals) if normal_vals else None
-        adverse_avg = np.mean(adverse_vals) if adverse_vals else None
+            normal_df = strat_df[strat_df['dataset'].isin(normal_datasets)]
+            adverse_df = strat_df[strat_df['dataset'].isin(adverse_datasets)]
+
+            normal_avg = normal_df[metric].mean() if not normal_df.empty else None
+            adverse_avg = adverse_df[metric].mean() if not adverse_df.empty else None
+        else:
+            # Compute Normal/Adverse from per-domain metrics within each test result
+            normal_vals = []
+            adverse_vals = []
+
+            for _, row in strat_df.iterrows():
+                domain_metrics = parse_per_domain_metrics(row, metric)
+                if domain_metrics:
+                    normal, adverse = compute_normal_adverse_metric(domain_metrics, domain_classification)
+                    if normal is not None:
+                        normal_vals.append(normal)
+                    if adverse is not None:
+                        adverse_vals.append(adverse)
+
+            normal_avg = np.mean(normal_vals) if normal_vals else None
+            adverse_avg = np.mean(adverse_vals) if adverse_vals else None
+
         domain_gap = (normal_avg - adverse_avg) if (normal_avg is not None and adverse_avg is not None) else None
 
         gain = (overall_val - baseline_val) if baseline_val is not None else None
@@ -963,10 +990,12 @@ def run_stage(stage, args):
             all_datasets.append(cd_name)
 
     domain_classification = stage_config['domain_classification']
+    normal_adverse_from_datasets = stage_config.get('normal_adverse_from_datasets')
 
     # Generate tables
     print(f"\n1. Generating main leaderboard by {metric}...")
-    leaderboard_df = generate_leaderboard(df, metric, domain_classification)
+    leaderboard_df = generate_leaderboard(df, metric, domain_classification,
+                                          normal_adverse_from_datasets=normal_adverse_from_datasets)
 
     print("\n" + "=" * 70)
     print(f"STRATEGY LEADERBOARD ({stage_config['name']}) — Ranked by {metric}")

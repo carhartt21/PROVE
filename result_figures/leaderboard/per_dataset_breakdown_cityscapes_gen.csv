@@ -1,12 +1,10 @@
 Strategy,Type,cityscapes,cityscapes_gain,acdc,acdc_gain
-gen_augmenters,Generative,55.06,+1.03,46.16,+1.67
 gen_cycleGAN,Generative,54.26,+0.23,45.31,+0.82
 gen_flux_kontext,Generative,53.98,-0.05,44.89,+0.40
 gen_VisualCloze,Generative,54.12,+0.09,44.68,+0.19
 std_mixup,Standard Aug,53.89,-0.14,44.71,+0.22
 baseline,Baseline,54.03,+0.00,44.49,+0.00
 std_cutmix,Standard Aug,53.94,-0.09,44.53,+0.04
-gen_TSIT,Generative,53.94,-0.09,44.35,-0.14
 std_randaugment,Standard Aug,53.86,-0.17,44.34,-0.15
 gen_automold,Generative,53.67,-0.36,44.49,+0.00
 gen_step1x_v1p2,Generative,53.80,-0.23,44.16,-0.33
@@ -17,10 +15,12 @@ gen_Img2Img,Generative,51.52,-2.51,45.36,+0.87
 gen_SUSTechGAN,Generative,51.80,-2.23,44.47,-0.02
 gen_cyclediffusion,Generative,51.62,-2.41,44.55,+0.06
 gen_Qwen_Image_Edit,Generative,51.25,-2.77,44.85,+0.36
+gen_Weather_Effect_Generator,Generative,50.92,-3.11,44.52,+0.03
+gen_CNetSeg,Generative,50.57,-3.46,44.17,-0.32
 gen_IP2P,Generative,51.14,-2.88,43.47,-1.02
-gen_Weather_Effect_Generator,Generative,51.05,-2.97,42.62,-1.87
+gen_augmenters,Generative,51.46,-2.57,43.12,-1.37
+gen_stargan_v2,Generative,50.32,-3.70,43.96,-0.53
 gen_CUT,Generative,48.50,-5.52,45.11,+0.62
 gen_Attribute_Hallucination,Generative,48.51,-5.52,44.88,+0.39
 gen_UniControl,Generative,48.18,-5.85,44.58,+0.09
-gen_CNetSeg,Generative,50.34,-3.69,41.66,-2.83
-gen_stargan_v2,Generative,50.18,-3.84,41.61,-2.88
+gen_TSIT,Generative,50.56,-3.47,41.91,-2.58
