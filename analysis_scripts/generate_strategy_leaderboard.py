@@ -643,6 +643,56 @@ def generate_per_domain_table(df: pd.DataFrame, metric: str,
     return pd.DataFrame(records)
 
 
+def generate_per_model_table(df: pd.DataFrame, metric: str) -> pd.DataFrame:
+    """Generate per-model metric breakdown.
+
+    Shows each strategy's performance on each base model architecture,
+    normalizing model names by stripping ratio suffixes (e.g. _ratio0p50).
+
+    Args:
+        df: DataFrame with test results
+        metric: Which metric to use
+    """
+    df = df.copy()
+    df['model_base'] = df['model'].str.replace(r'_ratio\d+p\d+$', '', regex=True)
+
+    base_models = sorted(df['model_base'].unique())
+
+    baseline_df = df[df['strategy'] == 'baseline']
+    baseline_by_model = baseline_df.groupby('model_base')[metric].mean().to_dict()
+
+    records = []
+    for strategy in sorted(df['strategy'].unique()):
+        strat_df = df[df['strategy'] == strategy]
+        row = {'Strategy': strategy, 'Type': get_strategy_type(strategy)}
+
+        for model in base_models:
+            model_df = strat_df[strat_df['model_base'] == model]
+            if not model_df.empty:
+                val = model_df[metric].mean()
+                baseline = baseline_by_model.get(model)
+                gain = (val - baseline) if baseline is not None else None
+                row[model] = f"{val:.2f}"
+                row[f"{model}_gain"] = f"{gain:+.2f}" if gain is not None else "-"
+            else:
+                row[model] = "-"
+                row[f"{model}_gain"] = "-"
+
+        records.append(row)
+
+    result_df = pd.DataFrame(records)
+
+    # Sort by average metric across available models
+    for m in base_models:
+        result_df[f'{m}_num'] = pd.to_numeric(result_df[m], errors='coerce')
+    num_cols = [f'{m}_num' for m in base_models]
+    result_df['avg'] = result_df[num_cols].mean(axis=1)
+    result_df = result_df.sort_values('avg', ascending=False).reset_index(drop=True)
+    result_df = result_df.drop(columns=num_cols + ['avg'])
+
+    return result_df
+
+
 # ============================================================================
 # Fair comparison filtering
 # ============================================================================
@@ -729,7 +779,7 @@ def format_markdown_table(df: pd.DataFrame, title: str, description: str = "") -
 def generate_output(df: pd.DataFrame, leaderboard_df: pd.DataFrame,
                     per_dataset_df: pd.DataFrame, per_domain_df: pd.DataFrame,
                     stage_config: dict, metric: str, fair: bool,
-                    output_dir: Path) -> None:
+                    output_dir: Path, per_model_df: pd.DataFrame = None) -> None:
     """Generate all output files (markdown, CSV).
 
     Args:
@@ -741,6 +791,7 @@ def generate_output(df: pd.DataFrame, leaderboard_df: pd.DataFrame,
         metric: Selected metric
         fair: Whether fair comparison mode was used
         output_dir: Output directory path
+        per_model_df: Per-model breakdown DataFrame (optional)
     """
     output_dir.mkdir(parents=True, exist_ok=True)
     stage_name = stage_config['name']
@@ -805,6 +856,16 @@ def generate_output(df: pd.DataFrame, leaderboard_df: pd.DataFrame,
             "Per-Domain Breakdown",
             f"{metric} performance on each weather domain. {domain_desc}"
         ))
+        f.write("---\n\n")
+
+        # Per-model breakdown
+        if per_model_df is not None and not per_model_df.empty:
+            f.write(format_markdown_table(
+                per_model_df,
+                "Per-Model Breakdown",
+                f"{metric} performance on each model architecture. "
+                f"Gain columns show improvement over baseline per model."
+            ))
 
     print(f"Saved to: {output_file}")
 
@@ -819,6 +880,8 @@ def generate_output(df: pd.DataFrame, leaderboard_df: pd.DataFrame,
     leaderboard_df.to_csv(output_dir / f'strategy_leaderboard_{prefix.lower()}{suffix}.csv', index=False)
     per_dataset_df.to_csv(output_dir / f'per_dataset_breakdown_{prefix.lower()}{suffix}.csv', index=False)
     per_domain_df.to_csv(output_dir / f'per_domain_breakdown_{prefix.lower()}{suffix}.csv', index=False)
+    if per_model_df is not None and not per_model_df.empty:
+        per_model_df.to_csv(output_dir / f'per_model_breakdown_{prefix.lower()}{suffix}.csv', index=False)
     print(f"CSVs saved to: {output_dir}")
 
 
@@ -1016,9 +1079,18 @@ def run_stage(stage, args):
     print(f"\n3. Generating per-domain breakdown by {metric}...")
     per_domain_df = generate_per_domain_table(df, metric, domain_classification)
 
+    print(f"\n4. Generating per-model breakdown by {metric}...")
+    per_model_df = generate_per_model_table(df, metric)
+
+    print("\n" + "=" * 70)
+    print(f"PER-MODEL BREAKDOWN ({stage_config['name']}) — {metric}")
+    print("=" * 70)
+    print(per_model_df.to_string(index=False))
+
     # Write output
     generate_output(df, leaderboard_df, per_dataset_df, per_domain_df,
-                    stage_config, metric, args.fair, output_dir)
+                    stage_config, metric, args.fair, output_dir,
+                    per_model_df=per_model_df)
 
 
 if __name__ == '__main__':

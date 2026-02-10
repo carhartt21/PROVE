@@ -1,0 +1,21 @@
+Strategy,Type,deeplabv3plus_r50,deeplabv3plus_r50_gain,hrnet_hr48,hrnet_hr48_gain,mask2former_swin-b,mask2former_swin-b_gain,pspnet_r50,pspnet_r50_gain,segformer_mit-b3,segformer_mit-b3_gain,segformer_mit-b5,segformer_mit-b5_gain,segnext_mscan-b,segnext_mscan-b_gain
+baseline,Baseline,37.57,+0.00,38.26,+0.00,46.76,+0.00,36.22,+0.00,43.60,+0.00,48.14,+0.00,43.86,+0.00
+gen_IP2P,Generative,-,-,-,-,-,-,-,-,41.98,-1.62,-,-,-,-
+gen_VisualCloze,Generative,-,-,-,-,-,-,-,-,41.90,-1.70,-,-,-,-
+gen_albumentations_weather,Generative,-,-,-,-,-,-,-,-,41.87,-1.73,-,-,-,-
+gen_cyclediffusion,Generative,-,-,-,-,-,-,-,-,41.85,-1.76,-,-,-,-
+gen_flux_kontext,Generative,-,-,-,-,-,-,-,-,41.84,-1.76,-,-,-,-
+gen_Img2Img,Generative,-,-,-,-,-,-,-,-,41.78,-1.82,-,-,-,-
+gen_Attribute_Hallucination,Generative,-,-,-,-,-,-,-,-,41.77,-1.83,-,-,-,-
+gen_automold,Generative,-,-,-,-,-,-,-,-,41.77,-1.83,-,-,-,-
+gen_step1x_new,Generative,-,-,-,-,-,-,-,-,41.77,-1.83,-,-,-,-
+gen_UniControl,Generative,-,-,-,-,-,-,-,-,41.77,-1.84,-,-,-,-
+gen_LANIT,Generative,-,-,-,-,-,-,-,-,41.76,-1.84,-,-,-,-
+gen_CUT,Generative,-,-,-,-,-,-,-,-,41.75,-1.86,-,-,-,-
+gen_cycleGAN,Generative,-,-,-,-,-,-,-,-,41.74,-1.86,-,-,-,-
+gen_step1x_v1p2,Generative,-,-,-,-,-,-,-,-,41.69,-1.91,-,-,-,-
+gen_SUSTechGAN,Generative,-,-,-,-,-,-,-,-,41.67,-1.93,-,-,-,-
+std_autoaugment,Standard Aug,-,-,-,-,43.80,-2.96,35.56,-0.66,41.79,-1.81,-,-,42.60,-1.26
+std_randaugment,Standard Aug,-,-,-,-,-,-,38.63,+2.41,42.01,-1.60,-,-,-,-
+std_cutmix,Standard Aug,-,-,-,-,-,-,35.63,-0.59,41.88,-1.72,-,-,42.49,-1.36
+std_mixup,Standard Aug,-,-,-,-,-,-,35.81,-0.40,41.85,-1.75,-,-,41.58,-2.28

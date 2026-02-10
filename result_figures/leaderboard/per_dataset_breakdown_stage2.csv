@@ -1,5 +1,4 @@
 Strategy,Type,bdd10k,bdd10k_gain,idd-aw,idd-aw_gain,mapillaryvistas,mapillaryvistas_gain,outside15k,outside15k_gain
-std_randaugment,Standard Aug,47.70,+3.16,-,-,35.09,-0.13,44.68,+2.52
 gen_IP2P,Generative,47.71,+3.17,-,-,35.00,-0.23,44.69,+2.52
 gen_flux_kontext,Generative,47.04,+2.50,-,-,34.97,-0.26,44.94,+2.78
 gen_VisualCloze,Generative,47.18,+2.64,-,-,35.00,-0.23,44.72,+2.55
@@ -11,11 +10,12 @@ gen_automold,Generative,47.13,+2.59,-,-,34.99,-0.24,44.41,+2.24
 gen_cycleGAN,Generative,46.92,+2.38,-,-,34.89,-0.34,44.68,+2.51
 gen_Attribute_Hallucination,Generative,46.75,+2.21,-,-,34.77,-0.46,44.96,+2.80
 gen_CUT,Generative,46.81,+2.27,-,-,35.02,-0.21,44.65,+2.48
-gen_UniControl,Generative,46.43,+1.89,-,-,34.96,-0.26,45.01,+2.84
 gen_LANIT,Generative,46.62,+2.08,-,-,34.72,-0.51,45.06,+2.90
+gen_UniControl,Generative,46.43,+1.89,-,-,34.96,-0.26,45.01,+2.84
 gen_step1x_v1p2,Generative,46.41,+1.87,-,-,34.97,-0.26,44.88,+2.72
 gen_SUSTechGAN,Generative,46.36,+1.81,-,-,34.91,-0.32,44.76,+2.60
-std_mixup,Standard Aug,45.75,+1.21,-,-,33.43,-1.80,44.52,+2.36
+std_randaugment,Standard Aug,44.89,+0.35,-,-,35.09,-0.13,44.68,+2.52
 baseline,Baseline,44.54,+0.00,40.82,+0.00,35.23,+0.00,42.17,+0.00
 std_autoaugment,Standard Aug,45.94,+1.39,-,-,33.22,-2.01,42.18,+0.01
 std_cutmix,Standard Aug,45.85,+1.31,-,-,33.42,-1.81,41.89,-0.28
+std_mixup,Standard Aug,45.75,+1.21,-,-,33.43,-1.80,40.69,-1.47
