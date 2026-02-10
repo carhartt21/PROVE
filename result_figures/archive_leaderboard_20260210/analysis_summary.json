@@ -1,0 +1,34 @@
+{
+  "baseline_full": {
+    "overall_miou": 32.082347098932814,
+    "overall_std": 3.18416260768575,
+    "by_dataset": {
+      "bdd10k": {
+        "miou": 30.02854676638867,
+        "std": NaN
+      },
+      "iddaw": {
+        "miou": 33.25428925388167,
+        "std": NaN
+      },
+      "mapillaryvistas": {
+        "miou": 29.027829621599615,
+        "std": NaN
+      },
+      "outside15k": {
+        "miou": 36.01872275386131,
+        "std": NaN
+      }
+    },
+    "by_model": {
+      "pspnet_r50": {
+        "miou": 32.082347098932814,
+        "std": 3.18416260768575
+      }
+    }
+  },
+  "baseline_clear_day": null,
+  "reference_baseline": "baseline_clear_day",
+  "leaderboard_rows_full": 6,
+  "leaderboard_rows_clear": 1
+}
