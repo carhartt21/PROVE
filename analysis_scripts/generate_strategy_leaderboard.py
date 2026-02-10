@@ -869,20 +869,24 @@ def generate_output(df: pd.DataFrame, leaderboard_df: pd.DataFrame,
 
     print(f"Saved to: {output_file}")
 
+    # --- Breakdowns subfolder ---
+    breakdowns_dir = output_dir / 'breakdowns'
+    breakdowns_dir.mkdir(parents=True, exist_ok=True)
+
     # --- Detailed gains markdown ---
-    detailed_file = output_dir / f'DETAILED_GAINS_{prefix}_{metric.upper()}.md'
+    detailed_file = breakdowns_dir / f'DETAILED_GAINS_{prefix}_{metric.upper()}.md'
     _write_detailed_gains(detailed_file, df, leaderboard_df, per_domain_df,
                           stage_config, metric, all_datasets)
     print(f"Saved to: {detailed_file}")
 
-    # --- CSV files ---
+    # --- CSV files (in breakdowns subfolder) ---
     suffix = f"_{metric.lower()}" if metric != 'mIoU' else ""
-    leaderboard_df.to_csv(output_dir / f'strategy_leaderboard_{prefix.lower()}{suffix}.csv', index=False)
-    per_dataset_df.to_csv(output_dir / f'per_dataset_breakdown_{prefix.lower()}{suffix}.csv', index=False)
-    per_domain_df.to_csv(output_dir / f'per_domain_breakdown_{prefix.lower()}{suffix}.csv', index=False)
+    leaderboard_df.to_csv(breakdowns_dir / f'strategy_leaderboard_{prefix.lower()}{suffix}.csv', index=False)
+    per_dataset_df.to_csv(breakdowns_dir / f'per_dataset_breakdown_{prefix.lower()}{suffix}.csv', index=False)
+    per_domain_df.to_csv(breakdowns_dir / f'per_domain_breakdown_{prefix.lower()}{suffix}.csv', index=False)
     if per_model_df is not None and not per_model_df.empty:
-        per_model_df.to_csv(output_dir / f'per_model_breakdown_{prefix.lower()}{suffix}.csv', index=False)
-    print(f"CSVs saved to: {output_dir}")
+        per_model_df.to_csv(breakdowns_dir / f'per_model_breakdown_{prefix.lower()}{suffix}.csv', index=False)
+    print(f"Breakdowns saved to: {breakdowns_dir}")
 
 
 def _domain_description(stage_config: dict) -> str:

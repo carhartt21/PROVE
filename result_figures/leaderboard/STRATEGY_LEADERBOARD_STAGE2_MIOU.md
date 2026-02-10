@@ -4,7 +4,7 @@
 
 **Metric**: mIoU (Mean Intersection over Union)
 
-**Last Updated**: 2026-02-10 14:41
+**Last Updated**: 2026-02-10 14:43
 **Baseline mIoU**: 40.80%
 **Total Results**: 140 test results from 20 strategies
 
