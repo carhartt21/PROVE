@@ -43,7 +43,7 @@
 ### Training Progress
 | Stage | Complete | In Queue | Total Target | Coverage |
 |-------|----------|----------|--------------|----------|
-| Stage 1 (15k) | 366/416 | 2 RUN + 50 to submit | 416 | 88.0% |
+| Stage 1 (15k) | 366/416 | 2 RUN + 50 submitted (80GB GPU) | 416 | 88.0% |
 | Stage 2 (15k) | 135/416 | 3 RUN (pending killed) | 416 | 32.5% |
 | CG baseline+std (20k) | **25/25** | 0 | 25 | **100%** ✅ |
 | CG gen_* (20k) | 80/99 | 19 PEND (chge7185) | 99 | 80.8% |
@@ -74,19 +74,14 @@
 After step 2 completes: 101/105 tested (81 existing + 20 new). The 4 already-PEND jobs give 105/105.
 After step 4 completes: 124/124 Cityscapes + 124/124 ACDC = **full CG coverage**.
 
-#### S1 Path to 100% — BLOCKED by mask2former OOM 🔴
+#### S1 Path to 100% — IN PROGRESS (80GB GPUs) 🔄
 | Step | Items | Status | Notes |
 |------|-------|--------|-------|
 | 1. S1 testing of trained models | 366/366 | ✅ 100% | Already complete |
-| 2. Remaining S1 training | 50 configs | ❌ Blocked | ALL mask2former on MapillaryVistas (25) + OUTSIDE15k (25) |
+| 2. Remaining S1 training | 50 configs | 🔄 Submitted | All mask2former on MapillaryVistas (25) + OUTSIDE15k (25), submitted to 80GB GPUs |
 | 3. Submit tests for new completions | Auto | ⏳ After step 2 | `auto_submit_tests.py --stage 1` |
 
-**Root Cause:** mask2former_swin-b OOMs on MapillaryVistas (66 classes) and OUTSIDE15k (24 classes). Works fine on BDD10k/IDD-AW (19 classes).
-- Current config: crop_size=(512,512), batch_size=8, 40GB GPU
-- 0/50 attempts have produced any checkpoint (no partial progress)
-- **Possible fixes:** Reduce batch_size to 2-4, or reduce crop_size to (384,384), or use gradient accumulation
-
-**Decision needed:** Either fix the OOM blocker or exclude mask2former from MapillaryVistas/OUTSIDE15k in the analysis (reduces S1 from 416 to 366 target = already 100%).
+**Root Cause (resolved):** mask2former_swin-b OOMs on 40GB GPUs with 66-class/24-class datasets. Jobs now submitted to 80GB GPUs from dedicated machine.
 
 ### Strategy Leaderboard Highlights
 | Stage | Top Strategy | mIoU | Baseline mIoU | Strategies > Baseline |
@@ -105,16 +100,10 @@ After step 4 completes: 124/124 Cityscapes + 124/124 ACDC = **full CG coverage**
 - ✅ 4 more already pending in queue = 24 total in queue
 - ⏳ Wait for 24 test jobs to complete → 105/105 CG Cityscapes coverage
 
-### 2. 🔴 HIGH: Resolve mask2former OOM on MapillaryVistas/OUTSIDE15k
-50 S1 configs blocked — ALL are mask2former_swin-b on MapillaryVistas (25) and OUTSIDE15k (25).
-**Options:**
-- **Option A:** Reduce batch_size from 8 to 2 and crop_size from (512,512) to (384,384)
-- **Option B:** Exclude mask2former from these 2 datasets (redefine S1 target as 366 = already 100%)
-- **Option C:** Use gradient accumulation (batch_size=2, accumulative_counts=4)
+### 2. � IN PROGRESS: mask2former on MapillaryVistas/OUTSIDE15k (50 jobs)
+50 S1 configs — ALL mask2former_swin-b on MapillaryVistas (25) + OUTSIDE15k (25).
+**Status:** Jobs submitted from machine with exclusive 80GB GPU access, pending in queue.
 ```bash
-# Test with smaller config
-python unified_training.py --dataset MapillaryVistas --model mask2former_swin-b \
-    --strategy baseline --domain-filter clear_day --use-native-classes --submit-job
 python scripts/batch_training_submission.py --stage 1 --dry-run  # Shows 50 remaining
 ```
 
