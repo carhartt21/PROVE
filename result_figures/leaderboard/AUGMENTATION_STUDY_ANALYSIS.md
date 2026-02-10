@@ -156,4 +156,60 @@ When training already includes all weather domains, augmentation gains shrink dr
 
 ---
 
-*Data coverage: Stage 1: 364 test results, Stage 2: 140, CS-Gen: 292. Some strategies have incomplete test coverage across all models/datasets.*
+## 8. Data Coverage Caveats
+
+### 8.1 Incomplete Coverage Overview
+
+Not all strategies have full test coverage across all model/dataset combinations. Results for strategies with missing tests should be interpreted with caution, as incomplete coverage may bias aggregate metrics.
+
+| Stage | Total Results | Full Coverage | Strategies with Missing Tests |
+|-------|-------------|---------------|-------------------------------|
+| Stage 1 | 364 | 14 tests/strategy | 3 strategies at 13/14 |
+| Stage 2 | 140 | varies | Most gen strategies have only 1 model (segformer_mit-b3) |
+| CS-Gen | 292 | 12 tests/strategy | 6 strategies below 12 |
+
+### 8.2 Stage 1 — Nearly Complete
+
+Three strategies are each missing 1 test result:
+- **gen_automold**: 13/14 tests
+- **gen_albumentations_weather**: 13/14 tests
+- **gen_step1x_v1p2**: 13/14 tests
+
+Impact: Minimal — these strategies are only missing a single model/dataset configuration each.
+
+### 8.3 Stage 2 — Severely Limited Model Coverage
+
+This is the most significant coverage limitation. Stage 2 generative strategies have been tested with **only 1 model** (segformer_mit-b3 with ratio 0.50) across 4 datasets, yielding just 4 test results each. In contrast:
+- **baseline**: 37 tests across 7 model variants and 5 datasets
+- **std_autoaugment**: 14 tests across 4 models
+- **std_cutmix / std_mixup**: 11–12 tests across 3 models
+- **std_randaugment**: 6 tests across 2 models
+
+⚠️ **This means Stage 2 generative strategy rankings reflect single-model performance (segformer_mit-b3), not multi-model averages.** The +1.0 average gain for generative methods in Stage 2 may not generalize to other architectures. Cross-model validation is needed before drawing firm conclusions.
+
+### 8.4 CS-Gen — Mostly Complete
+
+Six strategies have incomplete test sets:
+
+| Strategy | Tests | Missing |
+|----------|-------|---------|
+| gen_cycleGAN | 9/12 | 3 model/dataset configs |
+| gen_augmenters | 9/12 | 3 model/dataset configs |
+| gen_UniControl | 10/12 | 2 model/dataset configs |
+| gen_SUSTechGAN | 11/12 | 1 config |
+| gen_cyclediffusion | 11/12 | 1 config |
+| gen_Attribute_Hallucination | 11/12 | 1 config |
+| std_autoaugment | 15/12 | Over-coverage (has extra deeplabv3plus_r50 results) |
+
+Note: std_autoaugment has 15 tests instead of 12 because it includes results for deeplabv3plus_r50, which other CS-Gen strategies lack. This gives it broader model coverage but makes direct comparison uneven.
+
+### 8.5 Implications for Analysis
+
+1. **Cross-stage comparisons** (Section 2) are most reliable for strategies with full coverage in all stages. The 18 strategies present in all 3 stages have varying completeness.
+2. **Stage 2 conclusions** (Section 6) should be considered **preliminary** — generative strategy gains are based on a single model only.
+3. **Per-model analysis** (Section 5) is limited by the fact that many strategies were only trained/tested on a subset of models. The finding that mask2former is hurt by augmentation is based on Stage 1 and CS-Gen data where it has coverage, but Stage 2 data for mask2former exists only for std_autoaugment.
+4. The **strategy family analysis** (Section 3) averages over strategies with different coverage levels, which may introduce bias toward strategies with more favorable model/dataset combinations.
+
+---
+
+*Total data: Stage 1: 364 results, Stage 2: 140 results, CS-Gen: 292 results. Generated 2026-02-10.*
