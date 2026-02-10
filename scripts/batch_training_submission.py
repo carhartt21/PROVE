@@ -822,7 +822,7 @@ def generate_job_script(
     ]
     
     # Add domain filter for Stage 1, ratio ablation, and noise ablation (not Stage 2 or Cityscapes)
-    if job.stage in [1, 'ratio', 'noise-ablation', 'extended-s1']:
+    if job.stage in [1, 'ratio', 'stage1-ratio', 'noise-ablation', 'extended-s1']:
         cmd_parts.extend(['--domain-filter', 'clear_day'])
     # Note: Stage 2 and Cityscapes do NOT use domain filter
     
