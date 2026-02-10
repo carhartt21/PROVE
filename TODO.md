@@ -1,10 +1,10 @@
 # PROVE Project TODO
 
-**Last Updated:** 2026-02-10 (17:00)
+**Last Updated:** 2026-02-10 (17:15)
 
 ---
 
-## 📊 Current Status (2026-02-10 17:00)
+## 📊 Current Status (2026-02-10 17:15)
 
 ### Queue Summary
 | User | Category | RUN | PEND | Total |
@@ -20,6 +20,27 @@
 | mima2416 | Testing (fgcg_ CS-Gen) | 0 | 6 | 6 |
 | mima2416 | Testing (fgcs_ CS-Gen→CS) | 0 | 6 | 6 |
 | **mima2416 subtotal** | | **8** | **262** | **270** |
+
+---
+
+## ⚠️ PENDING ACTION: Remove std_photometric_distort
+
+**Reason:** `std_photometric_distort` is essentially the same as baseline (no meaningful augmentation difference).
+
+**Status:** Awaiting confirmation for destructive cleanup.
+
+**To remove (when confirmed):**
+1. Kill 12 LSF jobs: `bjobs -u chge7185 -w | grep photometric | awk '{print $1}' | xargs bkill`
+2. Delete checkpoints: `rm -rf /scratch/aaa_exchange/AWARE/WEIGHTS/std_photometric_distort/` (56 .pth files)
+3. Delete Stage 2: `rm -rf /scratch/aaa_exchange/AWARE/WEIGHTS_STAGE_2/std_photometric_distort/` (if exists)
+4. Remove from `batch_training_submission.py`:
+   - Remove from `STRATEGIES['std']` list
+   - Remove from `COMBINATION_STD_STRATEGIES` 
+5. Update combination ablation to use different std_* strategy (e.g., std_cutmix instead)
+
+**Replacement for combination ablation:** Consider `std_cutmix` (+4.06% on S1) as replacement.
+
+---
 
 ### Training Progress
 | Stage | Complete (models) | In Queue | Total Target | Coverage |
@@ -143,14 +164,15 @@ Tests synergy between generative augmentation (gen_*) and standard augmentation 
 #### Design Rationale
 - **Hypothesis:** gen_* provides diverse weather conditions; std_* adds photometric variation → combined effect may be synergistic
 - **Top gen_* selected:** gen_augmenters (63.96%), gen_TSIT (63.52%), gen_VisualCloze (63.56%) — best from Cityscapes-gen leaderboard
-- **Top std_* selected:** std_photometric_distort (+7.93%), std_mixup (+5.50%), std_randaugment (+5.48%) — best Stage 1 gains over baseline
+- **Top std_* selected:** ~~std_photometric_distort~~, std_mixup (+5.50%), std_randaugment (+5.48%) — best Stage 1 gains over baseline
+- **⚠️ Note:** std_photometric_distort is essentially baseline - need to replace with std_cutmix (+4.06%)
 - **Interesting observation:** std_* shows *negative* effect on Cityscapes-gen but *positive* on Stage 1 cross-domain
 
 #### Configuration
 | Parameter | Value |
 |-----------|-------|
 | gen_* strategies | gen_augmenters, gen_TSIT, gen_VisualCloze (3) |
-| std_* strategies | std_photometric_distort, std_mixup, std_randaugment (3) |
+| std_* strategies | std_cutmix, std_mixup, std_randaugment (3) ⚠️ Updated |
 | Models | pspnet_r50, segformer_mit-b3 (2) |
 | Dataset | Cityscapes |
 | Ratio | 0.50 (fixed) |
