@@ -1,18 +1,17 @@
 # PROVE Project TODO
 
-**Last Updated:** 2026-02-10 (17:15)
+**Last Updated:** 2026-02-10 (17:30)
 
 ---
 
-## 📊 Current Status (2026-02-10 17:15)
+## 📊 Current Status (2026-02-10 17:30)
 
 ### Queue Summary
 | User | Category | RUN | PEND | Total |
 |------|----------|----:|-----:|------:|
-| chge7185 | Cityscapes-gen training | 7 | 12 | 19 |
-| chge7185 | Cityscapes-ratio ablation | 0 | 48 | 48 |
-| chge7185 | Stage 1/2 training | 0 | 14 | 14 |
-| **chge7185 subtotal** | | **7** | **74** | **81** |
+| chge7185 | Cityscapes-ratio ablation | 5 | 35 | 40 |
+| chge7185 | Cityscapes-gen training | 0 | 19 | 19 |
+| **chge7185 subtotal** | | **5** | **54** | **59** |
 | mima2416 | Stage 1 training | 2 | 48 | 50 |
 | mima2416 | Stage 2 training | 0 | 183 | 183 |
 | mima2416 | Cityscapes-gen training | 6 | 15 | 21 |
