@@ -23,22 +23,19 @@
 
 ---
 
-## ⚠️ PENDING ACTION: Remove std_photometric_distort
+## ✅ COMPLETED: Remove std_photometric_distort (2026-02-10 17:20)
 
 **Reason:** `std_photometric_distort` is essentially the same as baseline (no meaningful augmentation difference).
 
-**Status:** Awaiting confirmation for destructive cleanup.
+**Actions completed:**
+1. ✅ Killed 12 LSF jobs (7 RUN, 5 PEND)
+2. ✅ Deleted `/scratch/aaa_exchange/AWARE/WEIGHTS/std_photometric_distort/` (~56 .pth files)
+3. ✅ Removed from `batch_training_submission.py`:
+   - Removed from `STD_STRATEGIES` list (now 5 strategies: baseline + 4 std_*)
+   - Updated `COMBINATION_STD_STRATEGIES` to use `std_cutmix` instead
+4. ✅ Updated TODO.md combination ablation section
 
-**To remove (when confirmed):**
-1. Kill 12 LSF jobs: `bjobs -u chge7185 -w | grep photometric | awk '{print $1}' | xargs bkill`
-2. Delete checkpoints: `rm -rf /scratch/aaa_exchange/AWARE/WEIGHTS/std_photometric_distort/` (56 .pth files)
-3. Delete Stage 2: `rm -rf /scratch/aaa_exchange/AWARE/WEIGHTS_STAGE_2/std_photometric_distort/` (if exists)
-4. Remove from `batch_training_submission.py`:
-   - Remove from `STRATEGIES['std']` list
-   - Remove from `COMBINATION_STD_STRATEGIES` 
-5. Update combination ablation to use different std_* strategy (e.g., std_cutmix instead)
-
-**Replacement for combination ablation:** Consider `std_cutmix` (+4.06% on S1) as replacement.
+**Updated std_* strategies (5):** baseline, std_autoaugment, std_cutmix, std_mixup, std_randaugment
 
 ---
 

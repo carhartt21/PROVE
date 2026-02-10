@@ -12,10 +12,10 @@ A robust, multi-user training submission system with:
 - Resume capability to continue interrupted training
 
 Strategies:
-    - STD_STRATEGIES (7): baseline, std_minimal, std_photometric_distort,
-                          std_autoaugment, std_cutmix, std_mixup, std_randaugment
+    - STD_STRATEGIES (5): baseline, std_autoaugment, std_cutmix, std_mixup, std_randaugment
+                          (std_photometric_distort removed - essentially same as baseline)
     - GEN_STRATEGIES (21): gen_cycleGAN, gen_flux_kontext, gen_step1x_new, gen_TSIT, gen_augmenters, ...
-    - ALL_STRATEGIES (28): STD_STRATEGIES + GEN_STRATEGIES
+    - ALL_STRATEGIES (26): STD_STRATEGIES + GEN_STRATEGIES
 
 Usage:
     # Dry run to see what jobs would be submitted (ALWAYS do this first!)
@@ -198,7 +198,7 @@ COMBINATION_GEN_STRATEGIES = [
 
 # Top std_* from Stage 1 analysis (high gains +5-8% over baseline)
 COMBINATION_STD_STRATEGIES = [
-    'std_photometric_distort',  # +7.93% in Stage 1 - appearance modification
+    'std_cutmix',               # +4.06% in Stage 1 - region mixing
     'std_mixup',                # +5.50% in Stage 1 - feature regularization  
     'std_randaugment',          # +5.48% in Stage 1 - automated augmentation
 ]
@@ -256,7 +256,7 @@ GEN_STRATEGIES = [
 STD_STRATEGIES = [
     'baseline',           # No augmentation at all
     # 'std_minimal',        # RandomCrop + RandomFlip only
-    'std_photometric_distort',  # PhotoMetricDistortion only
+    # 'std_photometric_distort',  # REMOVED: Essentially same as baseline
     'std_autoaugment',    # AutoAugment (batch-level)
     'std_cutmix',         # CutMix (batch-level)
     'std_mixup',          # MixUp (batch-level)
