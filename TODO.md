@@ -177,6 +177,12 @@ python scripts/batch_training_submission.py --stage combination -y
 2. **Best combination:** Which gen_*/std_* pair gives highest ACDC cross-domain?
 3. **Diminishing returns:** Does combining 2 augmentation types hit a ceiling?
 
+#### ⚠️ Pre-Submission Verification Note
+**Before submitting combination jobs:** Re-verify strategy selection once Cityscapes-gen and Stage 1 results are complete:
+- Current gen_* picks (gen_augmenters, gen_TSIT, gen_VisualCloze) based on incomplete Cityscapes-gen leaderboard
+- Current std_* picks (std_photometric_distort, std_mixup, std_randaugment) based on incomplete Stage 1 leaderboard
+- **Action:** Re-run `python analysis_scripts/generate_strategy_leaderboard.py --stage all` and update picks if rankings shift
+
 ### 8. 🟢 LOW: Old Ablation Studies (Reference Only)
 These studies used old training regime (80k iters, 3 models). Consider:
 - **Extended training refresh**: Not needed (demonstrated diminishing returns pattern holds)
