@@ -93,6 +93,7 @@ WEIGHTS_ROOT_CITYSCAPES = Path('/scratch/aaa_exchange/AWARE/WEIGHTS_CITYSCAPES')
 WEIGHTS_ROOT_CITYSCAPES_GEN = Path('/scratch/aaa_exchange/AWARE/WEIGHTS_CITYSCAPES_GEN')  # Cityscapes gen evaluation
 WEIGHTS_ROOT_CITYSCAPES_RATIO = Path('/scratch/aaa_exchange/AWARE/WEIGHTS_CITYSCAPES_RATIO')  # Cityscapes ratio ablation
 WEIGHTS_ROOT_NOISE_ABLATION = Path('/scratch/aaa_exchange/AWARE/WEIGHTS_NOISE_ABLATION')  # Noise ablation study
+WEIGHTS_ROOT_EXTENDED_ABLATION = Path('/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED_ABLATION')  # Extended training ablation
 GENERATED_IMAGES_ROOT = Path('/scratch/aaa_exchange/AWARE/GENERATED_IMAGES')
 
 # All datasets
@@ -212,6 +213,78 @@ COMBINATION_MODELS = [
 # Total: 3 gen × 3 std × 2 models = 18 combinations
 # Each runs on Cityscapes with 20k iterations
 
+# ============================================================================
+# Extended Training Ablation Configuration
+# ============================================================================
+# Tests whether augmentation benefits persist, grow, or diminish with more training.
+# Resumes from existing checkpoints at standard iteration counts (15k for S1, 20k for CG)
+# and continues training to 2x and 3x the standard duration.
+#
+# Research questions:
+# 1. Does baseline eventually catch up to augmented models with more training?
+# 2. Do augmentation gains plateau, grow, or reverse at longer training?
+# 3. Which strategy family (gen_* vs std_*) shows more durable improvement?
+
+# Two sub-stages:
+# - 'extended-s1': Extends Stage 1 training (BDD10k, IDD-AW with clear_day filter)
+# - 'extended-cg': Extends Cityscapes-Gen training (Cityscapes)
+
+WEIGHTS_ROOT_EXTENDED_S1 = WEIGHTS_ROOT_EXTENDED_ABLATION / 'stage1'
+WEIGHTS_ROOT_EXTENDED_CG = WEIGHTS_ROOT_EXTENDED_ABLATION / 'cityscapes_gen'
+
+# Source checkpoint directories (where to find the base checkpoints to resume from)
+EXTENDED_S1_SOURCE_ROOT = WEIGHTS_ROOT_STAGE1  # Standard S1 checkpoints at 15k
+EXTENDED_CG_SOURCE_ROOT = WEIGHTS_ROOT_CITYSCAPES_GEN  # Standard CG checkpoints at 20k
+
+# Extended S1 configuration
+EXTENDED_S1_DATASETS = [
+    'BDD10k',               # 21.5% strategy spread - high signal
+    'IDD-AW',               # 20.9% spread - useful comparison
+]
+
+EXTENDED_S1_STRATEGIES = [
+    'baseline',             # Reference: does baseline catch up?
+    'gen_Img2Img',          # Top gen_* on S1 (39.99%)
+    'gen_augmenters',       # Top gen_* on CG (51.47%), strong on S1 too
+    'gen_cycleGAN',         # Different GAN family for comparison
+    'std_randaugment',      # Top std_* on S1 (39.77%)
+]
+
+EXTENDED_S1_MODELS = [
+    'pspnet_r50',           # Fast CNN baseline
+    'segformer_mit-b3',     # Efficient transformer
+]
+
+# Iteration milestones for S1 (base = 15k)
+# 30k = 2x, 45k = 3x standard training
+EXTENDED_S1_MAX_ITERS = 45000
+EXTENDED_S1_CHECKPOINT_INTERVAL = 5000   # Save every 5k → checkpoints at 20k, 25k, 30k, 35k, 40k, 45k
+EXTENDED_S1_BASE_ITERS = 15000           # Standard S1 checkpoint to resume from
+
+# Extended CG configuration
+EXTENDED_CG_STRATEGIES = [
+    'baseline',             # Reference
+    'gen_augmenters',       # Top gen_* on CG (51.47%)
+    'gen_Img2Img',          # 2nd on CG (51.42%)
+    'gen_CUT',              # 3rd on CG (51.21%), GAN-based
+    'std_randaugment',      # Top std_* for comparison
+]
+
+EXTENDED_CG_MODELS = [
+    'pspnet_r50',           # Fast CNN baseline
+    'segformer_mit-b3',     # Efficient transformer
+]
+
+# Iteration milestones for CG (base = 20k)
+# 40k = 2x, 60k = 3x standard training
+EXTENDED_CG_MAX_ITERS = 60000
+EXTENDED_CG_CHECKPOINT_INTERVAL = 5000   # Save every 5k → checkpoints at 25k, 30k, ..., 60k
+EXTENDED_CG_BASE_ITERS = 20000           # Standard CG checkpoint to resume from
+
+# Total: S1 = 2 datasets × 5 strategies × 2 models = 20 jobs
+#        CG = 1 dataset × 5 strategies × 2 models = 10 jobs
+#        Grand total = 30 jobs
+
 STAGE_1_MODELS = [
     'pspnet_r50', 
     'segformer_mit-b3', 
@@ -307,6 +380,10 @@ def get_effective_max_iters(
     # Cityscapes stages already default to 20k which provides sufficient training.
     if stage in ('cityscapes', 'cityscapes-gen'):
         return 20000  # 20k iters (BS=16) = 320k samples = 160k iters (BS=2)
+    elif stage == 'extended-s1':
+        return EXTENDED_S1_MAX_ITERS   # 45k (3x standard S1)
+    elif stage == 'extended-cg':
+        return EXTENDED_CG_MAX_ITERS   # 60k (3x standard CG)
     else:
         # Stage 1, Stage 2, ratio ablation all use 15k iters
         return 15000  # 15k iters at BS=16 (~98% of final mIoU)
@@ -550,6 +627,10 @@ def get_weights_dir(
         base_root = WEIGHTS_ROOT_COMBINATION
     elif stage == 'noise-ablation':
         base_root = WEIGHTS_ROOT_NOISE_ABLATION
+    elif stage == 'extended-s1':
+        base_root = WEIGHTS_ROOT_EXTENDED_S1
+    elif stage == 'extended-cg':
+        base_root = WEIGHTS_ROOT_EXTENDED_CG
     else:
         base_root = WEIGHTS_ROOT_STAGE1
     
@@ -741,7 +822,7 @@ def generate_job_script(
     ]
     
     # Add domain filter for Stage 1, ratio ablation, and noise ablation (not Stage 2 or Cityscapes)
-    if job.stage in [1, 'ratio', 'noise-ablation']:
+    if job.stage in [1, 'ratio', 'noise-ablation', 'extended-s1']:
         cmd_parts.extend(['--domain-filter', 'clear_day'])
     # Note: Stage 2 and Cityscapes do NOT use domain filter
     
@@ -1176,10 +1257,10 @@ Examples:
     )
     
     # Validate and parse stage
-    stage_map = {'1': 1, '2': 2, 'ratio': 'ratio', 'cityscapes': 'cityscapes', 'cityscapes-gen': 'cityscapes-gen', 'cityscapes-ratio': 'cityscapes-ratio', 'stage1-ratio': 'stage1-ratio', 'combination': 'combination', 'noise-ablation': 'noise-ablation'}
+    stage_map = {'1': 1, '2': 2, 'ratio': 'ratio', 'cityscapes': 'cityscapes', 'cityscapes-gen': 'cityscapes-gen', 'cityscapes-ratio': 'cityscapes-ratio', 'stage1-ratio': 'stage1-ratio', 'combination': 'combination', 'noise-ablation': 'noise-ablation', 'extended-s1': 'extended-s1', 'extended-cg': 'extended-cg'}
     stage_input = str(args.stage).lower()
     if stage_input not in stage_map:
-        print(f"Error: Invalid stage '{args.stage}'. Must be 1, 2, 'ratio', 'cityscapes', 'cityscapes-gen', 'cityscapes-ratio', 'stage1-ratio', 'combination', or 'noise-ablation'")
+        print(f"Error: Invalid stage '{args.stage}'. Must be 1, 2, 'ratio', 'cityscapes', 'cityscapes-gen', 'cityscapes-ratio', 'stage1-ratio', 'combination', 'noise-ablation', 'extended-s1', or 'extended-cg'")
         return
     stage = stage_map.get(stage_input, args.stage if isinstance(args.stage, int) else stage_input)
     
@@ -1243,6 +1324,27 @@ Examples:
         strategies = args.strategies or ['gen_random_noise', 'baseline']
         datasets = args.datasets or ALL_DATASETS
         models = args.models or ALL_MODELS
+    elif stage == 'extended-s1':
+        # Extended Stage 1 training: resume from 15k checkpoints, train to 45k
+        # Tests whether augmentation gains persist/grow/diminish with more training
+        strategies = args.strategies or EXTENDED_S1_STRATEGIES
+        datasets = args.datasets or EXTENDED_S1_DATASETS
+        models = args.models or EXTENDED_S1_MODELS
+        # Set checkpoint/eval intervals for fine-grained progress tracking
+        if args.checkpoint_interval is None:
+            args.checkpoint_interval = EXTENDED_S1_CHECKPOINT_INTERVAL
+        if args.eval_interval is None:
+            args.eval_interval = EXTENDED_S1_CHECKPOINT_INTERVAL
+    elif stage == 'extended-cg':
+        # Extended CG training: resume from 20k checkpoints, train to 60k
+        strategies = args.strategies or EXTENDED_CG_STRATEGIES
+        datasets = [CITYSCAPES_DATASET]
+        models = args.models or EXTENDED_CG_MODELS
+        # Set checkpoint/eval intervals for fine-grained progress tracking
+        if args.checkpoint_interval is None:
+            args.checkpoint_interval = EXTENDED_CG_CHECKPOINT_INTERVAL
+        if args.eval_interval is None:
+            args.eval_interval = EXTENDED_CG_CHECKPOINT_INTERVAL
     else:
         # Determine strategies based on --strategy-type or --strategies
         strategies = args.strategies
@@ -1298,6 +1400,24 @@ Examples:
         print(f"  Purpose: Test if models learn from image content or label layouts")
         print(f"  Datasets: {datasets}")
         print(f"  Models: {models}")
+    elif stage == 'extended-s1':
+        print(f"  Extended Training Ablation - Stage 1")
+        print(f"  Purpose: Test if augmentation benefits persist with more training")
+        print(f"  Datasets: {datasets}")
+        print(f"  Strategies: {strategies}")
+        print(f"  Models: {models}")
+        print(f"  Iterations: {EXTENDED_S1_BASE_ITERS} → {EXTENDED_S1_MAX_ITERS} (checkpoint every {EXTENDED_S1_CHECKPOINT_INTERVAL})")
+        print(f"  Source checkpoints: {EXTENDED_S1_SOURCE_ROOT}")
+        print(f"  Total configurations: {len(datasets)} × {len(strategies)} × {len(models)} = {len(datasets)*len(strategies)*len(models)}")
+    elif stage == 'extended-cg':
+        print(f"  Extended Training Ablation - Cityscapes-Gen")
+        print(f"  Purpose: Test if augmentation benefits persist with more training")
+        print(f"  Dataset: Cityscapes")
+        print(f"  Strategies: {strategies}")
+        print(f"  Models: {models}")
+        print(f"  Iterations: {EXTENDED_CG_BASE_ITERS} → {EXTENDED_CG_MAX_ITERS} (checkpoint every {EXTENDED_CG_CHECKPOINT_INTERVAL})")
+        print(f"  Source checkpoints: {EXTENDED_CG_SOURCE_ROOT}")
+        print(f"  Total configurations: {len(strategies)} × {len(models)} = {len(strategies)*len(models)}")
     print(f"{'='*60}")
     print(f"\nStrategy type: {args.strategy_type}")
     print(f"Strategies: {len(strategies)}")
@@ -1308,6 +1428,10 @@ Examples:
         effective_max_iters = args.max_iters
     elif stage in ('cityscapes', 'cityscapes-gen', 'cityscapes-ratio', 'combination'):
         effective_max_iters = 20000
+    elif stage == 'extended-s1':
+        effective_max_iters = EXTENDED_S1_MAX_ITERS
+    elif stage == 'extended-cg':
+        effective_max_iters = EXTENDED_CG_MAX_ITERS
     elif stage == 'stage1-ratio':
         effective_max_iters = 15000  # Standard Stage 1 iterations
     else:
@@ -1325,6 +1449,29 @@ Examples:
         resume=args.resume,
         max_iters=effective_max_iters,
     )
+    
+    # Post-process for extended training stages:
+    # Set resume_from to SOURCE checkpoint from original training dir (not the extended output dir).
+    # Extended training continues from an existing checkpoint in WEIGHTS/ or WEIGHTS_CITYSCAPES_GEN/.
+    if stage in ('extended-s1', 'extended-cg'):
+        source_stage = 1 if stage == 'extended-s1' else 'cityscapes-gen'
+        base_iters = EXTENDED_S1_BASE_ITERS if stage == 'extended-s1' else EXTENDED_CG_BASE_ITERS
+        missing_source = 0
+        for job in jobs:
+            if job.is_skipped:
+                continue
+            # Construct source checkpoint path from original training
+            source_dir = get_weights_dir(
+                job.strategy, job.dataset, job.model, source_stage, job.ratio, job.aux_loss
+            )
+            source_ckpt = source_dir / f'iter_{base_iters}.pth'
+            if source_ckpt.exists():
+                job.resume_from = source_ckpt
+            else:
+                job.skip_reason = f'Source checkpoint missing: iter_{base_iters}.pth in {source_dir}'
+                missing_source += 1
+        if missing_source > 0:
+            print(f"\n  WARNING: {missing_source} jobs skipped - source checkpoints not found")
     
     # Summary
     total = len(jobs)

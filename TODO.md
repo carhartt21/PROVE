@@ -1,10 +1,10 @@
 # PROVE Project TODO
 
-**Last Updated:** 2026-02-11 (21:45)
+**Last Updated:** 2026-02-12 (09:00)
 
 ---
 
-## 📊 Current Status (2026-02-11 21:45)
+## 📊 Current Status (2026-02-12 09:00)
 
 ### Queue Summary
 | User | Category | RUN | PEND | Total |
@@ -83,12 +83,19 @@ After step 4 completes: 124/124 Cityscapes + 124/124 ACDC = **full CG coverage**
 
 **Root Cause (resolved):** mask2former_swin-b OOMs on 40GB GPUs with 66-class/24-class datasets. Jobs now submitted to 80GB GPUs from dedicated machine.
 
-### Strategy Leaderboard Highlights
+### Strategy Leaderboard Highlights (2026-02-12)
 | Stage | Top Strategy | mIoU | Baseline mIoU | Strategies > Baseline |
 |-------|-------------|------|---------------|----------------------|
-| Stage 1 | gen_Img2Img | 39.99% | 33.63% | 25/25 (all!) |
-| Stage 2 | std_randaugment | 42.01% | 40.80% | 16/19 |
-| Cityscapes-Gen | gen_augmenters | 52.09% | 50.85% | 4/24 |
+| Stage 1 | gen_UniControl | 40.12% | 33.63% | 25/25 (all!) |
+| Stage 1 #2 | gen_Img2Img | 39.99% | 33.63% | — |
+| CG (Cityscapes) | gen_augmenters | 51.47% | 49.43% | 17/24 gen_* |
+| CG (ACDC cross-domain) | gen_augmenters | 41.16% | 37.87% | 17/24 gen_* |
+
+**Key findings:**
+- S1: **All** augmentation strategies beat baseline (+1.3 to +6.5 pp). Top-5: gen_UniControl, gen_Img2Img, gen_Attribute_Hallucination, gen_augmenters, gen_VisualCloze
+- CG: gen_* strategies show +2pp avg gain on Cityscapes, +3pp avg gain on ACDC cross-domain
+- CG: std_* strategies all **below** baseline on Cityscapes (opposite of S1 pattern)
+- Full leaderboards: `result_figures/leaderboard/`
 
 ---
 
@@ -212,6 +219,60 @@ python scripts/batch_training_submission.py --stage combination -y
 - Current std_* picks (std_photometric_distort, std_mixup, std_randaugment) based on incomplete Stage 1 leaderboard
 - **Action:** Re-run `python analysis_scripts/generate_strategy_leaderboard.py --stage all` and update picks if rankings shift
 
+### 7c. 🆕 PREPARED: Extended Training Ablation Study (NEW 2026-02-12)
+
+Tests whether augmentation benefits persist, grow, or diminish with extended training (3× standard iterations).
+
+#### Research Question
+Do augmentation gains diminish with more training? If augmentations just help models converge faster (same final accuracy), extended baseline training would close the gap. If augmentations provide genuine additional training signal, gains should persist.
+
+#### Design
+
+**Stage 1 Extended** (`--stage extended-s1`): 20 jobs
+| Parameter | Value |
+|-----------|-------|
+| Datasets | BDD10k, IDD-AW |
+| Strategies | baseline, gen_Img2Img, gen_augmenters, gen_cycleGAN, std_randaugment |
+| Models | pspnet_r50, segformer_mit-b3 |
+| Iterations | 15,000 → 45,000 (3× standard, checkpoint every 5k) |
+| Source | Resume from WEIGHTS/ iter_15000.pth |
+| Domain filter | clear_day (same as standard S1) |
+
+**Cityscapes-Gen Extended** (`--stage extended-cg`): 10 jobs
+| Parameter | Value |
+|-----------|-------|
+| Dataset | Cityscapes |
+| Strategies | baseline, gen_augmenters, gen_Img2Img, gen_CUT, std_randaugment |
+| Models | pspnet_r50, segformer_mit-b3 |
+| Iterations | 20,000 → 60,000 (3× standard, checkpoint every 5k) |
+| Source | Resume from WEIGHTS_CITYSCAPES_GEN/ iter_20000.pth |
+
+**Total: 30 jobs** (all source checkpoints verified ✅)
+
+#### Strategy Selection Rationale
+- **S1:** Top gen_* (gen_Img2Img, gen_augmenters, gen_cycleGAN), best std_* (std_randaugment), baseline
+- **CG:** Top gen_* (gen_augmenters, gen_Img2Img, gen_CUT) based on fresh leaderboard, best std_* (std_randaugment), baseline
+
+#### Output
+```
+/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED_ABLATION/
+  stage1/{strategy}/{dataset}/{model}/
+  cityscapes_gen/{strategy}/cityscapes/{model}/
+```
+
+#### Commands
+```bash
+# Preview
+python scripts/batch_training_submission.py --stage extended-s1 --dry-run
+python scripts/batch_training_submission.py --stage extended-cg --dry-run
+
+# Submit (when ready)
+python scripts/batch_training_submission.py --stage extended-s1 -y
+python scripts/batch_training_submission.py --stage extended-cg -y
+```
+
+#### Status: ⏳ Ready to submit after S1 mask2former + CG deeplabv3plus complete
+
 ### 8. 🟢 LOW: Old Ablation Studies (Reference Only)
 These studies used old training regime (80k iters, 3 models). Consider:
 - **Extended training refresh**: Not needed (demonstrated diminishing returns pattern holds)
@@ -237,8 +298,11 @@ python analysis_scripts/analyze_domain_gap_corrected.py
 
 ---
 
-## 🆕 Recently Completed (2026-02-11)
+## 🆕 Recently Completed (2026-02-12)
 
+- ✅ **Generated S1 + CG strategy leaderboards** — gen_UniControl tops S1 (40.12%), gen_augmenters tops CG (51.47%)
+- ✅ **Implemented extended training ablation** in `batch_training_submission.py` (30 jobs, both stages dry-run tested)
+- ✅ **Verified S1-ratio ablation** — 24 jobs ready but NOT yet submitted (dirs exist, no checkpoints)
 - ✅ Killed 168 pending S2 training jobs — will select strategy subset based on S1/CG results
 - ✅ CG training reached **100%** (105/105 actual configs; 19 deeplabv3plus pending in chge7185 queue for 124/124)
 - ✅ CG ACDC cross-domain testing complete (105/105 valid results)
