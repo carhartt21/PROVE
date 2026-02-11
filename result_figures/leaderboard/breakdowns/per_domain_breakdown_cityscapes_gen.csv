@@ -7,7 +7,7 @@ gen_IP2P,Generative,-,57.22,26.40,44.49,42.88,-,42.75,-
 gen_Img2Img,Generative,-,57.55,26.81,46.29,45.34,-,44.00,-
 gen_Qwen_Image_Edit,Generative,-,57.49,27.43,45.87,44.10,-,43.72,-
 gen_SUSTechGAN,Generative,-,56.70,27.28,44.85,43.93,-,43.19,-
-gen_TSIT,Generative,-,59.44,28.18,45.85,45.41,-,44.72,-
+gen_TSIT,Generative,-,58.01,26.20,44.67,44.06,-,43.24,-
 gen_UniControl,Generative,-,57.90,26.67,45.21,44.43,-,43.55,-
 gen_VisualCloze,Generative,-,57.96,27.32,45.06,44.04,-,43.60,-
 gen_Weather_Effect_Generator,Generative,-,56.67,26.68,46.23,44.05,-,43.41,-

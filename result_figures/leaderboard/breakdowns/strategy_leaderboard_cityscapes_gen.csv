@@ -1,6 +1,5 @@
 Strategy,Type,mIoU,Std,Gain,Normal mIoU,Adverse mIoU,Domain Gap,Num Tests
 gen_Attribute_Hallucination,Generative,51.05,10.39,1.62,54.13,44.88,9.26,12
-gen_TSIT,Generative,50.75,10.65,1.33,53.9,44.46,9.44,12
 gen_Img2Img,Generative,49.7,10.88,0.27,52.87,43.35,9.52,15
 gen_augmenters,Generative,49.58,11.38,0.16,52.82,43.11,9.72,15
 gen_Qwen_Image_Edit,Generative,49.52,10.64,0.09,52.67,43.22,9.45,15
@@ -8,18 +7,19 @@ baseline,Baseline,49.43,10.87,0.0,52.65,42.99,9.66,15
 gen_CUT,Generative,49.38,11.07,-0.04,52.53,43.08,9.45,15
 gen_VisualCloze,Generative,49.33,11.22,-0.1,52.58,42.81,9.77,15
 gen_flux_kontext,Generative,49.31,10.95,-0.11,52.49,42.96,9.52,15
-std_cutmix,Standard Aug,49.24,10.88,-0.19,52.45,42.8,9.66,15
 gen_automold,Generative,49.24,10.47,-0.19,52.36,42.99,9.37,15
+std_cutmix,Standard Aug,49.24,10.88,-0.19,52.45,42.8,9.66,15
 std_autoaugment,Standard Aug,49.2,10.65,-0.22,52.33,42.95,9.38,15
 gen_step1x_v1p2,Generative,49.19,10.92,-0.24,52.45,42.66,9.79,15
-std_mixup,Standard Aug,49.19,10.81,-0.24,52.36,42.84,9.52,15
 gen_cycleGAN,Generative,49.19,11.28,-0.23,52.43,42.71,9.72,15
+std_mixup,Standard Aug,49.19,10.81,-0.24,52.36,42.84,9.52,15
 gen_Weather_Effect_Generator,Generative,49.12,10.51,-0.3,52.26,42.84,9.42,15
 gen_cyclediffusion,Generative,49.1,11.15,-0.32,52.34,42.64,9.7,15
 gen_UniControl,Generative,49.08,10.77,-0.35,52.22,42.8,9.42,15
 std_randaugment,Standard Aug,49.07,11.2,-0.35,52.36,42.5,9.86,15
 gen_SUSTechGAN,Generative,49.06,10.72,-0.37,52.24,42.7,9.54,15
 gen_CNetSeg,Generative,48.99,10.71,-0.43,52.19,42.6,9.59,15
+gen_TSIT,Generative,48.97,11.18,-0.46,52.2,42.49,9.72,15
 gen_albumentations_weather,Generative,48.79,10.99,-0.64,52.03,42.3,9.73,15
 gen_stargan_v2,Generative,48.76,11.12,-0.67,52.04,42.2,9.84,15
 gen_step1x_new,Generative,48.56,10.99,-0.86,51.79,42.11,9.68,15

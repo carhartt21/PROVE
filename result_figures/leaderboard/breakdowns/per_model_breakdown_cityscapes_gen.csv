@@ -1,6 +1,5 @@
 Strategy,Type,deeplabv3plus_r50,deeplabv3plus_r50_gain,mask2former_swin-b,mask2former_swin-b_gain,pspnet_r50,pspnet_r50_gain,segformer_mit-b3,segformer_mit-b3_gain,segnext_mscan-b,segnext_mscan-b_gain
 gen_Attribute_Hallucination,Generative,-,-,57.75,+0.68,44.27,+0.84,51.18,-0.34,50.99,-0.38
-gen_TSIT,Generative,-,-,57.74,+0.67,43.80,+0.37,50.44,-1.08,51.04,-0.33
 gen_Img2Img,Generative,42.82,-0.92,57.34,+0.27,44.31,+0.88,51.97,+0.44,52.04,+0.67
 gen_augmenters,Generative,42.04,-1.70,58.08,+1.01,43.61,+0.18,52.72,+1.19,51.46,+0.10
 gen_Qwen_Image_Edit,Generative,43.35,-0.38,56.58,-0.49,44.01,+0.58,51.88,+0.35,51.77,+0.40
@@ -16,10 +15,11 @@ gen_cycleGAN,Generative,41.94,-1.79,57.71,+0.64,43.75,+0.33,52.40,+0.88,50.14,-1
 gen_step1x_v1p2,Generative,43.59,-0.14,57.21,+0.14,43.78,+0.35,50.60,-0.93,50.74,-0.62
 gen_Weather_Effect_Generator,Generative,43.20,-0.53,55.43,-1.64,43.84,+0.41,52.17,+0.64,50.97,-0.39
 gen_cyclediffusion,Generative,42.43,-1.31,58.10,+1.03,43.86,+0.44,51.09,-0.43,50.03,-1.33
-std_randaugment,Standard Aug,42.62,-1.12,57.64,+0.57,43.72,+0.29,50.51,-1.02,50.88,-0.49
 gen_UniControl,Generative,42.93,-0.81,56.70,-0.37,43.07,-0.35,51.57,+0.05,51.10,-0.26
+std_randaugment,Standard Aug,42.62,-1.12,57.64,+0.57,43.72,+0.29,50.51,-1.02,50.88,-0.49
 gen_SUSTechGAN,Generative,42.89,-0.85,56.20,-0.87,43.75,+0.32,51.62,+0.09,50.84,-0.52
 gen_CNetSeg,Generative,43.47,-0.27,56.70,-0.37,43.83,+0.40,49.97,-1.56,51.00,-0.36
+gen_TSIT,Generative,41.81,-1.93,57.74,+0.67,43.80,+0.37,50.44,-1.08,51.04,-0.33
 gen_albumentations_weather,Generative,42.42,-1.31,56.09,-0.98,42.99,-0.44,51.35,-0.17,51.09,-0.27
 gen_stargan_v2,Generative,42.62,-1.11,56.48,-0.59,43.00,-0.42,51.36,-0.17,50.33,-1.03
 gen_step1x_new,Generative,41.94,-1.80,56.22,-0.85,43.26,-0.17,50.39,-1.14,51.00,-0.36

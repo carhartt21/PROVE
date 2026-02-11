@@ -56,8 +56,8 @@
 | Stage 1 (15k) | 366/416 | 2 RUN + 50 submitted (80GB GPU) | 416 | 88.0% |
 | Stage 2 (15k) | 135/416 | 0 (pending killed) | 416 | 32.5% |
 | CG baseline+std (20k) | **25/25** | 0 | 25 | **100%** ✅ |
-| CG gen_* (20k) | ~98/99 | 1 RUN (chge7185) | 99 | ~99% |
-| CG total (20k) | **~123/124** | 1 RUN | 124 | ~99% |
+| CG gen_* (20k) | **99/99** | 0 | 99 | **100%** ✅ |
+| CG total (20k) | **124/124** | 0 | 124 | **100%** ✅ |
 | Cityscapes (20k) | 3/4 | 1 to submit | 4 | 75% |
 | CS-Ratio Ablation (20k) | ~33/48 | 12 RUN + 19 PEND | 48 | ~69% |
 
@@ -66,8 +66,8 @@
 |-------|------------|---------------|----------|-------|
 | Stage 1 | 366 | 366 | 0 | **100% of trained** ✅ |
 | Stage 2 | 150 | 135 | 0 | Complete for trained |
-| CG Cityscapes | 123/124 | ~123 | 3 pending | gen_TSIT deeplabv3plus awaiting training |
-| CG ACDC | 123/124 | ~123 | 3 pending | gen_TSIT deeplabv3plus awaiting training |
+| CG Cityscapes | **124/124** | ~123 | 0 | **100% of trained** ✅ |
+| CG ACDC | **124/124** | ~123 | 0 | **100% of trained** ✅ |
 | Cityscapes | 0 | 3 | 5 (3 main + 2 ACDC) | Pending |
 
 ### 100% Coverage Plan (S1 + CG)
@@ -92,23 +92,24 @@ CG testing: 123/124 Cityscapes + 123/124 ACDC done. gen_TSIT/deeplabv3plus train
 
 **Root Cause (resolved):** mask2former_swin-b OOMs on 40GB GPUs with 66-class/24-class datasets. Jobs now submitted to 80GB GPUs from dedicated machine.
 
-### Strategy Leaderboard Highlights (2026-02-12, updated 10:00)
+### Strategy Leaderboard Highlights (2026-02-12, updated 11:30)
 | Stage | Top Strategy | mIoU | Baseline mIoU | Strategies > Baseline |
 |-------|-------------|------|---------------|----------------------|
 | Stage 1 | gen_UniControl | 40.12% | 33.63% | 25/25 (all!) |
 | Stage 1 #2 | gen_Img2Img | 39.99% | 33.63% | — |
-| CG overall | gen_Attribute_Hallucination | 51.05% | 49.43% | 5/24 |
-| CG (Cityscapes) | gen_Attribute_Hallucination | 54.13% | 52.65% | 5/24 gen_* |
-| CG (ACDC cross-domain) | gen_Attribute_Hallucination | 44.88% | 42.99% | 5/24 gen_* |
+| CG overall | gen_Attribute_Hallucination | 51.05% | 49.43% | 4/24 |
+| CG #2 | gen_Img2Img | 49.70% | 49.43% | — |
+| CG (ACDC cross-domain) | gen_Attribute_Hallucination | 44.88% | 42.99% | — |
 
 **Key findings:**
 - S1: **All** augmentation strategies beat baseline (+4.85 to +6.49 pp). Top-5: gen_UniControl, gen_Img2Img, gen_Attribute_Hallucination, gen_Qwen_Image_Edit, gen_stargan_v2
 - S1 per-dataset: IDD-AW baseline (32.93%) was weakest, gains +3.96 to +5.20 pp (**bug fixed** — was invisible before, commit `4b3529c`)
-- CG: gen_Attribute_Hallucination leads (+1.62 pp overall), gen_TSIT #2 (+1.33 pp)
+- CG: gen_Attribute_Hallucination leads (+1.62 pp overall), gen_Img2Img #2 (+0.27 pp)
 - CG: std_* strategies all **below** baseline (opposite of S1 pattern)
+- **⚠️ gen_TSIT rank drop**: Was CG #2 → now #21 after adding deeplabv3plus data (41.81%, −1.93pp). Previously boosted by only counting its strong models.
 - **S1 vs CG rank correlation: Spearman r=0.101 (essentially zero!)** — strategy rankings completely diverge
 - **mask2former paradox resolved:** S1 degradation (−1.62pp) driven by rare vehicle class memorization in BDD10k (motorcycle collapses 85.4% → 0-10%). Other 3 models gain on same classes. Rankings robust to rare-class exclusion (r=0.954).
-- **Consistently top across both stages:** gen_Attribute_Hallucination (#3 S1, #1 CG), gen_Img2Img (#2 S1, #3 CG)
+- **Consistently top across both stages:** gen_Attribute_Hallucination (#3 S1, #1 CG), gen_Img2Img (#2 S1, #2 CG)
 - Full analysis: `result_figures/leaderboard/CORRECTED_LEADERBOARD_ANALYSIS.md`
 - Full leaderboards: `result_figures/leaderboard/`
 
