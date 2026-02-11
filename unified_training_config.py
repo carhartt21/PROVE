@@ -2373,6 +2373,9 @@ class UnifiedTrainingConfig:
                 # Update model num_classes
                 if 'model' in config and 'decode_head' in config['model']:
                     config['model']['decode_head']['num_classes'] = native_num_classes
+                    # Fix Mask2Former class_weight for native classes (num_classes + background)
+                    if 'loss_cls' in config['model']['decode_head']:
+                        config['model']['decode_head']['loss_cls']['class_weight'] = [1.0] * native_num_classes + [0.1]
                 if 'model' in config and 'auxiliary_head' in config['model']:
                     config['model']['auxiliary_head']['num_classes'] = native_num_classes
                 config['_prove_config']['use_native_classes'] = True
@@ -2386,6 +2389,9 @@ class UnifiedTrainingConfig:
                 # Update model num_classes
                 if 'model' in config and 'decode_head' in config['model']:
                     config['model']['decode_head']['num_classes'] = native_num_classes
+                    # Fix Mask2Former class_weight for native classes (num_classes + background)
+                    if 'loss_cls' in config['model']['decode_head']:
+                        config['model']['decode_head']['loss_cls']['class_weight'] = [1.0] * native_num_classes + [0.1]
                 if 'model' in config and 'auxiliary_head' in config['model']:
                     config['model']['auxiliary_head']['num_classes'] = native_num_classes
                 config['_prove_config']['use_native_classes'] = True
