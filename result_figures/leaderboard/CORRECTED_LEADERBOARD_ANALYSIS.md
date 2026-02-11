@@ -330,7 +330,68 @@ The best CG mask2former strategy (gen_CUT, +1.41pp) is completely different from
 
 ---
 
-## Appendix B: Data Completeness Notes
+## Appendix B: Cross-Model Rare-Class Comparison
+
+### B.1 The Mask2Former Effect is Model-Specific
+
+Comparing per-class mean deltas across all 4 S1 models for the three most-affected classes:
+
+| Class | PSPNet | SegFormer | SegNeXt | mask2former |
+|-------|:------:|:---------:|:-------:|:-----------:|
+| motorcycle | **+1.55** | −1.23 | **+9.48** | **−12.16** |
+| bus | **+23.77** | **+6.23** | **+9.70** | **−5.35** |
+| truck | **+12.97** | **+4.22** | **+10.50** | **−3.18** |
+
+Vehicle group averages:
+
+| Model | Vehicle Δ | All Groups Positive? |
+|-------|:---------:|:---:|
+| PSPNet | **+6.62** | Yes (all 6 groups positive) |
+| SegNeXt | **+5.82** | Yes |
+| SegFormer | **+2.16** | Yes |
+| **mask2former** | **−3.68** | **No (all 6 groups negative)** |
+
+mask2former is the **only model** where augmentation degrades Vehicle classes. All other models show massive improvements on the same rare classes — PSPNet gains +23.77pp on bus alone.
+
+### B.2 Why Other Models Don't Memorize
+
+- **PSPNet** (weakest model): Has the most headroom for improvement. Bus goes from ~37% → ~61% with augmentation (+24pp). The model's limited capacity forces it to learn generalizable features rather than memorize.
+- **SegNeXt**: Strong gains on motorcycle (+9.48pp) and bus (+9.70pp). Like PSPNet, augmentation teaches new features rather than disrupting memorized ones.
+- **SegFormer**: More moderate gains. motorcycle still slightly negative (−1.23pp) suggesting it's closer to the memorization threshold, but not crossing it like mask2former.
+
+### B.3 Impact on Overall Rankings
+
+Excluding motorcycle, bus, and train from mIoU (16-class mIoU):
+
+**Spearman r = 0.954** — rankings are almost identical. The rare-class effect does NOT significantly distort the overall strategy rankings because:
+1. It affects only 1 of 4 models (mask2former)
+2. The 3 rare classes contribute only ~3/19 = 16% of the mIoU calculation
+3. The vehicle losses in mask2former are partially offset by vehicle gains in other models
+
+| Biggest Gainers (move UP) | Std Rank → RX Rank |
+|--------------------------|:---:|
+| gen_cyclediffusion | 9 → 4 (+5) |
+| gen_Qwen_Image_Edit | 7 → 3 (+4) |
+| gen_IP2P | 10 → 7 (+3) |
+
+| Biggest Losers (move DOWN) | Std Rank → RX Rank |
+|---------------------------|:---:|
+| gen_stargan_v2 | 6 → 10 (−4) |
+| gen_CNetSeg | 4 → 8 (−4) |
+| std_randaugment | 11 → 15 (−4) |
+
+### B.4 Mask2Former: Rare-Excluded Still Negative
+
+Even excluding rare classes, mask2former performance remains mostly negative:
+- Standard mIoU: 2/25 strategies above baseline
+- Rare-excluded mIoU: 3/25 strategies above baseline
+- Average "salvage" from excluding rare classes: +0.75pp (reduces loss from −1.62 to −0.87)
+
+The rarest classes account for about **half** of mask2former's degradation (0.75pp of 1.62pp), but the other half comes from smaller losses across all 16 common classes.
+
+---
+
+## Appendix C: Data Completeness Notes
 
 - **S1**: IDD-AW has all 14 expected fair-comparison test results. MapillaryVistas and OUTSIDE15k are missing mask2former (submitted to 80GB GPUs, awaiting completion).
 - **CG**: 123/124 configurations tested. gen_TSIT/deeplabv3plus training in progress (last job).
