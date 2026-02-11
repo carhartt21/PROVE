@@ -1,34 +1,34 @@
 # Testing Coverage Report
 
-**Generated:** 2026-02-10 09:52
+**Generated:** 2026-02-11 09:13
 
 ## Summary
 
 | Status | Count | Percentage |
 |--------|------:|----------:|
-| ✅ Complete (valid mIoU) | 163 | 87.6% |
+| ✅ Complete (valid mIoU) | 246 | 99.2% |
 | 🔄 Running | 0 | 0.0% |
 | ⏳ Pending (in queue) | 0 | 0.0% |
-| ⚠️ Buggy (mIoU < 5%) | 13 | 7.0% |
+| ⚠️ Buggy (mIoU < 5%) | 0 | 0.0% |
 | 🔃 Stale (wrong checkpoint) | 0 | 0.0% |
-| ❌ Missing (no results) | 10 | 5.4% |
-| **Total** | **186** | **100%** |
+| ❌ Missing (no results) | 2 | 0.8% |
+| **Total** | **248** | **100%** |
 
 ## Per-Dataset Breakdown
 
 ### Cityscapes
-- Complete: 72/100 (72.0%)
-- Running: 0
-- Pending (in queue): 0
-- Buggy (mIoU < 5%): 13
-- Missing (no results): 8
-
-### ACDC (cross-domain)
-- Complete: 91/100 (91.0%)
+- Complete: 123/124 (99.2%)
 - Running: 0
 - Pending (in queue): 0
 - Buggy (mIoU < 5%): 0
-- Missing (no results): 2
+- Missing (no results): 1
+
+### ACDC (cross-domain)
+- Complete: 123/124 (99.2%)
+- Running: 0
+- Pending (in queue): 0
+- Buggy (mIoU < 5%): 0
+- Missing (no results): 1
 
 ## Running Configurations
 
@@ -40,23 +40,7 @@
 
 ## Buggy Configurations (need retesting)
 
-These configurations have test results with mIoU < 5%, indicating a bug in the test.
-
-| Strategy | Dataset | Model | mIoU |
-|----------|---------|-------|-----:|
-| gen_Attribute_Hallucination | cityscapes | Mask2Former | N/A |
-| gen_CNetSeg | cityscapes | PSPNet | N/A |
-| gen_CUT | cityscapes | Mask2Former | N/A |
-| gen_CUT | cityscapes | PSPNet | N/A |
-| gen_CUT | cityscapes | SegNeXt | N/A |
-| gen_IP2P | cityscapes | Mask2Former | N/A |
-| gen_Img2Img | cityscapes | Mask2Former | N/A |
-| gen_Img2Img | cityscapes | PSPNet | N/A |
-| gen_Qwen_Image_Edit | cityscapes | Mask2Former | N/A |
-| gen_Qwen_Image_Edit | cityscapes | PSPNet | N/A |
-| gen_UniControl | cityscapes | Mask2Former | N/A |
-| gen_Weather_Effect_Generator | cityscapes | PSPNet | N/A |
-| gen_stargan_v2 | cityscapes | PSPNet | N/A |
+*No buggy configurations - all tests have valid mIoU.*
 
 ## Stale Configurations (need retesting)
 
@@ -66,46 +50,38 @@ These configurations have test results with mIoU < 5%, indicating a bug in the t
 
 | Strategy | Dataset | Model | Issue |
 |----------|---------|-------|-------|
-| gen_Attribute_Hallucination | cityscapes | PSPNet | missing |
-| gen_Attribute_Hallucination | cityscapes | SegNeXt | missing |
-| gen_CNetSeg | acdc | Mask2Former | missing |
-| gen_CNetSeg | cityscapes | Mask2Former | missing |
-| gen_SUSTechGAN | cityscapes | Mask2Former | missing |
-| gen_TSIT | acdc | PSPNet | missing |
-| gen_TSIT | cityscapes | PSPNet | missing |
-| gen_UniControl | cityscapes | PSPNet | missing |
-| gen_UniControl | cityscapes | SegNeXt | missing |
-| gen_cyclediffusion | cityscapes | Mask2Former | missing |
+| gen_TSIT | acdc | DeepLabV3+ | missing |
+| gen_TSIT | cityscapes | DeepLabV3+ | missing |
 
 ## Complete Configurations
 
 | Strategy | BDD10k | IDD-AW | MapillaryVistas | OUTSIDE15k |
 |----------|--------|--------|-----------------|------------|
-| gen_Attribute_Hallucination | ✅ SF | ✅ PSP, SF |
-| gen_augmenters | ✅ SF | ✅ SF |
-| gen_automold | ✅ PSP, SF | ✅ PSP, SF |
-| gen_CNetSeg | ✅ SF | ✅ PSP, SF |
-| gen_CUT | ✅ SF | ✅ PSP, SF |
-| gen_cyclediffusion | ✅ PSP, SF | ✅ PSP, SF |
-| gen_cycleGAN | ✅ SF | ✅ SF |
-| gen_flux_kontext | ✅ PSP, SF | ✅ PSP, SF |
-| gen_Img2Img | ✅ SF | ✅ PSP, SF |
-| gen_IP2P | ✅ PSP, SF | ✅ PSP, SF |
+| gen_Attribute_Hallucination | ✅ PSP, SF | ✅ PSP, SF |
+| gen_augmenters | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF |
+| gen_automold | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF |
+| gen_CNetSeg | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF |
+| gen_CUT | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF |
+| gen_cyclediffusion | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF |
+| gen_cycleGAN | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF |
+| gen_flux_kontext | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF |
+| gen_Img2Img | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF |
+| gen_IP2P | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF |
 | gen_LANIT | ⏳ | ⏳ |
-| gen_Qwen_Image_Edit | ✅ SF | ✅ PSP, SF |
-| gen_stargan_v2 | ✅ SF | ✅ PSP, SF |
-| gen_step1x_new | ✅ PSP, SF | ✅ PSP, SF |
-| gen_step1x_v1p2 | ✅ PSP, SF | ✅ PSP, SF |
-| gen_SUSTechGAN | ✅ PSP, SF | ✅ PSP, SF |
-| gen_TSIT | ✅ SF | ✅ SF |
-| gen_UniControl | ✅ SF | ✅ PSP, SF |
-| gen_VisualCloze | ✅ PSP, SF | ✅ PSP, SF |
-| gen_Weather_Effect_Generator | ✅ SF | ✅ PSP, SF |
-| gen_albumentations_weather | ✅ PSP, SF | ✅ PSP, SF |
-| baseline | ✅ PSP, SF | ✅ PSP, SF |
+| gen_Qwen_Image_Edit | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF |
+| gen_stargan_v2 | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF |
+| gen_step1x_new | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF |
+| gen_step1x_v1p2 | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF |
+| gen_SUSTechGAN | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF |
+| gen_TSIT | ✅ PSP, SF | ✅ PSP, SF |
+| gen_UniControl | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF |
+| gen_VisualCloze | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF |
+| gen_Weather_Effect_Generator | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF |
+| gen_albumentations_weather | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF |
+| baseline | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF |
 | std_minimal | ⏳ | ⏳ |
 | std_photometric_distort | ⏳ | ⏳ |
-| std_autoaugment | ✅ PSP, SF | ✅ PSP, SF |
-| std_cutmix | ✅ PSP, SF | ✅ PSP, SF |
-| std_mixup | ✅ PSP, SF | ✅ PSP, SF |
-| std_randaugment | ✅ PSP, SF | ✅ PSP, SF |
+| std_autoaugment | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF |
+| std_cutmix | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF |
+| std_mixup | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF |
+| std_randaugment | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF |

@@ -1,27 +1,27 @@
 # Testing Coverage Report
 
-**Generated:** 2026-02-10 09:52
+**Generated:** 2026-02-11 09:13
 
 ## Summary
 
 | Status | Count | Percentage |
 |--------|------:|----------:|
-| ✅ Complete (valid mIoU) | 360 | 98.1% |
+| ✅ Complete (valid mIoU) | 364 | 99.2% |
 | 🔄 Running | 0 | 0.0% |
-| ⏳ Pending (in queue) | 2 | 0.5% |
+| ⏳ Pending (in queue) | 0 | 0.0% |
 | ⚠️ Buggy (mIoU < 5%) | 0 | 0.0% |
 | 🔃 Stale (wrong checkpoint) | 0 | 0.0% |
-| ❌ Missing (no results) | 5 | 1.4% |
+| ❌ Missing (no results) | 3 | 0.8% |
 | **Total** | **367** | **100%** |
 
 ## Per-Dataset Breakdown
 
 ### BDD10k
-- Complete: 97/105 (92.4%)
+- Complete: 101/105 (96.2%)
 - Running: 0
-- Pending (in queue): 2
+- Pending (in queue): 0
 - Buggy (mIoU < 5%): 0
-- Missing (no results): 5
+- Missing (no results): 3
 
 ### IDD-AW
 - Complete: 105/105 (100.0%)
@@ -50,10 +50,7 @@
 
 ## Pending Configurations (in queue)
 
-| Strategy | Dataset | Model |
-|----------|---------|-------|
-| gen_step1x_new | bdd10k | SegNeXt |
-| gen_step1x_v1p2 | bdd10k | SegNeXt |
+*No configurations pending in queue.*
 
 ## Buggy Configurations (need retesting)
 
@@ -67,11 +64,9 @@
 
 | Strategy | Dataset | Model | Issue |
 |----------|---------|-------|-------|
-| gen_LANIT | bdd10k | SegNeXt | missing |
-| gen_VisualCloze | bdd10k | SegNeXt | missing |
 | gen_albumentations_weather | bdd10k | SegNeXt | missing |
 | gen_automold | bdd10k | SegNeXt | missing |
-| gen_flux_kontext | bdd10k | SegNeXt | missing |
+| gen_step1x_v1p2 | bdd10k | SegNeXt | missing |
 
 ## Complete Configurations
 

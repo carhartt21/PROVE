@@ -1,6 +1,6 @@
 # Testing Progress Tracker
 
-**Last Updated:** 2026-02-10 09:52
+**Last Updated:** 2026-02-11 09:13
 
 
 This document tracks the progress of fine-grained testing for trained models.
@@ -50,42 +50,42 @@ This document tracks the progress of fine-grained testing for trained models.
 
 | Rank | Strategy | Avg mIoU | Best Dataset | Best mIoU | Datasets |
 |------|----------|----------|--------------|-----------|----------|
-| 🥇 | gen_VisualCloze | 60.7 | Cityscapes | 69.8 | 2/4 |
-| 🥈 | std_autoaugment | 60.6 | Cityscapes | 68.7 | 2/4 |
-| 🥉 | std_randaugment | 60.3 | Cityscapes | 68.4 | 2/4 |
-| 4. | gen_step1x_v1p2 | 60.3 | Cityscapes | 69.7 | 2/4 |
-| 5. | gen_flux_kontext | 60.3 | Cityscapes | 68.7 | 2/4 |
-| 6. | std_cutmix | 60.2 | Cityscapes | 69.1 | 2/4 |
-| 7. | baseline | 60.0 | Cityscapes | 69.0 | 2/4 |
-| 8. | std_mixup | 59.9 | Cityscapes | 69.0 | 2/4 |
-| 9. | gen_albumentations_weather | 59.0 | Cityscapes | 67.8 | 2/4 |
-| 10. | gen_step1x_new | 58.8 | Cityscapes | 66.6 | 2/4 |
+| 🥇 | gen_CUT | 61.4 | Cityscapes | 70.0 | 2/4 |
+| 🥈 | gen_augmenters | 61.1 | Cityscapes | 70.0 | 2/4 |
+| 🥉 | gen_cyclediffusion | 61.0 | Cityscapes | 69.7 | 2/4 |
+| 4. | gen_VisualCloze | 60.7 | Cityscapes | 69.8 | 2/4 |
+| 5. | gen_Attribute_Hallucination | 60.7 | Cityscapes | 69.5 | 2/4 |
+| 6. | gen_cycleGAN | 60.6 | Cityscapes | 69.2 | 2/4 |
+| 7. | std_autoaugment | 60.6 | Cityscapes | 68.7 | 2/4 |
+| 8. | gen_TSIT | 60.6 | Cityscapes | 69.0 | 2/4 |
+| 9. | std_randaugment | 60.3 | Cityscapes | 68.4 | 2/4 |
+| 10. | gen_step1x_v1p2 | 60.3 | Cityscapes | 69.7 | 2/4 |
 
 
 ### Generative Image Augmentation Strategies
 
 | Strategy | Cityscapes | ACDC (cross-domain) | Avg |
 |----------|-------:|-------:|-------:|
-| gen_Attribute_Hallucination | 63.0 | 51.9 | 57.5 |
-| gen_augmenters | 64.0 | 47.1 | 55.5 |
+| gen_Attribute_Hallucination | 69.5 | 51.9 | 60.7 |
+| gen_augmenters | 70.0 | 52.1 | 61.1 |
 | gen_automold | 66.0 | 50.3 | 58.2 |
-| gen_CNetSeg | 64.3 | 44.3 | 54.3 |
-| gen_CUT | 62.1 | 52.7 | 57.4 |
-| gen_cyclediffusion | 63.3 | 52.3 | 57.8 |
-| gen_cycleGAN | 63.7 | 47.2 | 55.4 |
+| gen_CNetSeg | 66.7 | 51.7 | 59.2 |
+| gen_CUT | 70.0 | 52.7 | 61.4 |
+| gen_cyclediffusion | 69.7 | 52.3 | 61.0 |
+| gen_cycleGAN | 69.2 | 51.9 | 60.6 |
 | gen_flux_kontext | 68.7 | 51.8 | 60.3 |
-| gen_Img2Img | 64.0 | 51.5 | 57.8 |
-| gen_IP2P | 63.5 | 51.5 | 57.5 |
+| gen_Img2Img | 69.0 | 51.5 | 60.3 |
+| gen_IP2P | 68.7 | 51.5 | 60.1 |
 | gen_LANIT | ⏳ | ⏳ | - |
-| gen_Qwen_Image_Edit | 64.3 | 50.9 | 57.6 |
-| gen_stargan_v2 | 63.1 | 45.5 | 54.3 |
+| gen_Qwen_Image_Edit | 67.9 | 50.9 | 59.4 |
+| gen_stargan_v2 | 67.4 | 51.0 | 59.2 |
 | gen_step1x_new | 66.6 | 51.0 | 58.8 |
 | gen_step1x_v1p2 | 69.7 | 51.0 | 60.3 |
-| gen_SUSTechGAN | 63.8 | 50.9 | 57.3 |
-| gen_TSIT | 63.6 | 44.8 | 54.2 |
-| gen_UniControl | 62.6 | 51.1 | 56.8 |
+| gen_SUSTechGAN | 66.8 | 50.9 | 58.8 |
+| gen_TSIT | 69.0 | 52.1 | 60.6 |
+| gen_UniControl | 67.9 | 51.1 | 59.5 |
 | gen_VisualCloze | 69.8 | 51.6 | 60.7 |
-| gen_Weather_Effect_Generator | 63.9 | 46.5 | 55.2 |
+| gen_Weather_Effect_Generator | 65.8 | 50.2 | 58.0 |
 | gen_albumentations_weather | 67.8 | 50.3 | 59.0 |
 
 ### Standard Augmentation Strategies

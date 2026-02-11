@@ -217,8 +217,6 @@ python analysis_scripts/visualize_extended_training.py
 
 | Metric | Value |
 |--------|-------|
-| **Best combination** | std_mixup+std_photometric_distort (45.22% mIoU) |
-| **Photometric distort boost** | All +std_photometric_distort combos: 44.9-45.2% mIoU |
 | **Generative+Standard avg** | 40.1% mIoU |
 | **Standard+Standard avg** | 39.7% mIoU |
 
