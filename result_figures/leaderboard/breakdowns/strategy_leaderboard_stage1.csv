@@ -1,6 +1,6 @@
 Strategy,Type,mIoU,Std,Gain,Normal mIoU,Adverse mIoU,Domain Gap,Num Tests
+gen_UniControl,Generative,40.12,6.39,6.49,40.62,34.9,5.72,14
 gen_Img2Img,Generative,39.99,6.24,6.35,40.74,34.58,6.16,14
-gen_UniControl,Generative,39.96,6.08,6.33,40.58,34.59,5.99,14
 gen_Attribute_Hallucination,Generative,39.94,6.11,6.31,40.49,34.51,5.97,14
 gen_Qwen_Image_Edit,Generative,39.86,5.97,6.22,40.51,34.51,6.01,14
 gen_stargan_v2,Generative,39.86,6.15,6.23,40.55,34.54,6.0,14
@@ -8,9 +8,9 @@ gen_CNetSeg,Generative,39.86,6.08,6.23,40.53,34.55,5.99,14
 gen_IP2P,Generative,39.79,5.88,6.15,40.5,34.6,5.9,14
 gen_augmenters,Generative,39.79,5.9,6.16,40.39,34.46,5.92,14
 std_randaugment,Standard Aug,39.77,5.92,6.14,40.44,34.33,6.11,14
+gen_cyclediffusion,Generative,39.74,5.86,6.1,40.56,34.63,5.93,14
 std_mixup,Standard Aug,39.73,5.94,6.09,40.43,34.49,5.94,14
 gen_VisualCloze,Generative,39.67,5.79,6.03,40.5,34.57,5.93,14
-gen_cyclediffusion,Generative,39.64,5.84,6.01,40.45,34.61,5.84,14
 gen_CUT,Generative,39.62,5.79,5.98,40.33,34.38,5.95,14
 gen_Weather_Effect_Generator,Generative,39.59,5.7,5.96,40.47,34.35,6.12,14
 std_autoaugment,Standard Aug,39.57,6.09,5.93,40.15,34.35,5.79,14

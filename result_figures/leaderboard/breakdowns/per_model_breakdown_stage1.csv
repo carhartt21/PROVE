@@ -1,17 +1,17 @@
 Strategy,Type,hrnet_hr48,hrnet_hr48_gain,mask2former_swin-b,mask2former_swin-b_gain,pspnet_r50,pspnet_r50_gain,segformer_mit-b3,segformer_mit-b3_gain,segnext_mscan-b,segnext_mscan-b_gain
+gen_UniControl,Generative,-,-,46.91,+0.33,34.74,+2.66,41.11,+4.90,41.12,+3.69
 gen_Img2Img,Generative,-,-,46.60,+0.02,34.77,+2.69,40.67,+4.46,41.22,+3.79
-gen_UniControl,Generative,-,-,45.82,-0.76,34.74,+2.66,41.11,+4.90,41.12,+3.69
 gen_Attribute_Hallucination,Generative,-,-,45.23,-1.35,34.88,+2.79,41.23,+5.02,41.08,+3.65
 gen_stargan_v2,Generative,-,-,45.35,-1.23,34.82,+2.74,40.81,+4.60,41.21,+3.78
 gen_CNetSeg,Generative,-,-,45.00,-1.57,34.77,+2.69,41.16,+4.95,41.09,+3.66
 gen_Qwen_Image_Edit,Generative,-,-,44.96,-1.62,34.83,+2.75,41.10,+4.89,41.09,+3.66
 gen_VisualCloze,Generative,-,-,46.15,-0.43,34.96,+2.88,40.69,+4.48,40.11,+2.68
+gen_cyclediffusion,Generative,-,-,45.07,-1.51,34.85,+2.77,40.61,+4.40,41.08,+3.65
 gen_augmenters,Generative,-,-,44.67,-1.90,34.80,+2.72,40.87,+4.67,41.26,+3.83
 gen_IP2P,Generative,-,-,44.68,-1.90,34.90,+2.82,41.00,+4.79,41.01,+3.58
 std_mixup,Standard Aug,-,-,44.73,-1.85,34.81,+2.73,40.80,+4.59,41.07,+3.64
 std_randaugment,Standard Aug,-,-,44.39,-2.19,34.75,+2.67,40.88,+4.67,41.37,+3.94
 std_autoaugment,Standard Aug,-,-,44.92,-1.66,34.86,+2.78,40.92,+4.71,40.25,+2.82
-gen_cyclediffusion,Generative,-,-,44.39,-2.18,34.85,+2.77,40.61,+4.40,41.08,+3.65
 std_cutmix,Standard Aug,-,-,44.94,-1.64,34.81,+2.72,39.97,+3.76,41.14,+3.71
 gen_Weather_Effect_Generator,Generative,-,-,44.32,-2.26,34.75,+2.67,40.76,+4.55,40.92,+3.49
 gen_CUT,Generative,-,-,43.86,-2.72,34.84,+2.76,40.92,+4.71,40.96,+3.53
