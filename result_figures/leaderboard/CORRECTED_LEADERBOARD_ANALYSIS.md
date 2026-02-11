@@ -5,7 +5,7 @@
 
 **Data Sources:**
 - Stage 1 (S1): 364 test results, 26 strategies, 4 datasets × up to 5 models
-- Cityscapes-Gen (CG): 369 test results, 25 strategies, Cityscapes + ACDC (cross-domain)
+- Cityscapes-Gen (CG): 372 test results, 25 strategies, Cityscapes + ACDC (cross-domain)
 - Stage 2 (S2): 152 test results, 20 strategies (limited coverage, preliminary)
 
 ---
@@ -85,40 +85,50 @@ SegFormer has the widest gain range (+2.58 to +5.02 pp = 2.44 pp spread), making
 
 ### 3.1 Rank Correlation
 
-**Spearman rank correlation: r = 0.101, p = 0.64**
+**Spearman rank correlation: r = 0.206, p = 0.33** (24 overlapping strategies)
 
-Strategy rankings between S1 and CG are statistically indistinguishable from random. Performance in one stage has **zero predictive power** for the other.
+Strategy rankings between S1 and CG remain statistically indistinguishable from random ($p > 0.05$). The correlation doubled from the earlier estimate (r=0.101 with incomplete CG data) but is still **not significant** — performance in one stage has weak predictive power for the other.
+
+> **Note**: The previous r=0.101 was computed when gen_TSIT was missing its deeplabv3plus model, artificially inflating gen_TSIT's CG rank from #20 to #2. With complete data, the correlation increases because gen_TSIT is now stable at #20 in both stages.
 
 ### 3.2 Largest Rank Swings
 
 | Strategy | S1 Rank | CG Rank | Δ | Direction |
 |----------|:-------:|:-------:|:---:|:---------:|
-| gen_TSIT | 20 | **2** | +18 | 🔥 Worst→Best |
-| gen_step1x_v1p2 | 25 | 13 | +12 | ↑ |
-| gen_automold | 21 | 11 | +10 | ↑ |
-| gen_flux_kontext | 17 | 9 | +8 | ↑ |
-| gen_UniControl | **1** | 18 | −17 | ❄️ Best→Worst |
-| gen_stargan_v2 | 5 | 23 | −18 | ↓ |
-| gen_IP2P | 7 | 25 | −18 | ↓ |
-| gen_CNetSeg | 6 | 21 | −15 | ↓ |
+| gen_IP2P | 7 | **24** | +17 | ↓↓ Top→Bottom |
+| gen_stargan_v2 | 5 | **22** | +17 | ↓↓ Top→Bottom |
+| gen_UniControl | **1** | 16 | +15 | ❄️ Champion→Mid |
+| gen_CNetSeg | 6 | 19 | +13 | ↓ |
+| gen_step1x_v1p2 | 25 | **11** | −14 | 🔥 Bottom→Mid |
+| gen_automold | 21 | **8** | −13 | ↑ |
+| gen_cycleGAN | 23 | 12 | −11 | ↑ |
+| gen_flux_kontext | 17 | 7 | −10 | ↑ |
+
+> **Important correction**: In the previous analysis with incomplete CG data, gen_TSIT appeared as the biggest rank swing (+18, from S1 #20 to CG #2). This was entirely an artifact of gen_TSIT's weakest model (deeplabv3plus, −1.93pp) being missing from the CG average. With complete data, gen_TSIT is perfectly stable at **rank #20 in both stages** (Δ=0).
 
 ### 3.3 Consistently Ranked Strategies
 
-Only 3 strategies maintain stable rankings across both stages:
+**5 strategies have identical ranks** across both stages (Δ=0):
 
 | Strategy | S1 Rank | CG Rank | Δ | Note |
 |----------|:-------:|:-------:|:---:|------|
-| **gen_Attribute_Hallucination** | 3 | **1** | +2 | Top-3 in both |
-| **gen_Img2Img** | 2 | 3 | −1 | Top-3 in both |
-| gen_Qwen_Image_Edit | 4 | 5 | −1 | Top-5 in both |
+| **gen_Img2Img** | **2** | **2** | 0 | Top-2 in both stages |
+| **gen_Qwen_Image_Edit** | **4** | **4** | 0 | Top-4 in both stages |
+| gen_Weather_Effect_Generator | 14 | 14 | 0 | Mid-pack in both |
+| gen_SUSTechGAN | 18 | 18 | 0 | Low-mid in both |
+| gen_TSIT | 20 | 20 | 0 | Low in both |
+
+Additionally, **gen_Attribute_Hallucination** (S1 #3 → CG #1, Δ=−2) is the only strategy in the top-3 of both stages.
 
 ### 3.4 Why Do Rankings Diverge?
 
 Hypothesized factors:
 1. **Training domain**: S1 trains on clear-day only (large domain gap); CG trains on mixed Cityscapes (moderate gap)
 2. **Dataset diversity**: S1 averages over 4 diverse datasets; CG is Cityscapes-specific
-3. **Model composition**: S1 fair comparison uses 4 models (mask2former, pspnet, segformer, segnext); CG uses 3–5 models with different coverage
-4. **Augmentation style match**: Some generators produce images more similar to Cityscapes domain (e.g., gen_TSIT is a paired translation model, excels when source/target are similar), while others produce more diverse weather effects (e.g., gen_UniControl, excellent for cross-domain but less for in-domain)
+3. **Model composition**: S1 fair comparison uses 4 models (mask2former, pspnet, segformer, segnext); CG uses 5 models (adds deeplabv3plus)
+4. **Augmentation style match**: Some generators produce images more suited to cross-domain robustness (e.g., gen_UniControl, S1 #1 but CG #16), while others are more neutral (e.g., gen_Img2Img, stably #2 in both)
+
+> **Data quality warning**: CG rankings are sensitive to model completeness. gen_TSIT's apparent +18 rank swing (the headline finding of the earlier analysis) was entirely due to a missing model. With complete data, gen_TSIT has zero rank difference. Researchers should verify all strategies have equal model coverage before drawing conclusions from rank comparisons.
 
 ---
 
@@ -195,28 +205,28 @@ Based on the analysis, these strategies are recommended for S2 curated training:
 ### Tier 1: Consistently Strong (must include)
 | Strategy | S1 Rank | CG Rank | Rationale |
 |----------|:---:|:---:|---|
-| **gen_Attribute_Hallucination** | 3 | 1 | Only strategy in top-5 of BOTH stages |
-| **gen_Img2Img** | 2 | 3 | Stable top-3, best IDD-AW S1 gains |
-| **gen_Qwen_Image_Edit** | 4 | 5 | Stable top-5 in both |
+| **gen_Attribute_Hallucination** | 3 | 1 | Only strategy in top-3 of BOTH stages |
+| **gen_Img2Img** | 2 | **2** | Perfectly stable top-2 in both stages |
+| **gen_Qwen_Image_Edit** | 4 | **4** | Perfectly stable top-4 in both |
 
 ### Tier 2: Stage Champions (include for coverage)
 | Strategy | S1 Rank | CG Rank | Rationale |
 |----------|:---:|:---:|---|
-| **gen_UniControl** | **1** | 18 | S1 champion, lowest domain gap |
-| **gen_TSIT** | 20 | **2** | CG champion, paired translation model |
-| gen_augmenters | 8 | 4 | Good in both, process-based augmentation |
+| **gen_UniControl** | **1** | 16 | S1 champion, lowest domain gap |
+| **gen_CUT** | 13 | **5** | CG top-5, GAN-based unpaired translation |
+| gen_augmenters | 8 | 3 | CG top-3, process-based augmentation |
 
 ### Tier 3: Standard Aug Representatives (include 1–2)
 | Strategy | S1 Rank | CG Rank | Rationale |
 |----------|:---:|:---:|---|
-| std_autoaugment | 15 | 12 | Best std_* in S2 preliminary, smallest gap |
-| std_cutmix | 16 | 10 | Most consistent std_* across stages |
+| std_autoaugment | 15 | 10 | Best std_* in S2 preliminary, smallest gap |
+| std_cutmix | 16 | 9 | Most consistent std_* across stages |
 
 ### Tier 4: Diversity (include for breadth)
 | Strategy | S1 Rank | CG Rank | Rationale |
 |----------|:---:|:---:|---|
-| gen_CUT | 13 | 7 | GAN-based unpaired translation |
-| gen_flux_kontext | 17 | 9 | Diffusion-based, improving in CG |
+| gen_flux_kontext | 17 | 7 | Diffusion-based, big CG improvement (+10↑) |
+| gen_step1x_v1p2 | 25 | 11 | Biggest CG gainer (+14↑), worth investigating |
 
 **Recommended S2 subset:** 8–10 strategies (Tier 1–3 mandatory = 6, plus 2–3 from Tier 4)
 
@@ -394,6 +404,8 @@ The rarest classes account for about **half** of mask2former's degradation (0.75
 ## Appendix C: Data Completeness Notes
 
 - **S1**: IDD-AW has all 14 expected fair-comparison test results. MapillaryVistas and OUTSIDE15k are missing mask2former (submitted to 80GB GPUs, awaiting completion).
-- **CG**: 123/124 configurations tested. gen_TSIT/deeplabv3plus training in progress (last job).
+- **CG**: **124/124 configurations complete** (372 test results). All 25 strategies have all 5 models tested on both Cityscapes and ACDC.
 - **S2**: Only 20 strategies with limited model coverage (mostly SegFormer). Rankings are preliminary.
 - **S1 per-model**: HRNet excluded (only 1 baseline result at 18.58% — likely incomplete).
+
+> **Revision note** (2026-02-12): The original analysis was written with 123/124 CG configurations (gen_TSIT/deeplabv3plus missing). This caused gen_TSIT's CG rank to be artificially inflated from #20 to #2, which produced a misleading +18 rank swing that was highlighted as a major finding. All CG rankings, Spearman correlation, rank swing tables, and S2 recommendations in this document have been corrected with complete data.
