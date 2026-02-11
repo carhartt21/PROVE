@@ -867,11 +867,11 @@ def generate_job_script(
     stage_prefix = f's{job.stage}_' if isinstance(job.stage, int) else f'{job.stage}_'
     
     # Build ACDC cross-domain test section for cityscapes-gen stage
-    if job.stage == 'cityscapes-gen':
+    if job.stage in ('cityscapes-gen', 'cityscapes-ratio'):
         backslash = '\\'
         acdc_test_section = f'''
         # ============================================================================
-        # Cross-domain testing on ACDC (cityscapes-gen stage only)
+        # Cross-domain testing on ACDC (cityscapes-gen/cityscapes-ratio stages)
         # ============================================================================
         echo ""
         echo "=========================================="
