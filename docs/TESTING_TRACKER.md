@@ -1,6 +1,6 @@
 # Testing Progress Tracker
 
-**Last Updated:** 2026-02-11 16:33
+**Last Updated:** 2026-02-11 22:03
 
 
 This document tracks the progress of fine-grained testing for trained models.
@@ -54,14 +54,14 @@ This document tracks the progress of fine-grained testing for trained models.
 |------|----------|----------|--------------|-----------|----------|
 | 🥇 | baseline | 44.7 | BDD10k | 51.6 | 4/4 |
 | 🥈 | std_autoaugment | 43.9 | BDD10k | 49.4 | 4/4 |
-| 🥉 | std_cutmix | 43.7 | BDD10k | 49.4 | 4/4 |
-| 4. | gen_UniControl | 43.0 | BDD10k | 52.5 | 4/4 |
-| 5. | gen_Img2Img | 42.8 | BDD10k | 51.7 | 4/4 |
-| 6. | std_mixup | 42.6 | BDD10k | 49.4 | 4/4 |
-| 7. | gen_VisualCloze | 42.5 | BDD10k | 51.6 | 4/4 |
-| 8. | gen_flux_kontext | 42.5 | BDD10k | 48.7 | 4/4 |
-| 9. | gen_stargan_v2 | 42.3 | BDD10k | 50.9 | 4/4 |
-| 10. | gen_Attribute_Hallucination | 42.2 | BDD10k | 50.5 | 4/4 |
+| 🥉 | gen_flux_kontext | 43.8 | BDD10k | 48.7 | 4/4 |
+| 4. | std_cutmix | 43.7 | BDD10k | 49.4 | 4/4 |
+| 5. | gen_cycleGAN | 43.5 | BDD10k | 49.6 | 4/4 |
+| 6. | std_randaugment | 43.2 | BDD10k | 48.6 | 4/4 |
+| 7. | gen_UniControl | 43.0 | BDD10k | 52.5 | 4/4 |
+| 8. | gen_step1x_new | 42.8 | BDD10k | 49.9 | 4/4 |
+| 9. | gen_Img2Img | 42.8 | BDD10k | 51.7 | 4/4 |
+| 10. | std_mixup | 42.6 | BDD10k | 49.4 | 4/4 |
 
 
 ### Generative Image Augmentation Strategies
@@ -74,15 +74,15 @@ This document tracks the progress of fine-grained testing for trained models.
 | gen_CNetSeg | 49.8 | 40.2 | 35.0 | 43.3 | 42.1 |
 | gen_CUT | 48.3 | 40.2 | 34.9 | 43.1 | 41.6 |
 | gen_cyclediffusion | 48.9 | 41.2 | 34.7 | 43.1 | 42.0 |
-| gen_cycleGAN | 49.6 | 40.4 | 35.0 | 43.5 | 42.1 |
-| gen_flux_kontext | 48.7 | 40.4 | 35.2 | 45.5 | 42.5 |
+| gen_cycleGAN | 49.6 | 40.4 | 40.4 | 43.5 | 43.5 |
+| gen_flux_kontext | 48.7 | 40.4 | 40.7 | 45.5 | 43.8 |
 | gen_Img2Img | 51.7 | 41.5 | 34.8 | 43.0 | 42.8 |
 | gen_IP2P | 49.0 | 40.4 | 34.8 | 43.5 | 41.9 |
 | gen_LANIT | 50.1 | 40.2 | 35.1 | 43.3 | 42.2 |
 | gen_Qwen_Image_Edit | 49.5 | 40.4 | 35.1 | 43.5 | 42.1 |
 | gen_stargan_v2 | 50.9 | 39.8 | 34.6 | 43.7 | 42.3 |
-| gen_step1x_new | 49.9 | 40.6 | 35.0 | 42.9 | 42.1 |
-| gen_step1x_v1p2 | 47.0 | 40.1 | 34.7 | 42.9 | 41.2 |
+| gen_step1x_new | 49.9 | 40.6 | 35.2 | 45.4 | 42.8 |
+| gen_step1x_v1p2 | 47.0 | 40.1 | 35.5 | 45.8 | 42.1 |
 | gen_SUSTechGAN | 49.3 | 40.6 | 34.7 | 42.9 | 41.9 |
 | gen_TSIT | 50.7 | 40.0 | 34.5 | 43.0 | 42.0 |
 | gen_UniControl | 52.5 | 41.3 | 35.1 | 43.1 | 43.0 |
@@ -100,7 +100,7 @@ This document tracks the progress of fine-grained testing for trained models.
 | std_autoaugment | 49.4 | 40.5 | 40.5 | 45.3 | 43.9 |
 | std_cutmix | 49.4 | 40.4 | 40.0 | 45.1 | 43.7 |
 | std_mixup | 49.4 | 40.0 | 35.4 | 45.4 | 42.6 |
-| std_randaugment | 48.6 | 40.2 | 34.8 | 43.4 | 41.8 |
+| std_randaugment | 48.6 | 40.2 | 40.4 | 43.5 | 43.2 |
 
 ---
 

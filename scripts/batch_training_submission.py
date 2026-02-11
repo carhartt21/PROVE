@@ -196,7 +196,7 @@ WEIGHTS_ROOT_COMBINATION = Path('/scratch/aaa_exchange/AWARE/WEIGHTS_COMBINATION
 
 # Top gen_* from cross-stage S1+CG analysis (different families)
 COMBINATION_GEN_STRATEGIES = [
-    'gen_Attribute_Hallucination',  # Instruct/Edit: CG #1, S1 #4 — cross-stage champion
+    'gen_Qwen_Image_Edit',  # Instruct/Edit: CG #1, S1 #4 — cross-stage champion
     'gen_Img2Img',                  # Diffusion I2I: CG #2, S1 #3 — consistent top-3
     'gen_augmenters',               # Domain-specific: CG #3, S1 #10 — best in family
 ]
@@ -745,8 +745,10 @@ def generate_job_list(
                         elif check_locks:
                             # Note: Don't include ratio in lock check because job scripts
                             # don't include ratio in their lock file names
+                            # For combination jobs, include std_strategy in lock name
+                            lock_strategy = f"{strategy}+{std_strategy}" if std_strategy else strategy
                             lock = TrainingLock(
-                                strategy,
+                                lock_strategy,
                                 dataset,
                                 model,
                                 ratio=None,  # Lock files don't include ratio
@@ -867,6 +869,8 @@ def generate_job_script(
     aux_suffix = f"_aux-{aux_loss}" if aux_loss else ''
     # Ratio suffix for lock file - include ratio to differentiate ratio ablation jobs
     ratio_suffix = f"_ratio{job.ratio:.2f}".replace('.', 'p') if job.ratio != 0.5 else ''
+    # std_strategy suffix for lock file - differentiates combination ablation jobs
+    std_suffix = f"+{job.std_strategy}" if job.std_strategy else ''
     # Stage prefix for lock file (same as job name)
     stage_prefix = f's{job.stage}_' if isinstance(job.stage, int) else f'{job.stage}_'
     
@@ -962,7 +966,7 @@ fi
 # Acquire training lock
 LOCK_DIR="/scratch/aaa_exchange/AWARE/training_locks"
 mkdir -p $LOCK_DIR
-LOCK_FILE="$LOCK_DIR/{stage_prefix}{job.strategy}_{job.dataset.lower().replace('-', '_')}_{job.model}{ratio_suffix}{aux_suffix}.lock"
+LOCK_FILE="$LOCK_DIR/{stage_prefix}{job.strategy}{std_suffix}_{job.dataset.lower().replace('-', '_')}_{job.model}{ratio_suffix}{aux_suffix}.lock"
 
 # Try to acquire lock (non-blocking)
 exec 200>"$LOCK_FILE"

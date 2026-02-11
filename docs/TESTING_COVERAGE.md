@@ -1,18 +1,18 @@
 # Testing Coverage Report
 
-**Generated:** 2026-02-11 16:34
+**Generated:** 2026-02-11 22:03
 
 ## Summary
 
 | Status | Count | Percentage |
 |--------|------:|----------:|
-| ✅ Complete (valid mIoU) | 374 | 99.2% |
+| ✅ Complete (valid mIoU) | 382 | 98.2% |
 | 🔄 Running | 0 | 0.0% |
 | ⏳ Pending (in queue) | 0 | 0.0% |
 | ⚠️ Buggy (mIoU < 5%) | 0 | 0.0% |
 | 🔃 Stale (wrong checkpoint) | 0 | 0.0% |
-| ❌ Missing (no results) | 3 | 0.8% |
-| **Total** | **377** | **100%** |
+| ❌ Missing (no results) | 7 | 1.8% |
+| **Total** | **389** | **100%** |
 
 ## Per-Dataset Breakdown
 
@@ -31,18 +31,18 @@
 - Missing (no results): 0
 
 ### MapillaryVistas
-- Complete: 83/105 (79.0%)
+- Complete: 88/105 (83.8%)
 - Running: 0
 - Pending (in queue): 0
 - Buggy (mIoU < 5%): 0
-- Missing (no results): 0
+- Missing (no results): 2
 
 ### OUTSIDE15k
-- Complete: 85/105 (81.0%)
+- Complete: 88/105 (83.8%)
 - Running: 0
 - Pending (in queue): 0
 - Buggy (mIoU < 5%): 0
-- Missing (no results): 0
+- Missing (no results): 2
 
 ## Running Configurations
 
@@ -65,7 +65,11 @@
 | Strategy | Dataset | Model | Issue |
 |----------|---------|-------|-------|
 | gen_albumentations_weather | bdd10k | SegNeXt | missing |
+| gen_albumentations_weather | mapillaryvistas | Mask2Former | missing |
+| gen_albumentations_weather | outside15k | Mask2Former | missing |
 | gen_automold | bdd10k | SegNeXt | missing |
+| gen_automold | mapillaryvistas | Mask2Former | missing |
+| gen_automold | outside15k | Mask2Former | missing |
 | gen_step1x_v1p2 | bdd10k | SegNeXt | missing |
 
 ## Complete Configurations

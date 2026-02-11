@@ -1288,7 +1288,7 @@ class UnifiedTrainingConfig:
             if std_strategy not in AUGMENTATION_STRATEGIES:
                 raise ValueError(f"Unknown std_strategy: {std_strategy}. Available: {list(AUGMENTATION_STRATEGIES.keys())}")
             std_aug = AUGMENTATION_STRATEGIES[std_strategy]
-            if std_aug.type != 'standard':
+            if std_aug.type != 'batch_augment':
                 raise ValueError(f"std_strategy must be a standard augmentation (std_*), got: {std_strategy}")
         
         dataset_cfg = DATASET_CONFIGS[dataset]
@@ -1449,7 +1449,7 @@ class UnifiedTrainingConfig:
             if std_strategy not in AUGMENTATION_STRATEGIES:
                 raise ValueError(f"Unknown std_strategy: {std_strategy}. Available: {list(AUGMENTATION_STRATEGIES.keys())}")
             std_aug = AUGMENTATION_STRATEGIES[std_strategy]
-            if std_aug.type != 'standard':
+            if std_aug.type != 'batch_augment':
                 raise ValueError(f"std_strategy must be a standard augmentation (std_*), got: {std_strategy}")
         
         # Validate weights if provided

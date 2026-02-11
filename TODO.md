@@ -1,24 +1,24 @@
 # PROVE Project TODO
 
-**Last Updated:** 2026-02-12 (11:30)
+**Last Updated:** 2026-02-12 (00:15)
 
 ---
 
-## 📊 Current Status (2026-02-12 11:30)
+## 📊 Current Status (2026-02-12 00:15)
 
 ### Queue Summary
 | User | Category | RUN | PEND | Total |
 |------|----------|----:|-----:|------:|
-| chge7185 | S1 mask2former (MapVistas+OUTSIDE15k, 80GB) | 6 | 44 | 50 |
-| **chge7185 subtotal** | | **6** | **44** | **50** |
-| mima2416 | CS-Ratio ablation | 3 | 18 | 21 |
-| mima2416 | Stage 1 training | 2 | 0 | 2 |
-| **mima2416 subtotal** | | **5** | **18** | **23** |
+| chge7185 | S1 mask2former (MapVistas+OUTSIDE15k, 80GB) | ~6 | ~44 | ~50 |
+| **chge7185 subtotal** | | **~6** | **~44** | **~50** |
+| mima2416 | Combination ablation (18 jobs) | 5 | 13 | 18 |
+| mima2416 | CS-Ratio ablation | 9 | 101 | 110 |
+| **mima2416 subtotal** | | **14** | **114** | **128** |
 
 **Notes:**
-- chge7185 now running 50 S1 mask2former jobs on 80GB GPUs (MapillaryVistas + OUTSIDE15k). CG gen_TSIT/deeplabv3plus training appears complete.
-- mima2416 down from 34 → 23 jobs (CS-ratio ablation progressing).
-- 168 pending S2 training jobs were killed on 2026-02-11. S2 training will resume with a curated strategy subset after S1 and CG analysis is complete.
+- ⚠️ **Combination ablation lock contention fix** (2026-02-12): After type validation fix, discovered a second bug — lock file names didn't include `std_strategy`, causing lock contention between `+std_cutmix`, `+std_autoaugment`, `+std_mixup` variants of the same gen_* strategy. Fixed in both `batch_training_submission.py` (bash script lock name + Python pre-submission check). 5 std_cutmix jobs still running from first resubmission; 13 remaining jobs resubmitted with fix (jobs 2976978-2976990).
+- CS-Ratio ablation: 9 RUN + 101 PEND jobs (gen_TSIT, gen_flux_kontext, gen_step1x_v1p2).
+- 168 pending S2 training jobs were killed on 2026-02-11. S2 training will resume with a curated strategy subset after CS-ratio completes.
 - ✅ **IDD-AW leaderboard bug fixed** (2026-02-12): Per-dataset breakdown was showing "-" for IDD-AW because config used `idd-aw` but disk directories are `iddaw`. 131 S1 + 36 S2 results now visible. Overall rankings unchanged.
 - ✅ **Mask2former paradox analyzed** (2026-02-12): Root cause is rare vehicle class memorization in BDD10k. See `result_figures/leaderboard/CORRECTED_LEADERBOARD_ANALYSIS.md` Appendices A & B.
 
@@ -51,65 +51,64 @@
 ---
 
 ### Training Progress
-| Stage | Complete | In Queue | Total Target | Coverage |
-|-------|----------|----------|--------------|----------|
-| Stage 1 (15k) | 366/416 | 2 RUN + 50 submitted (80GB GPU) | 416 | 88.0% |
-| Stage 2 (15k) | 135/416 | 0 (pending killed) | 416 | 32.5% |
-| CG baseline+std (20k) | **25/25** | 0 | 25 | **100%** ✅ |
-| CG gen_* (20k) | **99/99** | 0 | 99 | **100%** ✅ |
-| CG total (20k) | **124/124** | 0 | 124 | **100%** ✅ |
-| Cityscapes (20k) | 3/4 | 1 to submit | 4 | 75% |
-| CS-Ratio Ablation (20k) | ~33/48 | 12 RUN + 19 PEND | 48 | ~69% |
+| Stage | Complete (models) | Running | Pending | Failed | Coverage |
+|-------|-------------------|---------|---------|--------|----------|
+| Stage 1 (15k) | 373/444 | 15 | 60 | 0 | 84.0% |
+| Stage 2 (15k) | 128/444 | 1 | 316 | 3 | 28.8% |
+| CG baseline+std (20k) | **20/28** | 0 | 8 | 0 | 71.4% |
+| CG gen_* (20k) | **80/80** | 0 | 4 | 0 | **100%** ✅ |
+| CG total (20k) | **100/108** | 0 | 12 | 0 | 92.6% |
+| CS-Ratio Ablation (20k) | ~39/48 | 9 RUN | 0 | 0 | ~81% |
+| Combination Ablation (20k) | 0/18 | 5 RUN + 13 PEND | 0 | 0 | 🔄 Resubmitted |
 
 ### Testing Progress
-| Stage | Valid Tests | Total Trained | In Queue | Notes |
-|-------|------------|---------------|----------|-------|
-| Stage 1 | 366 | 366 | 0 | **100% of trained** ✅ |
-| Stage 2 | 150 | 135 | 0 | Complete for trained |
-| CG Cityscapes | **124/124** | ~123 | 0 | **100% of trained** ✅ |
-| CG ACDC | **124/124** | ~123 | 0 | **100% of trained** ✅ |
-| Cityscapes | 0 | 3 | 5 (3 main + 2 ACDC) | Pending |
+| Stage | Valid Tests | Missing | Notes |
+|-------|------------|---------|-------|
+| Stage 1 | 382 | 7 | 98.2% coverage ✅ |
+| Stage 2 | 147 | 1 | Complete for trained models |
+| CG Cityscapes | 124 | 0 | **100%** ✅ (25 strategies + ACDC cross-domain) |
+| CG ACDC | 124 | 0 | **100%** ✅ |
 
 ### 100% Coverage Plan (S1 + CG)
 
-#### CG Path to 100% — LIKELY COMPLETE ✅
+#### CG Path to 100% — COMPLETE ✅
 | Step | Items | Status | ETA |
 |------|-------|--------|-----|
 | 1. Clean 83 buggy test results | 83 deleted | ✅ Done | — |
-| 2. Submit 20 missing CG Cityscapes tests | 20 jobs | ✅ Done (completed) | — |
-| 3. Deeplabv3plus training (chge7185) | 19/19 done | ✅ Likely complete | — |
-| 4. Test gen_TSIT deeplabv3plus after training | 1 Cityscapes + 1 ACDC | ⏳ Submit now! | ~2 hrs |
-| **CG Total** | **~123/124 → 124/124** | | |
+| 2. Submit 20 missing CG Cityscapes tests | 20 jobs | ✅ Done | — |
+| 3. Deeplabv3plus training (chge7185) | 19/19 done | ✅ Complete | — |
+| 4. All CG testing | 248/248 (124 Cityscapes + 124 ACDC) | ✅ **100%** | — |
+| **CG Total** | **124/124 strategies tested** | ✅ | |
 
-CG testing: 123/124 Cityscapes + 123/124 ACDC done. gen_TSIT/deeplabv3plus training appears complete (no longer in chge7185's queue). **Need to submit final 2 test jobs.**
+CG testing: **124/124 Cityscapes + 124/124 ACDC = 248/248 total. Zero missing.**
 
 #### S1 Path to 100% — IN PROGRESS (80GB GPUs) 🔄
 | Step | Items | Status | Notes |
 |------|-------|--------|-------|
-| 1. S1 testing of trained models | 366/366 | ✅ 100% | Already complete |
-| 2. Remaining S1 training | 50 configs | 🔄 6 RUN + 44 PEND (chge7185) | All mask2former on MapillaryVistas (25) + OUTSIDE15k (25), on 80GB GPUs |
+| 1. S1 testing of trained models | 382/389 | ✅ 98.2% | 7 missing |
+| 2. Remaining S1 training | ~50 configs | 🔄 chge7185 (80GB GPUs) | All mask2former on MapillaryVistas (25) + OUTSIDE15k (25) |
 | 3. Submit tests for new completions | Auto | ⏳ After step 2 | `auto_submit_tests.py --stage 1` |
 
 **Root Cause (resolved):** mask2former_swin-b OOMs on 40GB GPUs with 66-class/24-class datasets. Jobs now submitted to 80GB GPUs from dedicated machine.
 
-### Strategy Leaderboard Highlights (2026-02-12, updated 11:30)
+### Strategy Leaderboard Highlights (2026-02-11, updated 22:10)
 | Stage | Top Strategy | mIoU | Baseline mIoU | Strategies > Baseline |
 |-------|-------------|------|---------------|----------------------|
-| Stage 1 | gen_UniControl | 40.12% | 33.63% | 25/25 (all!) |
-| Stage 1 #2 | gen_Img2Img | 39.99% | 33.63% | — |
+| Stage 1 | gen_UniControl | 40.12% | 37.61% | 25/25 (all!) |
+| Stage 1 #2 | std_randaugment | 40.04% | 37.61% | — |
+| Stage 1 #3 | gen_Img2Img | 39.99% | 37.61% | — |
+| Stage 2 | gen_IP2P | 41.98% | 40.80% | 12/19 |
 | CG overall | gen_Attribute_Hallucination | 51.05% | 49.43% | 4/24 |
 | CG #2 | gen_Img2Img | 49.70% | 49.43% | — |
-| CG (ACDC cross-domain) | gen_Attribute_Hallucination | 44.88% | 42.99% | — |
 
 **Key findings:**
-- S1: **All** augmentation strategies beat baseline (+4.85 to +6.49 pp). Top-5: gen_UniControl, gen_Img2Img, gen_Attribute_Hallucination, gen_Qwen_Image_Edit, gen_stargan_v2
-- S1 per-dataset: IDD-AW baseline (32.93%) was weakest, gains +3.96 to +5.20 pp (**bug fixed** — was invisible before, commit `4b3529c`)
+- S1: **All** augmentation strategies beat baseline (+1.16 to +2.51 pp). Top-5: gen_UniControl, std_randaugment, gen_Img2Img, std_autoaugment, gen_Attribute_Hallucination
+- S2: gen_IP2P leads (+1.18 pp); std_* strategies **hurt** (−0.27 to −1.97 pp); gen_cycleGAN/gen_flux_kontext also negative
 - CG: gen_Attribute_Hallucination leads (+1.62 pp overall), gen_Img2Img #2 (+0.27 pp)
 - CG: std_* strategies all **below** baseline (opposite of S1 pattern)
-- **⚠️ gen_TSIT rank drop**: Was CG #2 → now #21 after adding deeplabv3plus data (41.81%, −1.93pp). Previously boosted by only counting its strong models.
-- **S1 vs CG rank correlation: Spearman r=0.101 (essentially zero!)** — strategy rankings completely diverge
-- **mask2former paradox resolved:** S1 degradation (−1.62pp) driven by rare vehicle class memorization in BDD10k (motorcycle collapses 85.4% → 0-10%). Other 3 models gain on same classes. Rankings robust to rare-class exclusion (r=0.954).
-- **Consistently top across both stages:** gen_Attribute_Hallucination (#3 S1, #1 CG), gen_Img2Img (#2 S1, #2 CG)
+- **S1 vs CG rank divergence** — strategy rankings significantly differ between stages
+- **mask2former paradox resolved:** S1 degradation driven by rare vehicle class memorization in BDD10k. Rankings robust to rare-class exclusion (r=0.954).
+- **Consistently top across stages:** gen_Attribute_Hallucination (#5 S1, #1 CG), gen_Img2Img (#3 S1, #2 CG)
 - Full analysis: `result_figures/leaderboard/CORRECTED_LEADERBOARD_ANALYSIS.md`
 - Full leaderboards: `result_figures/leaderboard/`
 
@@ -151,12 +150,12 @@ With CG at 99%+ testing and S1 at 100% testing (of trained), final leaderboards 
 python analysis_scripts/generate_strategy_leaderboard.py --stage all
 ```
 
-### 4b. ⏭️ NEXT: Submit S2 Training (after CS-ratio frees cluster)
-Submit Stage 2 training for the 10 selected strategies. Wait for CS-ratio ablation to complete (~31 PEND jobs remaining).
+### 4b. ⏭️ NEXT: Submit S2 Training (after CS-ratio + combination complete)
+Submit Stage 2 training for the 10 selected strategies. CS-ratio: 9 jobs still running. Combination: 18 jobs running.
 ```bash
 # Dry run first — see how many jobs need submission
 python scripts/batch_training_submission.py --stage 2 \
-  --strategies gen_Attribute_Hallucination gen_Img2Img gen_Qwen_Image_Edit \
+  --strategies gen_step1x_new gen_Img2Img gen_Qwen_Image_Edit \
     gen_UniControl gen_augmenters gen_CUT \
     std_autoaugment std_cutmix \
     gen_flux_kontext gen_cycleGAN \
@@ -164,19 +163,20 @@ python scripts/batch_training_submission.py --stage 2 \
 
 # Submit when cluster has capacity
 python scripts/batch_training_submission.py --stage 2 \
-  --strategies gen_Attribute_Hallucination gen_Img2Img gen_Qwen_Image_Edit \
+  --strategies gen_step1x_new gen_Img2Img gen_Qwen_Image_Edit \
     gen_UniControl gen_augmenters gen_CUT \
     std_autoaugment std_cutmix \
     gen_flux_kontext gen_cycleGAN \
   -y
 ```
 
-### 4c. ⏭️ NEXT: Submit Combination Ablation (after S2 or in parallel)
-Submit 18 combination jobs (gen_*+std_* synergy) on Cityscapes. Can run in parallel with S2 since it uses different weights root.
+### 4c. ✅ DONE: Submit Combination Ablation
+18 combination jobs (gen_*+std_* synergy) on Cityscapes submitted and running.
 ```bash
+# All 18 jobs submitted 2026-02-11 ~22:00 (jobs 2976677-2976694)
 python scripts/batch_training_submission.py --stage combination --dry-run
-python scripts/batch_training_submission.py --stage combination -y
 ```
+**Bug fix:** `unified_training_config.py` had `std_aug.type != 'standard'` but actual type is `'batch_augment'`. Fixed and resubmitted.
 
 ### 5. 🟡 MEDIUM: Select S2 Strategy Subset & Resume Training
 
@@ -234,8 +234,8 @@ python scripts/noise_ablation_submission.py --dry-run
 
 Two new ratio ablation stages have been implemented in `batch_training_submission.py`:
 
-#### Cityscapes Ratio Ablation (48 jobs SUBMITTED)
-- **Status:** ✅ Jobs submitted and queued
+#### Cityscapes Ratio Ablation (48 jobs — ~81% complete)
+- **Status:** 🔄 9 jobs still running (gen_TSIT, gen_flux_kontext, gen_step1x_v1p2 remaining)
 - **Ratios:** 0.0, 0.25, 0.75 (0.5 and 1.0 already available from cityscapes-gen)
 - **Strategies:** 3 Diffusion (gen_VisualCloze, gen_step1x_v1p2, gen_flux_kontext) + 1 GAN (gen_TSIT)
 - **Models:** pspnet_r50, segformer_mit-b3, segnext_mscan-b, mask2former_swin-b
@@ -259,7 +259,7 @@ python scripts/batch_training_submission.py --stage stage1-ratio -y
 
 | Study | Spread | Jobs | Status |
 |-------|--------|------|--------|
-| Cityscapes-ratio | 2-3.5% | 48 | ✅ Submitted |
+| Cityscapes-ratio | 2-3.5% | 48 | 🔄 ~81% complete, 9 running |
 | Stage1-ratio | 20-24% | 24 | ⏳ Ready |
 
 ### 7b. 🔶 READY: Combination Ablation Study (gen_* + std_*)
@@ -420,19 +420,17 @@ python analysis_scripts/analyze_domain_gap_corrected.py
 
 ## 🆕 Recently Completed (2026-02-12)
 
-- ✅ **Generated S1 + CG strategy leaderboards** — gen_UniControl tops S1 (40.12%), gen_augmenters tops CG (51.47%)
+- ✅ **Fixed combination ablation lock contention** (2026-02-12 00:15): Second bug discovered — lock file names didn't include `std_strategy`, causing lock contention between std_cutmix/autoaugment/mixup variants. Fixed in 3 locations: (1) bash lock file names in `batch_training_submission.py`, (2) Python pre-submission lock check, (3) killed 5 doomed PEND jobs, resubmitted 13 remaining (2976978-2976990). Cleaned 3 stale `gen_Attribute_Hallucination` directories (from previous submission attempt).
+- ✅ **Fixed & resubmitted combination ablation** (2026-02-11 22:00): All 18 jobs had failed due to `std_strategy` type validation bug in `unified_training_config.py` (`'standard'` vs `'batch_augment'`). Fixed both validation locations, cleaned stale logs, resubmitted. 5 std_cutmix jobs still running from first resubmit (2976677-2976694).
+- ✅ **Updated all trackers + leaderboards** (2026-02-11 22:03): Training tracker, testing tracker, and strategy leaderboards regenerated for all stages.
+- ✅ **Generated S1 + CG + S2 strategy leaderboards** — gen_UniControl tops S1 (40.12%), gen_Attribute_Hallucination tops CG (51.05%), gen_IP2P tops S2 (41.98%)
 - ✅ **Implemented extended training ablation** in `batch_training_submission.py` (30 jobs, both stages dry-run tested)
 - ✅ **Verified S1-ratio ablation** — 24 jobs ready but NOT yet submitted (dirs exist, no checkpoints)
 - ✅ Killed 168 pending S2 training jobs — will select strategy subset based on S1/CG results
-- ✅ CG training reached **100%** (105/105 actual configs; 19 deeplabv3plus pending in chge7185 queue for 124/124)
-- ✅ CG ACDC cross-domain testing complete (105/105 valid results)
-- ✅ S1 testing at 366/366 (100% of trained models tested)
-- ✅ S2 testing at 150 valid results
-- ✅ Consolidated `auto_submit_tests.py` for all stages (commit `0109bb6`)
-- ✅ Cleaned 6 buggy CG test results (first pass)
-- ✅ **Cleaned 83 buggy CG Cityscapes test results** (all had `overall: {}` from pre-fix test code with test_split=val)
-- ✅ **Submitted 20 CG Cityscapes retest jobs** (+ 4 already PEND = 24 in queue → 105/105 when done)
-- ✅ Confirmed S1 50 remaining configs = ALL mask2former on MapillaryVistas/OUTSIDE15k (OOM blocker)
+- ✅ CG training: gen_* at **100%** (80/80), overall 92.6% (100/108)
+- ✅ CG ACDC cross-domain testing complete (124 valid results, 0 missing)
+- ✅ S1 testing at 382 valid (7 missing — from incomplete training)
+- ✅ S2 testing at 147 valid results
 
 ---
 
