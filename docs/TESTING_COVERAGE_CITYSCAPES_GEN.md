@@ -1,34 +1,34 @@
 # Testing Coverage Report
 
-**Generated:** 2026-02-11 09:13
+**Generated:** 2026-02-11 16:34
 
 ## Summary
 
 | Status | Count | Percentage |
 |--------|------:|----------:|
-| ✅ Complete (valid mIoU) | 246 | 99.2% |
+| ✅ Complete (valid mIoU) | 248 | 100.0% |
 | 🔄 Running | 0 | 0.0% |
 | ⏳ Pending (in queue) | 0 | 0.0% |
 | ⚠️ Buggy (mIoU < 5%) | 0 | 0.0% |
 | 🔃 Stale (wrong checkpoint) | 0 | 0.0% |
-| ❌ Missing (no results) | 2 | 0.8% |
+| ❌ Missing (no results) | 0 | 0.0% |
 | **Total** | **248** | **100%** |
 
 ## Per-Dataset Breakdown
 
 ### Cityscapes
-- Complete: 123/124 (99.2%)
+- Complete: 124/124 (100.0%)
 - Running: 0
 - Pending (in queue): 0
 - Buggy (mIoU < 5%): 0
-- Missing (no results): 1
+- Missing (no results): 0
 
 ### ACDC (cross-domain)
-- Complete: 123/124 (99.2%)
+- Complete: 124/124 (100.0%)
 - Running: 0
 - Pending (in queue): 0
 - Buggy (mIoU < 5%): 0
-- Missing (no results): 1
+- Missing (no results): 0
 
 ## Running Configurations
 
@@ -48,10 +48,7 @@
 
 ## Missing Configurations (no test results)
 
-| Strategy | Dataset | Model | Issue |
-|----------|---------|-------|-------|
-| gen_TSIT | acdc | DeepLabV3+ | missing |
-| gen_TSIT | cityscapes | DeepLabV3+ | missing |
+*No missing configurations.*
 
 ## Complete Configurations
 
@@ -73,7 +70,7 @@
 | gen_step1x_new | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF |
 | gen_step1x_v1p2 | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF |
 | gen_SUSTechGAN | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF |
-| gen_TSIT | ✅ PSP, SF | ✅ PSP, SF |
+| gen_TSIT | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF |
 | gen_UniControl | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF |
 | gen_VisualCloze | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF |
 | gen_Weather_Effect_Generator | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF |

@@ -117,13 +117,15 @@ CG testing: 123/124 Cityscapes + 123/124 ACDC done. gen_TSIT/deeplabv3plus train
 
 ## 🎯 Recommended Next Steps (Priority Order)
 
+**Updated 2026-02-11** — Revised based on full S1+CG cross-stage analysis.
+
 ### 1. ✅ DONE: Clean CG Buggy Tests & Submit Retests
 - ✅ Cleaned 83 buggy test results (`overall: {}` from pre-fix era, test_split=val bug)
 - ✅ Submitted 20 missing CG Cityscapes test jobs
 - ✅ 4 more already pending in queue = 24 total in queue
 - ⏳ Wait for 24 test jobs to complete → 105/105 CG Cityscapes coverage
 
-### 2. � IN PROGRESS: mask2former on MapillaryVistas/OUTSIDE15k (50 jobs)
+### 2. 🔄 IN PROGRESS: mask2former on MapillaryVistas/OUTSIDE15k (50 jobs)
 50 S1 configs — ALL mask2former_swin-b on MapillaryVistas (25) + OUTSIDE15k (25).
 **Status:** Jobs submitted from machine with exclusive 80GB GPU access, pending in queue.
 ```bash
@@ -138,25 +140,88 @@ python scripts/batch_training_submission.py --stage cityscapes -y
 
 ### 4. ✅ DONE: S1 & CG Analysis → S2 Strategy Selection
 With CG at 99%+ testing and S1 at 100% testing (of trained), final leaderboards generated and analyzed.
-- ✅ Corrected leaderboards (IDD-AW bug fix)
+- ✅ Corrected leaderboards (IDD-AW bug fix, hrnet_hr48 exclusion from S1/S2)
 - ✅ Per-dataset, per-model, per-domain breakdown analysis
-- ✅ S1 vs CG rank divergence analysis (Spearman r=0.101)
+- ✅ S1 vs CG cross-stage consistency (Spearman ρ=0.184 — low!)
 - ✅ Mask2former paradox deep-dive (rare-class memorization)
-- ✅ Cross-model rare-class comparison (mask2former-specific effect)
-- ✅ Rare-class-excluded ranking stability (r=0.954, rankings robust)
+- ✅ Data-driven S2 strategy subset selected (10 strategies, 4 tiers — see §5)
+- ✅ Combination ablation strategies revised (gen_* + std_* updated — see §7b)
 - 📄 Full report: `result_figures/leaderboard/CORRECTED_LEADERBOARD_ANALYSIS.md`
 ```bash
 python analysis_scripts/generate_strategy_leaderboard.py --stage all
 ```
 
-### 5. 🟡 MEDIUM: Select S2 Strategy Subset & Resume Training
-Based on S1/CG analysis (see `CORRECTED_LEADERBOARD_ANALYSIS.md` Section 6), recommended tiers:
-- **Tier 1 (must):** gen_Attribute_Hallucination, gen_Img2Img, gen_Qwen_Image_Edit (top-3 in both stages)
-- **Tier 2 (coverage):** gen_UniControl (S1 #1), gen_TSIT (CG #2), gen_augmenters (good both)
-- **Tier 3 (std):** std_autoaugment, std_cutmix (1-2 representatives)
-- **Tier 4 (diversity):** gen_CUT, gen_flux_kontext (breadth)
+### 4b. ⏭️ NEXT: Submit S2 Training (after CS-ratio frees cluster)
+Submit Stage 2 training for the 10 selected strategies. Wait for CS-ratio ablation to complete (~31 PEND jobs remaining).
 ```bash
-python scripts/batch_training_submission.py --stage 2 --strategies <selected> -y
+# Dry run first — see how many jobs need submission
+python scripts/batch_training_submission.py --stage 2 \
+  --strategies gen_Attribute_Hallucination gen_Img2Img gen_Qwen_Image_Edit \
+    gen_UniControl gen_augmenters gen_CUT \
+    std_autoaugment std_cutmix \
+    gen_flux_kontext gen_cycleGAN \
+  --dry-run
+
+# Submit when cluster has capacity
+python scripts/batch_training_submission.py --stage 2 \
+  --strategies gen_Attribute_Hallucination gen_Img2Img gen_Qwen_Image_Edit \
+    gen_UniControl gen_augmenters gen_CUT \
+    std_autoaugment std_cutmix \
+    gen_flux_kontext gen_cycleGAN \
+  -y
+```
+
+### 4c. ⏭️ NEXT: Submit Combination Ablation (after S2 or in parallel)
+Submit 18 combination jobs (gen_*+std_* synergy) on Cityscapes. Can run in parallel with S2 since it uses different weights root.
+```bash
+python scripts/batch_training_submission.py --stage combination --dry-run
+python scripts/batch_training_submission.py --stage combination -y
+```
+
+### 5. 🟡 MEDIUM: Select S2 Strategy Subset & Resume Training
+
+**Updated 2026-02-11** — Data-driven selection from full S1+CG cross-stage analysis (Spearman ρ=0.184).
+
+**Key S2 insight:** All-domain training already provides diversity. Gen_* gives modest gains (+0.87–1.18 pp). Std_* *hurts* in S2 (−0.27 to −1.97 pp). Include std_* as controls to confirm this finding.
+
+| Tier | Strategy | S1 Rank | CG Rank | Family | Rationale |
+|------|----------|---------|---------|--------|-----------|
+| **1 (must)** | gen_Attribute_Hallucination | #4 | **#1** | Instruct/Edit | Cross-stage champion, ACDC +1.89 pp |
+| **1 (must)** | gen_Img2Img | #3 | **#2** | Diffusion I2I | Consistent top-3 both stages |
+| **1 (must)** | gen_Qwen_Image_Edit | #8 | **#4** | Instruct/Edit | Third consistent top-tier |
+| **2 (family)** | gen_UniControl | **#1** | #17 | Instruct/Edit | S1 champion — tests S1→S2 transfer |
+| **2 (family)** | gen_augmenters | #10 | **#3** | Domain-specific | Best domain-specific family member |
+| **2 (family)** | gen_CUT | #16 | **#6** | GAN | Best GAN in CG, well-cited method |
+| **3 (std)** | std_autoaugment | **#2** | #11 | Standard | All-positive per-dataset gains |
+| **3 (std)** | std_cutmix | **#5** | #10 | Standard | Best night-domain, smallest domain gap |
+| **4 (diversity)** | gen_flux_kontext | #13 | **#8** | Diffusion | Modern architecture, tests novelty |
+| **4 (diversity)** | gen_cycleGAN | #21 | #12 | GAN | Classic baseline, needed for literature |
+
+**Compute:** 10 strategies × 4 models × 4 datasets = **160 jobs** at 15k iters.
+**Minimal (Tier 1+2):** 6 strategies = **96 jobs**.
+
+```bash
+# Dry run — full 10-strategy S2 submission
+python scripts/batch_training_submission.py --stage 2 \
+  --strategies gen_Attribute_Hallucination gen_Img2Img gen_Qwen_Image_Edit \
+    gen_UniControl gen_augmenters gen_CUT \
+    std_autoaugment std_cutmix \
+    gen_flux_kontext gen_cycleGAN \
+  --dry-run
+
+# Minimal — Tier 1+2 only (96 jobs)
+python scripts/batch_training_submission.py --stage 2 \
+  --strategies gen_Attribute_Hallucination gen_Img2Img gen_Qwen_Image_Edit \
+    gen_UniControl gen_augmenters gen_CUT \
+  --dry-run
+
+# Submit (add -y to skip confirmation)
+python scripts/batch_training_submission.py --stage 2 \
+  --strategies gen_Attribute_Hallucination gen_Img2Img gen_Qwen_Image_Edit \
+    gen_UniControl gen_augmenters gen_CUT \
+    std_autoaugment std_cutmix \
+    gen_flux_kontext gen_cycleGAN \
+  -y
 ```
 
 ### 6. 🟡 MEDIUM: Noise Ablation Study
@@ -197,22 +262,56 @@ python scripts/batch_training_submission.py --stage stage1-ratio -y
 | Cityscapes-ratio | 2-3.5% | 48 | ✅ Submitted |
 | Stage1-ratio | 20-24% | 24 | ⏳ Ready |
 
-### 7b. 🔶 PREPARED: Combination Ablation Study (gen_* + std_*)
+### 7b. 🔶 READY: Combination Ablation Study (gen_* + std_*)
+
+**Updated 2026-02-11** — Strategy selection revised based on full S1+CG cross-stage analysis.
 
 Tests synergy between generative augmentation (gen_*) and standard augmentation (std_*) strategies. Uses **Option A**: std_* transforms applied to BOTH real and generated images.
 
 #### Design Rationale
-- **Hypothesis:** gen_* provides diverse weather conditions; std_* adds photometric variation → combined effect may be synergistic
-- **Top gen_* selected:** gen_augmenters (63.96%), gen_TSIT (63.52%), gen_VisualCloze (63.56%) — best from Cityscapes-gen leaderboard
-- **Top std_* selected:** ~~std_photometric_distort~~, std_mixup (+5.50%), std_randaugment (+5.48%) — best Stage 1 gains over baseline
-- **⚠️ Note:** std_photometric_distort is essentially baseline - need to replace with std_cutmix (+4.06%)
-- **Interesting observation:** std_* shows *negative* effect on Cityscapes-gen but *positive* on Stage 1 cross-domain
+- **Hypothesis:** gen_* provides diverse weather conditions; std_* adds photometric/spatial variation → combined effect may be synergistic
+- **Key observation:** std_* shows *negative* effect in S2 all-domain training but *positive* in S1 cross-domain → combination ablation tests if gen_*+std_* synergy exists
+
+#### Strategy Selection (data-driven, 2026-02-11)
+
+**gen_* selection** — top cross-stage performers from different families:
+
+| gen_* Strategy | CG Rank | S1 Rank | Family | Selection Rationale |
+|----------------|---------|---------|--------|---------------------|
+| gen_Attribute_Hallucination | **#1** | #4 | Instruct/Edit | Cross-stage champion, ACDC +1.89 pp |
+| gen_Img2Img | **#2** | #3 | Diffusion I2I | Consistent top-3 both stages |
+| gen_augmenters | **#3** | #10 | Domain-specific | Best in family, reliable |
+
+**std_* selection** — based on S1 per-dataset consistency and cross-model robustness:
+
+| std_* Strategy | S1 Rank | All-Positive Gains? | Cross-Model Std | Selection Rationale |
+|----------------|---------|---------------------|-----------------|---------------------|
+| std_cutmix | #5 | ✓ Yes | 3.75 | Best night-domain (29.19%), smallest gap |
+| std_autoaugment | #2 | ✓ Yes | 3.77 | Most consistent overall |
+| std_mixup | #9 | — | **3.42** (lowest) | Lowest cross-model variance |
+
+**Changes from previous design:**
+- gen_TSIT → **gen_Attribute_Hallucination** (gen_TSIT was CG #21 — poor; Attr.Hall. is CG #1)
+- gen_VisualCloze → **gen_Img2Img** (gen_Img2Img is CG #2, S1 #3 — more consistent)
+- std_randaugment → **std_autoaugment** (std_autoaugment is S1 #2 with all-positive gains; std_randaugment was S1 #12)
+
+#### Design Matrix
+
+| | std_cutmix (region) | std_autoaugment (auto) | std_mixup (feature) |
+|---|---|---|---|
+| **gen_Attribute_Hallucination** | Instruct+Region | Instruct+Auto | Instruct+Feature |
+| **gen_Img2Img** | Diffusion+Region | Diffusion+Auto | Diffusion+Feature |
+| **gen_augmenters** | DomSpec+Region | DomSpec+Auto | DomSpec+Feature |
+
+Each cell × 2 models (pspnet_r50, segformer_mit-b3) = **18 jobs total** on Cityscapes at 20k iters.
+
+**Expected strongest:** gen_Attribute_Hallucination + std_cutmix — combines strongest gen_* with most consistent std_*.
 
 #### Configuration
 | Parameter | Value |
 |-----------|-------|
-| gen_* strategies | gen_augmenters, gen_TSIT, gen_VisualCloze (3) |
-| std_* strategies | std_cutmix, std_mixup, std_randaugment (3) ⚠️ Updated |
+| gen_* strategies | gen_Attribute_Hallucination, gen_Img2Img, gen_augmenters (3) |
+| std_* strategies | std_cutmix, std_autoaugment, std_mixup (3) |
 | Models | pspnet_r50, segformer_mit-b3 (2) |
 | Dataset | Cityscapes |
 | Ratio | 0.50 (fixed) |
@@ -227,7 +326,7 @@ Tests synergy between generative augmentation (gen_*) and standard augmentation 
 
 #### Commands
 ```bash
-# Preview jobs
+# Preview jobs (ALWAYS dry-run first!)
 python scripts/batch_training_submission.py --stage combination --dry-run
 
 # Submit all 18 combination jobs
@@ -238,12 +337,7 @@ python scripts/batch_training_submission.py --stage combination -y
 1. **Synergy vs redundancy:** Does gen_* + std_* outperform either alone?
 2. **Best combination:** Which gen_*/std_* pair gives highest ACDC cross-domain?
 3. **Diminishing returns:** Does combining 2 augmentation types hit a ceiling?
-
-#### ⚠️ Pre-Submission Verification Note
-**Before submitting combination jobs:** Re-verify strategy selection once Cityscapes-gen and Stage 1 results are complete:
-- Current gen_* picks (gen_augmenters, gen_TSIT, gen_VisualCloze) based on incomplete Cityscapes-gen leaderboard
-- Current std_* picks (std_photometric_distort, std_mixup, std_randaugment) based on incomplete Stage 1 leaderboard
-- **Action:** Re-run `python analysis_scripts/generate_strategy_leaderboard.py --stage all` and update picks if rankings shift
+4. **Family interaction:** Do instruct/edit gen_* benefit more from std_* than domain-specific gen_*?
 
 ### 7c. 🆕 PREPARED: Extended Training Ablation Study (NEW 2026-02-12)
 

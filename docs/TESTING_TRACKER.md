@@ -1,6 +1,6 @@
 # Testing Progress Tracker
 
-**Last Updated:** 2026-02-11 09:13
+**Last Updated:** 2026-02-11 16:33
 
 
 This document tracks the progress of fine-grained testing for trained models.
@@ -52,16 +52,16 @@ This document tracks the progress of fine-grained testing for trained models.
 
 | Rank | Strategy | Avg mIoU | Best Dataset | Best mIoU | Datasets |
 |------|----------|----------|--------------|-----------|----------|
-| 🥇 | gen_UniControl | 43.0 | BDD10k | 52.5 | 4/4 |
-| 🥈 | gen_Img2Img | 42.8 | BDD10k | 51.7 | 4/4 |
-| 🥉 | gen_VisualCloze | 42.5 | BDD10k | 51.6 | 4/4 |
-| 4. | gen_stargan_v2 | 42.3 | BDD10k | 50.9 | 4/4 |
-| 5. | gen_Attribute_Hallucination | 42.2 | BDD10k | 50.5 | 4/4 |
-| 6. | gen_LANIT | 42.2 | BDD10k | 50.1 | 4/4 |
-| 7. | gen_Qwen_Image_Edit | 42.1 | BDD10k | 49.5 | 4/4 |
-| 8. | gen_step1x_new | 42.1 | BDD10k | 49.9 | 4/4 |
-| 9. | gen_CNetSeg | 42.1 | BDD10k | 49.8 | 4/4 |
-| 10. | gen_automold | 42.1 | BDD10k | 49.5 | 4/4 |
+| 🥇 | baseline | 44.7 | BDD10k | 51.6 | 4/4 |
+| 🥈 | std_autoaugment | 43.9 | BDD10k | 49.4 | 4/4 |
+| 🥉 | std_cutmix | 43.7 | BDD10k | 49.4 | 4/4 |
+| 4. | gen_UniControl | 43.0 | BDD10k | 52.5 | 4/4 |
+| 5. | gen_Img2Img | 42.8 | BDD10k | 51.7 | 4/4 |
+| 6. | std_mixup | 42.6 | BDD10k | 49.4 | 4/4 |
+| 7. | gen_VisualCloze | 42.5 | BDD10k | 51.6 | 4/4 |
+| 8. | gen_flux_kontext | 42.5 | BDD10k | 48.7 | 4/4 |
+| 9. | gen_stargan_v2 | 42.3 | BDD10k | 50.9 | 4/4 |
+| 10. | gen_Attribute_Hallucination | 42.2 | BDD10k | 50.5 | 4/4 |
 
 
 ### Generative Image Augmentation Strategies
@@ -74,8 +74,8 @@ This document tracks the progress of fine-grained testing for trained models.
 | gen_CNetSeg | 49.8 | 40.2 | 35.0 | 43.3 | 42.1 |
 | gen_CUT | 48.3 | 40.2 | 34.9 | 43.1 | 41.6 |
 | gen_cyclediffusion | 48.9 | 41.2 | 34.7 | 43.1 | 42.0 |
-| gen_cycleGAN | 49.6 | 40.4 | 35.0 | 43.1 | 42.0 |
-| gen_flux_kontext | 48.7 | 40.4 | 35.2 | 43.2 | 41.9 |
+| gen_cycleGAN | 49.6 | 40.4 | 35.0 | 43.5 | 42.1 |
+| gen_flux_kontext | 48.7 | 40.4 | 35.2 | 45.5 | 42.5 |
 | gen_Img2Img | 51.7 | 41.5 | 34.8 | 43.0 | 42.8 |
 | gen_IP2P | 49.0 | 40.4 | 34.8 | 43.5 | 41.9 |
 | gen_LANIT | 50.1 | 40.2 | 35.1 | 43.3 | 42.2 |
@@ -94,12 +94,12 @@ This document tracks the progress of fine-grained testing for trained models.
 
 | Strategy | BDD10k | IDD-AW | MapillaryVistas | OUTSIDE15k | Avg |
 |----------|-------:|-------:|-------:|-------:|-------:|
-| baseline | 51.6 | 41.6 | 34.6 | 38.7 | 41.6 |
+| baseline | 51.6 | 41.6 | 40.8 | 45.0 | 44.7 |
 | std_minimal | ⏳ | ⏳ | ⏳ | ⏳ | - |
 | std_photometric_distort | ⏳ | ⏳ | ⏳ | ⏳ | - |
-| std_autoaugment | 49.4 | 40.5 | 34.9 | 43.2 | 42.0 |
-| std_cutmix | 49.4 | 40.4 | 34.9 | 43.0 | 41.9 |
-| std_mixup | 49.4 | 40.0 | 34.9 | 42.8 | 41.8 |
+| std_autoaugment | 49.4 | 40.5 | 40.5 | 45.3 | 43.9 |
+| std_cutmix | 49.4 | 40.4 | 40.0 | 45.1 | 43.7 |
+| std_mixup | 49.4 | 40.0 | 35.4 | 45.4 | 42.6 |
 | std_randaugment | 48.6 | 40.2 | 34.8 | 43.4 | 41.8 |
 
 ---

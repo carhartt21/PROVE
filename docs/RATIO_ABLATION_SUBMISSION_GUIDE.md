@@ -102,7 +102,7 @@ python scripts/batch_training_submission.py \
     --ratios 0.0 0.25 0.5 \
     --strategies gen_stargan_v2 \
     --datasets BDD10k \
-    --models deeplabv3plus_r50 pspnet_r50 segformer_mit-b5 \
+    --models deeplabv3plus_r50 pspnet_r50 segformer_mit-b3 \
     --dry-run
 ```
 

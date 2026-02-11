@@ -97,13 +97,16 @@ FINAL_SPLITS/{dataset}/test/
 
 ### 1.3 Model Matrix
 
-For each strategy/dataset combination, we train **6 models** (3 architectures × 2 variants):
+For each strategy/dataset combination, we train **4 models** (4 architectures × 1 variant for Stage 1, or all conditions for Stage 2):
 
-| Architecture | Full Dataset | Clear Day Only |
-|--------------|--------------|----------------|
-| DeepLabV3+ ResNet-50 | `deeplabv3plus_r50` | `deeplabv3plus_r50_clear_day` |
-| PSPNet ResNet-50 | `pspnet_r50` | `pspnet_r50_clear_day` |
-| SegFormer MiT-B5 | `segformer_mit-b5` | `segformer_mit-b5_clear_day` |
+| Architecture | Model Name |
+|--------------|------------|
+| PSPNet ResNet-50 | `pspnet_r50` |
+| SegFormer MiT-B3 | `segformer_mit-b3` |
+| SegNeXt MSCAN-B | `segnext_mscan-b` |
+| Mask2Former Swin-B | `mask2former_swin-b` |
+
+**Additional models** (used in some stages): `deeplabv3plus_r50`, `hrnet_hr48`
 
 ### 1.2 Source Datasets
 
@@ -117,11 +120,14 @@ For each strategy/dataset combination, we train **6 models** (3 architectures ×
 
 ### 1.3 Model Architectures
 
-| Model | Backbone | Parameters | Notes |
-|-------|----------|------------|-------|
-| `deeplabv3plus_r50` | ResNet-50 | ~26M | Strong encoder-decoder architecture |
-| `pspnet_r50` | ResNet-50 | ~23M | Pyramid pooling module |
-| `segformer_mit-b5` | MiT-B5 | ~84M | Transformer-based, best performance |
+| Model | Backbone | Notes |
+|-------|----------|-------|
+| `deeplabv3plus_r50` | ResNet-50 | CNN, encoder-decoder with ASPP |
+| `pspnet_r50` | ResNet-50 | CNN, pyramid pooling module |
+| `segformer_mit-b3` | MiT-B3 | Transformer-based |
+| `segnext_mscan-b` | MSCAN-B | Transformer-like, multi-scale conv attention |
+| `hrnet_hr48` | HRNet-W48 | CNN, high-resolution representations |
+| `mask2former_swin-b` | Swin-B | Transformer, mask classification |
 
 ### 1.4 Augmentation Strategies
 
@@ -153,7 +159,7 @@ For each strategy/dataset combination, we train **6 models** (3 architectures ×
 | `gen_Img2Img` | Diffusion | Image-to-image diffusion |
 | `gen_EDICT` | Diffusion | EDICT inversion editing |
 | `gen_NST` | Neural Style | Neural style transfer |
-| `gen_flux1_kontext` | Diffusion | Flux Kontext editing |
+| `gen_flux_kontext` | Diffusion | Flux Kontext editing |
 | `gen_SUSTechGAN` | GAN | Weather synthesis |
 | `gen_UniControl` | Diffusion | Unified controllable generation |
 | `gen_Weather_Effect_Generator` | Traditional | Programmatic weather effects |
@@ -190,8 +196,7 @@ Tests each model on the complete test set and reports aggregate metrics:
 
 **Command:**
 ```bash
-./scripts/test_unified.sh single --dataset ACDC --model deeplabv3plus_r50 --strategy gen_cycleGAN
-# Tests both full and _clear_day variants
+python fine_grained_test.py --config /path/training_config.py --checkpoint /path/iter_80000.pth --dataset ACDC --output-dir /path/test_results_detailed
 ```
 
 **Output:**
@@ -212,16 +217,16 @@ Provides detailed breakdown by weather domain and semantic class:
 
 **Command:**
 ```bash
-./scripts/test_unified.sh detailed --dataset ACDC --model deeplabv3plus_r50 --strategy gen_cycleGAN --mode per-domain
+# Use fine_grained_test.py for per-domain/per-class evaluation
+python fine_grained_test.py --config /path/training_config.py --checkpoint /path/iter_80000.pth \
+    --dataset ACDC --output-dir /path/test_results_detailed
 ```
 
 **Output:**
 ```
 WEIGHTS/{strategy}/{dataset}/{model}/test_results_detailed/
-├── metrics_summary.json        # Overall metrics
-├── metrics_per_domain.json     # Per-weather metrics
-├── metrics_per_class.json      # Per-class IoU
-└── test_report.txt             # Human-readable summary
+└── {timestamp}/
+    └── results.json          # Overall, per-domain, per-class metrics
 ```
 
 ### 2.4 Comparison Analysis
@@ -261,12 +266,7 @@ With both variants tested on all domains, we can compute:
 
 **Methodology:**
 - Test ratios from 0.0 (100% generated) to 1.0 (100% real) in 0.125 increments
-- Use top-5 performing generative strategies:
-  1. `gen_LANIT` (55.71 mIoU)
-  2. `gen_step1x_new` (55.70 mIoU)
-  3. `gen_automold` (55.62 mIoU)
-  4. `gen_TSIT` (55.61 mIoU)
-  5. `gen_NST` (55.55 mIoU)
+- Use top-performing generative strategies (determined by Stage 1 leaderboard)
 
 **Tested Configurations:**
 
@@ -284,7 +284,7 @@ With both variants tested on all domains, we can compute:
 
 **Data Location:**
 ```
-WEIGHTS_RATIO_ABLATION/{strategy}_{ratio}/{dataset}/{model}/
+WEIGHTS_RATIO_ABLATION/{strategy}/{dataset}/{model}_ratio{XX}p{YY}/
 ```
 
 **Analysis Script:** `analysis_scripts/analyze_ratio_ablation.py`
@@ -347,8 +347,8 @@ WEIGHTS/domain_adaptation_ablation/
 │   │   └── domain_adaptation_evaluation.json
 │   ├── pspnet_r50/
 │   ├── pspnet_r50_clear_day/
-│   ├── segformer_mit-b5/
-│   └── segformer_mit-b5_clear_day/
+│   ├── segformer_mit-b3/
+│   └── segformer_mit-b3_clear_day/
 ├── idd-aw/
 │   └── ... (same structure)
 └── mapillaryvistas/

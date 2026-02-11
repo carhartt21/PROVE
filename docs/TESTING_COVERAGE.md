@@ -1,18 +1,18 @@
 # Testing Coverage Report
 
-**Generated:** 2026-02-11 09:13
+**Generated:** 2026-02-11 16:34
 
 ## Summary
 
 | Status | Count | Percentage |
 |--------|------:|----------:|
-| ✅ Complete (valid mIoU) | 364 | 99.2% |
+| ✅ Complete (valid mIoU) | 374 | 99.2% |
 | 🔄 Running | 0 | 0.0% |
 | ⏳ Pending (in queue) | 0 | 0.0% |
 | ⚠️ Buggy (mIoU < 5%) | 0 | 0.0% |
 | 🔃 Stale (wrong checkpoint) | 0 | 0.0% |
 | ❌ Missing (no results) | 3 | 0.8% |
-| **Total** | **367** | **100%** |
+| **Total** | **377** | **100%** |
 
 ## Per-Dataset Breakdown
 
@@ -31,14 +31,14 @@
 - Missing (no results): 0
 
 ### MapillaryVistas
-- Complete: 79/105 (75.2%)
+- Complete: 83/105 (79.0%)
 - Running: 0
 - Pending (in queue): 0
 - Buggy (mIoU < 5%): 0
 - Missing (no results): 0
 
 ### OUTSIDE15k
-- Complete: 79/105 (75.2%)
+- Complete: 85/105 (81.0%)
 - Running: 0
 - Pending (in queue): 0
 - Buggy (mIoU < 5%): 0

@@ -1,6 +1,6 @@
 # Loss Configuration in PROVE
 
-**Last Updated:** 2026-01-30
+**Last Updated:** 2026-02-11 (model table updated to 6 models)
 
 ## Overview
 
@@ -18,9 +18,12 @@ All segmentation models use an **EncoderDecoder** architecture:
 |-------|----------|-------------|----------------|
 | DeepLabV3+ | ResNet50-V1c | DepthwiseSeparableASPPHead | FCNHead ✓ |
 | PSPNet | ResNet50-V1c | PSPHead | FCNHead ✓ |
-| SegFormer | MiT-B5 | SegFormerHead | None |
+| SegFormer | MiT-B3 | SegFormerHead | None |
+| SegNeXt | MSCAN-B | LightDecodeHead | None |
+| HRNet | HRNet-W48 | FCNHead | FCNHead ✓ |
+| Mask2Former | Swin-B | Mask2FormerHead | None |
 
-**Note:** SegFormer has no auxiliary head, only the main decode head.
+**Note:** SegFormer, SegNeXt, and Mask2Former have no auxiliary head — only the main decode head.
 
 ---
 

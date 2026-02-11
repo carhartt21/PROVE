@@ -4,7 +4,7 @@ This document describes how to generate visualizations from PROVE test results u
 
 ## Overview
 
-The test result visualizer generates publication-quality figures from the detailed test results produced by `test_unified.sh detailed`. It supports multiple plot types and can compare results across different models and strategies.
+The test result visualizer generates publication-quality figures from the detailed test results produced by `fine_grained_test.py`. It supports multiple plot types and can compare results across different models and strategies.
 
 ## Prerequisites
 
@@ -28,18 +28,15 @@ python test_result_visualizer.py --compare --results-dirs result1 result2 --labe
 
 ## Input Data Structure
 
-The visualizer expects the output from `test_unified.sh detailed`:
+The visualizer expects the output from `fine_grained_test.py`:
 
 ```
 test_results_detailed/
 └── 20251210_094301/          # Timestamped folder
-    ├── metrics_summary.json   # Overall metrics
-    ├── metrics_per_domain.json # Per-domain breakdown
-    ├── metrics_per_class.json  # Per-class metrics
-    ├── metrics_full.json       # Complete detailed metrics
-    ├── per_domain_metrics.csv  # CSV format
-    └── per_class_metrics.csv   # CSV format
+    └── results.json           # Overall, per-domain, per-class metrics
 ```
+
+> **Note:** Older test runs may have separate files (`metrics_summary.json`, `metrics_per_domain.json`, etc.). The current `fine_grained_test.py` outputs a single `results.json`.
 
 ## Plot Types
 
@@ -285,7 +282,9 @@ visualizer = TestResultVisualizer(
 
 ```bash
 # 1. Run detailed test
-./scripts/test_unified.sh detailed --dataset ACDC --model deeplabv3plus_r50 --strategy baseline
+python fine_grained_test.py --config /path/training_config.py \
+    --checkpoint /path/iter_80000.pth \
+    --dataset ACDC --output-dir /path/test_results_detailed
 
 # 2. Find the timestamped results folder
 ls /scratch/aaa_exchange/AWARE/WEIGHTS/baseline/acdc/deeplabv3plus_r50/test_results_detailed/
@@ -298,13 +297,14 @@ python test_result_visualizer.py \
 ls /scratch/aaa_exchange/AWARE/WEIGHTS/baseline/acdc/deeplabv3plus_r50/test_results_detailed/20251210_094301/figures/
 ```
 
-## Integration with test_unified.sh
+## Integration with fine_grained_test.py
 
 You can add visualization generation directly to your testing workflow:
 
 ```bash
 # Run detailed test and generate visualizations
-./scripts/test_unified.sh detailed --dataset ACDC --model deeplabv3plus_r50 --strategy baseline && \
+python fine_grained_test.py --config /path/training_config.py --checkpoint /path/iter_80000.pth \
+    --dataset ACDC --output-dir /path/test_results_detailed && \
 python test_result_visualizer.py --results-dir $(ls -td /scratch/aaa_exchange/AWARE/WEIGHTS/baseline/acdc/deeplabv3plus_r50/test_results_detailed/*/ | head -1)
 ```
 

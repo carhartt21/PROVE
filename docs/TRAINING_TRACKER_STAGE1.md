@@ -1,6 +1,6 @@
 # Training Tracker - Stage 1 (Clear Day)
 
-**Last Updated:** 2026-02-11 09:13
+**Last Updated:** 2026-02-11 16:33
 
 ---
 
@@ -23,17 +23,17 @@
 
 | Category | Configs | Complete (4/4) | Partial | Running | Pending | Failed |
 |----------|---------|----------------|---------|---------|---------|--------|
-| **Generative (gen_*)** | 83 | 35 | 42 | 7 | 0 | 0 |
-| **Standard (std_*)** | 28 | 8 | 10 | 2 | 8 | 0 |
-| **TOTAL** | 111 | 43 | 52 | 9 | 8 | 0 |
+| **Generative (gen_*)** | 83 | 37 | 37 | 9 | 0 | 1 |
+| **Standard (std_*)** | 28 | 16 | 0 | 4 | 8 | 0 |
+| **TOTAL** | 111 | 53 | 37 | 13 | 8 | 1 |
 
 ### Individual Model Trainings
 
 | Category | Total Models | ✅ Complete | 🔄 Running | ⏳ Pending | ❌ Failed |
 |----------|-------------|-------------|------------|-----------|----------|
-| **Generative (gen_*)** | 332 | 287 | 7 | 42 | 0 |
-| **Standard (std_*)** | 112 | 68 | 2 | 42 | 0 |
-| **TOTAL** | 444 | 355 | 9 | 84 | 0 |
+| **Generative (gen_*)** | 332 | 289 | 9 | 37 | 1 |
+| **Standard (std_*)** | 112 | 76 | 4 | 32 | 0 |
+| **TOTAL** | 444 | 365 | 13 | 69 | 1 |
 
 ### Generative Image Augmentation Strategies (❌ INVALID)
 
@@ -64,10 +64,10 @@
 
 | Strategy | BDD10k | IDD-AW | MapillaryVistas | OUTSIDE15k | Notes |
 |----------|------ | ------ | --------------- | ----------|-------|
-| baseline | 🔄 | 🔄 | 3/4 | 3/4 |  |
+| baseline | 🔄 | 🔄 | ✅ | ✅ |  |
 | std_minimal | ⏳ | ⏳ | ⏳ | ⏳ |  |
 | std_photometric_distort | ⏳ | ⏳ | ⏳ | ⏳ |  |
-| std_autoaugment | ✅ | ✅ | 3/4 | 3/4 |  |
-| std_cutmix | ✅ | ✅ | 3/4 | 3/4 |  |
-| std_mixup | ✅ | ✅ | 3/4 | 3/4 |  |
-| std_randaugment | ✅ | ✅ | 3/4 | 3/4 |  |
+| std_autoaugment | ✅ | ✅ | ✅ | ✅ |  |
+| std_cutmix | ✅ | ✅ | ✅ | ✅ |  |
+| std_mixup | ✅ | ✅ | ✅ | ✅ |  |
+| std_randaugment | ✅ | ✅ | 🔄 | 🔄 |  |

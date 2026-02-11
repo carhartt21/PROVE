@@ -37,8 +37,8 @@ These files are maintained by `update_training_tracker.py` and `update_testing_t
 
 | Document | Purpose |
 |----------|---------|
-| [UNIFIED_TRAINING.md](UNIFIED_TRAINING.md) | Training pipeline (`unified_training.py`, `mixed_dataloader.py`) |
-| [UNIFIED_TESTING.md](UNIFIED_TESTING.md) | Testing pipeline (`test_unified.sh`, `fine_grained_test.py`) |
+| [UNIFIED_TRAINING.md](UNIFIED_TRAINING.md) | Training pipeline (`unified_training.py`, `batch_training_submission.py`) |
+| [UNIFIED_TESTING.md](UNIFIED_TESTING.md) | Testing pipeline (`fine_grained_test.py`, `batch_test_submission.py`) |
 | [EVALUATION_CONCEPT.md](EVALUATION_CONCEPT.md) | Experimental design: two-variant training, domain gap analysis |
 | [LABEL_HANDLING.md](LABEL_HANDLING.md) | Dataset label formats (RGB-encoded, trainIds, channel order) |
 | [LOSS_CONFIGURATION.md](LOSS_CONFIGURATION.md) | Multi-loss training setup (CE + auxiliary losses) |

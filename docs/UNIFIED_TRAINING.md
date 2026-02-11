@@ -4,11 +4,13 @@ This document describes the unified training configuration system for the PROVE 
 
 ## Overview
 
-The unified training system consists of three main components:
+The unified training system consists of the following components:
 
-1. **`unified_training_config.py`** - Configuration generator that creates training configs from parameters
-2. **`mixed_dataloader.py`** - Dual dataloader system for mixing real and generated images
-3. **`unified_training.py`** - Training orchestrator with CLI interface
+1. **`unified_training_config.py`** - Configuration generator that creates MMSeg training configs from parameters
+2. **`unified_training.py`** - Training orchestrator with CLI interface and LSF job submission
+3. **`scripts/batch_training_submission.py`** - **Preferred** batch job submission (handles locks, pre-flight checks, parameters)
+4. **`fine_grained_test.py`** - Per-domain/per-class evaluation with optimized inference
+5. **`scripts/batch_test_submission.py`** - Batch test job submission
 
 ## Quick Start
 
@@ -45,40 +47,37 @@ python unified_training.py --batch --datasets ACDC BDD10k --strategies baseline 
 
 | Dataset | Task | Format |
 |---------|------|--------|
-| ACDC | Segmentation | Cityscapes |
-| BDD10k | Segmentation | Cityscapes |
-| BDD100k | Detection | COCO JSON |
-| IDD-AW | Segmentation | Cityscapes |
-| MapillaryVistas | Segmentation | Mapillary |
-| OUTSIDE15k | Segmentation | Cityscapes |
+| ACDC | Segmentation | Cityscapes trainIds (19 classes) |
+| BDD10k | Segmentation | Cityscapes trainIds (19 classes) |
+| IDD-AW | Segmentation | Cityscapes trainIds (19 classes) |
+| MapillaryVistas | Segmentation | RGB-encoded (66 native classes, `--use-native-classes`) |
+| OUTSIDE15k | Segmentation | RGB-encoded (24 native classes, `--use-native-classes`) |
+| Cityscapes | Segmentation | Native trainIds (19 classes) — pipeline verification only |
 
-### Models
+### Models (6 segmentation architectures)
 
-**Segmentation Models:**
-- `deeplabv3plus_r50` - DeepLabV3+ with ResNet-50
-- `pspnet_r50` - PSPNet with ResNet-50
-- `segformer_mit-b5` - SegFormer with MiT-B5
-
-**Detection Models:**
-- `faster_rcnn_r50_fpn_1x` - Faster R-CNN with ResNet-50 FPN
-- `yolox_l` - YOLOX Large
-- `rtmdet_l` - RTMDet Large
+| Model | Architecture | Backbone | Notes |
+|-------|-------------|----------|-------|
+| `deeplabv3plus_r50` | DeepLabV3+ | ResNet-50 | CNN, encoder-decoder with ASPP |
+| `pspnet_r50` | PSPNet | ResNet-50 | CNN, pyramid pooling module |
+| `segformer_mit-b3` | SegFormer | MiT-B3 | Transformer-based |
+| `segnext_mscan-b` | SegNeXt | MSCAN-B | Transformer-like, multi-scale conv attention |
+| `hrnet_hr48` | HRNet | HRNet-W48 | CNN, high-resolution representations |
+| `mask2former_swin-b` | Mask2Former | Swin-B | Transformer, mask classification |
 
 ### Augmentation Strategies
 
 | Strategy | Description |
 |----------|-------------|
-| **Base Strategies** | |
-| `baseline` | No augmentation |
-| `std_std_photometric_distort` | Random brightness, contrast, saturation |
-| **Standard Augmentations** | |
+| **Baseline** | |
+| `baseline` | No augmentation (control) |
+| **Standard Augmentations (4)** | |
+| `std_autoaugment` | AutoAugment augmentation |
 | `std_cutmix` | CutMix augmentation |
 | `std_mixup` | MixUp augmentation |
-| `std_autoaugment` | AutoAugment augmentation |
 | `std_randaugment` | RandAugment augmentation |
-| **Generative Models** | |
+| **Generative Strategies (21)** | |
 | `gen_albumentations_weather` | Albumentations weather effects |
-| `gen_AOD_Net` | AOD-Net dehazing model |
 | `gen_Attribute_Hallucination` | Attribute hallucination |
 | `gen_augmenters` | General augmenters |
 | `gen_automold` | Automold weather simulation |
@@ -86,24 +85,21 @@ python unified_training.py --batch --datasets ACDC BDD10k --strategies baseline 
 | `gen_CUT` | Contrastive Unpaired Translation |
 | `gen_cyclediffusion` | Cycle diffusion |
 | `gen_cycleGAN` | CycleGAN image translation |
-| `gen_EDICT` | EDICT inversion editing |
-| `gen_flux2` | Flux 2 generation |
 | `gen_flux_kontext` | Flux Kontext editing |
 | `gen_Img2Img` | Image-to-image diffusion |
 | `gen_IP2P` | InstructPix2Pix |
 | `gen_LANIT` | LANIT translation |
-| `gen_NST` | Neural Style Transfer |
 | `gen_Qwen_Image_Edit` | Qwen Image Edit |
 | `gen_stargan_v2` | StarGAN v2 |
 | `gen_step1x_new` | Step1X (new version) |
 | `gen_step1x_v1p2` | Step1X v1.2 |
-| `gen_StyleID` | StyleID editing |
 | `gen_SUSTechGAN` | SUSTechGAN |
 | `gen_TSIT` | TSIT translation |
-| `gen_tunit` | TuNIT translation |
 | `gen_UniControl` | UniControl |
 | `gen_VisualCloze` | VisualCloze |
 | `gen_Weather_Effect_Generator` | Weather effect generator |
+
+**Note:** `std_photometric_distort` is applied to all strategies as default pipeline augmentation and is not counted as a separate strategy.
 
 ### Real-to-Generated Ratio
 
@@ -146,125 +142,49 @@ python unified_training.py --dataset ACDC --model deeplabv3plus_r50 --strategy b
 
 ## Mixed Dataloader System
 
-The mixed dataloader enables fine-grained control over training data composition.
+The mixed dataloader injects generated images into the training `data_list` at runtime. For gen_* strategies, both real and generated images are combined based on the `--real-gen-ratio` parameter.
 
-### Sampling Strategies
+**How it works:**
+1. Training script is generated by `unified_training.py` with `_generate_mixed_training_script()`
+2. Generated images from the manifest CSV are injected into `data_list` before training
+3. `serialize_data=False` is set to allow runtime modification of `data_list`
+4. The ratio of real:generated samples is controlled by `--real-gen-ratio` (default 0.5)
 
-1. **`batch_split`** (recommended) - Each batch contains a fixed number of real and generated samples
-2. **`ratio`** - Probabilistically selects from real or generated dataset per sample
-3. **`alternating`** - Alternates between real and generated batches
-
-### Example Configuration
-
-```python
-from mixed_dataloader import MixedDataLoader
-
-# Create mixed dataloader with 50% real, 50% generated
-loader = MixedDataLoader(
-    real_dataset=real_dataset,
-    generated_dataset=gen_dataset,
-    real_gen_ratio=0.5,
-    batch_size=4,
-    sampling_strategy='batch_split'
-)
-
-# Each batch will have 2 real and 2 generated samples
-print(loader.get_batch_composition())
-# {'total': 4, 'real': 2, 'generated': 2}
-```
-
-## Python API
-
-### UnifiedTrainingConfig
-
-```python
-from unified_training_config import UnifiedTrainingConfig
-
-# Initialize config builder
-config_builder = UnifiedTrainingConfig()
-
-# Build configuration
-config = config_builder.build(
-    dataset='ACDC',
-    model='deeplabv3plus_r50',
-    strategy='gen_cycleGAN',
-    real_gen_ratio=0.5,
-)
-
-# Save to file
-config_builder.save_config(config, 'my_config.py')
-```
-
-### UnifiedTrainer
-
-```python
-from unified_training import UnifiedTrainer
-
-# Create trainer
-trainer = UnifiedTrainer(
-    dataset='ACDC',
-    model='deeplabv3plus_r50',
-    strategy='gen_cycleGAN',
-    real_gen_ratio=0.5,
-)
-
-# Get training summary
-print(trainer.get_training_summary())
-
-# Run training
-trainer.train()
-```
+> **Historical note:** The original MixedDataLoader was found to be non-functional (Jan 28, 2026). See [BUG_REPORT](BUG_REPORT_CROSS_DATASET_CONTAMINATION.md). The current implementation injects generated image paths directly into the dataset's `data_list`.
 
 ## Job Submission
 
-### LSF (Load Sharing Facility)
+### LSF (Load Sharing Facility) — Single Job
 
 ```bash
-# Generate LSF job script
-python unified_training.py --dataset ACDC --model deeplabv3plus_r50 --strategy gen_cycleGAN --generate-job-script lsf
-
-# Submit job
-bsub < job_ACDC_deeplabv3plus_r50_gen_cycleGAN.sh
+# Submit a single job to LSF
+python unified_training.py --dataset BDD10k --model deeplabv3plus_r50 \
+    --strategy gen_cycleGAN --domain-filter clear_day --submit-job
 ```
 
-### SLURM
+## Batch Job Submission (Preferred)
+
+Use `batch_training_submission.py` for production training (handles locks, pre-flight checks, parameters):
 
 ```bash
-# Generate SLURM job script
-python unified_training.py --dataset ACDC --model deeplabv3plus_r50 --strategy gen_cycleGAN --generate-job-script slurm
+# Stage 1: Clear-day training (ALWAYS dry-run first!)
+python scripts/batch_training_submission.py --stage 1 --dry-run
+python scripts/batch_training_submission.py --stage 1 --strategies baseline
 
-# Submit job
-sbatch job_ACDC_deeplabv3plus_r50_gen_cycleGAN.sh
-```
+# Stage 2: All-domains training
+python scripts/batch_training_submission.py --stage 2 --dry-run
 
-## Shell Helper Script
+# Cityscapes pipeline verification
+python scripts/batch_training_submission.py --stage cityscapes --dry-run
 
-The `train_unified.sh` script provides convenient shortcuts:
+# Filter by dataset/model
+python scripts/batch_training_submission.py --stage 1 --datasets BDD10k --models deeplabv3plus_r50
 
-```bash
-# Single training
-./scripts/train_unified.sh single --dataset ACDC --model deeplabv3plus_r50 --strategy baseline
+# Resume interrupted training
+python scripts/batch_training_submission.py --stage 1 --resume --dry-run
 
-# Domain-specific training
-./scripts/train_unified.sh single --dataset ACDC --model deeplabv3plus_r50 --strategy baseline --domain-filter clear_day
-
-# Batch training
-./scripts/train_unified.sh batch --datasets ACDC BDD10k --strategy gen_cycleGAN
-
-# Ratio experiment
-./scripts/train_unified.sh ratio-exp --dataset ACDC --model deeplabv3plus_r50 --strategy gen_cycleGAN
-
-# Generate configs
-./scripts/train_unified.sh generate --strategy baseline --all
-
-# Submit to a single job to lsf
-./scripts/train_unified.sh submit --dataset ACDC --model deeplabv3plus_r50 --strategy baseline
-
-# Submit batches for all datasets and models
-./train_unified submit-batch --all-seg-datasets --all-seg-models --strategy baseline
-
-# List options
-./scripts/train_unified.sh list
+# Limit number of jobs
+python scripts/batch_training_submission.py --stage 1 --limit 10
 ```
 
 ## Directory Structure
@@ -274,16 +194,20 @@ After training, outputs are organized as:
 ```
 /scratch/aaa_exchange/AWARE/WEIGHTS/
 ├── baseline/
-│   ├── acdc/
+│   ├── bdd10k/
 │   │   ├── deeplabv3plus_r50/
 │   │   ├── pspnet_r50/
-│   │   └── segformer_mit-b5/
+│   │   ├── segformer_mit-b3/
+│   │   ├── segnext_mscan-b/
+│   │   ├── hrnet_hr48/
+│   │   └── mask2former_swin-b/
 │   └── ...
 ├── gen_cycleGAN/
-│   ├── acdc/
-│   │   ├── deeplabv3plus_r50/
-│   │   ├── deeplabv3plus_r50_ratio0p50/  # With 50% real ratio
-│   │   └── ...
+│   ├── bdd10k/
+│   │   ├── pspnet_r50/
+│   │   ├── segformer_mit-b3/
+│   │   ├── segnext_mscan-b/
+│   │   └── mask2former_swin-b/
 │   └── ...
 └── ...
 ```
@@ -328,22 +252,22 @@ The new system automatically generates equivalent configurations on-the-fly.
 
 3. **CUDA out of memory**
    - Reduce batch size: Add `--batch-size 1` (requires modifying config)
-   - Use smaller model: Try `pspnet_r50` instead of `segformer_mit-b5`
+   - Use smaller model: Try `pspnet_r50` instead of `segformer_mit-b3`
 
 ### Debug Mode
 
 ```bash
 # Print config without training
-python unified_training.py --dataset ACDC --model deeplabv3plus_r50 --config-only --print
+python unified_training.py --dataset BDD10k --model deeplabv3plus_r50 --config-only --print
 
-# Dry run batch training
-python unified_training.py --batch --datasets ACDC --strategies baseline --dry-run
+# Dry run batch submission
+python scripts/batch_training_submission.py --stage 1 --dry-run
 ```
 
 ## Contributing
 
 To add a new model or dataset:
 
-1. Add entry to `DATASET_CONFIGS` or `SEGMENTATION_MODELS`/`DETECTION_MODELS` in `unified_training_config.py`
+1. Add entry to `DATASET_CONFIGS` or `SEGMENTATION_MODELS` in `unified_training_config.py`
 2. Test with `--config-only` flag first
 3. Update this documentation

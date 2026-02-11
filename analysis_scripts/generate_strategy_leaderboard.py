@@ -57,7 +57,9 @@ STAGE_CONFIGS = {
         'description': 'Clear Day Training — cross-domain robustness evaluation',
         'weights_root': '/scratch/aaa_exchange/AWARE/WEIGHTS',
         'datasets': ['bdd10k', 'iddaw', 'mapillaryvistas', 'outside15k'],
-        'models': ['deeplabv3plus_r50', 'pspnet_r50', 'segformer_mit-b5'],
+        'models': ['pspnet_r50', 'segformer_mit-b3',
+                    'segnext_mscan-b', 'mask2former_swin-b'],
+        'exclude_models': ['hrnet_hr48'],
         'cache_csv': 'downstream_results.csv',
         'output_prefix': 'STAGE1',
         'checkpoint_filter': None,  # No checkpoint path filter needed
@@ -73,7 +75,9 @@ STAGE_CONFIGS = {
         'description': 'All Domains Training — domain-inclusive evaluation',
         'weights_root': '/scratch/aaa_exchange/AWARE/WEIGHTS_STAGE_2',
         'datasets': ['bdd10k', 'iddaw', 'mapillaryvistas', 'outside15k'],
-        'models': ['deeplabv3plus_r50', 'pspnet_r50', 'segformer_mit-b5'],
+        'models': ['pspnet_r50', 'segformer_mit-b3',
+                    'segnext_mscan-b', 'mask2former_swin-b'],
+        'exclude_models': ['hrnet_hr48'],
         'cache_csv': 'downstream_results_stage2.csv',
         'output_prefix': 'STAGE2',
         'checkpoint_filter': 'WEIGHTS_STAGE_2',  # Verify checkpoint path
@@ -381,6 +385,15 @@ def load_results(stage_config: dict, weights_root: Path,
     if not df.empty:
         df.to_csv(cache_csv, index=False)
         print(f"Cached to: {cache_csv}")
+
+    # Filter out excluded models
+    exclude_models = stage_config.get('exclude_models', [])
+    if exclude_models and not df.empty:
+        before = len(df)
+        df = df[~df['model'].isin(exclude_models)]
+        excluded = before - len(df)
+        if excluded > 0:
+            print(f"Excluded {excluded} results from models: {exclude_models}")
 
     return df
 

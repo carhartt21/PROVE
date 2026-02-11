@@ -1,6 +1,8 @@
 # Extended Training Ablation Study
 
-This document describes the `submit_extended_training.sh` script for running ablation studies on extended training duration beyond the standard 80,000 iterations.
+This document describes the extended training ablation study for investigating performance gains from training beyond the standard 80,000 iterations.
+
+> **Note:** The original `submit_extended_training.sh` shell script has been superseded by `batch_training_submission.py --stage extended` or direct `unified_training.py --resume` calls. The concepts below remain valid.
 
 ## Overview
 

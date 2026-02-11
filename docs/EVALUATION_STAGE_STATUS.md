@@ -1,6 +1,6 @@
 # Evaluation Stage Status
 
-**Last Updated:** 2026-02-09 (13:15)
+**Last Updated:** 2026-02-11 (17:00)
 
 ---
 
@@ -9,7 +9,7 @@
 > **MixedDataLoader Bug (Jan 28, 2026):** Generated images were **NEVER LOADED** during training.
 > All `gen_*` strategy results from the original training round are **INVALID** — only pipeline augmentation was used.
 >
-> **Bug Status:** ✅ FIXED | **Retraining:** 🔄 In Progress (3.6% at 80k — 306 models at 15k/80k need resume)
+> **Bug Status:** ✅ FIXED | **Retraining:** 🔄 In Progress (365/444 models complete in Stage 1)
 >
 > See [BUG_REPORT](BUG_REPORT_CROSS_DATASET_CONTAMINATION.md) for details.
 
@@ -19,46 +19,45 @@
 
 | Stage | Training | Testing | Status |
 |-------|----------|---------|--------|
-| **Stage 1** (retrained) | 🔄 15/420 complete (3.6%), 306 at 15k/80k | 375 results (at 15k checkpoints) | 🔄 Resume jobs submitted |
-| **Stage 2** (retrained) | 🔶 23/448 (5.1%) — stale/pre-fix | 139 results (stale) | ⏳ Awaiting Stage 1 |
+| **Stage 1** (retrained) | 🔄 365/444 models (82.2%), 53/111 configs fully complete | 374 results | 🔄 69 models pending, 13 running |
+| **Stage 2** (retrained) | 🔶 128/444 (28.8%) — mostly pre-fix | 139 results (stale) | ⏳ Awaiting Stage 1 |
 | **Cityscapes Replication** | ✅ Complete (5 models) | ✅ Complete | ✅ Pipeline verified |
-| **Cityscapes-Gen** | 🔄 54/96 complete (56.2%) | 23 valid Cityscapes + 54 valid ACDC | 🔄 Active training + retests |
+| **Cityscapes-Gen** | ✅ 100/108 models (92.6%), 25/27 configs complete | 248 results (CS + ACDC) | 🔄 12 models pending |
 
-**Active LSF Jobs:** 140 total (9 RUN, ~131 PEND)  
-**Job Breakdown:** 66 Stage 1 (2 RUN + 64 PEND) | 41 Cityscapes-gen training (7 RUN + 34 PEND) | 28 Cityscapes-gen retests | 5 other
+**Active LSF Jobs:** 42 total (10 RUN, 32 PEND)  
+**Job Breakdown:** Primarily Cityscapes-Ratio ablation jobs (step1x_v1p2, flux_kontext, TSIT)
 
 ---
 
 ## Stage 1: Clear-Day Domain Training
 
-**Status: 🔄 RETRAINING (3.6% at 80k — 306 models need resume from 15k)**
+**Status: 🔄 RETRAINING IN PROGRESS (82.2% models complete)**
 
 ### Description
 - **Training Domain Filter:** `clear_day` only
 - **Weights Directory:** `/scratch/aaa_exchange/AWARE/WEIGHTS/`
 - **Purpose:** Train models on clear weather conditions, evaluate cross-domain robustness
-- **New strategy count:** 28 strategies × 4 datasets × 6 models = 672 configurations
+- **Strategy count:** 26 strategies × 4 datasets (gen: 21, std: 4, baseline: 1)
+- **Models:** 4 per config (pspnet_r50, segformer_mit-b3, segnext_mscan-b, mask2former_swin-b)
 
 ### Coverage
 
-| Metric | Count | Percentage |
-|--------|-------|------------|
-| Training Complete (80k) | 15/420 | 🔄 3.6% |
-| Training at 15k (need resume) | 306/420 | ⚠️ 72.9% |
-| Training empty (not started) | 68/420 | ⏳ 16.2% |
-| Training partial (other) | 31/420 | 🔄 7.4% |
-| Testing Complete | 375 results | — |
+| Metric | Count | Status |
+|--------|-------|--------|
+| Configs fully complete (4/4 models) | 53/111 | 47.7% |
+| Configs partial | 37/111 | 33.3% |
+| Configs running | 13/111 | 11.7% |
+| Configs pending | 8/111 | 7.2% |
+| Individual models complete | 365/444 | 82.2% |
+| Individual models running | 13/444 | 2.9% |
+| Individual models pending | 69/444 | 15.5% |
+| Testing complete | 374 results | — |
 
 #### Per-Dataset Training
 
-| Dataset | Complete | Running | Missing |
-|---------|----------|---------|---------|
-| BDD10K | 98/168 (58.3%) | 0 | 70 |
-| IDD-AW | 97/168 (57.7%) | 0 | 71 |
-| MapillaryVistas | 73/168 (43.5%) | 0 | 95 |
-| OUTSIDE15k | 71/168 (42.3%) | 0 | 97 |
+*(See [TRAINING_TRACKER_STAGE1.md](TRAINING_TRACKER_STAGE1.md) for per-strategy detail)*
 
-### Strategies (26 active, 2 removed)
+### Strategies (26 total: 21 gen + 4 std + 1 baseline)
 
 | Category | Count | Strategies |
 |----------|-------|------------|
@@ -68,49 +67,36 @@
 
 **Note:** `std_photometric_distort` removed (redundant — applied to all strategies as default pipeline augmentation).
 
-### Leaderboard (Fair Comparison Mode — 6 complete configs)
+### Leaderboard (Default Mode — 371 results, hrnet_hr48 excluded)
 
-The `--fair` flag filters to (dataset, model) configurations where **all 26 strategies** have test results, ensuring unbiased comparison. Currently 6 of 17 possible configs qualify.
+Top-10 and baseline from current Stage 1 leaderboard (26 strategies, 13–16 results each):
 
 | Rank | Strategy | mIoU | Gain vs Baseline | Num Tests |
 |------|----------|------|------------------|-----------|
-| 1 | gen_Attribute_Hallucination | 42.56% | +2.90 | 6 |
-| 2 | gen_UniControl | 42.51% | +2.84 | 6 |
-| 3 | gen_VisualCloze | 42.46% | +2.80 | 6 |
-| 4 | gen_automold | 42.45% | +2.79 | 6 |
-| 5 | gen_CNetSeg | 42.44% | +2.78 | 6 |
-| 6 | gen_Qwen_Image_Edit | 42.38% | +2.72 | 6 |
-| 7 | gen_stargan_v2 | 42.32% | +2.66 | 6 |
-| 8 | std_autoaugment | 42.25% | +2.59 | 6 |
-| 9 | gen_IP2P | 42.23% | +2.56 | 6 |
-| 10 | gen_SUSTechGAN | 42.17% | +2.50 | 6 |
-| ... | ... | ... | ... | ... |
-| 25 | gen_step1x_v1p2 | 40.72% | +1.06 | 6 |
-| — | **baseline** | **39.67%** | — | 6 |
+| 1 | gen_UniControl | 40.12% | +2.51 | 14 |
+| 2 | gen_Img2Img | 39.99% | +2.37 | 14 |
+| 3 | std_autoaugment | 39.99% | +2.37 | 16 |
+| 4 | gen_Attribute_Hallucination | 39.94% | +2.33 | 14 |
+| 5 | std_cutmix | 39.91% | +2.30 | 16 |
+| 6 | gen_Qwen_Image_Edit | 39.86% | +2.24 | 14 |
+| 7 | gen_stargan_v2 | 39.86% | +2.25 | 14 |
+| 8 | gen_CNetSeg | 39.86% | +2.25 | 14 |
+| 9 | std_mixup | 39.81% | +2.20 | 16 |
+| 10 | gen_IP2P | 39.79% | +2.17 | 14 |
+| — | **baseline** | **37.61%** | — | 16 |
 
-**Key Finding:** All 25 non-baseline strategies beat baseline (gains +1.06 to +2.90 pp).
+**Key Finding:** All 25 non-baseline strategies beat baseline (gains +0.87 to +2.51 pp).
 
-#### Fair vs Default Leaderboard Comparison
+**Note:** hrnet_hr48 excluded from Stage 1/2 leaderboards (pre-fix legacy results). Results per strategy vary (13–16 tests). Use `generate_strategy_leaderboard.py --stage 1` for full detail.
 
-> **Warning:** The default (unfair) leaderboard has significant sampling bias. See analysis below.
-
-| Aspect | Default Mode | Fair Mode |
-|--------|-------------|-----------|
-| Total results used | 332 (6–17 per strategy) | 156 (6 per strategy) |
-| Baseline mIoU | 33.63% | 39.67% |
-| Max gain over baseline | +8.14 pp | +2.90 pp |
-| All strategies beat baseline? | ✅ Yes (25/25) | ✅ Yes (25/25) |
-
-**Why the discrepancy:** In default mode, baseline has 17 tests including weaker model architectures (PSPNet, HRNet on MapillaryVistas/OUTSIDE15k). Strategies with only 6–7 tests (e.g., gen_cyclediffusion, gen_albumentations_weather) happen to only have results for stronger models (Mask2Former, SegFormer), inflating their apparent advantage by ~3×.
-
-**Recommendation:** Always use `--fair` for publication-quality comparisons. As more training completes, the fair config pool will grow beyond 6.
+See: `result_figures/leaderboard/STRATEGY_LEADERBOARD_STAGE1_MIOU.md`
 
 ### Stage 1 Key Files
 - Training Tracker: [TRAINING_TRACKER_STAGE1.md](TRAINING_TRACKER_STAGE1.md)
 - Training Coverage: [TRAINING_COVERAGE_STAGE1.md](TRAINING_COVERAGE_STAGE1.md)
 - Testing Tracker: [TESTING_TRACKER.md](TESTING_TRACKER.md)
 - Testing Coverage: [TESTING_COVERAGE.md](TESTING_COVERAGE.md)
-- Leaderboard: `result_figures/leaderboard/STRATEGY_LEADERBOARD_MIOU_FAIR.md`
+- Leaderboard: `result_figures/leaderboard/STRATEGY_LEADERBOARD_STAGE1_MIOU.md`
 
 ---
 
@@ -123,16 +109,20 @@ The `--fair` flag filters to (dataset, model) configurations where **all 26 stra
 - **Weights Directory:** `/scratch/aaa_exchange/AWARE/WEIGHTS_STAGE_2/`
 - **Purpose:** Train models on all weather conditions, evaluate domain-inclusive performance
 
-### Coverage (from pre-fix round — stale, Jan 22)
+### Coverage
 
-| Metric | Count | Percentage |
-|--------|-------|------------|
-| Training Complete (80k) | 23/448 | 🔶 5.1% |
-| Training at 15k (partial) | 112/448 | 🔄 25.0% |
-| Training empty | 302/448 | ⏳ 67.4% |
+| Metric | Count | Status |
+|--------|-------|--------|
+| Configs fully complete (4/4 models) | 3/111 | 2.7% |
+| Configs partial | 75/111 | 67.6% |
+| Configs running | 1/111 | 0.9% |
+| Configs pending | 31/111 | 27.9% |
+| Individual models complete | 128/444 | 28.8% |
+| Individual models running | 1/444 | 0.2% |
+| Individual models pending | 316/444 | 71.2% |
 | Valid test results | 139 | — |
 
-**Note:** Stage 2 coverage numbers are from the **pre-fix** round (Jan 22). These models used the buggy MixedDataLoader and will need to be retrained once Stage 1 retraining stabilizes. Priority is currently on Stage 1.
+**Note:** Stage 2 gen_* models are mostly pre-fix and will need retraining. Priority remains on completing Stage 1 first.
 
 ### Stage 2 Key Files
 - Training Tracker: [TRAINING_TRACKER_STAGE2.md](TRAINING_TRACKER_STAGE2.md)
@@ -184,19 +174,18 @@ See [CITYSCAPES_ACDC_CROSS_DOMAIN_RESULTS.md](CITYSCAPES_ACDC_CROSS_DOMAIN_RESUL
 
 | Metric | Count | Status |
 |--------|-------|--------|
-| Training complete (20k) | 54/96 (56.2%) | 🔄 |
-| Training partial (running) | 6/96 | 🔄 |
-| Training empty (pending) | 36/96 | ⏳ |
-| Cityscapes test results (valid mIoU) | 23/54 | 🔄 Retests in progress |
-| ACDC test results (valid mIoU) | 54/54 | ✅ |
-| Active training jobs | 7 RUN + 34 PEND | 🔄 |
-| Retest jobs (Cityscapes val→test fix) | 28 PEND | ⏳ |
+| Configs fully complete (4/4 models) | 25/27 | ✅ 92.6% |
+| Configs pending | 3/27 | ⏳ |
+| Individual models complete | 100/108 | ✅ 92.6% |
+| Individual models pending | 12/108 | ⏳ |
+| Cityscapes test results | 25 strategies tested | ✅ |
+| ACDC cross-domain test results | 25 strategies tested | ✅ |
+| Total test results | 248 | ✅ |
 
-### ⚠️ Cityscapes Test Bug (Fixed Feb 9)
+### Cityscapes Test Bug (Fixed Feb 9)
 - **Bug:** Auto-tests in submitted training jobs used `DATA_ROOT=CITYSCAPES` + `TEST_SPLIT=val` (wrong)
 - **Fix:** Should use `DATA_ROOT=FINAL_SPLITS` + `TEST_SPLIT=test`
-- **Status:** 20/49 retests completed successfully (all valid mIoU ✅), 28 pending
-- **On-disk fix:** All 96 submit_job.sh files corrected via sed
+- **Status:** ✅ Resolved — 248 valid test results collected
 - **Retest script:** `scripts/retest_cityscapes_gen.py`
 
 ### Cityscapes-Gen Key Files
@@ -213,7 +202,7 @@ See [CITYSCAPES_ACDC_CROSS_DOMAIN_RESULTS.md](CITYSCAPES_ACDC_CROSS_DOMAIN_RESUL
 
 - **Location:** `/scratch/aaa_exchange/AWARE/WEIGHTS_RATIO_ABLATION/`
 - **Ratios:** 0.00, 0.12, 0.25, 0.38, 0.50, 0.62, 0.75, 0.88
-- **Models:** pspnet_r50, segformer_mit-b5
+- **Models:** pspnet_r50, segformer_mit-b3
 - **Datasets:** BDD10k, IDD-AW
 - **Key Finding (preliminary):** Higher ratios (0.62–0.88) slightly outperform lower ratios
 - **Guide:** [RATIO_ABLATION_SUBMISSION_GUIDE.md](RATIO_ABLATION_SUBMISSION_GUIDE.md)
@@ -274,42 +263,34 @@ python scripts/batch_training_submission.py --stage cityscapes --dry-run
 
 ### Auto-Submit Tests
 ```bash
-python scripts/auto_submit_tests.py --dry-run        # Stage 1
-python scripts/auto_submit_tests_stage2.py --dry-run  # Stage 2
+python scripts/auto_submit_tests.py --stage 1 --dry-run
+python scripts/auto_submit_tests.py --stage 2 --dry-run
+python scripts/batch_test_submission.py --stage cityscapes-gen --dry-run
 ```
 
 ### Update Trackers
 ```bash
-python scripts/update_training_tracker.py --stage 1
-python scripts/update_training_tracker.py --stage 1 -c   # With coverage report
-python scripts/update_training_tracker.py --stage 2
-python scripts/update_testing_tracker.py --stage 1
-python scripts/update_testing_tracker.py --stage 2
-python scripts/update_testing_tracker.py --stage cityscapes-gen
+python scripts/update_training_tracker.py --stage all
+python scripts/update_testing_tracker.py --stage all
 ```
 
 ### Generate Leaderboards
 ```bash
-python analysis_scripts/generate_stage1_leaderboard.py              # Default (all results)
-python analysis_scripts/generate_stage1_leaderboard.py --fair       # Fair comparison (complete configs only)
-python analysis_scripts/generate_stage2_leaderboard.py
+python analysis_scripts/generate_strategy_leaderboard.py --stage all
+python analysis_scripts/generate_strategy_leaderboard.py --stage 1   # Stage 1 only
+python analysis_scripts/generate_strategy_leaderboard.py --stage cityscapes-gen
 ```
 
 ---
 
 ## Next Steps
 
-1. **⚠️ CRITICAL: Free /usr/tmp disk space** — Root partition at 100% blocks all job submissions
-   - 51GB in `/usr/tmp/` from other users; needs sysadmin intervention
-   - ~51 more Stage 1 resume jobs need submission once disk space available
-2. **Complete Stage 1 resume cycle** — 306 models at 15k/80k need multiple resume cycles
-   - 36 resume jobs submitted (Feb 9), ~51 more blocked by disk space
-   - Each cycle advances ~15k iters; need ~4 more cycles to reach 80k
+1. **Complete Stage 1 training** — 365/444 models complete (82.2%), 69 pending + 13 running
    - Use: `python scripts/batch_training_submission.py --stage 1 --resume -y`
-3. **Cityscapes-Gen completion** — 42 configs still training, 28 retests pending
-   - After completion: re-run `scripts/retest_cityscapes_gen.py` for new completions
-   - Generate cross-domain ACDC results analysis
-4. **Auto-submit Stage 1 tests** — Run after resume cycle produces new completions at 80k
-   - `python scripts/auto_submit_tests.py --dry-run`
-5. **Stage 2 retraining** — Blocked on Stage 1 completion and cluster availability
-6. **Publication preparation** — Finalize figures using `--fair` leaderboard data
+2. **Auto-submit Stage 1 tests** — Run after new model completions
+   - `python scripts/auto_submit_tests.py --stage 1 --dry-run`
+3. **Cityscapes-Gen completion** — 100/108 models complete (92.6%), 12 pending
+   - 248 test results collected; remaining 3 strategy configs pending training
+4. **Stage 2 retraining** — 128/444 complete but mostly pre-fix; blocked on Stage 1 + cluster availability
+5. **Cityscapes-Ratio ablation** — Active (10 RUN + 32 PEND jobs for step1x_v1p2, flux_kontext, TSIT)
+6. **Publication preparation** — Finalize figures once Stage 1 training reaches higher completion

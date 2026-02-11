@@ -187,21 +187,25 @@ STAGE1_RATIO_VALUES = [0.0, 0.25, 0.75]
 # Tests synergy between generative weather augmentation and standard augmentations.
 # gen_* provides weather domain shift, std_* provides additional robustness.
 # Option A: std_* transforms applied to BOTH real and generated images.
+#
+# Strategy selection based on full S1+CG cross-stage analysis (2026-02-11):
+# - gen_* chosen from top cross-stage performers representing different families
+# - std_* chosen for consistency (all-positive per-dataset gains, low cross-model variance)
 
 WEIGHTS_ROOT_COMBINATION = Path('/scratch/aaa_exchange/AWARE/WEIGHTS_COMBINATION_ABLATION')
 
-# Top gen_* from cityscapes-gen analysis (different families)
+# Top gen_* from cross-stage S1+CG analysis (different families)
 COMBINATION_GEN_STRATEGIES = [
-    'gen_augmenters',        # Diffusion: 63.96% - top overall gen_*
-    'gen_TSIT',              # GAN: 63.52% - provides GAN family comparison
-    'gen_VisualCloze',       # Diffusion: 63.56% - visual cloze completion
+    'gen_Attribute_Hallucination',  # Instruct/Edit: CG #1, S1 #4 — cross-stage champion
+    'gen_Img2Img',                  # Diffusion I2I: CG #2, S1 #3 — consistent top-3
+    'gen_augmenters',               # Domain-specific: CG #3, S1 #10 — best in family
 ]
 
-# Top std_* from Stage 1 analysis (high gains +5-8% over baseline)
+# Top std_* from S1 cross-domain analysis (consistency + gain strength)
 COMBINATION_STD_STRATEGIES = [
-    'std_cutmix',               # +4.06% in Stage 1 - region mixing
-    'std_mixup',                # +5.50% in Stage 1 - feature regularization  
-    'std_randaugment',          # +5.48% in Stage 1 - automated augmentation
+    'std_cutmix',               # S1 #5, all-positive per-dataset gains, best night-domain (29.19%)
+    'std_autoaugment',          # S1 #2, all-positive per-dataset gains, most consistent overall
+    'std_mixup',                # S1 #9, lowest cross-model variance (3.42), feature regularization
 ]
 
 # Efficient model subset for quick ablation
