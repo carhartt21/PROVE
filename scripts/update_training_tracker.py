@@ -501,10 +501,13 @@ def get_running_jobs():
     """
     running = {}  # {(strategy, dataset): status}
     
-    # Known datasets for matching
+    # Known datasets for matching (include both 'idd-aw' and 'iddaw' variants)
     known_datasets = ['bdd10k', 'idd-aw', 'mapillaryvistas', 'outside15k']
+    # Also match 'iddaw' in job names (maps to 'idd-aw' internally)
+    _ds_normalize = {'iddaw': 'idd-aw'}
     # Also check for _cd suffix variants
-    known_datasets_cd = ['bdd10k_cd', 'idd-aw_cd', 'mapillaryvistas_cd', 'outside15k_cd']
+    known_datasets_cd = ['bdd10k_cd', 'idd-aw_cd', 'iddaw_cd', 'mapillaryvistas_cd', 'outside15k_cd']
+    _ds_cd_normalize = {'iddaw_cd': 'idd-aw'}
     # Model suffixes that might appear at the end of job names
     model_suffixes = ['dlv3p', 'pspn', 'segf', 'deeplabv3plus', 'pspnet', 'segformer']
     
@@ -578,9 +581,10 @@ def get_running_jobs():
                     strategy = None
                     
                     # First try to match _cd suffix datasets (from new train_ jobs)
-                    for ds_cd, ds in zip(known_datasets_cd, known_datasets):
+                    for ds_cd in known_datasets_cd:
                         if ds_cd in job_part:
-                            dataset = ds
+                            # Normalize: iddaw_cd → idd-aw, idd-aw_cd → idd-aw, etc.
+                            dataset = _ds_cd_normalize.get(ds_cd, ds_cd.replace('_cd', ''))
                             # Extract strategy (everything before dataset)
                             idx = job_part.find(ds_cd)
                             strategy = job_part[:idx].rstrip('_')
@@ -588,13 +592,13 @@ def get_running_jobs():
                     
                     # If not found, try original dataset matching
                     if dataset is None:
-                        for ds in known_datasets:
+                        for ds in known_datasets + ['iddaw']:
                             # Check for exact match (with underscores around it or at end)
                             ds_pattern = f'_{ds}_'
                             ds_pattern_end = f'_{ds}'
                             
                             if ds_pattern in job_part or job_part.endswith(ds_pattern_end):
-                                dataset = ds
+                                dataset = _ds_normalize.get(ds, ds)
                                 # Extract strategy (everything before dataset)
                                 if ds_pattern in job_part:
                                     strategy = job_part.split(ds_pattern)[0]

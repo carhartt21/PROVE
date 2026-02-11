@@ -78,7 +78,7 @@ def load_results() -> Dict:
     
     for source in SOURCE_DATASETS:
         for model in MODELS:
-            result_file = RESULTS_ROOT / source.lower() / model / 'acdc_evaluation.json'
+            result_file = RESULTS_ROOT / source.lower().replace('-', '') / model / 'acdc_evaluation.json'
             
             if result_file.exists():
                 with open(result_file, 'r') as f:

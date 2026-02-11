@@ -62,7 +62,7 @@ ADVERSE_DOMAINS = ['foggy', 'night', 'rainy', 'snowy', 'dawn_dusk']
 NORMAL_DOMAINS = ['clear_day', 'cloudy']
 
 # Datasets and Models
-DATASETS = ['acdc', 'bdd10k', 'idd-aw', 'mapillaryvistas', 'outside15k']
+DATASETS = ['acdc', 'bdd10k', 'iddaw', 'mapillaryvistas', 'outside15k']
 MODELS = ['deeplabv3plus_r50', 'pspnet_r50', 'segformer_mit-b5']
 
 

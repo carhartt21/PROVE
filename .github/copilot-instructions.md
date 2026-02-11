@@ -68,8 +68,8 @@ unified_training.py → unified_training_config.py → MMSegmentation training
 **Common mistake:** Forgetting `--domain-filter clear_day` for Stage 1 trains on ALL domains (wrong!).
 
 ### Directory Naming
-- **Main directories** (`WEIGHTS/`, `WEIGHTS_STAGE_2/`): Use `idd-aw` (with hyphen)
-- **Ablation directories** (`WEIGHTS_RATIO_ABLATION/`, `WEIGHTS_EXTENDED/`, `WEIGHTS_COMBINATIONS/`): Use `iddaw` (no hyphen)
+- **All directories** use `iddaw` (no hyphen) for IDD-AW dataset
+- ⚠️ Note: `WEIGHTS_STAGE_2/baseline/` has a legacy `idd-aw` directory (ratio1p0 models) alongside `iddaw` — ignore the legacy one
 - Lowercase: `bdd10k`, `mapillaryvistas`, `outside15k`
 
 ### Weights Structure

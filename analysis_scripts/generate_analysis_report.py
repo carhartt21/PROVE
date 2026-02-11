@@ -28,8 +28,8 @@ def generate_report():
     baseline_fwiou = baseline_df['fwIoU'].mean()
     
     # Per-dataset baselines
-    datasets = ['bdd10k', 'idd-aw', 'mapillaryvistas', 'outside15k']
-    dataset_names = {'bdd10k': 'BDD10k', 'idd-aw': 'IDD-AW', 
+    datasets = ['bdd10k', 'iddaw', 'mapillaryvistas', 'outside15k']
+    dataset_names = {'bdd10k': 'BDD10k', 'iddaw': 'IDD-AW', 
                      'mapillaryvistas': 'MapillaryVistas', 'outside15k': 'Outside15k'}
     
     # Start building report
@@ -98,7 +98,7 @@ def generate_report():
         improvement = overall_miou - baseline_miou
         
         bdd = s_df[s_df['dataset'] == 'bdd10k']['mIoU'].mean()
-        idd = s_df[s_df['dataset'] == 'idd-aw']['mIoU'].mean()
+        idd = s_df[s_df['dataset'] == 'iddaw']['mIoU'].mean()
         mvs = s_df[s_df['dataset'] == 'mapillaryvistas']['mIoU'].mean()
         o15 = s_df[s_df['dataset'] == 'outside15k']['mIoU'].mean()
         
@@ -108,7 +108,7 @@ def generate_report():
             'miou': overall_miou,
             'delta': improvement,
             'bdd10k': bdd if not np.isnan(bdd) else 0,
-            'idd-aw': idd if not np.isnan(idd) else 0,
+            'iddaw': idd if not np.isnan(idd) else 0,
             'mapillaryvistas': mvs if not np.isnan(mvs) else 0,
             'outside15k': o15 if not np.isnan(o15) else 0
         })
@@ -117,7 +117,7 @@ def generate_report():
     
     for i, r in enumerate(results, 1):
         sign = '+' if r['delta'] > 0 else ''
-        report += f"| {i} | `{r['strategy']}` | {r['type']} | {r['miou']:.2f}% | {sign}{r['delta']:.2f}% | {r['bdd10k']:.2f}% | {r['idd-aw']:.2f}% | {r['mapillaryvistas']:.2f}% | {r['outside15k']:.2f}% |\n"
+        report += f"| {i} | `{r['strategy']}` | {r['type']} | {r['miou']:.2f}% | {sign}{r['delta']:.2f}% | {r['bdd10k']:.2f}% | {r['iddaw']:.2f}% | {r['mapillaryvistas']:.2f}% | {r['outside15k']:.2f}% |\n"
     
     # Summary statistics
     gen_strategies = [r for r in results if r['type'] == 'Generative']

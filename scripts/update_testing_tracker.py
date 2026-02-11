@@ -349,12 +349,20 @@ def get_retest_jobs():
                     strategy = None
                     
                     for ds in DATASETS:
-                        ds_pattern = f'_{ds}' if ds != 'idd-aw' else '_idd-aw'
-                        if ds_pattern in job_name:
-                            dataset = ds
+                        # Try both hyphenated and non-hyphenated forms for idd-aw/iddaw
+                        ds_patterns = [f'_{ds}']
+                        if '-' in ds:
+                            ds_patterns.append(f'_{ds.replace("-", "")}')
+                        matched_pattern = None
+                        for ds_pattern in ds_patterns:
+                            if ds_pattern in job_name:
+                                dataset = ds
+                                matched_pattern = ds_pattern
+                                break
+                        if dataset:
                             # Extract strategy
                             start_idx = job_name.find('retest_') + len('retest_')
-                            end_idx = job_name.find(ds_pattern)
+                            end_idx = job_name.find(matched_pattern)
                             strategy = job_name[start_idx:end_idx].rstrip('_')
                             break
                     

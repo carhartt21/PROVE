@@ -34,14 +34,14 @@ import seaborn as sns
 WEIGHTS_ROOT_STAGE1 = "/scratch/aaa_exchange/AWARE/WEIGHTS"
 WEIGHTS_ROOT_STAGE2 = "/scratch/aaa_exchange/AWARE/WEIGHTS_STAGE_2"
 
-DATASETS = ["acdc", "bdd10k", "idd-aw", "mapillaryvistas", "outside15k"]
+DATASETS = ["acdc", "bdd10k", "iddaw", "mapillaryvistas", "outside15k"]
 MODELS = ["deeplabv3plus_r50", "pspnet_r50", "segformer_mit-b5"]
 
 # Weather domains by dataset
 WEATHER_DOMAINS = {
     "acdc": ["clear_day", "cloudy", "dawn_dusk", "foggy", "night", "rainy", "snowy"],
     "bdd10k": ["clear_day", "cloudy", "dawn_dusk", "foggy", "night", "rainy", "snowy"],
-    "idd-aw": ["clear_day", "cloudy", "dawn_dusk", "foggy", "night", "rainy"],
+    "iddaw": ["clear_day", "cloudy", "dawn_dusk", "foggy", "night", "rainy"],
     "mapillaryvistas": ["clear_day", "cloudy", "dawn_dusk", "foggy", "night", "rainy", "snowy"],
     "outside15k": ["clear_day", "cloudy", "dawn_dusk", "foggy", "night", "rainy", "snowy"],
 }

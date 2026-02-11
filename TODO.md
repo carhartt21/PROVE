@@ -1,26 +1,36 @@
 # PROVE Project TODO
 
-**Last Updated:** 2026-02-12 (09:00)
+**Last Updated:** 2026-02-12 (10:00)
 
 ---
 
-## 📊 Current Status (2026-02-12 09:00)
+## 📊 Current Status (2026-02-12 10:00)
 
 ### Queue Summary
 | User | Category | RUN | PEND | Total |
 |------|----------|----:|-----:|------:|
-| chge7185 | Cityscapes-ratio ablation | 6 | ~28 | ~34 |
-| chge7185 | Cityscapes-gen deeplabv3plus | 0 | 19 | 19 |
-| **chge7185 subtotal** | | **6** | **~47** | **~53** |
+| chge7185 | CG gen_TSIT deeplabv3plus | 1 | 0 | 1 |
+| **chge7185 subtotal** | | **1** | **0** | **1** |
+| mima2416 | CS-Ratio ablation | 12 | 19 | 31 |
 | mima2416 | Stage 1 training | 2 | 0 | 2 |
-| mima2416 | Stage 2 training | 3 | 0 | 3 |
-| mima2416 | Testing (fgcg_ CG) | 1 | 24 | 25 |
-| mima2416 | Testing (fgcs_ CS) | 0 | 5 | 5 |
-| **mima2416 subtotal** | | **6** | **29** | **35** |
+| mima2416 | S1-Ratio ablation | 1 | 0 | 1 |
+| **mima2416 subtotal** | | **15** | **19** | **34** |
 
 **Notes:**
+- chge7185 went from ~53 jobs → 1 (most CS-ratio ablation + CG deeplabv3plus training completed).
 - 168 pending S2 training jobs were killed on 2026-02-11. S2 training will resume with a curated strategy subset after S1 and CG analysis is complete.
 - 83 buggy CG test results cleaned (all had `overall: {}` from pre-fix test code). 20 retest jobs submitted.
+- ✅ **IDD-AW leaderboard bug fixed** (2026-02-12): Per-dataset breakdown was showing "-" for IDD-AW because config used `idd-aw` but disk directories are `iddaw`. 131 S1 + 36 S2 results now visible. Overall rankings unchanged.
+
+---
+
+## ✅ COMPLETED: Fix IDD-AW Leaderboard Bug (2026-02-12)
+
+**Bug:** `generate_strategy_leaderboard.py` stage configs used `'idd-aw'` but actual WEIGHTS directories use `'iddaw'` (no hyphen). This caused 131 S1 + 36 S2 IDD-AW test results to show "-" in per-dataset breakdown tables.
+
+**Impact:** Overall rankings unchanged (IDD-AW data was in the DataFrame all along — only per-dataset column matching was broken).
+
+**Fix:** Changed `'idd-aw'` → `'iddaw'` in S1/S2 stage configs. Commit `4b3529c`.
 
 ---
 
@@ -44,35 +54,34 @@
 | Stage | Complete | In Queue | Total Target | Coverage |
 |-------|----------|----------|--------------|----------|
 | Stage 1 (15k) | 366/416 | 2 RUN + 50 submitted (80GB GPU) | 416 | 88.0% |
-| Stage 2 (15k) | 135/416 | 3 RUN (pending killed) | 416 | 32.5% |
+| Stage 2 (15k) | 135/416 | 0 (pending killed) | 416 | 32.5% |
 | CG baseline+std (20k) | **25/25** | 0 | 25 | **100%** ✅ |
-| CG gen_* (20k) | 80/99 | 19 PEND (chge7185) | 99 | 80.8% |
-| CG total (20k) | **105/124** | 19 PEND | 124 | 84.7% |
+| CG gen_* (20k) | ~98/99 | 1 RUN (chge7185) | 99 | ~99% |
+| CG total (20k) | **~123/124** | 1 RUN | 124 | ~99% |
 | Cityscapes (20k) | 3/4 | 1 to submit | 4 | 75% |
-| CS-Ratio Ablation (20k) | ~27/48 | 6 RUN + ~28 PEND | 48 | ~56% |
+| CS-Ratio Ablation (20k) | ~33/48 | 12 RUN + 19 PEND | 48 | ~69% |
 
 ### Testing Progress
 | Stage | Valid Tests | Total Trained | In Queue | Notes |
 |-------|------------|---------------|----------|-------|
 | Stage 1 | 366 | 366 | 0 | **100% of trained** ✅ |
 | Stage 2 | 150 | 135 | 0 | Complete for trained |
-| CG Cityscapes | 81 | 105 | 24 (20 new + 4 old) | Will be 105/105 when queue clears |
-| CG ACDC | **105** | 105 | 0 | **100%** ✅ |
+| CG Cityscapes | 123/124 | ~123 | 3 pending | gen_TSIT deeplabv3plus awaiting training |
+| CG ACDC | 123/124 | ~123 | 3 pending | gen_TSIT deeplabv3plus awaiting training |
 | Cityscapes | 0 | 3 | 5 (3 main + 2 ACDC) | Pending |
 
 ### 100% Coverage Plan (S1 + CG)
 
-#### CG Path to 100% — ON TRACK ✅
+#### CG Path to 100% — NEARLY COMPLETE ✅
 | Step | Items | Status | ETA |
 |------|-------|--------|-----|
 | 1. Clean 83 buggy test results | 83 deleted | ✅ Done | — |
-| 2. Submit 20 missing CG Cityscapes tests | 20 jobs | ✅ Submitted (+ 4 already PEND) | ~12 hrs |
-| 3. Deeplabv3plus training (chge7185) | 19 jobs PEND | 🔄 In queue | ~2 days |
-| 4. Test deeplabv3plus after training | 19 Cityscapes + 19 ACDC | ⏳ After step 3 | ~1 day after |
-| **CG Total** | **105/124 → 124/124** | | |
+| 2. Submit 20 missing CG Cityscapes tests | 20 jobs | ✅ Done (completed) | — |
+| 3. Deeplabv3plus training (chge7185) | 18/19 done, 1 RUN | 🔄 gen_TSIT last | ~1 day |
+| 4. Test gen_TSIT deeplabv3plus after training | 1 Cityscapes + 1 ACDC | ⏳ After step 3 | ~2 hrs after |
+| **CG Total** | **~123/124 → 124/124** | | |
 
-After step 2 completes: 101/105 tested (81 existing + 20 new). The 4 already-PEND jobs give 105/105.
-After step 4 completes: 124/124 Cityscapes + 124/124 ACDC = **full CG coverage**.
+CG testing: 123/124 Cityscapes + 123/124 ACDC done. Only gen_TSIT/deeplabv3plus training remains (1 job RUN on chge7185).
 
 #### S1 Path to 100% — IN PROGRESS (80GB GPUs) 🔄
 | Step | Items | Status | Notes |
@@ -83,18 +92,20 @@ After step 4 completes: 124/124 Cityscapes + 124/124 ACDC = **full CG coverage**
 
 **Root Cause (resolved):** mask2former_swin-b OOMs on 40GB GPUs with 66-class/24-class datasets. Jobs now submitted to 80GB GPUs from dedicated machine.
 
-### Strategy Leaderboard Highlights (2026-02-12)
+### Strategy Leaderboard Highlights (2026-02-12, updated 10:00)
 | Stage | Top Strategy | mIoU | Baseline mIoU | Strategies > Baseline |
 |-------|-------------|------|---------------|----------------------|
 | Stage 1 | gen_UniControl | 40.12% | 33.63% | 25/25 (all!) |
 | Stage 1 #2 | gen_Img2Img | 39.99% | 33.63% | — |
-| CG (Cityscapes) | gen_augmenters | 51.47% | 49.43% | 17/24 gen_* |
-| CG (ACDC cross-domain) | gen_augmenters | 41.16% | 37.87% | 17/24 gen_* |
+| CG overall | gen_Attribute_Hallucination | 51.05% | 49.43% | 5/24 |
+| CG (Cityscapes) | gen_Attribute_Hallucination | 54.13% | 52.65% | 5/24 gen_* |
+| CG (ACDC cross-domain) | gen_Attribute_Hallucination | 44.88% | 42.99% | 5/24 gen_* |
 
 **Key findings:**
-- S1: **All** augmentation strategies beat baseline (+1.3 to +6.5 pp). Top-5: gen_UniControl, gen_Img2Img, gen_Attribute_Hallucination, gen_augmenters, gen_VisualCloze
-- CG: gen_* strategies show +2pp avg gain on Cityscapes, +3pp avg gain on ACDC cross-domain
-- CG: std_* strategies all **below** baseline on Cityscapes (opposite of S1 pattern)
+- S1: **All** augmentation strategies beat baseline (+4.85 to +6.49 pp). Top-5: gen_UniControl, gen_Img2Img, gen_Attribute_Hallucination, gen_Qwen_Image_Edit, gen_stargan_v2
+- S1 per-dataset: IDD-AW baseline (32.93%) was weakest, gains +3.96 to +5.20 pp (**bug fixed** — was invisible before, commit `4b3529c`)
+- CG: gen_Attribute_Hallucination leads (+1.62 pp overall), gen_TSIT #2 (+1.33 pp)
+- CG: std_* strategies all **below** baseline (opposite of S1 pattern)
 - Full leaderboards: `result_figures/leaderboard/`
 
 ---

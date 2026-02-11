@@ -155,7 +155,7 @@ def figure2_rank_change(s1_stats, s2_stats):
 
 def figure3_per_dataset(s1, s2):
     """Per-dataset comparison heatmaps."""
-    datasets = ['bdd10k', 'idd-aw', 'mapillaryvistas', 'outside15k']
+    datasets = ['bdd10k', 'iddaw', 'mapillaryvistas', 'outside15k']
     
     fig, axes = plt.subplots(1, 2, figsize=(16, 10))
     
