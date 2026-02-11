@@ -1,26 +1,26 @@
 # PROVE Project TODO
 
-**Last Updated:** 2026-02-12 (10:00)
+**Last Updated:** 2026-02-12 (11:30)
 
 ---
 
-## 📊 Current Status (2026-02-12 10:00)
+## 📊 Current Status (2026-02-12 11:30)
 
 ### Queue Summary
 | User | Category | RUN | PEND | Total |
 |------|----------|----:|-----:|------:|
-| chge7185 | CG gen_TSIT deeplabv3plus | 1 | 0 | 1 |
-| **chge7185 subtotal** | | **1** | **0** | **1** |
-| mima2416 | CS-Ratio ablation | 12 | 19 | 31 |
+| chge7185 | S1 mask2former (MapVistas+OUTSIDE15k, 80GB) | 6 | 44 | 50 |
+| **chge7185 subtotal** | | **6** | **44** | **50** |
+| mima2416 | CS-Ratio ablation | 3 | 18 | 21 |
 | mima2416 | Stage 1 training | 2 | 0 | 2 |
-| mima2416 | S1-Ratio ablation | 1 | 0 | 1 |
-| **mima2416 subtotal** | | **15** | **19** | **34** |
+| **mima2416 subtotal** | | **5** | **18** | **23** |
 
 **Notes:**
-- chge7185 went from ~53 jobs → 1 (most CS-ratio ablation + CG deeplabv3plus training completed).
+- chge7185 now running 50 S1 mask2former jobs on 80GB GPUs (MapillaryVistas + OUTSIDE15k). CG gen_TSIT/deeplabv3plus training appears complete.
+- mima2416 down from 34 → 23 jobs (CS-ratio ablation progressing).
 - 168 pending S2 training jobs were killed on 2026-02-11. S2 training will resume with a curated strategy subset after S1 and CG analysis is complete.
-- 83 buggy CG test results cleaned (all had `overall: {}` from pre-fix test code). 20 retest jobs submitted.
 - ✅ **IDD-AW leaderboard bug fixed** (2026-02-12): Per-dataset breakdown was showing "-" for IDD-AW because config used `idd-aw` but disk directories are `iddaw`. 131 S1 + 36 S2 results now visible. Overall rankings unchanged.
+- ✅ **Mask2former paradox analyzed** (2026-02-12): Root cause is rare vehicle class memorization in BDD10k. See `result_figures/leaderboard/CORRECTED_LEADERBOARD_ANALYSIS.md` Appendices A & B.
 
 ---
 
@@ -72,22 +72,22 @@
 
 ### 100% Coverage Plan (S1 + CG)
 
-#### CG Path to 100% — NEARLY COMPLETE ✅
+#### CG Path to 100% — LIKELY COMPLETE ✅
 | Step | Items | Status | ETA |
 |------|-------|--------|-----|
 | 1. Clean 83 buggy test results | 83 deleted | ✅ Done | — |
 | 2. Submit 20 missing CG Cityscapes tests | 20 jobs | ✅ Done (completed) | — |
-| 3. Deeplabv3plus training (chge7185) | 18/19 done, 1 RUN | 🔄 gen_TSIT last | ~1 day |
-| 4. Test gen_TSIT deeplabv3plus after training | 1 Cityscapes + 1 ACDC | ⏳ After step 3 | ~2 hrs after |
+| 3. Deeplabv3plus training (chge7185) | 19/19 done | ✅ Likely complete | — |
+| 4. Test gen_TSIT deeplabv3plus after training | 1 Cityscapes + 1 ACDC | ⏳ Submit now! | ~2 hrs |
 | **CG Total** | **~123/124 → 124/124** | | |
 
-CG testing: 123/124 Cityscapes + 123/124 ACDC done. Only gen_TSIT/deeplabv3plus training remains (1 job RUN on chge7185).
+CG testing: 123/124 Cityscapes + 123/124 ACDC done. gen_TSIT/deeplabv3plus training appears complete (no longer in chge7185's queue). **Need to submit final 2 test jobs.**
 
 #### S1 Path to 100% — IN PROGRESS (80GB GPUs) 🔄
 | Step | Items | Status | Notes |
 |------|-------|--------|-------|
 | 1. S1 testing of trained models | 366/366 | ✅ 100% | Already complete |
-| 2. Remaining S1 training | 50 configs | 🔄 Submitted | All mask2former on MapillaryVistas (25) + OUTSIDE15k (25), submitted to 80GB GPUs |
+| 2. Remaining S1 training | 50 configs | 🔄 6 RUN + 44 PEND (chge7185) | All mask2former on MapillaryVistas (25) + OUTSIDE15k (25), on 80GB GPUs |
 | 3. Submit tests for new completions | Auto | ⏳ After step 2 | `auto_submit_tests.py --stage 1` |
 
 **Root Cause (resolved):** mask2former_swin-b OOMs on 40GB GPUs with 66-class/24-class datasets. Jobs now submitted to 80GB GPUs from dedicated machine.
@@ -106,6 +106,10 @@ CG testing: 123/124 Cityscapes + 123/124 ACDC done. Only gen_TSIT/deeplabv3plus 
 - S1 per-dataset: IDD-AW baseline (32.93%) was weakest, gains +3.96 to +5.20 pp (**bug fixed** — was invisible before, commit `4b3529c`)
 - CG: gen_Attribute_Hallucination leads (+1.62 pp overall), gen_TSIT #2 (+1.33 pp)
 - CG: std_* strategies all **below** baseline (opposite of S1 pattern)
+- **S1 vs CG rank correlation: Spearman r=0.101 (essentially zero!)** — strategy rankings completely diverge
+- **mask2former paradox resolved:** S1 degradation (−1.62pp) driven by rare vehicle class memorization in BDD10k (motorcycle collapses 85.4% → 0-10%). Other 3 models gain on same classes. Rankings robust to rare-class exclusion (r=0.954).
+- **Consistently top across both stages:** gen_Attribute_Hallucination (#3 S1, #1 CG), gen_Img2Img (#2 S1, #3 CG)
+- Full analysis: `result_figures/leaderboard/CORRECTED_LEADERBOARD_ANALYSIS.md`
 - Full leaderboards: `result_figures/leaderboard/`
 
 ---
@@ -131,15 +135,25 @@ python scripts/batch_training_submission.py --stage 1 --dry-run  # Shows 50 rema
 python scripts/batch_training_submission.py --stage cityscapes -y
 ```
 
-### 4. 🟡 MEDIUM: S1 & CG Analysis → S2 Strategy Selection
-With CG at 100% testing and S1 at 100% testing (of trained), generate final leaderboards.
+### 4. ✅ DONE: S1 & CG Analysis → S2 Strategy Selection
+With CG at 99%+ testing and S1 at 100% testing (of trained), final leaderboards generated and analyzed.
+- ✅ Corrected leaderboards (IDD-AW bug fix)
+- ✅ Per-dataset, per-model, per-domain breakdown analysis
+- ✅ S1 vs CG rank divergence analysis (Spearman r=0.101)
+- ✅ Mask2former paradox deep-dive (rare-class memorization)
+- ✅ Cross-model rare-class comparison (mask2former-specific effect)
+- ✅ Rare-class-excluded ranking stability (r=0.954, rankings robust)
+- 📄 Full report: `result_figures/leaderboard/CORRECTED_LEADERBOARD_ANALYSIS.md`
 ```bash
 python analysis_scripts/generate_strategy_leaderboard.py --stage all
-python analysis_scripts/analyze_strategy_families.py
 ```
 
 ### 5. 🟡 MEDIUM: Select S2 Strategy Subset & Resume Training
-Based on S1/CG analysis, select top-performing strategies for S2 instead of running all 416 configs.
+Based on S1/CG analysis (see `CORRECTED_LEADERBOARD_ANALYSIS.md` Section 6), recommended tiers:
+- **Tier 1 (must):** gen_Attribute_Hallucination, gen_Img2Img, gen_Qwen_Image_Edit (top-3 in both stages)
+- **Tier 2 (coverage):** gen_UniControl (S1 #1), gen_TSIT (CG #2), gen_augmenters (good both)
+- **Tier 3 (std):** std_autoaugment, std_cutmix (1-2 representatives)
+- **Tier 4 (diversity):** gen_CUT, gen_flux_kontext (breadth)
 ```bash
 python scripts/batch_training_submission.py --stage 2 --strategies <selected> -y
 ```
