@@ -33,28 +33,27 @@
 ---
 
 ### Training Progress
-| Stage | Complete (models) | Running | Pending | Failed | Coverage |
-|-------|-------------------|---------|---------|--------|----------|
-| Stage 1 (15k) | **417/448** | ~2 | ~29 | 0 | **93.1%** |
-| Stage 2 (15k) | **253/400** | ~4 | ~143 | 0 | **63.3%** |
-| CG baseline+std (20k) | **20/20** | 0 | 0 | 0 | **100%** ✅ |
-| CG gen_* (20k) | **80/80** | 0 | 0 | 0 | **100%** ✅ |
-| CG total (20k) | **100/100** | 0 | 0 | 0 | **100%** ✅ |
-| CS-Ratio Ablation (20k) | **38/48** | 10 | 0 | 0 | 🔄 **79.2%** |
-| Combination Ablation (20k) | **10/18** | 8 | 0 | 0 | 🔄 **55.6%** |
-| Noise Ablation (15k) | **0/24** | 3 | 21 | 0 | 🔄 **started** |
-| Extended S1 (45k) | **0/20** | 1 | 19 | 0 | 🔄 **started** |
-| Extended CG (60k) | **0/10** | 0 | 10 | 0 | ⏳ **queued** |
+| Stage | Complete (models) | In-Progress | Pending | Coverage |
+|-------|-------------------|-------------|---------|----------|
+| Stage 1 (15k) | **417/448** | ~2 | ~29 | **93.1%** |
+| Stage 2 (15k) | **253/400** | 7 | ~140 | **63.2%** |
+| CG total (20k) | **125/100+** | 0 | 0 | **100%** ✅ |
+| CS-Ratio Ablation (20k) | **38/48** | 10 | 0 | 🔄 **79.2%** |
+| S1-Ratio Ablation (15k) | **24/24** | 0 | 0 | **100%** ✅ |
+| Combination Ablation (20k) | **12/18** | 5 | 1 | 🔄 **66.7%** |
+| Noise Ablation (15k) | **0/24** | 3 | 21 | 🔄 **started** |
+| Extended S1 (45k) | **0/20** | 0 | 20 | ⏳ **queued** |
+| Extended CG (60k) | **0/10** | 0 | 10 | ⏳ **queued** |
 
 ### Testing Progress
-| Stage | Valid Tests | Missing | Notes |
+| Stage | Valid Tests | Trained | Notes |
 |-------|------------|---------|-------|
-| Stage 1 | **420** | **0** | **100% coverage** ✅ |
-| Stage 2 | **253+** | ~TBD | Auto-test on training completion |
-| CG Cityscapes | **125** | 0 | **100%** ✅ |
-| CG ACDC | **125** | 0 | **100%** ✅ |
-| CS-Ratio CS | **38/38** | 0 | Auto-tested at training completion |
-| CS-Ratio ACDC | **38/38** | 0 | Complete |
+| Stage 1 | **472** | 417 | **100% coverage** ✅ (includes legacy 80k tests) |
+| Stage 2 | **254** | 253 | Auto-test on training completion |
+| CG | **251** | 125 | **100%** ✅ (Cityscapes + ACDC per model) |
+| CS-Ratio | **76** | 38 | **100%** ✅ (Cityscapes + ACDC per model) |
+| S1-Ratio | **24** | 24 | **100%** ✅ |
+| Combination | **11** | 12 | 1 newly completed, test pending |
 
 ### 100% Coverage Plan
 
@@ -204,13 +203,28 @@ Analysis script: `analysis_scripts/analyze_ratio_preliminary.py`
 python scripts/batch_training_submission.py --stage cityscapes-ratio --dry-run
 ```
 
-#### Stage 1 Ratio Ablation (24 jobs — HIGH PRIORITY)
-- **Status:** ⏳ Ready to submit. **This is the primary ratio ablation** — 10x larger effect sizes than Cityscapes.
+#### Stage 1 Ratio Ablation (24 jobs — COMPLETE ✅)
+- **Status:** ✅ 24/24 trained + tested (completed 2026-02-11).
 - **Ratios:** 0.0, 0.25, 0.75
-- **Datasets:** BDD10k (21.5% spread), IDD-AW (20.9% spread)
+- **Datasets:** BDD10k, IDD-AW
 - **Strategies:** gen_VisualCloze (Diffusion), gen_TSIT (GAN)
 - **Models:** pspnet_r50, segformer_mit-b3
-- **Rationale:** Cityscapes ratio analysis showed 1.4 pp spread (too small). S1 datasets show 20+ pp spread, ideal for characterizing ratio effects.
+
+##### Results Summary
+**Conclusion: Ratio effect is weak on S1 datasets too (~0.5 pp spread). No finer ratios needed.**
+
+| Strategy | Dataset | Model | 0.00 | 0.25 | 0.75 | Spread |
+|----------|---------|-------|-----:|-----:|-----:|-------:|
+| gen_TSIT | BDD10k | pspnet | 41.05 | 41.36 | 41.37 | 0.32 pp |
+| gen_TSIT | BDD10k | segformer | 47.54 | 46.84 | 46.39 | 1.15 pp |
+| gen_TSIT | IDD-AW | pspnet | 32.99 | 33.29 | 33.14 | 0.30 pp |
+| gen_TSIT | IDD-AW | segformer | 38.83 | 39.11 | 38.92 | 0.28 pp |
+| gen_VisualCloze | BDD10k | pspnet | 41.03 | 41.02 | 40.95 | 0.08 pp |
+| gen_VisualCloze | BDD10k | segformer | 46.29 | 46.08 | 46.91 | 0.83 pp |
+| gen_VisualCloze | IDD-AW | pspnet | 33.15 | 33.24 | 33.24 | 0.09 pp |
+| gen_VisualCloze | IDD-AW | segformer | 38.81 | 38.88 | 38.94 | 0.13 pp |
+
+**Average spread: ~0.4 pp.** The earlier estimate of "20% spread" from S1 was for absolute mIoU variation across *strategies*, not ratio sensitivity within a strategy. The ratio within any single strategy makes minimal difference.
 ```bash
 python scripts/batch_training_submission.py --stage stage1-ratio --dry-run
 python scripts/batch_training_submission.py --stage stage1-ratio -y
@@ -218,8 +232,8 @@ python scripts/batch_training_submission.py --stage stage1-ratio -y
 
 | Study | Spread | Jobs | Status |
 |-------|--------|------|--------|
-| Cityscapes-ratio | 2-3.5% | 48 | 🔄 ~81% complete, 9 running |
-| Stage1-ratio | 20-24% | 24 | ⏳ Ready |
+| Cityscapes-ratio | 1.4 pp (ACDC) | 48 | 🔄 79% complete, 10 running |
+| Stage1-ratio | ~0.4 pp | 24 | ✅ **100% COMPLETE** |
 
 ### §7b: Combination Ablation Study (gen_* + std_*)
 
@@ -343,7 +357,7 @@ python scripts/batch_training_submission.py --stage extended-s1 -y
 python scripts/batch_training_submission.py --stage extended-cg -y
 ```
 
-#### Status: ⏳ Ready to submit after S1 mask2former + CG deeplabv3plus complete
+#### Status: 🔄 Submitted (2026-02-13). 20 extended-s1 + 10 extended-cg queued on mima2416.
 
 ### Old Ablation Studies (Reference Only)
 
@@ -394,6 +408,14 @@ The generated image training pipeline has **3 layers**:
 ---
 
 ## ✅ Completed Tasks Archive
+
+### 2026-02-13
+- ✅ **S1-Ratio ablation 100% COMPLETE** — 24/24 trained + tested. Ratio effect weak (~0.4 pp spread). No finer ratios needed.
+- ✅ **CS-Ratio preliminary analysis** — 38/48 tested. 1.4 pp ACDC spread, uniform peak distribution. Finer ratios not warranted.
+- ✅ **Noise ablation submitted** — 24 gen_random_noise jobs on chge7185 (3 RUN, 21 PEND).
+- ✅ **Extended training submitted** — 20 extended-s1 + 10 extended-cg on mima2416.
+- ✅ **CS-Ratio remaining submitted** — 11 jobs (3118689-3118699), now 38/48 complete.
+- ⚠️ **Duplicate extended-cg detected** — 10 identical jobs on chge7185 (3118898-3118907). Kill these.
 
 ### 2026-02-12
 - ✅ **3 legacy 80k models COMPLETE** — gen_albumentations_weather (43.61%), gen_automold (43.42%), gen_step1x_v1p2 (43.77%)
