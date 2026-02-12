@@ -1,10 +1,10 @@
 # PROVE Project TODO
 
-**Last Updated:** 2026-02-12 (21:20)
+**Last Updated:** 2026-02-12 (22:45)
 
 ---
 
-## 📊 Current Status (2026-02-12 21:20)
+## 📊 Current Status (2026-02-12 22:45)
 
 ### Queue Summary
 | User | Category | RUN | PEND | Total |
@@ -12,19 +12,18 @@
 | chge7185 | S1 mask2former (MapVistas+OUTSIDE15k, 80GB) | 6 | 6 | 12 |
 | chge7185 | S2 curated strategies | 0 | 102 | 102 |
 | **chge7185 subtotal** | | **6** | **108** | **114** |
-| mima2416 | S2 training (gen_flux_kontext, std_* on mask2former) | 5 | ~64 | ~69 |
-| mima2416 | CS-Ratio ablation | 2 | 0 | 2 |
-| mima2416 | Combination ablation | 7 | 7 | 14 |
-| **mima2416 subtotal** | | **14** | **~71** | **~85** |
+| mima2416 | S2 training (gen_flux_kontext, std_* on mask2former) | 5 | ~12 | ~17 |
+| mima2416 | CS-Ratio ablation | ~6 | ~5 | ~11 |
+| mima2416 | Combination ablation | ~7 | ~2 | ~9 |
+| **mima2416 subtotal** | | **~16** | **~21** | **~37** |
 
 **Notes:**
 - ✅ **3 legacy 80k models COMPLETE** (2026-02-12): gen_albumentations_weather, gen_automold, gen_step1x_v1p2 (segnext/bdd10k) — all reached iter_80000 + tested (mIoU: 43.4-43.8%, baseline 80k: 41.27%).
-- 🔄 **Combination ablation progressing** (2026-02-12 21:15): 4/18 complete (iter_20000), 7 RUN (iter_2000-8000), 7 PEND. Lock contention fix working — new autoaugment/mixup jobs successfully started.
+- 🔄 **Combination ablation progressing** (2026-02-12 21:15): 4/18 complete (iter_20000), ~7 RUN, remaining PEND. Lock contention fix working.
+- 🔄 **CS-Ratio ablation**: 37/48 complete, 11 submitted (3118689-3118699).
+- 🔄 **Noise ablation**: Code reviewed ✅, 24 gen_random_noise jobs ready. Will be submitted from chge7185. Baselines skipped (identical to existing S1 baselines).
 - 🔄 **S2 training wave active**: gen_flux_kontext + std_autoaugment/cutmix on mask2former running. S2 coverage: 188/400 = 47.0%.
 - 🔄 **S1 at 91.1%**: 408/448 complete. Remaining 40 are mask2former on MapVistas/OUTSIDE15k (chge7185, 80GB GPUs).
-- ⚠️ **CS-Ratio: 9 jobs need submission** — 37/48 complete, 2 running, 9 not yet in queue. Submit with `--stage cityscapes-ratio -y`.
-- ✅ **S1 testing: 100% coverage** (420 valid, 0 missing)
-- ✅ **CG testing: 100% coverage** (250 valid, 0 missing)
 
 ---
 
@@ -36,8 +35,9 @@
 | CG baseline+std (20k) | **20/20** | 0 | 0 | 0 | **100%** ✅ |
 | CG gen_* (20k) | **80/80** | 0 | 0 | 0 | **100%** ✅ |
 | CG total (20k) | **100/100** | 0 | 0 | 0 | **100%** ✅ |
-| CS-Ratio Ablation (20k) | **37/48** | 2 | 9 (not submitted) | 0 | **77.1%** |
-| Combination Ablation (20k) | **4/18** | 7 | 7 | 0 | 🔄 **22.2%** |
+| CS-Ratio Ablation (20k) | **37/48** | ~11 | 0 | 0 | 🔄 **77.1%** |
+| Combination Ablation (20k) | **4/18** | ~7 | ~7 | 0 | 🔄 **22.2%** |
+| Noise Ablation (15k) | **0/24** | 0 | 24 (submit from chge7185) | 0 | ⏳ **0%** |
 
 ### Testing Progress
 | Stage | Valid Tests | Missing | Notes |
@@ -131,9 +131,22 @@ python scripts/batch_training_submission.py --stage 2 \
 
 ### Noise Ablation Study (§6)
 
-32 jobs designed (commit `4262e8b`). Tests whether models learn from image content or just label layouts.
+**Status:** ⏳ Code reviewed ✅, ready to submit from chge7185.
+
+24 jobs: `gen_random_noise` strategy × 4 datasets × 6 models at 15k iters with `clear_day` domain filter.
+Baselines skipped (identical to existing S1 baselines — same config).
+
+**Implementation:** Replaces generated images with uniform random noise (`np.random.randint(0, 256, shape)`), preserving label maps. Uses cycleGAN reference manifest for image shapes. Tests whether augmentation gains come from meaningful content or just more training samples.
+
 ```bash
-python scripts/noise_ablation_submission.py --dry-run
+# Dry-run (from chge7185)
+cd /home/mima2416/repositories/PROVE && \
+source /home/mima2416/miniconda3/etc/profile.d/conda.sh && \
+conda activate prove && \
+python scripts/batch_training_submission.py --stage noise-ablation --strategies gen_random_noise --dry-run
+
+# Submit 24 jobs
+python scripts/batch_training_submission.py --stage noise-ablation --strategies gen_random_noise -y
 ```
 
 ### Analysis & Paper Figures (§9)
