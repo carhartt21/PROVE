@@ -1,26 +1,32 @@
 # PROVE Project TODO
 
-**Last Updated:** 2026-02-12 (00:15)
+**Last Updated:** 2026-02-12 (10:00)
 
 ---
 
-## 📊 Current Status (2026-02-12 00:15)
+## 📊 Current Status (2026-02-12 10:00)
 
 ### Queue Summary
 | User | Category | RUN | PEND | Total |
 |------|----------|----:|-----:|------:|
-| chge7185 | S1 mask2former (MapVistas+OUTSIDE15k, 80GB) | ~6 | ~44 | ~50 |
-| **chge7185 subtotal** | | **~6** | **~44** | **~50** |
-| mima2416 | Combination ablation (18 jobs) | 5 | 13 | 18 |
-| mima2416 | CS-Ratio ablation | 9 | 101 | 110 |
-| **mima2416 subtotal** | | **14** | **114** | **128** |
+| chge7185 | S1 mask2former (MapVistas+OUTSIDE15k, 80GB) | 6 | 6 | 12 |
+| chge7185 | S2 curated strategies | 0 | 102 | 102 |
+| **chge7185 subtotal** | | **6** | **108** | **114** |
+| mima2416 | S2 gen_Qwen_Image_Edit (all datasets) | 9 | 1 | 10 |
+| mima2416 | S2 curated strategies (UniControl, augmenters, CUT, etc.) | 0 | 64 | 64 |
+| mima2416 | CS-Ratio ablation | 5 | 0 | 5 |
+| mima2416 | Combination ablation | 1 | 13 | 14 |
+| **mima2416 subtotal** | | **15** | **78** | **93** |
 
 **Notes:**
-- ⚠️ **Combination ablation lock contention fix** (2026-02-12): After type validation fix, discovered a second bug — lock file names didn't include `std_strategy`, causing lock contention between `+std_cutmix`, `+std_autoaugment`, `+std_mixup` variants of the same gen_* strategy. Fixed in both `batch_training_submission.py` (bash script lock name + Python pre-submission check). 5 std_cutmix jobs still running from first resubmission; 13 remaining jobs resubmitted with fix (jobs 2976978-2976990).
-- CS-Ratio ablation: 9 RUN + 101 PEND jobs (gen_TSIT, gen_flux_kontext, gen_step1x_v1p2).
-- 168 pending S2 training jobs were killed on 2026-02-11. S2 training will resume with a curated strategy subset after CS-ratio completes.
-- ✅ **IDD-AW leaderboard bug fixed** (2026-02-12): Per-dataset breakdown was showing "-" for IDD-AW because config used `idd-aw` but disk directories are `iddaw`. 131 S1 + 36 S2 results now visible. Overall rankings unchanged.
-- ✅ **Mask2former paradox analyzed** (2026-02-12): Root cause is rare vehicle class memorization in BDD10k. See `result_figures/leaderboard/CORRECTED_LEADERBOARD_ANALYSIS.md` Appendices A & B.
+- 🔄 **S2 training wave active** (2026-02-12): gen_Qwen_Image_Edit S2 now running (9 RUN across all 4 datasets). S2 curated strategies queued on both users (~166 PEND total). S2 coverage jumped 128→156 models (35.1%).
+- 🔄 **S1 mask2former nearing completion**: 6 models still running on chge7185 (gen_CNetSeg, gen_Qwen_Image_Edit, gen_stargan_v2 on MapVistas+OUTSIDE15k). S1 jumped from 373→393 models (88.5%).
+- ✅ **CS-Ratio ACDC fix** (2026-02-11): `batch_training_submission.py` ACDC auto-test now includes `cityscapes-ratio` stage (commit `1ace8bf`). 28+9 ACDC tests manually submitted for already-trained models.
+- 🔄 **CS-Ratio ablation**: 37/60 trained (61.7%), 4 running, 19 pending. All deeplabv3plus configs (12) still pending.
+- ⚠️ **3 S1 segnext_mscan-b/bdd10k models trained under `_ratio0p50` naming** but have no test results. Need manual test submission.
+- ⚠️ **Combination ablation lock contention fix** (2026-02-12): Fixed lock file names. 1 RUN + 13 PEND.
+- ✅ **IDD-AW leaderboard bug fixed** (2026-02-12): Commit `4b3529c`.
+- ✅ **Mask2former paradox analyzed** (2026-02-12): Root cause is rare vehicle class memorization in BDD10k.
 
 ---
 
@@ -53,21 +59,23 @@
 ### Training Progress
 | Stage | Complete (models) | Running | Pending | Failed | Coverage |
 |-------|-------------------|---------|---------|--------|----------|
-| Stage 1 (15k) | 373/444 | 15 | 60 | 0 | 84.0% |
-| Stage 2 (15k) | 128/444 | 1 | 316 | 3 | 28.8% |
+| Stage 1 (15k) | **393/444** | 14 | 40 | 1 | **88.5%** |
+| Stage 2 (15k) | **156/444** | 6 | 279 | 7 | **35.1%** |
 | CG baseline+std (20k) | **20/28** | 0 | 8 | 0 | 71.4% |
 | CG gen_* (20k) | **80/80** | 0 | 4 | 0 | **100%** ✅ |
 | CG total (20k) | **100/108** | 0 | 12 | 0 | 92.6% |
-| CS-Ratio Ablation (20k) | ~39/48 | 9 RUN | 0 | 0 | ~81% |
-| Combination Ablation (20k) | 0/18 | 5 RUN + 13 PEND | 0 | 0 | 🔄 Resubmitted |
+| CS-Ratio Ablation (20k) | **37/60** | 4 | 19 | 0 | **61.7%** |
+| Combination Ablation (20k) | 0/18 | 1 RUN + 13 PEND | 0 | 0 | 🔄 Running |
 
 ### Testing Progress
 | Stage | Valid Tests | Missing | Notes |
 |-------|------------|---------|-------|
-| Stage 1 | 382 | 7 | 98.2% coverage ✅ |
-| Stage 2 | 147 | 1 | Complete for trained models |
+| Stage 1 | **402** | 5 | 98.8% coverage (2 mask2former running, 3 `_ratio0p50` naming issue) |
+| Stage 2 | **175** | 5 | Complete for trained models |
 | CG Cityscapes | 124 | 0 | **100%** ✅ (25 strategies + ACDC cross-domain) |
 | CG ACDC | 124 | 0 | **100%** ✅ |
+| CS-Ratio CS | 37/37 | 0 | Auto-tested at training completion |
+| CS-Ratio ACDC | 37/37 | 0 | 28+9 manually submitted, all complete |
 
 ### 100% Coverage Plan (S1 + CG)
 
@@ -85,30 +93,31 @@ CG testing: **124/124 Cityscapes + 124/124 ACDC = 248/248 total. Zero missing.**
 #### S1 Path to 100% — IN PROGRESS (80GB GPUs) 🔄
 | Step | Items | Status | Notes |
 |------|-------|--------|-------|
-| 1. S1 testing of trained models | 382/389 | ✅ 98.2% | 7 missing |
-| 2. Remaining S1 training | ~50 configs | 🔄 chge7185 (80GB GPUs) | All mask2former on MapillaryVistas (25) + OUTSIDE15k (25) |
+| 1. S1 testing of trained models | 402/407 | ✅ 98.8% | 5 missing (2 still training, 3 `_ratio0p50` naming) |
+| 2. Remaining S1 training | ~40 configs | 🔄 chge7185 (80GB GPUs) | 6 RUN (CNetSeg, Qwen, stargan_v2 on MapVistas+OUTSIDE15k) |
 | 3. Submit tests for new completions | Auto | ⏳ After step 2 | `auto_submit_tests.py --stage 1` |
+| 4. Fix 3 `_ratio0p50` naming issues | 3 configs | ⏳ Need manual test submission | gen_albumentations_weather/automold/step1x_v1p2 bdd10k segnext |
 
 **Root Cause (resolved):** mask2former_swin-b OOMs on 40GB GPUs with 66-class/24-class datasets. Jobs now submitted to 80GB GPUs from dedicated machine.
 
-### Strategy Leaderboard Highlights (2026-02-11, updated 22:10)
-| Stage | Top Strategy | mIoU | Baseline mIoU | Strategies > Baseline |
-|-------|-------------|------|---------------|----------------------|
-| Stage 1 | gen_UniControl | 40.12% | 37.61% | 25/25 (all!) |
-| Stage 1 #2 | std_randaugment | 40.04% | 37.61% | — |
-| Stage 1 #3 | gen_Img2Img | 39.99% | 37.61% | — |
-| Stage 2 | gen_IP2P | 41.98% | 40.80% | 12/19 |
-| CG overall | gen_Attribute_Hallucination | 51.05% | 49.43% | 4/24 |
-| CG #2 | gen_Img2Img | 49.70% | 49.43% | — |
+### Strategy Leaderboard Highlights (2026-02-12 10:00)
+| Stage | Top Strategy | mIoU | Baseline mIoU | Strategies > Baseline | Results |
+|-------|-------------|------|---------------|----------------------|--------|
+| Stage 1 | gen_UniControl | **40.37%** | 37.61% | **25/25 (all!)** | 399 |
+| Stage 1 #2 | gen_cyclediffusion | 40.12% | 37.61% | — | 399 |
+| Stage 1 #3 | gen_Img2Img / std_randaugment | 40.04% | 37.61% | — | 399 |
+| Stage 2 | gen_Qwen_Image_Edit | 42.36% | 40.80% | 13/20 | 180 |
+| CG overall | gen_Attribute_Hallucination | 51.05% | 49.43% | 4/24 | 372 |
+| CG #2 | gen_Img2Img | 49.70% | 49.43% | — | 372 |
 
 **Key findings:**
-- S1: **All** augmentation strategies beat baseline (+1.16 to +2.51 pp). Top-5: gen_UniControl, std_randaugment, gen_Img2Img, std_autoaugment, gen_Attribute_Hallucination
-- S2: gen_IP2P leads (+1.18 pp); std_* strategies **hurt** (−0.27 to −1.97 pp); gen_cycleGAN/gen_flux_kontext also negative
+- S1: **All** augmentation strategies beat baseline (+1.16 to +2.76 pp). Top-5: gen_UniControl, gen_cyclediffusion, gen_Img2Img, std_randaugment, std_autoaugment
+- S2: gen_Qwen_Image_Edit leads (+1.56 pp); 13/20 beat baseline; std_* strategies **hurt** (−0.27 to −1.97 pp)
 - CG: gen_Attribute_Hallucination leads (+1.62 pp overall), gen_Img2Img #2 (+0.27 pp)
 - CG: std_* strategies all **below** baseline (opposite of S1 pattern)
 - **S1 vs CG rank divergence** — strategy rankings significantly differ between stages
 - **mask2former paradox resolved:** S1 degradation driven by rare vehicle class memorization in BDD10k. Rankings robust to rare-class exclusion (r=0.954).
-- **Consistently top across stages:** gen_Attribute_Hallucination (#5 S1, #1 CG), gen_Img2Img (#3 S1, #2 CG)
+- **Consistently top across stages:** gen_Attribute_Hallucination (#7 S1, #1 CG), gen_Img2Img (#3 S1, #2 CG)
 - Full analysis: `result_figures/leaderboard/CORRECTED_LEADERBOARD_ANALYSIS.md`
 - Full leaderboards: `result_figures/leaderboard/`
 

@@ -1,6 +1,6 @@
 # Testing Progress Tracker
 
-**Last Updated:** 2026-02-11 22:03
+**Last Updated:** 2026-02-12 09:52
 
 
 This document tracks the progress of fine-grained testing for trained models.
@@ -53,42 +53,42 @@ This document tracks the progress of fine-grained testing for trained models.
 | Rank | Strategy | Avg mIoU | Best Dataset | Best mIoU | Datasets |
 |------|----------|----------|--------------|-----------|----------|
 | 🥇 | baseline | 44.7 | BDD10k | 51.6 | 4/4 |
-| 🥈 | std_autoaugment | 43.9 | BDD10k | 49.4 | 4/4 |
-| 🥉 | gen_flux_kontext | 43.8 | BDD10k | 48.7 | 4/4 |
-| 4. | std_cutmix | 43.7 | BDD10k | 49.4 | 4/4 |
-| 5. | gen_cycleGAN | 43.5 | BDD10k | 49.6 | 4/4 |
-| 6. | std_randaugment | 43.2 | BDD10k | 48.6 | 4/4 |
-| 7. | gen_UniControl | 43.0 | BDD10k | 52.5 | 4/4 |
-| 8. | gen_step1x_new | 42.8 | BDD10k | 49.9 | 4/4 |
-| 9. | gen_Img2Img | 42.8 | BDD10k | 51.7 | 4/4 |
-| 10. | std_mixup | 42.6 | BDD10k | 49.4 | 4/4 |
+| 🥈 | gen_UniControl | 44.5 | BDD10k | 52.5 | 4/4 |
+| 🥉 | gen_SUSTechGAN | 44.2 | BDD10k | 49.3 | 4/4 |
+| 4. | gen_cyclediffusion | 44.0 | BDD10k | 48.9 | 4/4 |
+| 5. | std_autoaugment | 43.9 | BDD10k | 49.4 | 4/4 |
+| 6. | gen_flux_kontext | 43.8 | BDD10k | 48.7 | 4/4 |
+| 7. | gen_automold | 43.8 | BDD10k | 49.5 | 4/4 |
+| 8. | std_cutmix | 43.7 | BDD10k | 49.4 | 4/4 |
+| 9. | gen_Img2Img | 43.5 | BDD10k | 51.7 | 4/4 |
+| 10. | gen_cycleGAN | 43.5 | BDD10k | 49.6 | 4/4 |
 
 
 ### Generative Image Augmentation Strategies
 
 | Strategy | BDD10k | IDD-AW | MapillaryVistas | OUTSIDE15k | Avg |
 |----------|-------:|-------:|-------:|-------:|-------:|
-| gen_Attribute_Hallucination | 50.5 | 40.0 | 34.9 | 43.4 | 42.2 |
+| gen_Attribute_Hallucination | 50.5 | 40.0 | 35.3 | 43.9 | 42.4 |
 | gen_augmenters | 49.1 | 40.2 | 34.9 | 43.5 | 41.9 |
-| gen_automold | 49.5 | 40.6 | 35.0 | 43.1 | 42.1 |
+| gen_automold | 49.5 | 40.6 | 40.7 | 44.2 | 43.8 |
 | gen_CNetSeg | 49.8 | 40.2 | 35.0 | 43.3 | 42.1 |
-| gen_CUT | 48.3 | 40.2 | 34.9 | 43.1 | 41.6 |
-| gen_cyclediffusion | 48.9 | 41.2 | 34.7 | 43.1 | 42.0 |
+| gen_CUT | 48.3 | 40.2 | 35.3 | 44.3 | 42.0 |
+| gen_cyclediffusion | 48.9 | 41.2 | 40.3 | 45.3 | 44.0 |
 | gen_cycleGAN | 49.6 | 40.4 | 40.4 | 43.5 | 43.5 |
 | gen_flux_kontext | 48.7 | 40.4 | 40.7 | 45.5 | 43.8 |
-| gen_Img2Img | 51.7 | 41.5 | 34.8 | 43.0 | 42.8 |
-| gen_IP2P | 49.0 | 40.4 | 34.8 | 43.5 | 41.9 |
+| gen_Img2Img | 51.7 | 41.5 | 35.6 | 45.2 | 43.5 |
+| gen_IP2P | 49.0 | 40.4 | 35.5 | 45.2 | 42.5 |
 | gen_LANIT | 50.1 | 40.2 | 35.1 | 43.3 | 42.2 |
 | gen_Qwen_Image_Edit | 49.5 | 40.4 | 35.1 | 43.5 | 42.1 |
 | gen_stargan_v2 | 50.9 | 39.8 | 34.6 | 43.7 | 42.3 |
 | gen_step1x_new | 49.9 | 40.6 | 35.2 | 45.4 | 42.8 |
 | gen_step1x_v1p2 | 47.0 | 40.1 | 35.5 | 45.8 | 42.1 |
-| gen_SUSTechGAN | 49.3 | 40.6 | 34.7 | 42.9 | 41.9 |
+| gen_SUSTechGAN | 49.3 | 40.6 | 40.4 | 46.4 | 44.2 |
 | gen_TSIT | 50.7 | 40.0 | 34.5 | 43.0 | 42.0 |
-| gen_UniControl | 52.5 | 41.3 | 35.1 | 43.1 | 43.0 |
-| gen_VisualCloze | 51.6 | 40.7 | 34.9 | 42.7 | 42.5 |
+| gen_UniControl | 52.5 | 41.3 | 40.4 | 43.9 | 44.5 |
+| gen_VisualCloze | 51.6 | 40.7 | 35.2 | 45.6 | 43.3 |
 | gen_Weather_Effect_Generator | 48.8 | 39.8 | 35.2 | 42.9 | 41.7 |
-| gen_albumentations_weather | 46.5 | 40.0 | 34.7 | 42.8 | 41.0 |
+| gen_albumentations_weather | 46.5 | 40.0 | 40.6 | 45.4 | 43.1 |
 
 ### Standard Augmentation Strategies
 
