@@ -1,30 +1,30 @@
 # Testing Coverage Report
 
-**Generated:** 2026-02-12 13:07
+**Generated:** 2026-02-12 21:12
 
 ## Summary
 
 | Status | Count | Percentage |
 |--------|------:|----------:|
-| ✅ Complete (valid mIoU) | 248 | 100.0% |
+| ✅ Complete (valid mIoU) | 250 | 100.0% |
 | 🔄 Running | 0 | 0.0% |
 | ⏳ Pending (in queue) | 0 | 0.0% |
 | ⚠️ Buggy (mIoU < 5%) | 0 | 0.0% |
 | 🔃 Stale (wrong checkpoint) | 0 | 0.0% |
 | ❌ Missing (no results) | 0 | 0.0% |
-| **Total** | **248** | **100%** |
+| **Total** | **250** | **100%** |
 
 ## Per-Dataset Breakdown
 
 ### Cityscapes
-- Complete: 124/124 (100.0%)
+- Complete: 125/125 (100.0%)
 - Running: 0
 - Pending (in queue): 0
 - Buggy (mIoU < 5%): 0
 - Missing (no results): 0
 
 ### ACDC (cross-domain)
-- Complete: 124/124 (100.0%)
+- Complete: 125/125 (100.0%)
 - Running: 0
 - Pending (in queue): 0
 - Buggy (mIoU < 5%): 0
@@ -54,7 +54,7 @@
 
 | Strategy | BDD10k | IDD-AW | MapillaryVistas | OUTSIDE15k |
 |----------|--------|--------|-----------------|------------|
-| gen_Attribute_Hallucination | ✅ PSP, SF | ✅ PSP, SF |
+| gen_Attribute_Hallucination | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF |
 | gen_augmenters | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF |
 | gen_automold | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF |
 | gen_CNetSeg | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF |

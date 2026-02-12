@@ -1,5 +1,6 @@
 Strategy,Type,bdd10k,bdd10k_gain,iddaw,iddaw_gain,mapillaryvistas,mapillaryvistas_gain,outside15k,outside15k_gain
 gen_UniControl,Generative,47.22,+4.94,38.10,+2.11,34.85,+1.81,41.32,+2.18
+gen_augmenters,Generative,46.13,+3.85,37.75,+1.76,34.73,+1.68,42.15,+3.01
 gen_cyclediffusion,Generative,46.06,+3.78,38.04,+2.05,34.59,+1.55,41.81,+2.67
 gen_Qwen_Image_Edit,Generative,46.36,+4.08,37.82,+1.83,34.79,+1.75,41.51,+2.37
 gen_automold,Generative,46.21,+3.92,37.81,+1.83,34.85,+1.80,41.50,+2.35
@@ -18,10 +19,9 @@ std_mixup,Standard Aug,46.37,+4.09,37.74,+1.75,33.46,+0.41,41.67,+2.53
 gen_VisualCloze,Generative,45.74,+3.46,38.03,+2.04,33.52,+0.47,41.75,+2.61
 gen_Weather_Effect_Generator,Generative,45.82,+3.54,37.59,+1.60,33.51,+0.46,41.68,+2.54
 gen_CUT,Generative,45.98,+3.70,37.74,+1.75,33.34,+0.29,41.51,+2.37
+gen_TSIT,Generative,46.56,+4.28,37.71,+1.72,32.59,-0.46,41.61,+2.47
 gen_step1x_new,Generative,44.70,+2.42,37.87,+1.88,33.51,+0.46,41.68,+2.54
-gen_augmenters,Generative,46.13,+3.85,37.75,+1.76,32.87,-0.17,40.98,+1.84
 gen_step1x_v1p2,Generative,44.12,+1.84,37.77,+1.78,33.52,+0.47,41.85,+2.70
 gen_cycleGAN,Generative,43.27,+0.99,37.85,+1.86,34.79,+1.74,41.32,+2.18
-gen_TSIT,Generative,46.56,+4.28,37.71,+1.72,30.09,-2.96,40.68,+1.54
 gen_LANIT,Generative,44.56,+2.28,36.89,+0.90,32.88,-0.17,40.66,+1.52
 baseline,Baseline,42.28,+0.00,35.99,+0.00,33.05,-0.00,39.14,-0.00

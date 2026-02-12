@@ -4,9 +4,9 @@
 
 **Metric**: mIoU (Mean Intersection over Union)
 
-**Last Updated**: 2026-02-12 13:22
+**Last Updated**: 2026-02-12 21:12
 **Baseline mIoU**: 52.65%
-**Total Results**: 248 test results from 25 strategies
+**Total Results**: 250 test results from 25 strategies
 
 ---
 
@@ -16,10 +16,10 @@ Sorted by mIoU. Gain = improvement over baseline. Domain Gap = Normal mIoU - Adv
 
 | Strategy | Type | mIoU | Std | Gain | Normal mIoU | Adverse mIoU | Domain Gap | Num Tests |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| gen_Attribute_Hallucination | Generative | 54.13 | 11.09 | 1.49 | 63.39 | 44.88 | 18.51 | 8 |
 | gen_Img2Img | Generative | 52.87 | 11.44 | 0.22 | 62.39 | 43.35 | 19.05 | 10 |
 | gen_augmenters | Generative | 52.82 | 11.92 | 0.18 | 62.54 | 43.11 | 19.43 | 10 |
 | gen_Qwen_Image_Edit | Generative | 52.67 | 11.23 | 0.02 | 62.12 | 43.22 | 18.91 | 10 |
+| gen_Attribute_Hallucination | Generative | 52.67 | 11.43 | 0.03 | 62.22 | 43.12 | 19.1 | 10 |
 | baseline | Baseline | 52.65 | 11.49 | 0.0 | 62.3 | 42.99 | 19.32 | 10 |
 | gen_VisualCloze | Generative | 52.58 | 11.8 | -0.06 | 62.35 | 42.81 | 19.53 | 10 |
 | gen_CUT | Generative | 52.53 | 11.62 | -0.11 | 61.99 | 43.08 | 18.91 | 10 |
@@ -49,10 +49,10 @@ mIoU performance on each dataset.
 
 | Strategy | Type | cityscapes | cityscapes_gain | acdc | acdc_gain |
 | --- | --- | --- | --- | --- | --- |
-| gen_Attribute_Hallucination | Generative | 63.39 | +1.08 | 44.88 | +1.89 |
 | gen_Img2Img | Generative | 62.39 | +0.09 | 43.35 | +0.36 |
 | gen_augmenters | Generative | 62.54 | +0.23 | 43.11 | +0.12 |
 | gen_Qwen_Image_Edit | Generative | 62.12 | -0.18 | 43.22 | +0.23 |
+| gen_Attribute_Hallucination | Generative | 62.22 | -0.08 | 43.12 | +0.14 |
 | baseline | Baseline | 62.30 | +0.00 | 42.99 | +0.00 |
 | gen_VisualCloze | Generative | 62.35 | +0.04 | 42.81 | -0.17 |
 | gen_CUT | Generative | 61.99 | -0.32 | 43.08 | +0.09 |
@@ -83,7 +83,7 @@ mIoU performance on each weather domain. Normal = clear_day. Adverse = foggy, ni
 | Strategy | Type | clear_day | foggy | night | rainy | snowy | Normal Avg | Adverse Avg | Gap |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | baseline | Baseline | - | 57.86 | 27.15 | 45.32 | 44.03 | - | 43.59 | - |
-| gen_Attribute_Hallucination | Generative | - | 59.38 | 29.24 | 46.15 | 45.74 | - | 45.13 | - |
+| gen_Attribute_Hallucination | Generative | - | 57.77 | 27.61 | 45.13 | 44.32 | - | 43.71 | - |
 | gen_CNetSeg | Generative | - | 56.97 | 26.16 | 46.27 | 44.28 | - | 43.42 | - |
 | gen_CUT | Generative | - | 57.72 | 27.50 | 45.35 | 43.53 | - | 43.53 | - |
 | gen_IP2P | Generative | - | 57.22 | 26.40 | 44.49 | 42.88 | - | 42.75 | - |
@@ -115,10 +115,10 @@ mIoU performance on each model architecture. Gain columns show improvement over 
 
 | Strategy | Type | deeplabv3plus_r50 | deeplabv3plus_r50_gain | mask2former_swin-b | mask2former_swin-b_gain | pspnet_r50 | pspnet_r50_gain | segformer_mit-b3 | segformer_mit-b3_gain | segnext_mscan-b | segnext_mscan-b_gain |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| gen_Attribute_Hallucination | Generative | - | - | 60.68 | +0.63 | 47.48 | +0.52 | 54.14 | -0.35 | 54.22 | -0.39 |
 | gen_Img2Img | Generative | 46.58 | -0.53 | 60.25 | +0.20 | 47.60 | +0.64 | 54.89 | +0.40 | 55.03 | +0.42 |
 | gen_augmenters | Generative | 46.04 | -1.08 | 61.06 | +1.01 | 46.89 | -0.07 | 55.55 | +1.05 | 54.57 | -0.03 |
 | gen_Qwen_Image_Edit | Generative | 46.70 | -0.42 | 59.42 | -0.63 | 47.47 | +0.51 | 54.87 | +0.38 | 54.89 | +0.28 |
+| gen_Attribute_Hallucination | Generative | 46.83 | -0.29 | 60.68 | +0.63 | 47.48 | +0.52 | 54.14 | -0.35 | 54.22 | -0.39 |
 | baseline | Baseline | 47.12 | +0.00 | 60.05 | +0.00 | 46.96 | +0.00 | 54.49 | +0.00 | 54.61 | +0.00 |
 | gen_VisualCloze | Generative | 46.44 | -0.68 | 60.70 | +0.65 | 46.73 | -0.24 | 54.57 | +0.08 | 54.47 | -0.14 |
 | gen_CUT | Generative | 45.61 | -1.51 | 61.36 | +1.31 | 47.46 | +0.50 | 53.60 | -0.89 | 54.63 | +0.02 |

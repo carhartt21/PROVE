@@ -1,14 +1,13 @@
 Strategy,Type,mask2former_swin-b,mask2former_swin-b_gain,pspnet_r50,pspnet_r50_gain,segformer_mit-b3,segformer_mit-b3_gain,segnext_mscan-b,segnext_mscan-b_gain
-gen_augmenters,Generative,44.67,-0.06,34.80,+2.72,40.87,+4.67,41.26,+3.83
 gen_UniControl,Generative,44.52,-0.21,34.74,+2.66,41.11,+4.90,41.12,+3.69
 gen_automold,Generative,43.76,-0.98,34.84,+2.76,41.14,+4.93,41.74,+4.31
 gen_albumentations_weather,Generative,43.15,-1.59,35.03,+2.95,40.63,+4.42,42.13,+4.70
+gen_augmenters,Generative,43.83,-0.91,34.80,+2.72,40.87,+4.67,41.26,+3.83
 gen_cyclediffusion,Generative,43.96,-0.78,34.85,+2.77,40.61,+4.40,41.08,+3.65
 gen_Qwen_Image_Edit,Generative,43.46,-1.28,34.83,+2.75,41.10,+4.89,41.09,+3.66
 gen_stargan_v2,Generative,43.53,-1.21,34.82,+2.74,40.81,+4.60,41.21,+3.78
 std_randaugment,Standard Aug,43.18,-1.56,34.75,+2.67,40.88,+4.67,41.37,+3.94
 gen_Img2Img,Generative,43.50,-1.24,34.77,+2.69,40.67,+4.46,41.22,+3.79
-gen_TSIT,Generative,45.36,+0.62,34.86,+2.78,38.79,+2.58,41.02,+3.59
 std_autoaugment,Standard Aug,43.93,-0.81,34.86,+2.78,40.92,+4.71,40.25,+2.82
 gen_CNetSeg,Generative,42.76,-1.98,34.77,+2.69,41.16,+4.95,41.09,+3.66
 std_cutmix,Standard Aug,43.73,-1.00,34.81,+2.72,39.97,+3.76,41.14,+3.71
@@ -21,6 +20,7 @@ gen_LANIT,Generative,45.17,+0.43,34.82,+2.73,39.14,+2.93,40.07,+2.64
 gen_VisualCloze,Generative,43.28,-1.46,34.96,+2.88,40.69,+4.48,40.11,+2.68
 gen_Weather_Effect_Generator,Generative,42.18,-2.55,34.75,+2.67,40.76,+4.55,40.92,+3.49
 gen_CUT,Generative,41.84,-2.89,34.84,+2.76,40.92,+4.71,40.96,+3.53
+gen_TSIT,Generative,43.80,-0.94,34.86,+2.78,38.79,+2.58,41.02,+3.59
 gen_step1x_v1p2,Generative,42.11,-2.63,34.96,+2.88,39.31,+3.10,41.53,+4.10
 gen_step1x_new,Generative,42.78,-1.96,34.81,+2.73,39.03,+2.82,41.14,+3.71
 gen_cycleGAN,Generative,43.46,-1.27,34.84,+2.76,39.23,+3.03,39.70,+2.27

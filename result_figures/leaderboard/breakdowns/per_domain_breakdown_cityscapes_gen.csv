@@ -1,6 +1,6 @@
 Strategy,Type,clear_day,foggy,night,rainy,snowy,Normal Avg,Adverse Avg,Gap
 baseline,Baseline,-,57.86,27.15,45.32,44.03,-,43.59,-
-gen_Attribute_Hallucination,Generative,-,59.38,29.24,46.15,45.74,-,45.13,-
+gen_Attribute_Hallucination,Generative,-,57.77,27.61,45.13,44.32,-,43.71,-
 gen_CNetSeg,Generative,-,56.97,26.16,46.27,44.28,-,43.42,-
 gen_CUT,Generative,-,57.72,27.50,45.35,43.53,-,43.53,-
 gen_IP2P,Generative,-,57.22,26.40,44.49,42.88,-,42.75,-

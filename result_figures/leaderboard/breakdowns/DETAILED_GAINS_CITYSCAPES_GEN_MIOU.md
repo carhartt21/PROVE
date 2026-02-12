@@ -4,10 +4,10 @@
 
 | Strategy | Type | cityscapes | Δcityscapes | acdc | Δacdc | Avg |
 |---|---|---:|---:|---:|---:|---:|
-| gen_Attribute_Hallucination | Generative | 63.4 | +1.1 | 44.9 | +1.9 | +1.49 |
 | gen_Img2Img | Generative | 62.4 | +0.1 | 43.3 | +0.4 | +0.22 |
 | gen_augmenters | Generative | 62.5 | +0.2 | 43.1 | +0.1 | +0.18 |
 | gen_Qwen_Image_Edit | Generative | 62.1 | -0.2 | 43.2 | +0.2 | +0.02 |
+| gen_Attribute_Hallucination | Generative | 62.2 | -0.1 | 43.1 | +0.1 | +0.03 |
 | baseline | Baseline | 62.3 | +0.0 | 43.0 | +0.0 | +0.00 |
 | gen_VisualCloze | Generative | 62.3 | +0.0 | 42.8 | -0.2 | -0.06 |
 | gen_CUT | Generative | 62.0 | -0.3 | 43.1 | +0.1 | -0.11 |
@@ -35,7 +35,7 @@
 | Strategy                     | Type         | clear_day   |   foggy |   night |   rainy |   snowy | Normal Avg   |   Adverse Avg | Gap   |
 |:-----------------------------|:-------------|:------------|--------:|--------:|--------:|--------:|:-------------|--------------:|:------|
 | baseline                     | Baseline     | -           |   57.86 |   27.15 |   45.32 |   44.03 | -            |         43.59 | -     |
-| gen_Attribute_Hallucination  | Generative   | -           |   59.38 |   29.24 |   46.15 |   45.74 | -            |         45.13 | -     |
+| gen_Attribute_Hallucination  | Generative   | -           |   57.77 |   27.61 |   45.13 |   44.32 | -            |         43.71 | -     |
 | gen_CNetSeg                  | Generative   | -           |   56.97 |   26.16 |   46.27 |   44.28 | -            |         43.42 | -     |
 | gen_CUT                      | Generative   | -           |   57.72 |   27.5  |   45.35 |   43.53 | -            |         43.53 | -     |
 | gen_IP2P                     | Generative   | -           |   57.22 |   26.4  |   44.49 |   42.88 | -            |         42.75 | -     |

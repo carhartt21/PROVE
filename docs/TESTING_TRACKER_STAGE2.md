@@ -1,6 +1,6 @@
 # Testing Progress Tracker
 
-**Last Updated:** 2026-02-12 13:07
+**Last Updated:** 2026-02-12 21:15
 
 
 This document tracks the progress of fine-grained testing for trained models.
@@ -55,13 +55,13 @@ This document tracks the progress of fine-grained testing for trained models.
 | 🥇 | baseline | 45.8 | BDD10k | 50.5 | 4/4 |
 | 🥈 | gen_step1x_new | 44.5 | BDD10k | 48.7 | 4/4 |
 | 🥉 | gen_Img2Img | 44.4 | BDD10k | 49.0 | 4/4 |
-| 4. | gen_Qwen_Image_Edit | 42.8 | BDD10k | 48.3 | 4/4 |
-| 5. | std_autoaugment | 42.7 | BDD10k | 48.4 | 4/4 |
-| 6. | std_cutmix | 42.6 | BDD10k | 48.6 | 4/4 |
-| 7. | gen_UniControl | 42.3 | BDD10k | 48.5 | 4/4 |
-| 8. | std_mixup | 42.3 | BDD10k | 48.1 | 4/4 |
-| 9. | std_randaugment | 42.0 | BDD10k | 47.7 | 4/4 |
-| 10. | gen_IP2P | 42.0 | BDD10k | 47.7 | 4/4 |
+| 4. | gen_Qwen_Image_Edit | 44.4 | BDD10k | 48.3 | 4/4 |
+| 5. | gen_UniControl | 44.4 | BDD10k | 48.9 | 4/4 |
+| 6. | gen_CUT | 44.3 | BDD10k | 48.2 | 4/4 |
+| 7. | gen_augmenters | 44.2 | BDD10k | 48.0 | 4/4 |
+| 8. | std_cutmix | 43.3 | BDD10k | 51.6 | 4/4 |
+| 9. | std_autoaugment | 43.0 | BDD10k | 48.4 | 4/4 |
+| 10. | gen_flux_kontext | 42.5 | BDD10k | 48.2 | 4/4 |
 
 
 ### Generative Image Augmentation Strategies
@@ -69,23 +69,23 @@ This document tracks the progress of fine-grained testing for trained models.
 | Strategy | BDD10k | IDD-AW | MapillaryVistas | OUTSIDE15k | Avg |
 |----------|-------:|-------:|-------:|-------:|-------:|
 | gen_Attribute_Hallucination | 46.7 | 40.6 | 34.8 | 45.0 | 41.8 |
-| gen_augmenters | ⏳ | ⏳ | ⏳ | ⏳ | - |
+| gen_augmenters | 48.0 | 41.0 | 41.2 | 46.5 | 44.2 |
 | gen_automold | 47.1 | 40.6 | 35.0 | 44.4 | 41.8 |
 | gen_CNetSeg | ⏳ | ⏳ | ⏳ | ⏳ | - |
-| gen_CUT | 46.8 | 40.5 | 35.0 | 44.7 | 41.7 |
+| gen_CUT | 48.2 | 42.8 | 41.1 | 45.2 | 44.3 |
 | gen_cyclediffusion | 46.9 | 40.7 | 35.0 | 44.8 | 41.8 |
-| gen_cycleGAN | 46.9 | 40.5 | 34.9 | 44.7 | 41.7 |
-| gen_flux_kontext | 47.0 | 40.4 | 35.0 | 44.9 | 41.8 |
+| gen_cycleGAN | 47.9 | 40.9 | 35.1 | 44.9 | 42.2 |
+| gen_flux_kontext | 48.2 | 40.9 | 35.7 | 45.1 | 42.5 |
 | gen_Img2Img | 49.0 | 42.8 | 41.0 | 44.8 | 44.4 |
 | gen_IP2P | 47.7 | 40.5 | 35.0 | 44.7 | 42.0 |
 | gen_LANIT | 46.6 | 40.6 | 34.7 | 45.1 | 41.8 |
-| gen_Qwen_Image_Edit | 48.3 | 42.7 | 35.4 | 44.6 | 42.8 |
+| gen_Qwen_Image_Edit | 48.3 | 42.7 | 41.5 | 45.1 | 44.4 |
 | gen_stargan_v2 | ⏳ | ⏳ | ⏳ | ⏳ | - |
 | gen_step1x_new | 48.7 | 42.9 | 41.0 | 45.5 | 44.5 |
 | gen_step1x_v1p2 | 46.4 | 40.5 | 35.0 | 44.9 | 41.7 |
 | gen_SUSTechGAN | 46.4 | 40.7 | 34.9 | 44.8 | 41.7 |
 | gen_TSIT | ⏳ | ⏳ | ⏳ | ⏳ | - |
-| gen_UniControl | 48.5 | 40.9 | 35.0 | 45.0 | 42.3 |
+| gen_UniControl | 48.9 | 42.9 | 40.7 | 45.0 | 44.4 |
 | gen_VisualCloze | 47.2 | 40.7 | 35.0 | 44.7 | 41.9 |
 | gen_Weather_Effect_Generator | ⏳ | ⏳ | ⏳ | ⏳ | - |
 | gen_albumentations_weather | 47.1 | 40.6 | 35.1 | 44.7 | 41.9 |
@@ -97,8 +97,8 @@ This document tracks the progress of fine-grained testing for trained models.
 | baseline | 50.5 | 43.0 | 41.9 | 47.6 | 45.8 |
 | std_minimal | ⏳ | ⏳ | ⏳ | ⏳ | - |
 | std_photometric_distort | ⏳ | ⏳ | ⏳ | ⏳ | - |
-| std_autoaugment | 48.4 | 41.2 | 35.6 | 45.5 | 42.7 |
-| std_cutmix | 48.6 | 40.9 | 35.8 | 45.0 | 42.6 |
+| std_autoaugment | 48.4 | 42.5 | 35.6 | 45.5 | 43.0 |
+| std_cutmix | 51.6 | 40.9 | 35.8 | 45.0 | 43.3 |
 | std_mixup | 48.1 | 40.9 | 35.7 | 44.5 | 42.3 |
 | std_randaugment | 47.7 | 40.5 | 35.1 | 44.7 | 42.0 |
 
@@ -121,7 +121,7 @@ This document tracks the progress of fine-grained testing for trained models.
 | Strategy | BDD10k | IDD-AW | MapillaryVistas | OUTSIDE15k |
 |----------|--------|--------|--------|--------|
 | gen_Attribute_Hallucination | ✅ | ✅ | ✅ | ✅ |
-| gen_augmenters | ⏳ | ⏳ | ⏳ | ⏳ |
+| gen_augmenters | ✅ | ✅ | ✅ | ✅ |
 | gen_automold | ✅ | ✅ | ✅ | ✅ |
 | gen_CNetSeg | ⏳ | ⏳ | ⏳ | ⏳ |
 | gen_CUT | ✅ | ✅ | ✅ | ✅ |
@@ -161,10 +161,10 @@ This document tracks the progress of fine-grained testing for trained models.
 
 | Dataset | Complete | Running | Pending | Skip |
 |---------|----------|---------|---------|------|
-| BDD10k | 21 | 0 | 7 | 0 |
-| IDD-AW | 21 | 0 | 7 | 0 |
-| MapillaryVistas | 21 | 0 | 7 | 0 |
-| OUTSIDE15k | 21 | 0 | 7 | 0 |
+| BDD10k | 22 | 0 | 6 | 0 |
+| IDD-AW | 22 | 0 | 6 | 0 |
+| MapillaryVistas | 22 | 0 | 6 | 0 |
+| OUTSIDE15k | 22 | 0 | 6 | 0 |
 
 ---
 
