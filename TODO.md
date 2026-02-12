@@ -175,23 +175,42 @@ python analysis_scripts/analyze_domain_gap_corrected.py
 
 Two ratio ablation stages implemented in `batch_training_submission.py`:
 
-#### Cityscapes Ratio Ablation (48 jobs — 77% complete)
-- **Status:** 🔄 37/48 complete, 2 RUN, **9 NOT SUBMITTED** — need `--stage cityscapes-ratio -y`
+#### Cityscapes Ratio Ablation (48 jobs — 79% complete)
+- **Status:** 🔄 38/48 complete, 10 RUN. All submitted.
 - **Ratios:** 0.0, 0.25, 0.75 (0.5 and 1.0 already available from cityscapes-gen)
 - **Strategies:** 3 Diffusion (gen_VisualCloze, gen_step1x_v1p2, gen_flux_kontext) + 1 GAN (gen_TSIT)
 - **Models:** pspnet_r50, segformer_mit-b3, segnext_mscan-b, mask2former_swin-b
-- **Note:** Cityscapes in-domain shows only ~2% spread (near-optimal), so focus analysis on ACDC cross-domain results (3.5% spread)
+
+##### Preliminary Results (2026-02-13, 38/48 trained + tested)
+**Conclusion: Finer-grained ratios (0.125, 0.375, etc.) NOT warranted for Cityscapes.**
+
+| Metric | Cityscapes (in-domain) | ACDC (cross-domain) |
+|--------|----------------------|---------------------|
+| Avg spread across ratios | ~0.5 pp | **1.4 pp** |
+| Non-linearity (mean deviation from linear) | 0.44 pp | 0.61 pp |
+| Significant deviations (>1pp) | 2/35 (6%) | 5/35 (14%) |
+| Best ratio distribution | N/A | 0.00: 25%, 0.25: 25%, 0.50: 31%, 0.75: 19% |
+
+**Key observations:**
+1. **Spread too small** — 1.4 pp ACDC spread. Adding points at 0.125/0.375 would measure noise, not signal.
+2. **No consistent optimal ratio** — peaks uniformly distributed across 0.0-0.75, no "sweet spot" to zoom into.
+3. **Curve shapes noisy** — 44% valley@0.75 (Cityscapes), 31% valley@0.75 (ACDC), but inconsistent across strategy/model combinations.
+4. **Cityscapes near-optimal baseline** — in-domain performance barely changes with ratio (baseline best for 10/16 Cityscapes curves).
+5. **S1 datasets have 10x larger effect sizes** — cross-domain ratio analysis belongs on BDD10k/IDD-AW.
+
+Analysis script: `analysis_scripts/analyze_ratio_preliminary.py`
+
 ```bash
 python scripts/batch_training_submission.py --stage cityscapes-ratio --dry-run
-python scripts/batch_training_submission.py --stage cityscapes-ratio -y  # SUBMIT 9 remaining
 ```
 
-#### Stage 1 Ratio Ablation (24 jobs READY TO SUBMIT)
-- **Status:** ⏳ Stage prepared, ready to submit after cityscapes-ratio analysis
+#### Stage 1 Ratio Ablation (24 jobs — HIGH PRIORITY)
+- **Status:** ⏳ Ready to submit. **This is the primary ratio ablation** — 10x larger effect sizes than Cityscapes.
 - **Ratios:** 0.0, 0.25, 0.75
-- **Datasets:** BDD10k (21.5% spread), IDD-AW (20.9% spread) — **10x larger effect sizes than Cityscapes!**
+- **Datasets:** BDD10k (21.5% spread), IDD-AW (20.9% spread)
 - **Strategies:** gen_VisualCloze (Diffusion), gen_TSIT (GAN)
 - **Models:** pspnet_r50, segformer_mit-b3
+- **Rationale:** Cityscapes ratio analysis showed 1.4 pp spread (too small). S1 datasets show 20+ pp spread, ideal for characterizing ratio effects.
 ```bash
 python scripts/batch_training_submission.py --stage stage1-ratio --dry-run
 python scripts/batch_training_submission.py --stage stage1-ratio -y
