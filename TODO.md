@@ -1,10 +1,10 @@
 # PROVE Project TODO
 
-**Last Updated:** 2026-02-12 (10:00)
+**Last Updated:** 2026-02-12 (13:30)
 
 ---
 
-## 📊 Current Status (2026-02-12 10:00)
+## 📊 Current Status (2026-02-12 13:30)
 
 ### Queue Summary
 | User | Category | RUN | PEND | Total |
@@ -19,6 +19,9 @@
 | **mima2416 subtotal** | | **15** | **78** | **93** |
 
 **Notes:**
+- ✅ **CG stage at 100%** (2026-02-12): Aligned tracker by excluding gen_LANIT (no Cityscapes images), std_minimal, std_photometric_distort (near-baseline). Training: 100/100, Testing: 248/248.
+- ✅ **CG leaderboard ACDC double-counting fixed** (2026-02-12): rglob was picking up ACDC results with `dataset=cityscapes` alongside cross-domain extraction. 124 duplicates removed. Baseline corrected: 49.43→52.65%. Commit `d614141`.
+- 🔄 **gen_Attr_Hall/deeplabv3plus training submitted** (Job 3076652): Brings gen_Attr_Hall CG from 4→5 models. Auto-tests on Cityscapes+ACDC.
 - 🔄 **S2 training wave active** (2026-02-12): gen_Qwen_Image_Edit S2 now running (9 RUN across all 4 datasets). S2 curated strategies queued on both users (~166 PEND total). S2 coverage jumped 128→156 models (35.1%).
 - 🔄 **S1 mask2former nearing completion**: 6 models still running on chge7185 (gen_CNetSeg, gen_Qwen_Image_Edit, gen_stargan_v2 on MapVistas+OUTSIDE15k). S1 jumped from 373→393 models (88.5%).
 - ✅ **CS-Ratio ACDC fix** (2026-02-11): `batch_training_submission.py` ACDC auto-test now includes `cityscapes-ratio` stage (commit `1ace8bf`). 28+9 ACDC tests manually submitted for already-trained models.
@@ -35,9 +38,9 @@
 |-------|-------------------|---------|---------|--------|----------|
 | Stage 1 (15k) | **393/444** | 14 | 40 | 1 | **88.5%** |
 | Stage 2 (15k) | **156/444** | 6 | 279 | 7 | **35.1%** |
-| CG baseline+std (20k) | **20/28** | 0 | 8 | 0 | 71.4% |
-| CG gen_* (20k) | **80/80** | 0 | 4 | 0 | **100%** ✅ |
-| CG total (20k) | **100/108** | 0 | 12 | 0 | 92.6% |
+| CG baseline+std (20k) | **20/20** | 0 | 0 | 0 | **100%** ✅ |
+| CG gen_* (20k) | **80/80** | 0 | 0 | 0 | **100%** ✅ |
+| CG total (20k) | **100/100** | 0 | 0 | 0 | **100%** ✅ |
 | CS-Ratio Ablation (20k) | **37/60** | 4 | 19 | 0 | **61.7%** |
 | Combination Ablation (20k) | 0/18 | 1 RUN + 13 PEND | 0 | 0 | 🔄 Running |
 
@@ -46,7 +49,7 @@
 |-------|------------|---------|-------|
 | Stage 1 | **402** | 5 | 98.8% coverage (2 mask2former running, 3 `_ratio0p50` naming issue) |
 | Stage 2 | **175** | 5 | Complete for trained models |
-| CG Cityscapes | 124 | 0 | **100%** ✅ (25 strategies + ACDC cross-domain) |
+| CG Cityscapes | 124 | 0 | **100%** ✅ (25 strategies, 3 excluded: gen_LANIT (no images), std_minimal, std_photometric_distort) |
 | CG ACDC | 124 | 0 | **100%** ✅ |
 | CS-Ratio CS | 37/37 | 0 | Auto-tested at training completion |
 | CS-Ratio ACDC | 37/37 | 0 | 28+9 manually submitted, all complete |
@@ -61,20 +64,21 @@
 | 3. Submit tests for new completions | Auto | ⏳ After step 2 | `auto_submit_tests.py --stage 1` |
 | 4. Resume 3 legacy 80k models | 3 configs | 🔄 Resumed | Jobs 3031216-18, 35-40k iters remaining → will auto-test at iter_80000 |
 
-### Strategy Leaderboard Highlights (2026-02-12 10:00)
+### Strategy Leaderboard Highlights (2026-02-12 13:30)
 | Stage | Top Strategy | mIoU | Baseline mIoU | Strategies > Baseline | Results |
 |-------|-------------|------|---------------|----------------------|--------|
 | Stage 1 | gen_UniControl | **40.37%** | 37.61% | **25/25 (all!)** | 399 |
 | Stage 1 #2 | gen_cyclediffusion | 40.12% | 37.61% | — | 399 |
 | Stage 1 #3 | gen_Img2Img / std_randaugment | 40.04% | 37.61% | — | 399 |
 | Stage 2 | gen_Qwen_Image_Edit | 42.36% | 40.80% | 13/20 | 180 |
-| CG overall | gen_Attribute_Hallucination | 51.05% | 49.43% | 4/24 | 372 |
-| CG #2 | gen_Img2Img | 49.70% | 49.43% | — | 372 |
+| CG overall | gen_Attribute_Hallucination | **54.13%** | 52.65% | 3/24 | 248 |
+| CG #2 | gen_Img2Img | 52.87% | 52.65% | — | 248 |
 
 **Key findings:**
 - S1: **All** augmentation strategies beat baseline (+1.16 to +2.76 pp). Top-5: gen_UniControl, gen_cyclediffusion, gen_Img2Img, std_randaugment, std_autoaugment
 - S2: gen_Qwen_Image_Edit leads (+1.56 pp); 13/20 beat baseline; std_* strategies **hurt** (−0.27 to −1.97 pp)
-- CG: gen_Attribute_Hallucination leads (+1.62 pp overall), gen_Img2Img #2 (+0.27 pp)
+- CG: gen_Attribute_Hallucination leads (**+1.49 pp** overall, +1.89 pp on ACDC cross-domain). Only 4 models (deeplabv3plus pending: Job 3076652).
+- CG: **ACDC double-counting bug fixed** (commit `d614141`): baseline was 49.43→**52.65** after removing duplicate entries
 - CG: std_* strategies all **below** baseline (opposite of S1 pattern)
 - **mask2former paradox resolved:** S1 degradation driven by rare vehicle class memorization in BDD10k. Rankings robust to rare-class exclusion (r=0.954).
 - **Consistently top across stages:** gen_Attribute_Hallucination (#7 S1, #1 CG), gen_Img2Img (#3 S1, #2 CG)
