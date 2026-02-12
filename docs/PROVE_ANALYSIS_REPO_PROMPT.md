@@ -7,19 +7,19 @@ Use this prompt in a new chat window to set up the analysis/visualization reposi
 ## Prompt
 
 ```
-I want to create a new Python analysis and visualization repository called "PROVE-Analysis" that combines results from a large-scale semantic segmentation robustness evaluation project (PROVE). The project tests whether generative data augmentation improves model robustness under adverse weather conditions.
+I want to create a new Python analysis and visualization repository that combines results from a large-scale semantic segmentation robustness evaluation project (PROVE). The project tests whether generative data augmentation improves model robustness under adverse weather conditions.
 
 ### Goal
 A self-contained analysis repository that:
-1. Imports and processes segmentation performance results (CSV files with per-model, per-domain, per-class mIoU metrics)
+1. Imports and processes segmentation performance results (CSV files with per-dataset, per-model, per-domain, per-class mIoU metrics)
 2. Imports generative quality metrics (FID, LPIPS, SSIM, semantic consistency scores per generation method)
 3. Imports dataset statistics (image counts per domain/dataset, train/test splits)
 4. Correlates generative image quality with downstream segmentation performance
-5. Generates publication-quality IEEE-format figures and LaTeX tables
-6. Provides interactive exploration via Jupyter notebooks
+5. Generates consistent publication-quality IEEE-format figures and LaTeX tables
 
-### Data Sources (to be copied into the repo's `data/` directory)
-
+### Data Sources (strucured by directory)
+-The file names below are just examples and could differ
+#### PROVE
 **Segmentation Results (3 CSVs, each with columns: strategy, dataset, model, test_type, mIoU, mAcc, aAcc, fwIoU, per_domain_metrics [JSON], per_class_metrics [JSON]):**
 - `downstream_results.csv` — Stage 1: Clear-day training, cross-domain robustness (413 test results, 26 strategies, 4 datasets, 4 models)
 - `downstream_results_stage2.csv` — Stage 2: All-domain training (195 results, 22 strategies)
@@ -31,16 +31,21 @@ A self-contained analysis repository that:
 - `per_domain_breakdown_{stage}.csv` — Strategy × Domain mIoU (clear_day, cloudy, dawn_dusk, foggy, night, rainy, snowy)
 - `per_model_breakdown_{stage}.csv` — Strategy × Model mIoU
 
-**Generative Quality:**
-- `generative_quality.csv` — Per-method: CQS, FID, LPIPS, SSIM, PSNR, semantic Pixel_Accuracy, mIoU, fw_IoU, Num_Images (20 methods)
-
 **Ablation Studies:**
 - `ratio_ablation_full.csv` — Real/generated mix ratios (0.00–0.88) × strategies × datasets × models with mIoU
 - `extended_training_analysis.csv` — Iteration convergence (40k–320k) with mIoU per checkpoint
 
+#### PRISM
+**Generative Quality:**
+- `generative_quality.csv` — Per-method: CQS, FID, LPIPS, SSIM, PSNR, semantic Pixel_Accuracy, mIoU, fw_IoU, Num_Images (20 methods)
+
+#### DATA
 **Dataset Metadata:**
 - `split_statistics.json` — 6 datasets, 7 weather domains, train/test split counts (103,203 total images)
 - `all_manifests_summary.json` — Per-generation-method: total generated, total matched, match rate, domains
+
+#### SWIFT
+**Domain distribution**
 
 ### Key Analysis Dimensions
 1. **Strategy Effectiveness**: Which augmentation strategies improve robustness? (leaderboard analysis)
@@ -64,9 +69,9 @@ A self-contained analysis repository that:
 ```
 PROVE-Analysis/
 ├── data/                    # Raw data files (CSVs, JSONs)
-│   ├── segmentation/        # downstream_results*.csv
-│   ├── quality/             # generative_quality.csv
-│   ├── ablation/            # ratio and extended training CSVs
+│   ├── PROVE/        # downstream_results*.csv + breakdowns and ablation result CSVs
+│   ├── PRISM/             # generative_quality.csv
+│   ├── ablatio/            # 
 │   ├── leaderboard/         # strategy leaderboard breakdown CSVs
 │   └── metadata/            # split_statistics.json, manifests
 ├── src/                     # Analysis modules
@@ -77,13 +82,6 @@ PROVE-Analysis/
 │   ├── ablation_analysis.py # Ratio and extended training analysis
 │   ├── plotting.py          # Shared plotting utilities (IEEE styling)
 │   └── latex_export.py      # LaTeX table generation
-├── notebooks/               # Analysis notebooks
-│   ├── 01_data_overview.ipynb
-│   ├── 02_strategy_leaderboard.ipynb
-│   ├── 03_quality_vs_performance.ipynb
-│   ├── 04_domain_analysis.ipynb
-│   ├── 05_ablation_studies.ipynb
-│   └── 06_publication_figures.ipynb
 ├── figures/                 # Generated figures
 │   ├── ieee/                # Publication-ready IEEE format
 │   └── exploration/         # Interactive/exploratory figures
@@ -108,20 +106,26 @@ Please set up the repository structure, create the core analysis modules, and im
 
 1. Copy this prompt into a new Copilot chat window
 2. Open the new workspace/directory where you want the repo created
-3. After setup, copy the data files from PROVE into the `data/` directory:
+3. Export data from PROVE using the automated export script:
 
 ```bash
 # From PROVE repository root:
-cp downstream_results.csv /path/to/PROVE-Analysis/data/segmentation/
-cp downstream_results_stage2.csv /path/to/PROVE-Analysis/data/segmentation/
-cp downstream_results_cityscapes_gen.csv /path/to/PROVE-Analysis/data/segmentation/
-cp results/generative_quality/generative_quality.csv /path/to/PROVE-Analysis/data/quality/
-cp results/ratio_ablation_full.csv /path/to/PROVE-Analysis/data/ablation/
-cp results/ratio_ablation_consolidated.csv /path/to/PROVE-Analysis/data/ablation/
-cp results/extended_training_analysis.csv /path/to/PROVE-Analysis/data/ablation/
-cp result_figures/leaderboard/breakdowns/*.csv /path/to/PROVE-Analysis/data/leaderboard/
 
-# From external data:
-cp /scratch/aaa_exchange/AWARE/FINAL_SPLITS/split_statistics.json /path/to/PROVE-Analysis/data/metadata/
-cp /scratch/aaa_exchange/AWARE/GENERATED_IMAGES/all_manifests_summary.json /path/to/PROVE-Analysis/data/metadata/
+# Preview what will be exported (recommended first):
+python scripts/export_analysis_data.py /path/to/PROVE-Analysis/data --dry-run
+
+# Export core data (67 files, ~4 MB):
+python scripts/export_analysis_data.py /path/to/PROVE-Analysis/data
+
+# Export with per-strategy quality stats (214 files, ~5 MB):
+python scripts/export_analysis_data.py /path/to/PROVE-Analysis/data --include-stats
+
+# Export with FID reference features too (221 files, ~235 MB):
+python scripts/export_analysis_data.py /path/to/PROVE-Analysis/data --include-stats --include-fid
 ```
+
+The export script:
+- Copies all downstream results CSVs, leaderboard breakdowns, quality metrics
+- Extracts lightweight aggregate stats from large per-image quality JSONs
+- Copies dataset metadata (split statistics, generation manifests)
+- Writes `_export_manifest.json` for data provenance tracking
