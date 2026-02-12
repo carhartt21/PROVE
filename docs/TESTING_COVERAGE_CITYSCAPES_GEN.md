@@ -1,6 +1,6 @@
 # Testing Coverage Report
 
-**Generated:** 2026-02-12 09:52
+**Generated:** 2026-02-12 13:07
 
 ## Summary
 
@@ -64,7 +64,6 @@
 | gen_flux_kontext | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF |
 | gen_Img2Img | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF |
 | gen_IP2P | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF |
-| gen_LANIT | ⏳ | ⏳ |
 | gen_Qwen_Image_Edit | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF |
 | gen_stargan_v2 | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF |
 | gen_step1x_new | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF |
@@ -76,8 +75,6 @@
 | gen_Weather_Effect_Generator | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF |
 | gen_albumentations_weather | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF |
 | baseline | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF |
-| std_minimal | ⏳ | ⏳ |
-| std_photometric_distort | ⏳ | ⏳ |
 | std_autoaugment | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF |
 | std_cutmix | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF |
 | std_mixup | ✅ DLV3+, PSP, SF | ✅ DLV3+, PSP, SF |

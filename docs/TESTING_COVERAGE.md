@@ -1,27 +1,27 @@
 # Testing Coverage Report
 
-**Generated:** 2026-02-12 09:52
+**Generated:** 2026-02-12 13:07
 
 ## Summary
 
 | Status | Count | Percentage |
 |--------|------:|----------:|
-| ✅ Complete (valid mIoU) | 402 | 98.8% |
+| ✅ Complete (valid mIoU) | 414 | 99.5% |
 | 🔄 Running | 0 | 0.0% |
 | ⏳ Pending (in queue) | 0 | 0.0% |
 | ⚠️ Buggy (mIoU < 5%) | 0 | 0.0% |
 | 🔃 Stale (wrong checkpoint) | 0 | 0.0% |
-| ❌ Missing (no results) | 5 | 1.2% |
-| **Total** | **407** | **100%** |
+| ❌ Missing (no results) | 2 | 0.5% |
+| **Total** | **416** | **100%** |
 
 ## Per-Dataset Breakdown
 
 ### BDD10k
-- Complete: 101/105 (96.2%)
+- Complete: 107/108 (99.1%)
 - Running: 0
 - Pending (in queue): 0
 - Buggy (mIoU < 5%): 0
-- Missing (no results): 3
+- Missing (no results): 0
 
 ### IDD-AW
 - Complete: 105/105 (100.0%)
@@ -31,18 +31,18 @@
 - Missing (no results): 0
 
 ### MapillaryVistas
-- Complete: 98/105 (93.3%)
+- Complete: 101/105 (96.2%)
 - Running: 0
 - Pending (in queue): 0
 - Buggy (mIoU < 5%): 0
-- Missing (no results): 2
+- Missing (no results): 1
 
 ### OUTSIDE15k
-- Complete: 98/105 (93.3%)
+- Complete: 101/105 (96.2%)
 - Running: 0
 - Pending (in queue): 0
 - Buggy (mIoU < 5%): 0
-- Missing (no results): 0
+- Missing (no results): 1
 
 ## Running Configurations
 
@@ -64,11 +64,8 @@
 
 | Strategy | Dataset | Model | Issue |
 |----------|---------|-------|-------|
-| gen_CNetSeg | mapillaryvistas | Mask2Former | missing |
-| gen_Qwen_Image_Edit | mapillaryvistas | Mask2Former | missing |
-| gen_albumentations_weather | bdd10k | SegNeXt | missing |
-| gen_automold | bdd10k | SegNeXt | missing |
-| gen_step1x_v1p2 | bdd10k | SegNeXt | missing |
+| gen_Weather_Effect_Generator | outside15k | Mask2Former | missing |
+| gen_stargan_v2 | mapillaryvistas | Mask2Former | missing |
 
 ## Complete Configurations
 

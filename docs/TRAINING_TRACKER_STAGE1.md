@@ -1,6 +1,6 @@
 # Training Tracker - Stage 1 (Clear Day)
 
-**Last Updated:** 2026-02-12 09:51
+**Last Updated:** 2026-02-12 13:07
 
 ---
 
@@ -23,17 +23,17 @@
 
 | Category | Configs | Complete (4/4) | Partial | Running | Pending | Failed |
 |----------|---------|----------------|---------|---------|---------|--------|
-| **Generative (gen_*)** | 83 | 63 | 8 | 12 | 0 | 1 |
+| **Generative (gen_*)** | 84 | 69 | 2 | 11 | 0 | 2 |
 | **Standard (std_*)** | 28 | 18 | 0 | 2 | 8 | 0 |
-| **TOTAL** | 111 | 81 | 8 | 14 | 8 | 1 |
+| **TOTAL** | 112 | 87 | 2 | 13 | 8 | 2 |
 
 ### Individual Model Trainings
 
 | Category | Total Models | ✅ Complete | 🔄 Running | ⏳ Pending | ❌ Failed |
 |----------|-------------|-------------|------------|-----------|----------|
-| **Generative (gen_*)** | 332 | 315 | 12 | 8 | 1 |
+| **Generative (gen_*)** | 336 | 321 | 11 | 2 | 2 |
 | **Standard (std_*)** | 112 | 78 | 2 | 32 | 0 |
-| **TOTAL** | 444 | 393 | 14 | 40 | 1 |
+| **TOTAL** | 448 | 399 | 13 | 34 | 2 |
 
 ### Generative Image Augmentation Strategies (❌ INVALID)
 

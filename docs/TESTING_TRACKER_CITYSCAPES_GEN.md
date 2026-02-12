@@ -1,6 +1,6 @@
 # Testing Progress Tracker
 
-**Last Updated:** 2026-02-12 09:52
+**Last Updated:** 2026-02-12 13:07
 
 
 This document tracks the progress of fine-grained testing for trained models.
@@ -76,7 +76,6 @@ This document tracks the progress of fine-grained testing for trained models.
 | gen_flux_kontext | 68.7 | 51.8 | 60.3 |
 | gen_Img2Img | 69.0 | 51.5 | 60.3 |
 | gen_IP2P | 68.7 | 51.5 | 60.1 |
-| gen_LANIT | ⏳ | ⏳ | - |
 | gen_Qwen_Image_Edit | 67.9 | 50.9 | 59.4 |
 | gen_stargan_v2 | 67.4 | 51.0 | 59.2 |
 | gen_step1x_new | 66.6 | 51.0 | 58.8 |
@@ -93,8 +92,6 @@ This document tracks the progress of fine-grained testing for trained models.
 | Strategy | Cityscapes | ACDC (cross-domain) | Avg |
 |----------|-------:|-------:|-------:|
 | baseline | 69.0 | 51.1 | 60.0 |
-| std_minimal | ⏳ | ⏳ | - |
-| std_photometric_distort | ⏳ | ⏳ | - |
 | std_autoaugment | 68.7 | 52.5 | 60.6 |
 | std_cutmix | 69.1 | 51.3 | 60.2 |
 | std_mixup | 69.0 | 50.9 | 59.9 |
@@ -128,7 +125,6 @@ This document tracks the progress of fine-grained testing for trained models.
 | gen_flux_kontext | ✅ | ✅ |
 | gen_Img2Img | ✅ | ✅ |
 | gen_IP2P | ✅ | ✅ |
-| gen_LANIT | ⏳ | ⏳ |
 | gen_Qwen_Image_Edit | ✅ | ✅ |
 | gen_stargan_v2 | ✅ | ✅ |
 | gen_step1x_new | ✅ | ✅ |
@@ -145,8 +141,6 @@ This document tracks the progress of fine-grained testing for trained models.
 | Strategy | Cityscapes | ACDC (cross-domain) |
 |----------|--------|--------|
 | baseline | ✅ | ✅ |
-| std_minimal | ⏳ | ⏳ |
-| std_photometric_distort | ⏳ | ⏳ |
 | std_autoaugment | ✅ | ✅ |
 | std_cutmix | ✅ | ✅ |
 | std_mixup | ✅ | ✅ |
@@ -159,8 +153,8 @@ This document tracks the progress of fine-grained testing for trained models.
 
 | Dataset | Complete | Running | Pending | Skip |
 |---------|----------|---------|---------|------|
-| Cityscapes | 25 | 0 | 3 | 0 |
-| ACDC (cross-domain) | 25 | 0 | 3 | 0 |
+| Cityscapes | 25 | 0 | 0 | 0 |
+| ACDC (cross-domain) | 25 | 0 | 0 | 0 |
 
 ---
 

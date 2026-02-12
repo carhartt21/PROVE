@@ -115,6 +115,13 @@ STAGE2_EXCLUDED_STRATEGIES = {
     'gen_cyclediffusion',
 }
 
+# Cityscapes-Gen excludes these strategies (no Cityscapes generated images or near-identical to baseline)
+CG_EXCLUDED_STRATEGIES = {
+    'gen_LANIT',              # No Cityscapes generated images exist
+    'std_minimal',            # RandomCrop + RandomFlip only — essentially same as baseline
+    'std_photometric_distort',  # Essentially same as baseline
+}
+
 # Skip combinations - UPDATED: All strategies now have full 4/4 coverage after manifest regeneration
 SKIP_COMBOS = set()  # No more skip combos needed
 
@@ -701,7 +708,14 @@ def collect_status(domain_filter='clear_day', verbose=False):
     
     datasets = DATASETS_CITYSCAPES_GEN if domain_filter == 'cityscapes_gen' else DATASETS
     
-    for strategy in ALL_STRATEGIES:
+    # Filter strategies based on domain_filter
+    strategies_to_check = ALL_STRATEGIES
+    if domain_filter == 'all_domains':
+        strategies_to_check = [s for s in ALL_STRATEGIES if s not in STAGE2_EXCLUDED_STRATEGIES]
+    elif domain_filter == 'cityscapes_gen':
+        strategies_to_check = [s for s in ALL_STRATEGIES if s not in CG_EXCLUDED_STRATEGIES]
+    
+    for strategy in strategies_to_check:
         status_matrix[strategy] = {}
         
         for dataset in datasets:
@@ -873,9 +887,12 @@ def collect_detailed_coverage(domain_filter='clear_day', verbose=False):
     summary = {'complete': 0, 'running': 0, 'pending': 0, 'missing': 0, 'failed': 0}
     
     # For Stage 2 (all_domains), exclude certain strategies not in Stage 2 plan
+    # For Cityscapes-Gen, exclude strategies without Cityscapes images or near-baseline
     strategies_to_check = ALL_STRATEGIES
     if domain_filter == 'all_domains':
         strategies_to_check = [s for s in ALL_STRATEGIES if s not in STAGE2_EXCLUDED_STRATEGIES]
+    elif domain_filter == 'cityscapes_gen':
+        strategies_to_check = [s for s in ALL_STRATEGIES if s not in CG_EXCLUDED_STRATEGIES]
     
     datasets = DATASETS_CITYSCAPES_GEN if domain_filter == 'cityscapes_gen' else DATASETS
     
@@ -1101,6 +1118,17 @@ def update_tracker(status_matrix, summary, domain_filter='clear_day', tracker_pa
     if tracker_path is None:
         tracker_path = TRACKER_PATH
     
+    # Determine which strategies to include based on domain_filter
+    if domain_filter == 'all_domains':
+        excluded = STAGE2_EXCLUDED_STRATEGIES
+    elif domain_filter == 'cityscapes_gen':
+        excluded = CG_EXCLUDED_STRATEGIES
+    else:
+        excluded = set()
+    
+    gen_strategies = [s for s in GENERATIVE_STRATEGIES if s not in excluded]
+    std_strategies = [s for s in STANDARD_STRATEGIES if s not in excluded]
+    
     # Read current tracker (or create new one if doesn't exist)
     # Build dynamic column headers from DATASETS
     ds_headers = ' | '.join(DATASET_DISPLAY.get(ds, ds) for ds in DATASETS)
@@ -1148,13 +1176,13 @@ def update_tracker(status_matrix, summary, domain_filter='clear_day', tracker_pa
     
     # Build new generative strategies table
     gen_rows = [table_header, table_separator]
-    for strategy in GENERATIVE_STRATEGIES:
+    for strategy in gen_strategies:
         gen_rows.append(format_status_row(strategy, status_matrix[strategy], DATASETS))
     gen_table = '\n'.join(gen_rows)
     
     # Build new standard strategies table
     std_rows = [table_header, table_separator]
-    for strategy in STANDARD_STRATEGIES:
+    for strategy in std_strategies:
         std_rows.append(format_status_row(strategy, status_matrix[strategy], DATASETS))
     std_table = '\n'.join(std_rows)
     
@@ -1177,7 +1205,7 @@ def update_tracker(status_matrix, summary, domain_filter='clear_day', tracker_pa
     gen_model_running = 0
     gen_model_pending = 0
     gen_model_failed = 0
-    for s in GENERATIVE_STRATEGIES:
+    for s in gen_strategies:
         for d in DATASETS:
             model_info = status_matrix[s][d].get('model_info', {})
             models = model_info.get('models', {})
@@ -1195,7 +1223,7 @@ def update_tracker(status_matrix, summary, domain_filter='clear_day', tracker_pa
     std_model_running = 0
     std_model_pending = 0
     std_model_failed = 0
-    for s in STANDARD_STRATEGIES:
+    for s in std_strategies:
         for d in DATASETS:
             model_info = status_matrix[s][d].get('model_info', {})
             models = model_info.get('models', {})
@@ -1210,39 +1238,39 @@ def update_tracker(status_matrix, summary, domain_filter='clear_day', tracker_pa
                     std_model_pending += 1
     
     # Fallback: count configurations if model_info not available
-    gen_complete = sum(1 for s in GENERATIVE_STRATEGIES 
+    gen_complete = sum(1 for s in gen_strategies 
                        for d in DATASETS 
                        if status_matrix[s][d]['status'] == 'complete')
-    gen_partial = sum(1 for s in GENERATIVE_STRATEGIES 
+    gen_partial = sum(1 for s in gen_strategies 
                       for d in DATASETS 
                       if status_matrix[s][d]['status'] == 'partial')
-    gen_running = sum(1 for s in GENERATIVE_STRATEGIES 
+    gen_running = sum(1 for s in gen_strategies 
                       for d in DATASETS 
                       if status_matrix[s][d]['status'] == 'running')
-    gen_pending = sum(1 for s in GENERATIVE_STRATEGIES 
+    gen_pending = sum(1 for s in gen_strategies 
                       for d in DATASETS 
                       if status_matrix[s][d]['status'] == 'pending')
-    gen_failed = sum(1 for s in GENERATIVE_STRATEGIES 
+    gen_failed = sum(1 for s in gen_strategies 
                      for d in DATASETS 
                      if status_matrix[s][d]['status'] == 'failed')
-    gen_total = len(GENERATIVE_STRATEGIES) * len(DATASETS) - 1  # -1 for Qwen/BDD10k
+    gen_total = len(gen_strategies) * len(DATASETS)
     
-    std_complete = sum(1 for s in STANDARD_STRATEGIES 
+    std_complete = sum(1 for s in std_strategies 
                        for d in DATASETS 
                        if status_matrix[s][d]['status'] == 'complete')
-    std_partial = sum(1 for s in STANDARD_STRATEGIES 
+    std_partial = sum(1 for s in std_strategies 
                       for d in DATASETS 
                       if status_matrix[s][d]['status'] == 'partial')
-    std_running = sum(1 for s in STANDARD_STRATEGIES 
+    std_running = sum(1 for s in std_strategies 
                       for d in DATASETS 
                       if status_matrix[s][d]['status'] == 'running')
-    std_pending = sum(1 for s in STANDARD_STRATEGIES 
+    std_pending = sum(1 for s in std_strategies 
                       for d in DATASETS 
                       if status_matrix[s][d]['status'] == 'pending')
-    std_failed = sum(1 for s in STANDARD_STRATEGIES 
+    std_failed = sum(1 for s in std_strategies 
                      for d in DATASETS 
                      if status_matrix[s][d]['status'] == 'failed')
-    std_total = len(STANDARD_STRATEGIES) * len(DATASETS)
+    std_total = len(std_strategies) * len(DATASETS)
     
     # Individual model totals
     gen_model_total = gen_total * num_models

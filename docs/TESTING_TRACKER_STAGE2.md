@@ -1,6 +1,6 @@
 # Testing Progress Tracker
 
-**Last Updated:** 2026-02-12 09:52
+**Last Updated:** 2026-02-12 13:07
 
 
 This document tracks the progress of fine-grained testing for trained models.
@@ -53,15 +53,15 @@ This document tracks the progress of fine-grained testing for trained models.
 | Rank | Strategy | Avg mIoU | Best Dataset | Best mIoU | Datasets |
 |------|----------|----------|--------------|-----------|----------|
 | 🥇 | baseline | 45.8 | BDD10k | 50.5 | 4/4 |
-| 🥈 | gen_Qwen_Image_Edit | 44.6 | BDD10k | 48.3 | 2/4 |
-| 🥉 | gen_step1x_new | 44.5 | BDD10k | 48.7 | 4/4 |
-| 4. | gen_Img2Img | 44.4 | BDD10k | 49.0 | 4/4 |
+| 🥈 | gen_step1x_new | 44.5 | BDD10k | 48.7 | 4/4 |
+| 🥉 | gen_Img2Img | 44.4 | BDD10k | 49.0 | 4/4 |
+| 4. | gen_Qwen_Image_Edit | 42.8 | BDD10k | 48.3 | 4/4 |
 | 5. | std_autoaugment | 42.7 | BDD10k | 48.4 | 4/4 |
 | 6. | std_cutmix | 42.6 | BDD10k | 48.6 | 4/4 |
-| 7. | std_mixup | 42.3 | BDD10k | 48.1 | 4/4 |
-| 8. | std_randaugment | 42.0 | BDD10k | 47.7 | 4/4 |
-| 9. | gen_IP2P | 42.0 | BDD10k | 47.7 | 4/4 |
-| 10. | gen_VisualCloze | 41.9 | BDD10k | 47.2 | 4/4 |
+| 7. | gen_UniControl | 42.3 | BDD10k | 48.5 | 4/4 |
+| 8. | std_mixup | 42.3 | BDD10k | 48.1 | 4/4 |
+| 9. | std_randaugment | 42.0 | BDD10k | 47.7 | 4/4 |
+| 10. | gen_IP2P | 42.0 | BDD10k | 47.7 | 4/4 |
 
 
 ### Generative Image Augmentation Strategies
@@ -79,13 +79,13 @@ This document tracks the progress of fine-grained testing for trained models.
 | gen_Img2Img | 49.0 | 42.8 | 41.0 | 44.8 | 44.4 |
 | gen_IP2P | 47.7 | 40.5 | 35.0 | 44.7 | 42.0 |
 | gen_LANIT | 46.6 | 40.6 | 34.7 | 45.1 | 41.8 |
-| gen_Qwen_Image_Edit | 48.3 | 40.8 | ⏳ | ⏳ | 44.6 |
+| gen_Qwen_Image_Edit | 48.3 | 42.7 | 35.4 | 44.6 | 42.8 |
 | gen_stargan_v2 | ⏳ | ⏳ | ⏳ | ⏳ | - |
 | gen_step1x_new | 48.7 | 42.9 | 41.0 | 45.5 | 44.5 |
 | gen_step1x_v1p2 | 46.4 | 40.5 | 35.0 | 44.9 | 41.7 |
 | gen_SUSTechGAN | 46.4 | 40.7 | 34.9 | 44.8 | 41.7 |
 | gen_TSIT | ⏳ | ⏳ | ⏳ | ⏳ | - |
-| gen_UniControl | 46.4 | 40.7 | 35.0 | 45.0 | 41.8 |
+| gen_UniControl | 48.5 | 40.9 | 35.0 | 45.0 | 42.3 |
 | gen_VisualCloze | 47.2 | 40.7 | 35.0 | 44.7 | 41.9 |
 | gen_Weather_Effect_Generator | ⏳ | ⏳ | ⏳ | ⏳ | - |
 | gen_albumentations_weather | 47.1 | 40.6 | 35.1 | 44.7 | 41.9 |
@@ -131,7 +131,7 @@ This document tracks the progress of fine-grained testing for trained models.
 | gen_Img2Img | ✅ | ✅ | ✅ | ✅ |
 | gen_IP2P | ✅ | ✅ | ✅ | ✅ |
 | gen_LANIT | ✅ | ✅ | ✅ | ✅ |
-| gen_Qwen_Image_Edit | ✅ | ✅ | ⏳ | ⏳ |
+| gen_Qwen_Image_Edit | ✅ | ✅ | ✅ | ✅ |
 | gen_stargan_v2 | ⏳ | ⏳ | ⏳ | ⏳ |
 | gen_step1x_new | ✅ | ✅ | ✅ | ✅ |
 | gen_step1x_v1p2 | ✅ | ✅ | ✅ | ✅ |
@@ -163,8 +163,8 @@ This document tracks the progress of fine-grained testing for trained models.
 |---------|----------|---------|---------|------|
 | BDD10k | 21 | 0 | 7 | 0 |
 | IDD-AW | 21 | 0 | 7 | 0 |
-| MapillaryVistas | 20 | 0 | 8 | 0 |
-| OUTSIDE15k | 20 | 0 | 8 | 0 |
+| MapillaryVistas | 21 | 0 | 7 | 0 |
+| OUTSIDE15k | 21 | 0 | 7 | 0 |
 
 ---
 

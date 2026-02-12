@@ -1,22 +1,22 @@
 # Training Tracker - Cityscapes-Gen
 
-**Last Updated:** 2026-02-12 09:51
+**Last Updated:** 2026-02-12 13:06
 
 ## Progress Summary
 
 | Category | Configs | Complete (4/4) | Partial | Running | Pending | Failed |
 |----------|---------|----------------|---------|---------|---------|--------|
-| **Generative (gen_*)** | 20 | 20 | 0 | 0 | 1 | 0 |
-| **Standard (std_*)** | 7 | 5 | 0 | 0 | 2 | 0 |
-| **TOTAL** | 27 | 25 | 0 | 0 | 3 | 0 |
+| **Generative (gen_*)** | 20 | 20 | 0 | 0 | 0 | 0 |
+| **Standard (std_*)** | 5 | 5 | 0 | 0 | 0 | 0 |
+| **TOTAL** | 25 | 25 | 0 | 0 | 0 | 0 |
 
 ### Individual Model Trainings
 
 | Category | Total Models | ✅ Complete | 🔄 Running | ⏳ Pending | ❌ Failed |
 |----------|-------------|-------------|------------|-----------|----------|
-| **Generative (gen_*)** | 80 | 80 | 0 | 4 | 0 |
-| **Standard (std_*)** | 28 | 20 | 0 | 8 | 0 |
-| **TOTAL** | 108 | 100 | 0 | 12 | 0 |
+| **Generative (gen_*)** | 80 | 80 | 0 | 0 | 0 |
+| **Standard (std_*)** | 20 | 20 | 0 | 0 | 0 |
+| **TOTAL** | 100 | 100 | 0 | 0 | 0 |
 
 ### Generative Image Augmentation Strategies
 
@@ -32,7 +32,6 @@
 | gen_flux_kontext | ✅ |  |
 | gen_Img2Img | ✅ |  |
 | gen_IP2P | ✅ |  |
-| gen_LANIT | ⏳ |  |
 | gen_Qwen_Image_Edit | ✅ | No BDD10k data |
 | gen_stargan_v2 | ✅ |  |
 | gen_step1x_new | ✅ |  |
@@ -48,8 +47,6 @@
 | Strategy | Cityscapes | Notes |
 |----------|----------|-------|
 | baseline | ✅ |  |
-| std_minimal | ⏳ |  |
-| std_photometric_distort | ⏳ |  |
 | std_autoaugment | ✅ |  |
 | std_cutmix | ✅ |  |
 | std_mixup | ✅ |  |

@@ -1,6 +1,6 @@
 # Testing Progress Tracker
 
-**Last Updated:** 2026-02-12 09:52
+**Last Updated:** 2026-02-12 13:07
 
 
 This document tracks the progress of fine-grained testing for trained models.
@@ -61,7 +61,7 @@ This document tracks the progress of fine-grained testing for trained models.
 | 7. | gen_automold | 43.8 | BDD10k | 49.5 | 4/4 |
 | 8. | std_cutmix | 43.7 | BDD10k | 49.4 | 4/4 |
 | 9. | gen_Img2Img | 43.5 | BDD10k | 51.7 | 4/4 |
-| 10. | gen_cycleGAN | 43.5 | BDD10k | 49.6 | 4/4 |
+| 10. | gen_Qwen_Image_Edit | 43.5 | BDD10k | 49.5 | 4/4 |
 
 
 ### Generative Image Augmentation Strategies
@@ -71,7 +71,7 @@ This document tracks the progress of fine-grained testing for trained models.
 | gen_Attribute_Hallucination | 50.5 | 40.0 | 35.3 | 43.9 | 42.4 |
 | gen_augmenters | 49.1 | 40.2 | 34.9 | 43.5 | 41.9 |
 | gen_automold | 49.5 | 40.6 | 40.7 | 44.2 | 43.8 |
-| gen_CNetSeg | 49.8 | 40.2 | 35.0 | 43.3 | 42.1 |
+| gen_CNetSeg | 49.8 | 40.2 | 35.5 | 45.5 | 42.8 |
 | gen_CUT | 48.3 | 40.2 | 35.3 | 44.3 | 42.0 |
 | gen_cyclediffusion | 48.9 | 41.2 | 40.3 | 45.3 | 44.0 |
 | gen_cycleGAN | 49.6 | 40.4 | 40.4 | 43.5 | 43.5 |
@@ -79,7 +79,7 @@ This document tracks the progress of fine-grained testing for trained models.
 | gen_Img2Img | 51.7 | 41.5 | 35.6 | 45.2 | 43.5 |
 | gen_IP2P | 49.0 | 40.4 | 35.5 | 45.2 | 42.5 |
 | gen_LANIT | 50.1 | 40.2 | 35.1 | 43.3 | 42.2 |
-| gen_Qwen_Image_Edit | 49.5 | 40.4 | 35.1 | 43.5 | 42.1 |
+| gen_Qwen_Image_Edit | 49.5 | 40.4 | 40.5 | 43.5 | 43.5 |
 | gen_stargan_v2 | 50.9 | 39.8 | 34.6 | 43.7 | 42.3 |
 | gen_step1x_new | 49.9 | 40.6 | 35.2 | 45.4 | 42.8 |
 | gen_step1x_v1p2 | 47.0 | 40.1 | 35.5 | 45.8 | 42.1 |

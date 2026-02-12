@@ -160,6 +160,16 @@ STANDARD_STRATEGIES = [
 
 ALL_STRATEGIES = GENERATIVE_STRATEGIES + STANDARD_STRATEGIES
 
+# Cityscapes-Gen excludes these strategies (no Cityscapes generated images or near-identical to baseline)
+CG_EXCLUDED_STRATEGIES = {
+    'gen_LANIT',              # No Cityscapes generated images exist
+    'std_minimal',            # RandomCrop + RandomFlip only — essentially same as baseline
+    'std_photometric_distort',  # Essentially same as baseline
+}
+
+# Current stage (set by run_stage)
+CURRENT_STAGE = '1'
+
 # Skip combinations (no data available)
 # NOTE: This list should be empty now that most strategies have full 4/4 coverage
 # Only add combinations here if training data is truly unavailable
@@ -440,10 +450,15 @@ def collect_test_status(verbose=False):
     retest_jobs, job_counts = get_retest_jobs()
     miou_results = load_miou_results()
     
+    # Filter strategies based on current stage
+    strategies_to_check = ALL_STRATEGIES
+    if CURRENT_STAGE == 'cityscapes-gen':
+        strategies_to_check = [s for s in ALL_STRATEGIES if s not in CG_EXCLUDED_STRATEGIES]
+    
     status_matrix = {}
     summary = defaultdict(lambda: defaultdict(int))  # summary[dataset][status] = count
     
-    for strategy in ALL_STRATEGIES:
+    for strategy in strategies_to_check:
         status_matrix[strategy] = {}
         
         for dataset in DATASETS:
@@ -870,8 +885,13 @@ def get_per_model_test_status():
     except:
         pass
     
+    # Filter strategies based on current stage
+    strategies_to_check = ALL_STRATEGIES
+    if CURRENT_STAGE == 'cityscapes-gen':
+        strategies_to_check = [s for s in ALL_STRATEGIES if s not in CG_EXCLUDED_STRATEGIES]
+    
     # Scan all model directories
-    for strategy in ALL_STRATEGIES:
+    for strategy in strategies_to_check:
         for dataset in DATASETS:
             dataset_dir, test_subdir, fallback_subdir = resolve_dataset_paths(dataset)
             strategy_path = WEIGHTS_ROOT / strategy / dataset_dir
@@ -1291,7 +1311,17 @@ def main():
 def run_stage(stage, verbose=False, coverage_only=False):
     """Run testing tracker for a single stage."""
     # Declare global variables at the start of the function
-    global WEIGHTS_ROOT, TRACKER_PATH, DATASETS
+    global WEIGHTS_ROOT, TRACKER_PATH, DATASETS, CURRENT_STAGE
+    global ALL_STRATEGIES, GENERATIVE_STRATEGIES, STANDARD_STRATEGIES
+    
+    # Set current stage for strategy filtering
+    CURRENT_STAGE = stage
+    
+    # Apply stage-specific strategy exclusions
+    if stage == 'cityscapes-gen':
+        GENERATIVE_STRATEGIES = [s for s in GENERATIVE_STRATEGIES if s not in CG_EXCLUDED_STRATEGIES]
+        STANDARD_STRATEGIES = [s for s in STANDARD_STRATEGIES if s not in CG_EXCLUDED_STRATEGIES]
+        ALL_STRATEGIES = GENERATIVE_STRATEGIES + STANDARD_STRATEGIES
     
     # Select paths based on stage
     if stage == 'cityscapes-gen':
