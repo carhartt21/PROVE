@@ -374,6 +374,17 @@ def load_results(stage_config: dict, weights_root: Path,
 
     # Extract cross-domain results if configured
     if cross_domain:
+        # Remove cross-domain test results from the main DataFrame to avoid
+        # double-counting. rglob picks up test_results_acdc/ with dataset=cityscapes,
+        # but cross-domain extraction correctly maps them to dataset=acdc.
+        cd_test_dirs = {cd_config['test_dir'] for cd_config in cross_domain.values()}
+        if not df.empty and 'test_type' in df.columns:
+            before = len(df)
+            df = df[~df['test_type'].isin(cd_test_dirs)]
+            removed = before - len(df)
+            if removed > 0:
+                print(f"Removed {removed} duplicate cross-domain entries from main results")
+
         cd_df = extract_cross_domain_results(weights_root, cross_domain,
                                               checkpoint_filter=checkpoint_filter,
                                               verbose=verbose)
