@@ -23,7 +23,7 @@
 - 🔄 **S1 mask2former nearing completion**: 6 models still running on chge7185 (gen_CNetSeg, gen_Qwen_Image_Edit, gen_stargan_v2 on MapVistas+OUTSIDE15k). S1 jumped from 373→393 models (88.5%).
 - ✅ **CS-Ratio ACDC fix** (2026-02-11): `batch_training_submission.py` ACDC auto-test now includes `cityscapes-ratio` stage (commit `1ace8bf`). 28+9 ACDC tests manually submitted for already-trained models.
 - 🔄 **CS-Ratio ablation**: 37/60 trained (61.7%), 4 running, 19 pending. All deeplabv3plus configs (12) still pending.
-- ⚠️ **3 S1 segnext_mscan-b/bdd10k models trained under `_ratio0p50` naming** but have no test results. Need manual test submission.
+- 🔄 **3 S1 legacy 80k-config models resumed** (2026-02-12): `gen_albumentations_weather`, `gen_automold`, `gen_step1x_v1p2` segnext_mscan-b/bdd10k were trained under `_ratio0p50` naming with `max_iters=80000` (legacy config). Were killed at 40-45k iters. Resumed via `unified_training.py --resume-from` (Jobs 3031216-3031218) to complete to 80k. Interim tests: iter_15000→43.4-43.8 mIoU, last ckpt (40-45k)→45.8-47.3 mIoU. Baseline (80k)=41.27.
 - ⚠️ **Combination ablation lock contention fix** (2026-02-12): Fixed lock file names. 1 RUN + 13 PEND.
 - ✅ **IDD-AW leaderboard bug fixed** (2026-02-12): Commit `4b3529c`.
 - ✅ **Mask2former paradox analyzed** (2026-02-12): Root cause is rare vehicle class memorization in BDD10k.
@@ -37,6 +37,32 @@
 **Impact:** Overall rankings unchanged (IDD-AW data was in the DataFrame all along — only per-dataset column matching was broken).
 
 **Fix:** Changed `'idd-aw'` → `'iddaw'` in S1/S2 stage configs. Commit `4b3529c`.
+
+---
+
+## 🔄 IN PROGRESS: Resume 3 Legacy 80k Models (2026-02-12)
+
+**Problem:** 3 S1 segnext_mscan-b/bdd10k models were trained under legacy 80k pipeline but killed at 40-45k iterations:
+- `gen_albumentations_weather/bdd10k/segnext_mscan-b_ratio0p50` — killed at iter_45000
+- `gen_automold/bdd10k/segnext_mscan-b_ratio0p50` — killed at iter_40000  
+- `gen_step1x_v1p2/bdd10k/segnext_mscan-b_ratio0p50` — killed at iter_40000
+
+**Root cause analysis:**
+- Config has `max_iters=80000`, PolyLR schedule 1000→80000 — same as baseline (which ran full 80k)
+- At iter_15000 in an 80k schedule, LR has barely decayed (~82% of max) — NOT comparable to proper 15k models
+- Interim testing showed: iter_15000 → 43.4-43.8 mIoU, last ckpt (40-45k) → 45.8-47.3 mIoU
+
+**Config comparison (legacy 80k vs current 15k):**
+| Parameter | Legacy 80k | Current 15k | Same? |
+|-----------|-----------|------------|-------|
+| Batch size | 16 (8 gen + 8 real) | 16 | ✅ |
+| LR | 0.00048 (AdamW) | 0.00048 | ✅ |
+| Scheduler | LinearLR warmup → PolyLR(0.9) | Same | ✅ |
+| PolyLR range | 1000→**80000** | 1000→**15000** | ❌ |
+
+**Solution:** Resume training to 80k iterations (same as baseline). Submitted Jobs 3031216-3031218.
+- Symlinks created: `segnext_mscan-b → segnext_mscan-b_ratio0p50` for tracker detection
+- Once `iter_80000.pth` exists, `auto_submit_tests.py` will auto-test
 
 ---
 
@@ -93,10 +119,10 @@ CG testing: **124/124 Cityscapes + 124/124 ACDC = 248/248 total. Zero missing.**
 #### S1 Path to 100% — IN PROGRESS (80GB GPUs) 🔄
 | Step | Items | Status | Notes |
 |------|-------|--------|-------|
-| 1. S1 testing of trained models | 402/407 | ✅ 98.8% | 5 missing (2 still training, 3 `_ratio0p50` naming) |
+| 1. S1 testing of trained models | 402/407 | ✅ 98.8% | 5 missing (2 still training, 3 legacy 80k resuming) |
 | 2. Remaining S1 training | ~40 configs | 🔄 chge7185 (80GB GPUs) | 6 RUN (CNetSeg, Qwen, stargan_v2 on MapVistas+OUTSIDE15k) |
 | 3. Submit tests for new completions | Auto | ⏳ After step 2 | `auto_submit_tests.py --stage 1` |
-| 4. Fix 3 `_ratio0p50` naming issues | 3 configs | ⏳ Need manual test submission | gen_albumentations_weather/automold/step1x_v1p2 bdd10k segnext |
+| 4. Resume 3 legacy 80k models | 3 configs | 🔄 Resumed | Jobs 3031216-18, 35-40k iters remaining → will auto-test at iter_80000 |
 
 **Root Cause (resolved):** mask2former_swin-b OOMs on 40GB GPUs with 66-class/24-class datasets. Jobs now submitted to 80GB GPUs from dedicated machine.
 
