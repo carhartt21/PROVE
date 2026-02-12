@@ -1,61 +1,68 @@
 # PROVE Project TODO
 
-**Last Updated:** 2026-02-12 (22:45)
+**Last Updated:** 2026-02-13 (00:30)
 
 ---
 
-## 📊 Current Status (2026-02-12 22:45)
+## 📊 Current Status (2026-02-13 00:30)
 
 ### Queue Summary
 | User | Category | RUN | PEND | Total |
 |------|----------|----:|-----:|------:|
-| chge7185 | S1 mask2former (MapVistas+OUTSIDE15k, 80GB) | 6 | 6 | 12 |
-| chge7185 | S2 curated strategies | 0 | 102 | 102 |
-| **chge7185 subtotal** | | **6** | **108** | **114** |
-| mima2416 | S2 training (gen_flux_kontext, std_* on mask2former) | 5 | ~12 | ~17 |
-| mima2416 | CS-Ratio ablation | ~6 | ~5 | ~11 |
-| mima2416 | Combination ablation | ~7 | ~2 | ~9 |
-| **mima2416 subtotal** | | **~16** | **~21** | **~37** |
+| chge7185 | S2 (mask2former) | 2 | 0 | 2 |
+| chge7185 | CS-Ratio | 2 | 0 | 2 |
+| chge7185 | Noise ablation | 3 | 21 | 24 |
+| chge7185 | Extended CG (**DUPLICATE** — kill these) | 0 | 10 | 10 |
+| **chge7185 subtotal** | | **7** | **31** | **38** |
+| mima2416 | CS-Ratio | 8 | 0 | 8 |
+| mima2416 | Combination ablation | 9 | 0 | 9 |
+| mima2416 | Extended S1 | 1 | 19 | 20 |
+| mima2416 | Extended CG | 0 | 10 | 10 |
+| mima2416 | S2 (via completed job requeue) | 0 | 3 | 3 |
+| **mima2416 subtotal** | | **17** | **33** | **50** |
 
 **Notes:**
-- ✅ **3 legacy 80k models COMPLETE** (2026-02-12): gen_albumentations_weather, gen_automold, gen_step1x_v1p2 (segnext/bdd10k) — all reached iter_80000 + tested (mIoU: 43.4-43.8%, baseline 80k: 41.27%).
-- 🔄 **Combination ablation progressing** (2026-02-12 21:15): 4/18 complete (iter_20000), ~7 RUN, remaining PEND. Lock contention fix working.
-- 🔄 **CS-Ratio ablation**: 37/48 complete, 11 submitted (3118689-3118699).
-- 🔄 **Noise ablation**: Code reviewed ✅, 24 gen_random_noise jobs ready. Will be submitted from chge7185. Baselines skipped (identical to existing S1 baselines).
-- 🔄 **S2 training wave active**: gen_flux_kontext + std_autoaugment/cutmix on mask2former running. S2 coverage: 188/400 = 47.0%.
-- 🔄 **S1 at 91.1%**: 408/448 complete. Remaining 40 are mask2former on MapVistas/OUTSIDE15k (chge7185, 80GB GPUs).
+- ⚠️ **DUPLICATE extended-cg jobs**: 10 identical extended-cg jobs submitted on BOTH mima2416 and chge7185. Kill the chge7185 set (`bkill 3118898-3118907` from chge7185) — training locks prevent double-training but wastes queue slots.
+- 🔄 **S1 at 93.1%**: 417/448 complete (up from 408). Remaining 31 are mask2former on MapVistas/OUTSIDE15k.
+- 🔄 **S2 at 63.3%**: 253/400 complete (up from 188). Strong progress.
+- 🔄 **CS-Ratio at 79.2%**: 38/48 complete (up from 37). 10 more running.
+- 🔄 **Combination at 55.6%**: 10/18 complete (up from 4). 8 running (all segformer models remaining).
+- 🔄 **Noise ablation started**: 3 RUN on chge7185 (BDD10k deeplabv3plus, pspnet, segformer). 21 PEND.
+- 🔄 **Extended training submitted**: 20 extended-s1 + 10 extended-cg on mima2416 (1 RUN, rest PEND).
 
 ---
 
 ### Training Progress
 | Stage | Complete (models) | Running | Pending | Failed | Coverage |
 |-------|-------------------|---------|---------|--------|----------|
-| Stage 1 (15k) | **408/448** | 6 | 34 | 0 | **91.1%** |
-| Stage 2 (15k) | **188/400** | 7 | 202 | 3 | **47.0%** |
+| Stage 1 (15k) | **417/448** | ~2 | ~29 | 0 | **93.1%** |
+| Stage 2 (15k) | **253/400** | ~4 | ~143 | 0 | **63.3%** |
 | CG baseline+std (20k) | **20/20** | 0 | 0 | 0 | **100%** ✅ |
 | CG gen_* (20k) | **80/80** | 0 | 0 | 0 | **100%** ✅ |
 | CG total (20k) | **100/100** | 0 | 0 | 0 | **100%** ✅ |
-| CS-Ratio Ablation (20k) | **37/48** | ~11 | 0 | 0 | 🔄 **77.1%** |
-| Combination Ablation (20k) | **4/18** | ~7 | ~7 | 0 | 🔄 **22.2%** |
-| Noise Ablation (15k) | **0/24** | 0 | 24 (submit from chge7185) | 0 | ⏳ **0%** |
+| CS-Ratio Ablation (20k) | **38/48** | 10 | 0 | 0 | 🔄 **79.2%** |
+| Combination Ablation (20k) | **10/18** | 8 | 0 | 0 | 🔄 **55.6%** |
+| Noise Ablation (15k) | **0/24** | 3 | 21 | 0 | 🔄 **started** |
+| Extended S1 (45k) | **0/20** | 1 | 19 | 0 | 🔄 **started** |
+| Extended CG (60k) | **0/10** | 0 | 10 | 0 | ⏳ **queued** |
 
 ### Testing Progress
 | Stage | Valid Tests | Missing | Notes |
 |-------|------------|---------|-------|
 | Stage 1 | **420** | **0** | **100% coverage** ✅ |
-| Stage 2 | **233** | 7 | Auto-test on training completion; 7 still training |
+| Stage 2 | **253+** | ~TBD | Auto-test on training completion |
 | CG Cityscapes | **125** | 0 | **100%** ✅ |
 | CG ACDC | **125** | 0 | **100%** ✅ |
-| CS-Ratio CS | **37/37** | 0 | Auto-tested at training completion |
-| CS-Ratio ACDC | **37/37** | 0 | Complete |
+| CS-Ratio CS | **38/38** | 0 | Auto-tested at training completion |
+| CS-Ratio ACDC | **38/38** | 0 | Complete |
 
 ### 100% Coverage Plan
 
-#### S1 Path to 100% — IN PROGRESS (80GB GPUs) 🔄
+#### S1 Path to 100% — IN PROGRESS 🔄
 | Step | Items | Status | Notes |
 |------|-------|--------|-------|
 | 1. S1 testing of trained models | **420/420** | ✅ **100%** | 0 missing |
-| 2. Remaining S1 training | ~34 configs | 🔄 chge7185 (80GB GPUs) | 6 RUN (mask2former on MapVistas+OUTSIDE15k) |
+| 2. Remaining S1 training | ~31 configs | 🔄 mask2former (MapVistas+OUTSIDE15k) | S1 at 417/448 |
 | 3. Submit tests for new completions | Auto | ⏳ After step 2 | `auto_submit_tests.py --stage 1` |
 | 4. Legacy 80k models | 3 configs | ✅ **COMPLETE** | All reached iter_80000 + tested (43.4-43.8%) |
 
@@ -266,6 +273,9 @@ python scripts/batch_training_submission.py --stage combination -y
 4. **Family interaction:** Do instruct/edit gen_* benefit more from std_* than domain-specific gen_*?
 
 ### §7c: Extended Training Ablation Study
+
+**Status:** 🔄 Submitted (2026-02-13). 20 extended-s1 on mima2416 (1 RUN, 19 PEND). 10 extended-cg on mima2416 (PEND).
+⚠️ **10 DUPLICATE extended-cg jobs on chge7185** — kill with `bkill 3118898-3118907`.
 
 Tests whether augmentation benefits persist, grow, or diminish with extended training (3× standard iterations).
 
