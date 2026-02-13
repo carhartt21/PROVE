@@ -653,3 +653,36 @@ python analysis_scripts/generate_strategy_leaderboard.py --stage all
 3. **File permissions set to 775/664 for multi-user access**
 4. **Testing runs automatically after training completes**
 5. **NEVER write temp files to `/tmp`** — use project dir or `/scratch/aaa_exchange/AWARE/`
+
+### Publication Data Directory
+
+Results with 100% coverage must be copied to the IEEE paper repository for analysis and figure generation:
+
+```
+/home/mima2416/repositories/-IEEE-Access-01-26-Data-Augmentation/data/data/
+├── PROVE/               # downstream_results_stage1.csv, downstream_results_cityscapes_gen.csv
+├── leaderboard/         # strategy/per_dataset/per_domain/per_model breakdowns (S1 + CG)
+├── ablation/            # ratio_ablation_full_results.csv, extended_training_analysis.csv, combination_results.csv
+├── metadata/            # split_statistics.json, manifests
+├── PRISM/               # generative_quality.csv
+└── SWIFT/               # Domain distribution data
+```
+
+**When to copy:** After a stage reaches 100% coverage and results are verified, copy the corresponding CSVs:
+```bash
+# Copy downstream results
+cp downstream_results.csv /home/mima2416/repositories/-IEEE-Access-01-26-Data-Augmentation/data/data/PROVE/downstream_results_stage1.csv
+cp downstream_results_cityscapes_gen.csv /home/mima2416/repositories/-IEEE-Access-01-26-Data-Augmentation/data/data/PROVE/
+
+# Copy leaderboard breakdowns
+cp result_figures/leaderboard/breakdowns/*_stage1.csv /home/mima2416/repositories/-IEEE-Access-01-26-Data-Augmentation/data/data/leaderboard/
+cp result_figures/leaderboard/breakdowns/*_cityscapes_gen.csv /home/mima2416/repositories/-IEEE-Access-01-26-Data-Augmentation/data/data/leaderboard/
+
+# Copy ablation results
+cp result_figures/ratio_ablation/ratio_ablation_full_results.csv /home/mima2416/repositories/-IEEE-Access-01-26-Data-Augmentation/data/data/ablation/
+cp result_figures/extended_training/data/extended_training_analysis.csv /home/mima2416/repositories/-IEEE-Access-01-26-Data-Augmentation/data/data/ablation/
+cp result_figures/combination_ablation/combination_results.csv /home/mima2416/repositories/-IEEE-Access-01-26-Data-Augmentation/data/data/ablation/
+```
+
+**Currently copied (2026-02-13):** S1 (420 tests), CG (250 tests), S1-Ratio (24/24), Extended S1 (20/20), Combination (17/18).
+**Pending:** S2 (58.8% — wait for completion), Noise 50% + 100%, CS-Ratio (96%).
