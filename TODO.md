@@ -1,33 +1,33 @@
 # PROVE Project TODO
 
-**Last Updated:** 2026-02-13 (15:49)
+**Last Updated:** 2026-02-13 (16:10)
 
 ---
 
-## 📊 Current Status (2026-02-13 15:49)
+## 📊 Current Status (2026-02-13 16:10)
 
 ### Queue Summary
 | User | Category | RUN | PEND | Total |
 |------|----------|----:|-----:|------:|
 | chge7185 | S2 (mapvistas+outside15k) | 7 | 23 | 30 |
 | **chge7185 subtotal** | | **7** | **23** | **30** |
-| mima2416 | S2 (mapvistas+outside15k) | 19 | 19 | 38 |
+| mima2416 | S2 (all datasets) | 19 | 99+19 | 137 |
 | mima2416 | 100% Noise (5×5) | 5 | 20 | 25 |
 | mima2416 | Extended CG (resume) | 0 | 5 | 5 |
 | mima2416 | CS-Ratio (resume) | 0 | 2 | 2 |
 | mima2416 | Combo (missing model) | 0 | 1 | 1 |
 | mima2416 | Misc (prove tests) | 0 | 2 | 2 |
-| **mima2416 subtotal** | | **24** | **49** | **73** |
+| **mima2416 subtotal** | | **24** | **147** | **171** |
 
 **Notes:**
-- 🔄 **S1 at 91%**: 408/448 individual models complete (tracker). 420/420 tested. 6 running, 34 pending — most are mask2former on MapVistas/OUTSIDE15k.
-- 🔄 **S2 at 58.8%**: 235/400 individual models complete, 19 running, 138 pending, 8 failed. Testing: 301 total, **14 missing**.
-- 🔄 **CS-Ratio at 96%**: 46/48 complete. 2 stalled — **resume jobs submitted** (PEND).
-- 🔄 **Combination at 94%**: 17/18 complete + tested. `gen_Qwen_Image_Edit+std_cutmix/segformer` **in queue** (PEND).
-- ✅ **Noise (50%) at 100%**: **24/24 complete + tested!** Results: **+2.72 pp avg** over baseline (HRNet excluded). Gen_* ≈ noise (+2.52 pp vs +2.72 pp) — regularization effect.
-- 🔄 **Noise (100%) submitted**: 25 jobs (5 models × 5 datasets), 0/25 complete — all in queue.
-- ✅ **Extended S1 COMPLETE**: 20/20 at 45k, all tested. Augmentation gap persists at 3× training.
-- 🔄 **Extended CG**: 5/10 at 60k (tested), 5 at 50k. **Resume jobs submitted** (PEND).
+- 🔄 **S1 at 91%**: 408/448 individual models complete (tracker). 420/420 tested. Remaining: mask2former on MapVistas/OUTSIDE15k (on chge7185 queue).
+- 🔄 **S2 ALL SUBMITTED**: 235/400 complete. **99 new jobs submitted** (3216823–3216945) for all remaining configs with generated images. 12 configs skipped (no images). Target: ~388/400 (97%).
+- 🔄 **CS-Ratio at 96%**: 46/48 complete. 2 stalled — **resume jobs PEND**.
+- 🔄 **Combination at 94%**: 17/18 complete + tested. Last job **PEND**.
+- ✅ **Noise (50%) at 100%**: **24/24 complete + tested!** Results: **+2.72 pp avg** over baseline (HRNet excluded). Gen_* ≈ noise — regularization effect.
+- 🔄 **Noise (100%) submitted**: 25 jobs (5×5), 0/25 complete — all PEND.
+- ✅ **Extended S1 COMPLETE**: 20/20 at 45k, all tested.
+- 🔄 **Extended CG**: 5/10 at 60k (tested), 5 at 50k. Resume jobs PEND.
 
 ---
 
@@ -35,7 +35,7 @@
 | Stage | Complete (models) | In-Progress | Pending | Coverage |
 |-------|-------------------|-------------|---------|----------|
 | Stage 1 (15k) | **408/448** | 6 | 34 | **91.1%** |
-| Stage 2 (15k) | **235/400** | 19 | 138 | 🔄 **58.8%** |
+| Stage 2 (15k) | **235/400** | 19 | 147 (all submitted) | 🔄 **58.8%** → ~97% |
 | CG total (20k) | **100/100** | 0 | 0 | **100%** ✅ |
 | CS-Ratio Ablation (20k) | **46/48** | 0 | 2 (resume PEND) | 🔄 **95.8%** |
 | S1-Ratio Ablation (15k) | **24/24** | 0 | 0 | **100%** ✅ |
@@ -87,6 +87,16 @@
 - CG: gen_Img2Img leads (+0.22 pp). Only 4/24 beat baseline — CG effect sizes much smaller than S1/S2.
 - **⚠️ Noise finding:** Random noise at 50% ratio gives **+2.72 pp** avg — comparable to gen_* strategies (+2.52 pp avg). Gen_* strategies perform **-0.34 pp below noise** on average. Only 1/21 gen_* strategies (gen_UniControl, +0.24pp) beats noise. **Most S1 augmentation gains are regularization, not weather-domain content.**
 - Full leaderboards: `result_figures/leaderboard/`
+
+### Suggested Next Steps (Priority Order)
+
+1. **Wait for S2 completion** (~2-3 days for 99 jobs) → S2 at ~97%. Then regenerate S2 leaderboard + copy to IEEE repo.
+2. **Wait for 100% noise results** (25 jobs, ~1-2 days) → compare 100% vs 50% noise vs gen_*.
+3. **Wait for ExtCG resume** (5 jobs) → complete Extended CG ablation (10/10).
+4. **Wait for CS-Ratio resume** (2 jobs) → complete CS-Ratio (48/48).
+5. **Wait for Combination** (1 job) → complete Combination (18/18).
+6. **After S2 completion:** Copy S2 results to IEEE publication repo. Run `generate_strategy_leaderboard.py --stage 2` and analyze.
+7. **Final analysis:** Run comprehensive noise analysis (50% vs 100% vs gen_*), update paper figures.
 
 ---
 
@@ -518,6 +528,8 @@ The generated image training pipeline has **3 layers**:
 ## ✅ Completed Tasks Archive
 
 ### 2026-02-13
+- ✅ **S2 remaining 99 jobs submitted** (3216823–3216945) — all configs with generated images now in pipeline. S2 target: ~388/400 (97%).
+- ✅ **Verified results copied to IEEE repo** — S1 (420), CG (250), S1-Ratio (24/24), Extended S1 (20/20), Combination (17/18) → `/home/mima2416/repositories/-IEEE-Access-01-26-Data-Augmentation/data/data/`
 - ✅ **HRNet excluded from all analysis** — suspiciously low baselines (15–21% vs 27–50%). Removed from `analyze_noise_ablation.py`, `generate_strategy_leaderboard.py` (CG stage). Noise avg corrected: +4.35→**+2.72 pp**.
 - ✅ **Noise vs gen_* comparison** — gen_* avg **-0.34 pp below noise** across 16 overlapping configs. Only gen_UniControl (+0.24pp) beats noise. Conclusion: S1 augmentation gains are mostly regularization, not weather-domain content.
 - ✅ **100% Noise ablation submitted** — 25 jobs (5 models × 5 datasets) at ratio 0.00. Tests if real data is necessary when "augmentation" is pure noise.
