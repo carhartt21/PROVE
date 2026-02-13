@@ -1,6 +1,6 @@
 # Training Tracker - Stage 2 (All Domains)
 
-**Last Updated:** 2026-02-12 21:11
+**Last Updated:** 2026-02-13 15:47
 
 ---
 
@@ -23,17 +23,17 @@
 
 | Category | Configs | Complete (4/4) | Partial | Running | Pending | Failed |
 |----------|---------|----------------|---------|---------|---------|--------|
-| **Generative (gen_*)** | 80 | 25 | 34 | 4 | 15 | 2 |
-| **Standard (std_*)** | 20 | 3 | 6 | 3 | 8 | 0 |
-| **TOTAL** | 100 | 28 | 40 | 7 | 23 | 2 |
+| **Generative (gen_*)** | 80 | 38 | 18 | 11 | 11 | 2 |
+| **Standard (std_*)** | 20 | 9 | 2 | 1 | 8 | 0 |
+| **TOTAL** | 100 | 47 | 20 | 12 | 19 | 2 |
 
 ### Individual Model Trainings
 
 | Category | Total Models | ✅ Complete | 🔄 Running | ⏳ Pending | ❌ Failed |
 |----------|-------------|-------------|------------|-----------|----------|
-| **Generative (gen_*)** | 320 | 153 | 4 | 160 | 3 |
-| **Standard (std_*)** | 80 | 35 | 3 | 42 | 0 |
-| **TOTAL** | 400 | 188 | 7 | 202 | 3 |
+| **Generative (gen_*)** | 320 | 192 | 18 | 102 | 8 |
+| **Standard (std_*)** | 80 | 43 | 1 | 36 | 0 |
+| **TOTAL** | 400 | 235 | 19 | 138 | 8 |
 
 ### Generative Image Augmentation Strategies (❌ INVALID)
 
@@ -64,8 +64,8 @@
 
 | Strategy | BDD10k | IDD-AW | MapillaryVistas | OUTSIDE15k | Notes |
 |----------|------ | ------ | --------------- | ----------|-------|
-| baseline | ✅ | 🔄 | 3/4 | 3/4 |  |
+| baseline | ✅ | 🔄 | ✅ | ✅ |  |
 | std_minimal | ⏳ | ⏳ | ⏳ | ⏳ |  |
 | std_photometric_distort | ⏳ | ⏳ | ⏳ | ⏳ |  |
-| std_autoaugment | ✅ | ✅ | 🔄 | 🔄 |  |
-| std_randaugment | 2/4 | 2/4 | 2/4 | 2/4 |  |
+| std_autoaugment | ✅ | ✅ | ✅ | ✅ |  |
+| std_randaugment | 2/4 | 2/4 | ✅ | ✅ |  |

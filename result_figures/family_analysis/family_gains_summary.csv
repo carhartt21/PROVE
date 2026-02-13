@@ -1,0 +1,10 @@
+Family,N_Strategies,N_Results,fwIoU_Gain_Mean,fwIoU_Gain_Std,mIoU_Gain_Mean,Best_Strategy,Best_Gain,Strategies_Improving
+2D Rendering,4,66,1.7156345193357296,0.18902117758843295,5.563335815958254,gen_albumentations_weather,1.8492926757963772,2
+Standard Augmentation,2,32,1.3849873412879599,2.222453757130535,2.4022821028350148,std_randaugment,1.4975722571972048,2
+Standard Mixing,2,32,1.3082470217511948,2.2681435975068385,2.247052115842605,std_cutmix,1.4067544037865316,2
+Modern Diffusion,5,81,1.1349251336201007,,4.478751228092904,gen_step1x_v1p2,1.1349251336201007,1
+Baseline,1,19,0.0,0.0,0.0,baseline,0.0,0
+Instruct/Edit,3,48,,,,,,0
+CNN/GAN,4,64,,,,,,0
+Diffusion I2I,3,48,,,,,,0
+Style Transfer,2,30,,,,,,0

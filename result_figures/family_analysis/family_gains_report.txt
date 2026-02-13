@@ -1,0 +1,26 @@
+Strategy Family Analysis Report (fwIoU-based)
+============================================================
+
+PRIMARY METRIC: fwIoU (frequency-weighted IoU)
+COMPARISON: Gains/Losses relative to baseline
+
+FAMILY PERFORMANCE SUMMARY
+----------------------------------------
+               Family  N_Strategies  N_Results  fwIoU_Gain_Mean  fwIoU_Gain_Std  mIoU_Gain_Mean              Best_Strategy  Best_Gain  Strategies_Improving
+         2D Rendering             4         66         1.715635        0.189021        5.563336 gen_albumentations_weather   1.849293                     2
+Standard Augmentation             2         32         1.384987        2.222454        2.402282            std_randaugment   1.497572                     2
+      Standard Mixing             2         32         1.308247        2.268144        2.247052                 std_cutmix   1.406754                     2
+     Modern Diffusion             5         81         1.134925             NaN        4.478751            gen_step1x_v1p2   1.134925                     1
+             Baseline             1         19         0.000000        0.000000        0.000000                   baseline   0.000000                     0
+        Instruct/Edit             3         48              NaN             NaN             NaN                        NaN        NaN                     0
+              CNN/GAN             4         64              NaN             NaN             NaN                        NaN        NaN                     0
+        Diffusion I2I             3         48              NaN             NaN             NaN                        NaN        NaN                     0
+       Style Transfer             2         30              NaN             NaN             NaN                        NaN        NaN                     0
+
+KEY FINDINGS
+----------------------------------------
+Total Configurations: 67
+Configurations Improving: 46 (68.7%)
+Mean fwIoU Gain: 1.35%
+
+Best Strategy: gen_albumentations_weather (+1.85% fwIoU)

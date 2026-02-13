@@ -1,54 +1,18 @@
-strategy,dataset,model,mIoU,mAcc,combination_type,n_components,components,component_families,component_1,component_2
-gen_Attribute_Hallucination+std_photometric_distort,iddaw,pspnet_r50_ratio0p5,43.3879,,Other,2,gen_Attribute_Hallucination+std_photometric_distort,Unknown,gen_Attribute_Hallucination,std_photometric_distort
-gen_Attribute_Hallucination+std_photometric_distort,iddaw,segformer_mit-b5_ratio0p5,46.9524,,Other,2,gen_Attribute_Hallucination+std_photometric_distort,Unknown,gen_Attribute_Hallucination,std_photometric_distort
-gen_Qwen_Image_Edit+std_photometric_distort,iddaw,pspnet_r50_ratio0p5,43.1881,,Other,2,gen_Qwen_Image_Edit+std_photometric_distort,Unknown,gen_Qwen_Image_Edit,std_photometric_distort
-gen_Qwen_Image_Edit+std_photometric_distort,iddaw,segformer_mit-b5_ratio0p5,46.9306,,Other,2,gen_Qwen_Image_Edit+std_photometric_distort,Unknown,gen_Qwen_Image_Edit,std_photometric_distort
-gen_Qwen_Image_Edit+std_autoaugment,iddaw,pspnet_r50_ratio0p5,38.2142,,Generative + Standard,2,gen_Qwen_Image_Edit+std_autoaugment,Unknown+Standard Augmentation,gen_Qwen_Image_Edit,std_autoaugment
-gen_Qwen_Image_Edit+std_autoaugment,iddaw,segformer_mit-b5_ratio0p5,43.2858,,Generative + Standard,2,gen_Qwen_Image_Edit+std_autoaugment,Unknown+Standard Augmentation,gen_Qwen_Image_Edit,std_autoaugment
-gen_Qwen_Image_Edit+std_cutmix,iddaw,pspnet_r50_ratio0p5,37.3346,,Generative + Standard,2,gen_Qwen_Image_Edit+std_cutmix,Unknown+Standard Mixing,gen_Qwen_Image_Edit,std_cutmix
-gen_Qwen_Image_Edit+std_cutmix,iddaw,segformer_mit-b5_ratio0p5,43.2808,,Generative + Standard,2,gen_Qwen_Image_Edit+std_cutmix,Unknown+Standard Mixing,gen_Qwen_Image_Edit,std_cutmix
-gen_Qwen_Image_Edit+std_mixup,iddaw,pspnet_r50_ratio0p5,36.1031,,Generative + Standard,2,gen_Qwen_Image_Edit+std_mixup,Unknown+Standard Mixing,gen_Qwen_Image_Edit,std_mixup
-gen_Qwen_Image_Edit+std_mixup,iddaw,segformer_mit-b5_ratio0p5,43.061,,Generative + Standard,2,gen_Qwen_Image_Edit+std_mixup,Unknown+Standard Mixing,gen_Qwen_Image_Edit,std_mixup
-gen_Qwen_Image_Edit+std_randaugment,iddaw,pspnet_r50_ratio0p5,37.6486,,Generative + Standard,2,gen_Qwen_Image_Edit+std_randaugment,Unknown+Standard Augmentation,gen_Qwen_Image_Edit,std_randaugment
-gen_Qwen_Image_Edit+std_randaugment,iddaw,segformer_mit-b5_ratio0p5,43.4235,,Generative + Standard,2,gen_Qwen_Image_Edit+std_randaugment,Unknown+Standard Augmentation,gen_Qwen_Image_Edit,std_randaugment
-gen_flux_kontext+std_photometric_distort,iddaw,pspnet_r50_ratio0p5,43.3426,,Other,2,gen_flux_kontext+std_photometric_distort,Unknown,gen_flux_kontext,std_photometric_distort
-gen_flux_kontext+std_photometric_distort,iddaw,segformer_mit-b5_ratio0p5,46.9409,,Other,2,gen_flux_kontext+std_photometric_distort,Unknown,gen_flux_kontext,std_photometric_distort
-gen_flux_kontext+std_autoaugment,iddaw,pspnet_r50_ratio0p5,37.912,,Generative + Standard,2,gen_flux_kontext+std_autoaugment,Unknown+Standard Augmentation,gen_flux_kontext,std_autoaugment
-gen_flux_kontext+std_autoaugment,iddaw,segformer_mit-b5_ratio0p5,43.5585,,Generative + Standard,2,gen_flux_kontext+std_autoaugment,Unknown+Standard Augmentation,gen_flux_kontext,std_autoaugment
-gen_flux_kontext+std_cutmix,iddaw,pspnet_r50_ratio0p5,37.3051,,Generative + Standard,2,gen_flux_kontext+std_cutmix,Unknown+Standard Mixing,gen_flux_kontext,std_cutmix
-gen_flux_kontext+std_cutmix,iddaw,segformer_mit-b5_ratio0p5,43.3644,,Generative + Standard,2,gen_flux_kontext+std_cutmix,Unknown+Standard Mixing,gen_flux_kontext,std_cutmix
-gen_flux_kontext+std_mixup,iddaw,pspnet_r50_ratio0p5,35.4907,,Generative + Standard,2,gen_flux_kontext+std_mixup,Unknown+Standard Mixing,gen_flux_kontext,std_mixup
-gen_flux_kontext+std_mixup,iddaw,segformer_mit-b5_ratio0p5,43.2108,,Generative + Standard,2,gen_flux_kontext+std_mixup,Unknown+Standard Mixing,gen_flux_kontext,std_mixup
-gen_flux_kontext+std_randaugment,iddaw,pspnet_r50_ratio0p5,37.3806,,Generative + Standard,2,gen_flux_kontext+std_randaugment,Unknown+Standard Augmentation,gen_flux_kontext,std_randaugment
-gen_flux_kontext+std_randaugment,iddaw,segformer_mit-b5_ratio0p5,43.1652,,Generative + Standard,2,gen_flux_kontext+std_randaugment,Unknown+Standard Augmentation,gen_flux_kontext,std_randaugment
-gen_stargan_v2+std_photometric_distort,iddaw,pspnet_r50_ratio0p5,43.4861,,Other,2,gen_stargan_v2+std_photometric_distort,Unknown,gen_stargan_v2,std_photometric_distort
-gen_stargan_v2+std_photometric_distort,iddaw,segformer_mit-b5_ratio0p5,46.8493,,Other,2,gen_stargan_v2+std_photometric_distort,Unknown,gen_stargan_v2,std_photometric_distort
-gen_step1x_new+std_photometric_distort,iddaw,pspnet_r50_ratio0p5,43.3948,,Other,2,gen_step1x_new+std_photometric_distort,Unknown,gen_step1x_new,std_photometric_distort
-gen_step1x_new+std_photometric_distort,iddaw,segformer_mit-b5_ratio0p5,46.9649,,Other,2,gen_step1x_new+std_photometric_distort,Unknown,gen_step1x_new,std_photometric_distort
-gen_step1x_new+std_autoaugment,iddaw,pspnet_r50_ratio0p5,37.7392,,Generative + Standard,2,gen_step1x_new+std_autoaugment,Unknown+Standard Augmentation,gen_step1x_new,std_autoaugment
-gen_step1x_new+std_autoaugment,iddaw,segformer_mit-b5_ratio0p5,43.6125,,Generative + Standard,2,gen_step1x_new+std_autoaugment,Unknown+Standard Augmentation,gen_step1x_new,std_autoaugment
-gen_step1x_new+std_cutmix,iddaw,pspnet_r50_ratio0p5,37.5696,,Generative + Standard,2,gen_step1x_new+std_cutmix,Unknown+Standard Mixing,gen_step1x_new,std_cutmix
-gen_step1x_new+std_cutmix,iddaw,segformer_mit-b5_ratio0p5,43.2879,,Generative + Standard,2,gen_step1x_new+std_cutmix,Unknown+Standard Mixing,gen_step1x_new,std_cutmix
-gen_step1x_new+std_mixup,iddaw,segformer_mit-b5_ratio0p5,43.194,,Generative + Standard,2,gen_step1x_new+std_mixup,Unknown+Standard Mixing,gen_step1x_new,std_mixup
-gen_step1x_new+std_randaugment,iddaw,pspnet_r50_ratio0p5,36.7124,,Generative + Standard,2,gen_step1x_new+std_randaugment,Unknown+Standard Augmentation,gen_step1x_new,std_randaugment
-gen_step1x_new+std_randaugment,iddaw,segformer_mit-b5_ratio0p5,43.3755,,Generative + Standard,2,gen_step1x_new+std_randaugment,Unknown+Standard Augmentation,gen_step1x_new,std_randaugment
-std_autoaugment+std_photometric_distort,iddaw,pspnet_r50,43.5117,,Other,2,std_autoaugment+std_photometric_distort,Standard Augmentation+Unknown,std_autoaugment,std_photometric_distort
-std_autoaugment+std_photometric_distort,iddaw,segformer_mit-b5,46.8486,,Other,2,std_autoaugment+std_photometric_distort,Standard Augmentation+Unknown,std_autoaugment,std_photometric_distort
-std_cutmix+std_photometric_distort,iddaw,pspnet_r50,43.0472,,Other,2,std_cutmix+std_photometric_distort,Standard Mixing+Unknown,std_cutmix,std_photometric_distort
-std_cutmix+std_photometric_distort,iddaw,segformer_mit-b5,46.8382,,Other,2,std_cutmix+std_photometric_distort,Standard Mixing+Unknown,std_cutmix,std_photometric_distort
-std_cutmix+std_autoaugment,iddaw,pspnet_r50,36.5285,,Standard + Standard,2,std_cutmix+std_autoaugment,Standard Mixing+Standard Augmentation,std_cutmix,std_autoaugment
-std_cutmix+std_autoaugment,iddaw,segformer_mit-b5,43.3018,,Standard + Standard,2,std_cutmix+std_autoaugment,Standard Mixing+Standard Augmentation,std_cutmix,std_autoaugment
-std_mixup+std_photometric_distort,iddaw,pspnet_r50,43.5678,,Other,2,std_mixup+std_photometric_distort,Standard Mixing+Unknown,std_mixup,std_photometric_distort
-std_mixup+std_photometric_distort,iddaw,segformer_mit-b5,46.8787,,Other,2,std_mixup+std_photometric_distort,Standard Mixing+Unknown,std_mixup,std_photometric_distort
-std_mixup+std_autoaugment,iddaw,pspnet_r50,35.0412,,Standard + Standard,2,std_mixup+std_autoaugment,Standard Mixing+Standard Augmentation,std_mixup,std_autoaugment
-std_mixup+std_autoaugment,iddaw,segformer_mit-b5,42.9591,,Standard + Standard,2,std_mixup+std_autoaugment,Standard Mixing+Standard Augmentation,std_mixup,std_autoaugment
-std_mixup+std_cutmix,iddaw,pspnet_r50,35.6904,,Standard + Standard,2,std_mixup+std_cutmix,Standard Mixing,std_mixup,std_cutmix
-std_mixup+std_cutmix,iddaw,segformer_mit-b5,43.1207,,Standard + Standard,2,std_mixup+std_cutmix,Standard Mixing,std_mixup,std_cutmix
-std_randaugment+std_photometric_distort,iddaw,pspnet_r50,43.2453,,Other,2,std_randaugment+std_photometric_distort,Standard Augmentation+Unknown,std_randaugment,std_photometric_distort
-std_randaugment+std_photometric_distort,iddaw,segformer_mit-b5,46.8562,,Other,2,std_randaugment+std_photometric_distort,Standard Augmentation+Unknown,std_randaugment,std_photometric_distort
-std_randaugment+std_autoaugment,iddaw,pspnet_r50,36.7091,,Standard + Standard,2,std_randaugment+std_autoaugment,Standard Augmentation,std_randaugment,std_autoaugment
-std_randaugment+std_autoaugment,iddaw,segformer_mit-b5,43.1014,,Standard + Standard,2,std_randaugment+std_autoaugment,Standard Augmentation,std_randaugment,std_autoaugment
-std_randaugment+std_cutmix,iddaw,pspnet_r50,37.2278,,Standard + Standard,2,std_randaugment+std_cutmix,Standard Augmentation+Standard Mixing,std_randaugment,std_cutmix
-std_randaugment+std_cutmix,iddaw,segformer_mit-b5,43.2859,,Standard + Standard,2,std_randaugment+std_cutmix,Standard Augmentation+Standard Mixing,std_randaugment,std_cutmix
-std_randaugment+std_mixup,iddaw,pspnet_r50,36.7745,,Standard + Standard,2,std_randaugment+std_mixup,Standard Augmentation+Standard Mixing,std_randaugment,std_mixup
-std_randaugment+std_mixup,iddaw,segformer_mit-b5,43.2093,,Standard + Standard,2,std_randaugment+std_mixup,Standard Augmentation+Standard Mixing,std_randaugment,std_mixup
+strategy,dataset,model,model_raw,mIoU,mAcc,combination_type,n_components,components,component_families,component_1,component_2
+gen_Img2Img+std_autoaugment,cityscapes,pspnet_r50,pspnet_r50_ratio0p50,56.97072431341731,66.11975323862829,Generative + Standard,2,gen_Img2Img+std_autoaugment,Generative (Diffusion)+Standard Augmentation,gen_Img2Img,std_autoaugment
+gen_Img2Img+std_autoaugment,cityscapes,segformer_mit-b3,segformer_mit-b3_ratio0p50,63.88238857478738,72.21819839783504,Generative + Standard,2,gen_Img2Img+std_autoaugment,Generative (Diffusion)+Standard Augmentation,gen_Img2Img,std_autoaugment
+gen_Img2Img+std_cutmix,cityscapes,pspnet_r50,pspnet_r50_ratio0p50,58.42817102085305,67.76068333032468,Generative + Standard,2,gen_Img2Img+std_cutmix,Generative (Diffusion)+Standard Mixing,gen_Img2Img,std_cutmix
+gen_Img2Img+std_cutmix,cityscapes,segformer_mit-b3,segformer_mit-b3_ratio0p50,64.3453770801565,73.09730753834086,Generative + Standard,2,gen_Img2Img+std_cutmix,Generative (Diffusion)+Standard Mixing,gen_Img2Img,std_cutmix
+gen_Img2Img+std_mixup,cityscapes,pspnet_r50,pspnet_r50_ratio0p50,53.64934249742046,62.541670056891974,Generative + Standard,2,gen_Img2Img+std_mixup,Generative (Diffusion)+Standard Mixing,gen_Img2Img,std_mixup
+gen_Img2Img+std_mixup,cityscapes,segformer_mit-b3,segformer_mit-b3_ratio0p50,61.15230184329944,70.28455399572306,Generative + Standard,2,gen_Img2Img+std_mixup,Generative (Diffusion)+Standard Mixing,gen_Img2Img,std_mixup
+gen_Qwen_Image_Edit+std_autoaugment,cityscapes,pspnet_r50,pspnet_r50_ratio0p50,56.8480748310368,66.11443465857384,Generative + Standard,2,gen_Qwen_Image_Edit+std_autoaugment,Generative (Multimodal)+Standard Augmentation,gen_Qwen_Image_Edit,std_autoaugment
+gen_Qwen_Image_Edit+std_autoaugment,cityscapes,segformer_mit-b3,segformer_mit-b3_ratio0p50,63.64118789860329,71.97472287453671,Generative + Standard,2,gen_Qwen_Image_Edit+std_autoaugment,Generative (Multimodal)+Standard Augmentation,gen_Qwen_Image_Edit,std_autoaugment
+gen_Qwen_Image_Edit+std_cutmix,cityscapes,pspnet_r50,pspnet_r50_ratio0p50,58.376176595103004,67.66247827648657,Generative + Standard,2,gen_Qwen_Image_Edit+std_cutmix,Generative (Multimodal)+Standard Mixing,gen_Qwen_Image_Edit,std_cutmix
+gen_Qwen_Image_Edit+std_mixup,cityscapes,pspnet_r50,pspnet_r50_ratio0p50,54.25729430821738,63.15935173692733,Generative + Standard,2,gen_Qwen_Image_Edit+std_mixup,Generative (Multimodal)+Standard Mixing,gen_Qwen_Image_Edit,std_mixup
+gen_Qwen_Image_Edit+std_mixup,cityscapes,segformer_mit-b3,segformer_mit-b3_ratio0p50,60.75052978022239,70.55909756947511,Generative + Standard,2,gen_Qwen_Image_Edit+std_mixup,Generative (Multimodal)+Standard Mixing,gen_Qwen_Image_Edit,std_mixup
+gen_augmenters+std_autoaugment,cityscapes,pspnet_r50,pspnet_r50_ratio0p50,56.45146893522095,65.45868313688686,Generative + Standard,2,gen_augmenters+std_autoaugment,Generative (Augmenters)+Standard Augmentation,gen_augmenters,std_autoaugment
+gen_augmenters+std_autoaugment,cityscapes,segformer_mit-b3,segformer_mit-b3_ratio0p50,63.619544682352746,72.69826996708545,Generative + Standard,2,gen_augmenters+std_autoaugment,Generative (Augmenters)+Standard Augmentation,gen_augmenters,std_autoaugment
+gen_augmenters+std_cutmix,cityscapes,pspnet_r50,pspnet_r50_ratio0p50,58.05856696727081,67.19879859401848,Generative + Standard,2,gen_augmenters+std_cutmix,Generative (Augmenters)+Standard Mixing,gen_augmenters,std_cutmix
+gen_augmenters+std_cutmix,cityscapes,segformer_mit-b3,segformer_mit-b3_ratio0p50,64.17797178552432,73.37838342730288,Generative + Standard,2,gen_augmenters+std_cutmix,Generative (Augmenters)+Standard Mixing,gen_augmenters,std_cutmix
+gen_augmenters+std_mixup,cityscapes,pspnet_r50,pspnet_r50_ratio0p50,53.699714521082896,62.39059504575914,Generative + Standard,2,gen_augmenters+std_mixup,Generative (Augmenters)+Standard Mixing,gen_augmenters,std_mixup
+gen_augmenters+std_mixup,cityscapes,segformer_mit-b3,segformer_mit-b3_ratio0p50,61.5410713808712,71.37499889441149,Generative + Standard,2,gen_augmenters+std_mixup,Generative (Augmenters)+Standard Mixing,gen_augmenters,std_mixup

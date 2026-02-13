@@ -95,6 +95,7 @@ STAGE_CONFIGS = {
         'datasets': ['cityscapes'],
         'models': ['deeplabv3plus_r50', 'pspnet_r50', 'segformer_mit-b3',
                     'segnext_mscan-b', 'hrnet_hr48', 'mask2former_swin-b'],
+        'exclude_models': ['hrnet_hr48'],
         'cache_csv': 'downstream_results_cityscapes_gen.csv',
         'output_prefix': 'CITYSCAPES_GEN',
         'checkpoint_filter': 'WEIGHTS_CITYSCAPES_GEN',

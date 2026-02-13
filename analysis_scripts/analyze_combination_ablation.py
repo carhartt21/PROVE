@@ -38,12 +38,14 @@ OUTPUT_DIR = Path("result_figures/combination_ablation")
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 # Weights directories
-WEIGHTS_COMBINATIONS = "/scratch/aaa_exchange/AWARE/WEIGHTS_COMBINATIONS"
-WEIGHTS_SINGLE = "/scratch/aaa_exchange/AWARE/WEIGHTS"
+WEIGHTS_COMBINATIONS = "/scratch/aaa_exchange/AWARE/WEIGHTS_COMBINATION_ABLATION"
+WEIGHTS_SINGLE = "/scratch/aaa_exchange/AWARE/WEIGHTS_CITYSCAPES_GEN"
 
 # Strategy family definitions for components
 COMPONENT_FAMILIES = {
-    "Generative": ["gen_CUT", "gen_cycleGAN"],  # gen_StyleID EXCLUDED: 0/4 training dataset coverage
+    "Generative (Augmenters)": ["gen_augmenters"],
+    "Generative (Diffusion)": ["gen_Img2Img"],
+    "Generative (Multimodal)": ["gen_Qwen_Image_Edit"],
     "Standard Augmentation": ["std_autoaugment", "std_randaugment"],
     "Standard Mixing": ["std_cutmix", "std_mixup"],
     "Baseline": ["baseline"]
@@ -71,9 +73,9 @@ def parse_combination_name(name: str) -> dict:
             result['component_families'].append(family)
     
     # Classify combination type
-    if "gen_" in name and "std_" in name:
+    if any(p.startswith("gen_") for p in parts) and any(p.startswith("std_") for p in parts):
         result['combination_type'] = "Generative + Standard"
-    elif name.count("std_") >= 2:
+    elif sum(1 for p in parts if p.startswith("std_")) >= 2:
         result['combination_type'] = "Standard + Standard"
     elif "baseline" in name:
         result['combination_type'] = "Baseline + Standard"
@@ -136,6 +138,9 @@ def load_combination_results(combinations_root: str, downstream_csv: str = None)
                                 if isinstance(data, dict):
                                     miou = data.get('mIoU', data.get('miou'))
                                     macc = data.get('mAcc', data.get('macc'))
+                                    if miou is None and 'overall' in data:
+                                        miou = data['overall'].get('mIoU', data['overall'].get('miou'))
+                                        macc = data['overall'].get('mAcc', data['overall'].get('macc'))
                                     if miou is not None:
                                         break
                             except:
@@ -162,10 +167,14 @@ def load_combination_results(combinations_root: str, downstream_csv: str = None)
                         break
                 
                 if miou is not None:
+                    # Normalize model name: strip _ratio* suffix for cross-comparison
+                    import re as _re
+                    model_clean = _re.sub(r'_ratio\dp\d+$', '', model)
                     result = {
                         'strategy': strategy,
                         'dataset': dataset,
-                        'model': model,
+                        'model': model_clean,
+                        'model_raw': model,
                         'mIoU': miou,
                         'mAcc': macc,
                         'combination_type': combo_info['combination_type'],
@@ -234,7 +243,7 @@ def load_single_strategy_results(weights_root: str, strategies: list) -> pd.Data
                 model = model_dir.name
                 
                 # Look for test results
-                test_dirs = [model_dir / "test_results"]
+                test_dirs = [model_dir / "test_results", model_dir / "test_results_detailed"]
                 
                 miou = None
                 
@@ -252,6 +261,8 @@ def load_single_strategy_results(weights_root: str, strategies: list) -> pd.Data
                                     data = json.load(f)
                                 if isinstance(data, dict):
                                     miou = data.get('mIoU', data.get('miou'))
+                                    if miou is None and 'overall' in data:
+                                        miou = data['overall'].get('mIoU', data['overall'].get('miou'))
                                     if miou is not None:
                                         break
                             except:
@@ -264,10 +275,13 @@ def load_single_strategy_results(weights_root: str, strategies: list) -> pd.Data
                         break
                 
                 if miou is not None:
+                    # Normalize model name: strip _ratio* suffix for cross-comparison
+                    import re as _re
+                    model_clean = _re.sub(r'_ratio\dp\d+$', '', model)
                     results.append({
                         'strategy': strategy,
                         'dataset': dataset,
-                        'model': model,
+                        'model': model_clean,
                         'mIoU': miou
                     })
     

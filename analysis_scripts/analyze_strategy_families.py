@@ -48,10 +48,10 @@ OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 # Strategy family definitions based on the provided table
 STRATEGY_FAMILIES = {
     "2D Rendering": [
-        "gen_imgaug_weather",
+        "gen_albumentations_weather",
         "gen_automold", 
         "gen_Weather_Effect_Generator",
-        "std_photometric_distort"
+        "gen_augmenters",
     ],
     "CNN/GAN": [
         "gen_Attribute_Hallucination",
@@ -61,26 +61,29 @@ STRATEGY_FAMILIES = {
         "gen_SUSTechGAN"
     ],
     "Style Transfer": [
-        "gen_NST",
         "gen_LANIT",
         "gen_TSIT",
-        # "gen_StyleID"  # EXCLUDED: 0/4 training dataset coverage
     ],
-    "Diffusion": [
+    "Diffusion I2I": [
         "gen_Img2Img",
         "gen_IP2P",
-        # "gen_EDICT",  # EXCLUDED: 0/4 training dataset coverage
-        "gen_UniControl"
+        "gen_cyclediffusion",
     ],
-    "Multimodal Diffusion": [
-        "gen_flux1_kontext",
+    "Instruct/Edit": [
+        "gen_UniControl",
+        "gen_Qwen_Image_Edit",
+        "gen_Attribute_Hallucination",
+    ],
+    "Modern Diffusion": [
+        "gen_flux_kontext",
         "gen_step1x_new",
-        "gen_Qwen_Image_Edit"
+        "gen_step1x_v1p2",
+        "gen_VisualCloze",
+        "gen_CNetSeg",
     ],
     "Standard Augmentation": [
         "std_autoaugment",
         "std_randaugment",
-        "std_photometric_distort"
     ],
     "Standard Mixing": [
         "std_cutmix",
@@ -103,12 +106,29 @@ ADVERSE_DOMAINS = ['foggy', 'night', 'rainy', 'snowy']
 NORMAL_DOMAINS = ['clear_day', 'cloudy', 'dawn_dusk']
 
 
-def load_baseline_reference():
-    """Load baseline reference values for computing gains/losses."""
+def load_baseline_reference(df: pd.DataFrame = None):
+    """Load baseline reference values for computing gains/losses.
+    
+    First tries the reference JSON file; if not found, builds reference
+    from baseline rows in the provided dataframe.
+    """
     ref_path = Path("result_figures/baseline/baseline_reference.json")
     if ref_path.exists():
         with open(ref_path) as f:
             return json.load(f)
+    
+    # Fallback: build from dataframe
+    if df is not None:
+        baseline_df = df[df['strategy'] == 'baseline']
+        ref = {}
+        for _, row in baseline_df.iterrows():
+            key = f"{row['dataset']}_{row['model']}"
+            ref[key] = {
+                'fwIoU': row.get('fwIoU', 0),
+                'mIoU': row.get('mIoU', 0),
+            }
+        return ref
+    
     return {}
 
 
@@ -203,7 +223,13 @@ def create_family_gain_analysis(df: pd.DataFrame, output_dir: Path):
     # Plot 2: Gain distribution by family
     ax2 = axes[0, 1]
     family_order = analysis_df.groupby('family')['fwIoU_gain'].mean().sort_values(ascending=False).index
-    sns.boxplot(data=analysis_df, x='fwIoU_gain', y='family', order=family_order, ax=ax2, palette='RdYlGn')
+    try:
+        sns.boxplot(data=analysis_df, x='fwIoU_gain', y='family', order=family_order, ax=ax2,
+                    hue='family', legend=False, palette='RdYlGn')
+    except (UnboundLocalError, ValueError):
+        # Fallback for seaborn 0.13.x bug with single-element groups
+        data_by_family = [analysis_df[analysis_df['family'] == f]['fwIoU_gain'].values for f in family_order]
+        bp = ax2.boxplot(data_by_family, vert=False, patch_artist=True, tick_labels=list(family_order))
     ax2.axvline(x=0, color='red', linestyle='--', linewidth=1.5)
     ax2.set_xlabel('fwIoU Gain over Baseline (%)')
     ax2.set_ylabel('')
@@ -301,16 +327,20 @@ def create_gain_summary_table(df: pd.DataFrame, output_path: Path):
         
         family_df = df[df['family'] == family]
         
+        # Determine the gain column to use
+        gain_col = 'fwIoU_gain' if 'fwIoU_gain' in family_df.columns else 'fwIoU'
+        miou_gain_col = 'mIoU_gain' if 'mIoU_gain' in family_df.columns else 'mIoU'
+        
         row = {
             'Family': family,
             'N_Strategies': family_df['strategy'].nunique(),
             'N_Results': len(family_df),
-            'fwIoU_Gain_Mean': family_df.get('fwIoU_gain', pd.Series([np.nan])).mean(),
-            'fwIoU_Gain_Std': family_df.get('fwIoU_gain', pd.Series([np.nan])).std(),
-            'mIoU_Gain_Mean': family_df.get('mIoU_gain', pd.Series([np.nan])).mean(),
-            'Best_Strategy': family_df.groupby('strategy').get('fwIoU_gain', family_df.groupby('strategy')['fwIoU']).mean().idxmax() if len(family_df) > 0 else 'N/A',
-            'Best_Gain': family_df.groupby('strategy').get('fwIoU_gain', family_df.groupby('strategy')['fwIoU']).mean().max() if len(family_df) > 0 else np.nan,
-            'Strategies_Improving': (family_df.groupby('strategy')['fwIoU_gain'].mean() > 0).sum() if 'fwIoU_gain' in family_df.columns else 0
+            'fwIoU_Gain_Mean': family_df[gain_col].mean() if gain_col in family_df.columns else np.nan,
+            'fwIoU_Gain_Std': family_df[gain_col].std() if gain_col in family_df.columns else np.nan,
+            'mIoU_Gain_Mean': family_df[miou_gain_col].mean() if miou_gain_col in family_df.columns else np.nan,
+            'Best_Strategy': family_df.groupby('strategy')[gain_col].mean().idxmax() if len(family_df) > 0 else 'N/A',
+            'Best_Gain': family_df.groupby('strategy')[gain_col].mean().max() if len(family_df) > 0 else np.nan,
+            'Strategies_Improving': (family_df.groupby('strategy')[gain_col].mean() > 0).sum() if gain_col in family_df.columns else 0
         }
         summary.append(row)
     
@@ -427,15 +457,15 @@ def main():
     # Paths
     downstream_csv = "/home/mima2416/repositories/PROVE/downstream_results.csv"
     
-    # Load baseline reference
-    print("\nLoading baseline reference...")
-    baseline_ref = load_baseline_reference()
-    print(f"Loaded {len(baseline_ref)} baseline reference points")
-    
     # Load results
     print("\nLoading downstream results...")
     df = load_all_results(downstream_csv)
     print(f"Loaded {len(df)} results from {df['strategy'].nunique()} strategies")
+    
+    # Load baseline reference (using dataframe as fallback)
+    print("\nLoading baseline reference...")
+    baseline_ref = load_baseline_reference(df)
+    print(f"Loaded {len(baseline_ref)} baseline reference points")
     
     # Print family distribution
     print("\nFamily distribution:")
