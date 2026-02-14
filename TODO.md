@@ -35,8 +35,8 @@
 | CS-Ratio Ablation (20k) | **48/48** | 0 | 0 | **100%** ✅ |
 | S1-Ratio Ablation (15k) | **24/24** | 0 | 0 | **100%** ✅ |
 | Combination Ablation (20k) | **17/18** | 0 | 1 (PEND) | 🔄 **94.4%** |
-| Noise Ablation 50% (15k) | ❌ **INVALID** | 0 | 24 | **BUG** ❌ |
-| Noise Ablation 100% (15k/20k) | ❌ **INVALID** | 0 | 25 | **BUG** ❌ |
+| Noise Ablation 50% (15k) | 0/24 | 24 PEND | 0 | 🔄 Resubmitted (fix a48dd18) |
+| Noise Ablation 100% (15k/20k) | 0/29 | 29 PEND | 0 | 🔄 Resubmitted (fix a48dd18) |
 | Extended S1 (45k) | **20/20** | 0 | 0 | **100%** ✅ |
 | Extended CG (60k) | **5/10** | 4 RUN | 1 | 🔄 **50%** |
 
@@ -49,8 +49,8 @@
 | CS-Ratio | **96** | 48 | **100%** ✅ (Cityscapes + ACDC per model) |
 | S1-Ratio | **24** | 24 | **100%** ✅ |
 | Combination | **17** | 17 | **100%** ✅ |
-| Noise 50% | **24** | 24 | **100%** ✅ |
-| Noise 100% | **30** | 25 | **100%** ✅ (S1 20/20 + CG 10/10 Cityscapes+ACDC) |
+| Noise 50% | ❌ INVALID | — | Bug: pipeline injection (resubmitted 24 jobs) |
+| Noise 100% | ❌ INVALID | — | Bug: pipeline injection (resubmitted 29 jobs) |
 | Extended S1 | **20** | 20 | **100%** ✅ |
 | Extended CG | **5** | 5 | **100%** of completed ✅ (auto-tested) |
 
@@ -80,19 +80,19 @@
 - S1: **All 25** augmentation strategies beat baseline (+1.42 to +2.84 pp). **gen_automold #1**. Top-5: gen_automold, gen_UniControl, gen_albumentations_weather, gen_augmenters, gen_Qwen_Image_Edit
 - S2: gen_LANIT #1 but only 4 tests (unreliable). **Reliable (16 tests):** gen_flux_kontext=gen_step1x_new (+0.25). **6/25** beat baseline (gen_albumentations_weather newly above at +0.01pp).
 - CG: gen_Img2Img leads (+0.22 pp). **5/25** beat baseline — CG effect sizes much smaller than S1/S2.
-- **⚠️ Noise finding (COMPLETE):** Random noise at 100% ratio gives **+2.67 pp** avg — BEATS both gen_* (+1.74 pp) and std_* (+1.82 pp). At 50% ratio: +2.52 pp. Even best gen_* (gen_UniControl +2.31) is below noise 50%. **S1 augmentation gains are regularization, not weather-domain content.** CG is different: noise hurts ACDC cross-domain (-0.39pp).
+- **❌ Noise finding RETRACTED (BUG):** All noise results invalid — pipeline injection bug meant models trained on real images, not noise. Fix committed (`a48dd18`), 53 jobs resubmitted. See §CRITICAL BUG section.
 - Full leaderboards: `result_figures/leaderboard/`
 
 ### Suggested Next Steps (Priority Order)
 
-1. **🚨 Analyze noise 100% results** — NEWLY COMPLETE (25/25 + 30/30 tested). Compare 100% vs 50% noise vs gen_*.
-2. **Copy to IEEE repo** — CS-Ratio (48/48), Noise 50%+100% (24+25 models).
-3. **Wait for S2 completion** (~1-2 days for 164 remaining queue items) → S2 at ~97%. Then regenerate S2 leaderboard + copy to IEEE repo.
-4. **Wait for ExtCG** (4 pspnet models running toward 60k) → complete Extended CG ablation (10/10).
+1. **🚨 Wait for noise resubmission** — 53 jobs queued (24 noise-50% + 24 noise-100% + 5 CG noise-100%). Verify first completed job log has "Injected ReplaceWithNoise into dataset pipeline" message.
+2. **Copy CS-Ratio to IEEE repo** — 48/48 trained + 96/96 tested (ready now).
+3. **Wait for S2 completion** — 26 RUN (mima2416) + 18 (chge7185). Then regenerate S2 leaderboard + copy to IEEE repo.
+4. **Wait for ExtCG** — 4 pspnet models running toward 60k → complete Extended CG ablation (10/10).
 5. ~~Wait for CS-Ratio~~ → ✅ **48/48 COMPLETE + 96/96 tested**.
-6. **Wait for Combination** (1 job) → complete Combination (18/18).
-7. **After S2 completion:** Copy S2 results to IEEE publication repo. Run `generate_strategy_leaderboard.py --stage 2` and analyze.
-8. **Final analysis:** Comprehensive noise analysis (50% vs 100% vs gen_*), update paper figures.
+6. **Wait for Combination** — 1 job status unknown (check if it survived pending kills).
+7. **After noise completion:** Analyze 50% vs 100% noise vs gen_* (genuine results this time).
+8. **After S2 completion:** Copy S2 results to IEEE publication repo.
 
 ---
 
@@ -590,8 +590,15 @@ The generated image training pipeline has **3 layers**:
 
 ## ✅ Completed Tasks Archive
 
+### 2026-02-14
+- ✅ **CRITICAL BUG FOUND & FIXED** — `ReplaceWithNoise` injected into wrong config attribute (`cfg.train_pipeline` instead of `cfg.train_dataloader.dataset.pipeline`). All 49 noise training runs were invalid (models trained on real images). Fix committed (`a48dd18`).
+- ✅ **Invalid noise data deleted** — `WEIGHTS_NOISE_ABLATION/gen_random_noise/` (237 GB) + `WEIGHTS_CITYSCAPES_GEN/gen_random_noise/` (36 GB) = **273 GB freed**.
+- ✅ **53 noise jobs resubmitted** — 24 noise-50% (ratio 0.50) + 24 noise-100% (ratio 0.00) + 5 CG noise-100% (ratio 0.00). Job IDs: 3454599–3455259.
+- ✅ **Pending S2 killed on mima2416** — 26 RUN remain (will complete). S2 continuing from chge7185 queue.
+- ✅ **"Landmark finding" retracted** — noise > gen_* comparison was artifact of bug (models used real data, not noise).
+
 ### 2026-02-13
-- ✅ **Noise 100% COMPLETE** — 25/25 trained (S1: 20×iter_15k, CG: 5×iter_20k) + 30/30 tested. Ready for analysis vs 50% noise vs gen_*.
+- ~~✅ **Noise 100% COMPLETE**~~ → ❌ **RETRACTED** — results invalid due to pipeline injection bug (see 2026-02-14).
 - ✅ **CS-Ratio COMPLETE** — 48/48 trained + 96/96 tested (100%). Both stalled resume jobs (gen_TSIT/pspnet, gen_flux_kontext/segnext) finished and auto-tested.
 - ✅ **S2 progressed to 70%** — 280/400 models complete (was 235). Testing: 339 valid (was 301). 13 gen model failures being retrained (38 jobs queued).
 - ✅ **S2 leaderboard updated** — 6/25 strategies beat baseline (was 5/23). gen_albumentations_weather newly above baseline (+0.01pp). 344 total results.
@@ -600,9 +607,9 @@ The generated image training pipeline has **3 layers**:
 - ✅ **S2 remaining 99 jobs submitted** (3216823–3216945) — all configs with generated images now in pipeline. S2 target: ~388/400 (97%).
 - ✅ **Verified results copied to IEEE repo** — S1 (420), CG (250), S1-Ratio (24/24), Extended S1 (20/20), Combination (17/18) → `/home/mima2416/repositories/-IEEE-Access-01-26-Data-Augmentation/data/data/`
 - ✅ **HRNet excluded from all analysis** — suspiciously low baselines (15–21% vs 27–50%). Removed from `analyze_noise_ablation.py`, `generate_strategy_leaderboard.py` (CG stage). Noise avg corrected: +4.35→**+2.72 pp**.
-- ✅ **Noise vs gen_* comparison** — gen_* avg **-0.34 pp below noise** across 16 overlapping configs. Only gen_UniControl (+0.24pp) beats noise. Conclusion: S1 augmentation gains are mostly regularization, not weather-domain content.
-- ✅ **100% Noise ablation submitted** — 25 jobs (5 models × 5 datasets) at ratio 0.00. Tests if real data is necessary when "augmentation" is pure noise.
-- ✅ **Noise 50% ablation COMPLETE** — 24/24 trained + tested. **+2.72 pp avg** over baseline (HRNet excluded, 11/16 positive).
+- ❌ ~~**Noise vs gen_* comparison**~~ — RETRACTED. Results invalid (pipeline injection bug). Resubmitted 2026-02-14.
+- ❌ ~~**100% Noise ablation submitted**~~ — RETRACTED. Results invalid (pipeline injection bug). Resubmitted 2026-02-14.
+- ❌ ~~**Noise 50% ablation COMPLETE**~~ — RETRACTED. Results invalid (pipeline injection bug). Resubmitted 2026-02-14.
 - ✅ **Extended S1 100% COMPLETE** — 20/20 trained to 45k + tested. Augmentation gap persists at 3× training.
 - ✅ **S2 training at 70.0%** (280/400). Testing: 339 total (8 missing). 6/25 strategies beat baseline. 13 gen model failures being retrained.
 - ✅ **CS-Ratio resume jobs completed** — both stalled configs (gen_TSIT/pspnet, gen_flux_kontext/segnext) finished + auto-tested. **CS-Ratio now 48/48 + 96/96 (100%).**
@@ -766,4 +773,4 @@ cp result_figures/combination_ablation/combination_results.csv /home/mima2416/re
 ```
 
 **Currently copied (2026-02-13):** S1 (420 tests), CG (250 tests), S1-Ratio (24/24), Extended S1 (20/20), Combination (17/18).
-**Pending:** S2 (70% — wait for completion), Noise 50% + 100%, CS-Ratio (ready to copy — 48/48 + 96/96).
+**Pending:** S2 (70% — wait for completion), Noise 50% + 100% (resubmitted — wait for completion), CS-Ratio (ready to copy — 48/48 + 96/96).
