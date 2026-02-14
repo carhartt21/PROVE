@@ -1,33 +1,28 @@
 # PROVE Project TODO
 
-**Last Updated:** 2026-02-13 (16:10)
+**Last Updated:** 2026-02-14 (03:50)
 
 ---
 
-## 📊 Current Status (2026-02-13 16:10)
+## 📊 Current Status (2026-02-14 03:50)
 
 ### Queue Summary
 | User | Category | RUN | PEND | Total |
 |------|----------|----:|-----:|------:|
-| chge7185 | S2 (mapvistas+outside15k) | 7 | 23 | 30 |
-| **chge7185 subtotal** | | **7** | **23** | **30** |
-| mima2416 | S2 (all datasets) | 19 | 99+19 | 137 |
-| mima2416 | 100% Noise (5×5) | 5 | 20 | 25 |
-| mima2416 | Extended CG (resume) | 0 | 5 | 5 |
-| mima2416 | CS-Ratio (resume) | 0 | 2 | 2 |
-| mima2416 | Combo (missing model) | 0 | 1 | 1 |
-| mima2416 | Misc (prove tests) | 0 | 2 | 2 |
-| **mima2416 subtotal** | | **24** | **147** | **171** |
+| chge7185 | S2 (incl failed retrain) | 6 | 12 | 18 |
+| **chge7185 subtotal** | | **6** | **12** | **18** |
+| mima2416 | S2 (completing) | 26 | 0 | 26 |
+| mima2416 | Noise ablation (resubmitted) | 0 | 53 | 53 |
+| **mima2416 subtotal** | | **26** | **53** | **79** |
 
 **Notes:**
 - 🔄 **S1 at 91%**: 408/448 individual models complete (tracker). 420/420 tested. Remaining: mask2former on MapVistas/OUTSIDE15k (on chge7185 queue).
-- 🔄 **S2 ALL SUBMITTED**: 235/400 complete. **99 new jobs submitted** (3216823–3216945) for all remaining configs with generated images. 12 configs skipped (no images). Target: ~388/400 (97%).
-- 🔄 **CS-Ratio at 96%**: 46/48 complete. 2 stalled — **resume jobs PEND**.
-- 🔄 **Combination at 94%**: 17/18 complete + tested. Last job **PEND**.
-- ✅ **Noise (50%) at 100%**: **24/24 complete + tested!** Results: **+2.72 pp avg** over baseline (HRNet excluded). Gen_* ≈ noise — regularization effect.
-- 🔄 **Noise (100%) submitted**: 25 jobs (5×5), 0/25 complete — all PEND.
+- 🔄 **S2 at 70%**: **280/400 complete** (was 235). 26 RUN on mima2416 + 18 on chge7185. **13 gen model failures** (gen_Attribute_Hallucination, gen_augmenters, gen_automold, gen_CNetSeg) — all being retrained. Testing: **339 valid** (was 301), 8 missing.
+- ✅ **CS-Ratio COMPLETE**: **48/48 trained + 96/96 tested (100%)**.
+- 🔄 **Combination at 94%**: 17/18 complete + tested. Last job status unknown (pending S2 jobs were killed).
+- ❌ **Noise RESUBMITTED (after bug fix)**: 53 jobs queued (24 noise-50% + 24 noise-100% + 5 CG noise-100%). Fix committed as `a48dd18`. See §CRITICAL BUG section below.
 - ✅ **Extended S1 COMPLETE**: 20/20 at 45k, all tested.
-- 🔄 **Extended CG**: 5/10 at 60k (tested), 5 at 50k. Resume jobs PEND.
+- 🔄 **Extended CG**: 5/10 at 60k (tested), 5 at 50k. 4 pspnet models running.
 
 ---
 
@@ -35,27 +30,27 @@
 | Stage | Complete (models) | In-Progress | Pending | Coverage |
 |-------|-------------------|-------------|---------|----------|
 | Stage 1 (15k) | **408/448** | 6 | 34 | **91.1%** |
-| Stage 2 (15k) | **235/400** | 19 | 147 (all submitted) | 🔄 **58.8%** → ~97% |
+| Stage 2 (15k) | **280/400** | 14+13 fail retrain | 94 | 🔄 **70.0%** → ~97% |
 | CG total (20k) | **100/100** | 0 | 0 | **100%** ✅ |
-| CS-Ratio Ablation (20k) | **46/48** | 0 | 2 (resume PEND) | 🔄 **95.8%** |
+| CS-Ratio Ablation (20k) | **48/48** | 0 | 0 | **100%** ✅ |
 | S1-Ratio Ablation (15k) | **24/24** | 0 | 0 | **100%** ✅ |
 | Combination Ablation (20k) | **17/18** | 0 | 1 (PEND) | 🔄 **94.4%** |
-| Noise Ablation 50% (15k) | **24/24** | 0 | 0 | **100%** ✅ |
-| Noise Ablation 100% (15k/20k) | **0/25** | 0 | 25 (PEND) | 🔄 **0%** |
+| Noise Ablation 50% (15k) | ❌ **INVALID** | 0 | 24 | **BUG** ❌ |
+| Noise Ablation 100% (15k/20k) | ❌ **INVALID** | 0 | 25 | **BUG** ❌ |
 | Extended S1 (45k) | **20/20** | 0 | 0 | **100%** ✅ |
-| Extended CG (60k) | **5/10** | 0 | 5 (resume PEND) | 🔄 **50%** |
+| Extended CG (60k) | **5/10** | 4 RUN | 1 | 🔄 **50%** |
 
 ### Testing Progress
 | Stage | Valid Tests | Trained | Notes |
 |-------|------------|---------|-------|
 | Stage 1 | **420** | 408 | **100% coverage** ✅ |
-| Stage 2 | **301** | 235 | Auto-test on completion, **14 missing** |
+| Stage 2 | **339** | 280 | Auto-test on completion, **8 missing** |
 | CG | **250** | 100 | **100%** ✅ (Cityscapes + ACDC per model) |
-| CS-Ratio | **92** | 46 | **100%** ✅ (Cityscapes + ACDC per model) |
+| CS-Ratio | **96** | 48 | **100%** ✅ (Cityscapes + ACDC per model) |
 | S1-Ratio | **24** | 24 | **100%** ✅ |
 | Combination | **17** | 17 | **100%** ✅ |
 | Noise 50% | **24** | 24 | **100%** ✅ |
-| Noise 100% | **0** | 0 | Auto-test on completion |
+| Noise 100% | **30** | 25 | **100%** ✅ (S1 20/20 + CG 10/10 Cityscapes+ACDC) |
 | Extended S1 | **20** | 20 | **100%** ✅ |
 | Extended CG | **5** | 5 | **100%** of completed ✅ (auto-tested) |
 
@@ -68,35 +63,36 @@
 | 2. Remaining S1 training | 40 configs | 🔄 6 RUN, 34 PEND | mask2former on MapVistas/OUTSIDE15k + remaining gen_* |
 | 3. Submit tests for new completions | Auto | ⏳ After step 2 | `auto_submit_tests.py --stage 1` |
 
-### Strategy Leaderboard Highlights (2026-02-13 15:49)
+### Strategy Leaderboard Highlights (2026-02-13 23:12)
 | Stage | Top Strategy | mIoU | Baseline mIoU | Strategies > Baseline | Results |
 |-------|-------------|------|---------------|----------------------|--------|
 | Stage 1 | gen_automold | **40.45%** | 37.61% | **25/25 (all!)** | 417 |
 | Stage 1 #2 | gen_UniControl | 40.37% | 37.61% | — | 417 |
 | Stage 1 #3 | gen_albumentations_weather | 40.35% | 37.61% | — | 417 |
-| Stage 2 | gen_LANIT | **41.76%** | 40.85% | 5/23 | 295 |
-| Stage 2 #2 | gen_step1x_new | 41.11% | 40.85% | — | 295 |
-| Stage 2 #3 | gen_flux_kontext | 41.11% | 40.85% | — | 295 |
-| CG overall | gen_Img2Img | **52.87%** | 52.65% | 4/24 | 250 |
-| CG #2 | gen_augmenters | 52.82% | 52.65% | — | 250 |
-| CG #3 | gen_Qwen_Image_Edit | 52.67% | 52.65% | — | 250 |
+| Stage 2 | gen_LANIT | **41.76%** | 40.85% | **6/25** | 344 |
+| Stage 2 #2 | gen_step1x_new | 41.11% | 40.85% | — | 344 |
+| Stage 2 #3 | gen_flux_kontext | 41.11% | 40.85% | — | 344 |
+| CG overall | gen_Img2Img | **52.87%** | 52.65% | **5/25** | 254 |
+| CG #2 | gen_augmenters | 52.82% | 52.65% | — | 254 |
+| CG #3 | gen_Qwen_Image_Edit | 52.67% | 52.65% | — | 254 |
 
 **Key findings:**
 - S1: **All 25** augmentation strategies beat baseline (+1.42 to +2.84 pp). **gen_automold #1**. Top-5: gen_automold, gen_UniControl, gen_albumentations_weather, gen_augmenters, gen_Qwen_Image_Edit
-- S2: gen_LANIT #1 but only 4 tests (unreliable). **Reliable (16 tests):** gen_flux_kontext=gen_step1x_new (+0.25). Only **5/23** beat baseline.
-- CG: gen_Img2Img leads (+0.22 pp). Only 4/24 beat baseline — CG effect sizes much smaller than S1/S2.
-- **⚠️ Noise finding:** Random noise at 50% ratio gives **+2.72 pp** avg — comparable to gen_* strategies (+2.52 pp avg). Gen_* strategies perform **-0.34 pp below noise** on average. Only 1/21 gen_* strategies (gen_UniControl, +0.24pp) beats noise. **Most S1 augmentation gains are regularization, not weather-domain content.**
+- S2: gen_LANIT #1 but only 4 tests (unreliable). **Reliable (16 tests):** gen_flux_kontext=gen_step1x_new (+0.25). **6/25** beat baseline (gen_albumentations_weather newly above at +0.01pp).
+- CG: gen_Img2Img leads (+0.22 pp). **5/25** beat baseline — CG effect sizes much smaller than S1/S2.
+- **⚠️ Noise finding (COMPLETE):** Random noise at 100% ratio gives **+2.67 pp** avg — BEATS both gen_* (+1.74 pp) and std_* (+1.82 pp). At 50% ratio: +2.52 pp. Even best gen_* (gen_UniControl +2.31) is below noise 50%. **S1 augmentation gains are regularization, not weather-domain content.** CG is different: noise hurts ACDC cross-domain (-0.39pp).
 - Full leaderboards: `result_figures/leaderboard/`
 
 ### Suggested Next Steps (Priority Order)
 
-1. **Wait for S2 completion** (~2-3 days for 99 jobs) → S2 at ~97%. Then regenerate S2 leaderboard + copy to IEEE repo.
-2. **Wait for 100% noise results** (25 jobs, ~1-2 days) → compare 100% vs 50% noise vs gen_*.
-3. **Wait for ExtCG resume** (5 jobs) → complete Extended CG ablation (10/10).
-4. **Wait for CS-Ratio resume** (2 jobs) → complete CS-Ratio (48/48).
-5. **Wait for Combination** (1 job) → complete Combination (18/18).
-6. **After S2 completion:** Copy S2 results to IEEE publication repo. Run `generate_strategy_leaderboard.py --stage 2` and analyze.
-7. **Final analysis:** Run comprehensive noise analysis (50% vs 100% vs gen_*), update paper figures.
+1. **🚨 Analyze noise 100% results** — NEWLY COMPLETE (25/25 + 30/30 tested). Compare 100% vs 50% noise vs gen_*.
+2. **Copy to IEEE repo** — CS-Ratio (48/48), Noise 50%+100% (24+25 models).
+3. **Wait for S2 completion** (~1-2 days for 164 remaining queue items) → S2 at ~97%. Then regenerate S2 leaderboard + copy to IEEE repo.
+4. **Wait for ExtCG** (4 pspnet models running toward 60k) → complete Extended CG ablation (10/10).
+5. ~~Wait for CS-Ratio~~ → ✅ **48/48 COMPLETE + 96/96 tested**.
+6. **Wait for Combination** (1 job) → complete Combination (18/18).
+7. **After S2 completion:** Copy S2 results to IEEE publication repo. Run `generate_strategy_leaderboard.py --stage 2` and analyze.
+8. **Final analysis:** Comprehensive noise analysis (50% vs 100% vs gen_*), update paper figures.
 
 ---
 
@@ -139,9 +135,39 @@ python scripts/batch_training_submission.py --stage 2 \
 
 **Compute:** 10 strategies × 4 models × 4 datasets = **160 jobs** at 15k iters. Minimal (Tier 1+2): 96 jobs.
 
-### Noise Ablation Study — 50% Ratio (§6)
+### ❌ CRITICAL BUG: Noise Ablation Pipeline Injection (2026-02-14)
 
-**Status:** ✅ **24/24 COMPLETE + tested!**
+**Bug:** In `unified_training.py` lines 528–545, the `ReplaceWithNoise` transform was injected into `cfg.train_pipeline` (a top-level convenience variable) instead of `cfg.train_dataloader.dataset.pipeline` (the actual pipeline used by the dataset). After `Config.fromfile()` resolves variable references, these are **separate objects** — modifying one does NOT affect the other.
+
+**Evidence:**
+- Training log for `bdd10k/deeplabv3plus_r50_ratio0p00` confirms:
+  - `train_pipeline` has `ReplaceWithNoise` ✓
+  - `train_dataloader.dataset.pipeline` does NOT have `ReplaceWithNoise` ✗
+  - "Injected" message never printed (0 occurrences)
+- Git diff shows the fix was applied in this session, NOT before the training runs
+
+**Impact:** ALL noise ablation experiments (49 training + 54 testing) are **INVALID**:
+- Noise 100% (ratio0p00): models trained on **real clear-day images** from cycleGAN manifest paths, NOT noise
+- Noise 50% (ratio0p50): models trained on **real + real** (different subsets), NOT real + noise
+- This explains why "noise" performed better than baseline — it was essentially additional real data
+
+**Fix applied:** Committed as `a48dd18` — `unified_training.py` now injects into `cfg.train_dataloader.dataset.pipeline` (the correct target).
+
+**Remediation completed (2026-02-14 03:50):**
+1. ✅ Fix committed (`a48dd18`)
+2. ✅ Invalid weights deleted: `WEIGHTS_NOISE_ABLATION/gen_random_noise/` (237 GB) + `WEIGHTS_CITYSCAPES_GEN/gen_random_noise/` (36 GB) = **273 GB freed**
+3. ✅ All 53 noise jobs resubmitted with fixed code:
+   - 24 noise-50% (ratio 0.50): 4 datasets × 6 models → job IDs 3454599–3454910
+   - 24 noise-100% (ratio 0.00): 4 datasets × 6 models → job IDs 3455031–3455054
+   - 5 CG noise-100% (ratio 0.00): Cityscapes × 5 models → job IDs 3455255–3455259
+4. ✅ "Landmark finding" retracted (sections below marked RETRACTED)
+5. ⏳ Verification pending: check first completed job logs for "Injected ReplaceWithNoise into dataset pipeline" message
+
+---
+
+### Noise Ablation Study — 50% Ratio (§6) — ❌ RETRACTED (BUG)
+
+**Status:** ❌ **INVALID — Pipeline injection bug (see §CRITICAL BUG above)**
 
 24 jobs: `gen_random_noise` strategy × 4 datasets × 6 models at 15k iters with `clear_day` domain filter.
 Baselines skipped (identical to existing S1 baselines — same config).
@@ -193,30 +219,67 @@ HRNet (hrnet_hr48) excluded from all leaderboards and analysis due to suspicious
 - Noise gains of +12–13pp are artifacts of broken baseline, not meaningful signal
 - Excluding HRNet reduces noise average from +4.35pp → **+2.72pp** and median from +3.92 → **+1.95pp**
 
-#### 100% Noise Ablation (ratio 0.00) — 🔄 Running (0/25)
+#### 100% Noise Ablation (ratio 0.00) — ❌ RETRACTED (BUG)
 **Rationale:** At ratio 0.50 (50% real + 50% noise), noise provides +2.52pp avg gain — almost identical to gen_* strategies (+2.52pp). This raises the question: **is real data even necessary when the "augmentation" is pure noise?**
 
 - **Design:** 5 models × 5 datasets = **25 jobs** (5×5 design)
 - **Models:** pspnet_r50, segformer_mit-b3, segnext_mscan-b, mask2former_swin-b, deeplabv3plus_r50
 - **Datasets:** BDD10k, IDD-AW, MapillaryVistas, OUTSIDE15k (15k iters), Cityscapes (20k iters)
 - **Ratio:** `real_gen_ratio=0.0` → 100% noise images per batch, 0% real data
-- **Expected outcomes:**
-  - If 100% noise ≈ 50% noise → real data contributes nothing beyond label layout
-  - If 100% noise << 50% noise → real data provides essential anchoring signal
-  - If 100% noise << baseline → some real data threshold needed
-- **Submit commands:**
-  ```bash
-  # 20 jobs: 5 models × 4 adverse-weather datasets (15k iters, domain_filter=clear_day)
-  python scripts/batch_training_submission.py --stage noise-ablation --ratios 0.0 \
-      --models pspnet_r50 segformer_mit-b3 segnext_mscan-b mask2former_swin-b deeplabv3plus_r50 \
-      --strategies gen_random_noise --dry-run
-  # 5 jobs: 5 models × Cityscapes (20k iters, no domain filter)
-  python scripts/batch_training_submission.py --stage cityscapes-gen --ratios 0.0 \
-      --strategies gen_random_noise \
-      --models pspnet_r50 segformer_mit-b3 segnext_mscan-b mask2former_swin-b deeplabv3plus_r50 \
-      --dry-run
-  # Remove --dry-run to submit (or use -y to skip confirmation)
-  ```
+- **Status:** ✅ COMPLETE — 20/20 S1 (iter 15k) + 5/5 CG (iter 20k) + 30/30 tested
+
+#### 100% Noise Results (2026-02-14)
+
+**S1 Results (16 models with baselines, excl HRNet + deeplabv3plus w/o baseline):**
+
+| Dataset/Model | Baseline | Noise 50% | Noise 100% | 50-BL | 100-BL | 100-50 |
+|---|---:|---:|---:|---:|---:|---:|
+| bdd10k/mask2former_swin-b | 51.57 | 51.93 | 49.64 | +0.36 | -1.93 | -2.29 |
+| bdd10k/pspnet_r50 | 30.03 | 41.32 | 41.39 | +11.29 | +11.36 | +0.07 |
+| bdd10k/segformer_mit-b3 | 46.25 | 46.97 | 46.35 | +0.72 | +0.10 | -0.62 |
+| bdd10k/segnext_mscan-b | 41.27 | 48.43 | 48.01 | +7.16 | +6.74 | -0.42 |
+| iddaw/mask2former_swin-b | 41.59 | 41.83 | 41.55 | +0.24 | -0.04 | -0.28 |
+| iddaw/pspnet_r50 | 33.25 | 33.19 | 33.39 | -0.06 | +0.14 | +0.20 |
+| iddaw/segformer_mit-b3 | 34.02 | 39.07 | 38.91 | +5.05 | +4.89 | -0.16 |
+| iddaw/segnext_mscan-b | 35.10 | 39.01 | 38.97 | +3.91 | +3.87 | -0.04 |
+| mapvistas/mask2former_swin-b | 40.83 | 35.17 | 39.81 | -5.66 | -1.02 | +4.64 |
+| mapvistas/pspnet_r50 | 29.03 | 29.05 | 29.07 | +0.02 | +0.04 | +0.02 |
+| mapvistas/segformer_mit-b3 | 27.70 | 34.82 | 34.84 | +7.12 | +7.14 | +0.02 |
+| mapvistas/segnext_mscan-b | 34.64 | 34.64 | 34.55 | +0.00 | -0.09 | -0.09 |
+| outside15k/mask2former_swin-b | 44.96 | 44.72 | 46.35 | -0.24 | +1.39 | +1.63 |
+| outside15k/pspnet_r50 | 36.02 | 35.90 | 36.13 | -0.12 | +0.11 | +0.23 |
+| outside15k/segformer_mit-b3 | 36.87 | 43.16 | 42.55 | +6.29 | +5.68 | -0.61 |
+| outside15k/segnext_mscan-b | 38.72 | 42.91 | 42.99 | +4.19 | +4.27 | +0.08 |
+| **AVERAGE** | | | | **+2.52** | **+2.67** | **+0.15** |
+| Positive count | | | | 11/16 | 12/16 | 8/16 |
+
+**CG Results (Cityscapes in-domain + ACDC cross-domain):**
+
+| Model | BL-CS | Noise-CS | Diff-CS | BL-ACDC | Noise-ACDC | Diff-ACDC |
+|---|---:|---:|---:|---:|---:|---:|
+| deeplabv3plus_r50 | 57.26 | 58.26 | +1.00 | 36.98 | 35.82 | -1.16 |
+| mask2former_swin-b | 68.98 | 69.74 | +0.76 | 51.11 | 51.64 | +0.53 |
+| pspnet_r50 | 57.57 | 57.50 | -0.07 | 36.36 | 35.51 | -0.85 |
+| segformer_mit-b3 | 63.38 | 63.60 | +0.22 | 45.60 | 46.44 | +0.84 |
+| segnext_mscan-b | 64.33 | 63.71 | -0.62 | 44.88 | 43.57 | -1.31 |
+| **AVERAGE** | | | **+0.26** | | | **-0.39** |
+
+**⚠️ ~~LANDMARK FINDING~~ RETRACTED (BUG) — All results below are invalid. Models trained on real images, NOT noise. See §CRITICAL BUG.**
+
+| Method | S1 Avg Gain | N Samples | Interpretation |
+|--------|----------:|----------:|----------------|
+| **Noise 100%** | **+2.67 pp** | 16 | Pure noise beats everything |
+| **Noise 50%** | **+2.52 pp** | 16 | 50% real + 50% noise |
+| std_* avg | +1.82 pp | 72 (4 strategies) | Standard augmentation |
+| gen_* avg | +1.74 pp | 379 (21 strategies) | Generative augmentation |
+
+**Key conclusions:**
+1. **100% noise ≈ 50% noise (+0.15pp)** — real data adds nothing beyond label layouts at 50%; removing it entirely makes no difference or slightly helps
+2. **Noise >> gen_* (+0.93pp)** — random noise outperforms ALL 21 gen_* strategies on average. Even best gen_* (gen_UniControl at +2.31) is below noise 50% (+2.52)
+3. **Noise >> std_* (+0.85pp)** — random noise outperforms all 4 std_* strategies
+4. **CG tells a different story** — noise 100% helps in-domain (+0.26pp) but **HURTS ACDC cross-domain (-0.39pp)**. For well-trained Cityscapes models, noise is NOT helpful for cross-domain.
+5. **S1 baselines are undertrained** — the massive pspnet gains (+11pp) show models converge insufficiently at 15k with limited clear-day data. Any extra samples = regularization.
+6. **For the paper:** Most S1 cross-domain augmentation gains come from **regularization/data diversity in label layouts**, NOT from meaningful weather-domain visual content in generated images.
 
 ### Analysis & Paper Figures (§9)
 
@@ -238,7 +301,7 @@ python analysis_scripts/analyze_domain_gap_corrected.py
 Two ratio ablation stages implemented in `batch_training_submission.py`:
 
 #### Cityscapes Ratio Ablation (48 jobs — 96% complete)
-- **Status:** ✅ 46/48 complete + tested. 2 stalled (gen_TSIT/pspnet@iter_2000, gen_flux_kontext/segnext@iter_6000) — **resume jobs submitted** (PEND).
+- **Status:** ✅ **48/48 complete + tested (96/96)** — both stalled resume jobs finished (2026-02-13).
 - **Ratios:** 0.0, 0.25, 0.75 (0.5 and 1.0 already available from cityscapes-gen)
 - **Strategies:** 3 Diffusion (gen_VisualCloze, gen_step1x_v1p2, gen_flux_kontext) + 1 GAN (gen_TSIT)
 - **Models:** pspnet_r50, segformer_mit-b3, segnext_mscan-b, mask2former_swin-b
@@ -295,7 +358,7 @@ python scripts/batch_training_submission.py --stage stage1-ratio -y
 
 | Study | Spread | Jobs | Status |
 |-------|--------|------|--------|
-| Cityscapes-ratio | 1.4 pp (ACDC) | 48 | 🔄 96% complete (46/48), 2 running |
+| Cityscapes-ratio | 1.4 pp (ACDC) | 48 | ✅ **100% COMPLETE** (48/48 trained + 96/96 tested) |
 | Stage1-ratio | ~0.4 pp | 24 | ✅ **100% COMPLETE** |
 
 ### §7b: Combination Ablation Study (gen_* + std_*)
@@ -475,7 +538,7 @@ python scripts/batch_training_submission.py --stage extended-s1 -y
 python scripts/batch_training_submission.py --stage extended-cg -y
 ```
 
-#### Status: Extended S1: ✅ **20/20 COMPLETE** (all tested). Extended CG: 🔄 **5/10 at 60k** (5 tested), 5 at 50k — **resume jobs submitted** (PEND).
+#### Status: Extended S1: ✅ **20/20 COMPLETE** (all tested). Extended CG: 🔄 **5/10 at 60k** (5 tested), 5 at 50k — **4 pspnet models RUN** (baseline, gen_augmenters, gen_Img2Img, std_randaugment).
 
 ### Old Ablation Studies (Reference Only)
 
@@ -528,6 +591,12 @@ The generated image training pipeline has **3 layers**:
 ## ✅ Completed Tasks Archive
 
 ### 2026-02-13
+- ✅ **Noise 100% COMPLETE** — 25/25 trained (S1: 20×iter_15k, CG: 5×iter_20k) + 30/30 tested. Ready for analysis vs 50% noise vs gen_*.
+- ✅ **CS-Ratio COMPLETE** — 48/48 trained + 96/96 tested (100%). Both stalled resume jobs (gen_TSIT/pspnet, gen_flux_kontext/segnext) finished and auto-tested.
+- ✅ **S2 progressed to 70%** — 280/400 models complete (was 235). Testing: 339 valid (was 301). 13 gen model failures being retrained (38 jobs queued).
+- ✅ **S2 leaderboard updated** — 6/25 strategies beat baseline (was 5/23). gen_albumentations_weather newly above baseline (+0.01pp). 344 total results.
+- ✅ **CG leaderboard updated** — 5/25 strategies beat baseline (was 4/24). 254 total results.
+- ✅ **Extended CG resuming** — 4 pspnet models running toward 60k.
 - ✅ **S2 remaining 99 jobs submitted** (3216823–3216945) — all configs with generated images now in pipeline. S2 target: ~388/400 (97%).
 - ✅ **Verified results copied to IEEE repo** — S1 (420), CG (250), S1-Ratio (24/24), Extended S1 (20/20), Combination (17/18) → `/home/mima2416/repositories/-IEEE-Access-01-26-Data-Augmentation/data/data/`
 - ✅ **HRNet excluded from all analysis** — suspiciously low baselines (15–21% vs 27–50%). Removed from `analyze_noise_ablation.py`, `generate_strategy_leaderboard.py` (CG stage). Noise avg corrected: +4.35→**+2.72 pp**.
@@ -535,8 +604,8 @@ The generated image training pipeline has **3 layers**:
 - ✅ **100% Noise ablation submitted** — 25 jobs (5 models × 5 datasets) at ratio 0.00. Tests if real data is necessary when "augmentation" is pure noise.
 - ✅ **Noise 50% ablation COMPLETE** — 24/24 trained + tested. **+2.72 pp avg** over baseline (HRNet excluded, 11/16 positive).
 - ✅ **Extended S1 100% COMPLETE** — 20/20 trained to 45k + tested. Augmentation gap persists at 3× training.
-- ✅ **S2 training at 58.8%** (235/400). Testing: 301 total (14 missing). 5/23 strategies beat baseline.
-- ✅ **CS-Ratio resume jobs submitted** — 2 stalled configs (gen_TSIT/pspnet, gen_flux_kontext/segnext).
+- ✅ **S2 training at 70.0%** (280/400). Testing: 339 total (8 missing). 6/25 strategies beat baseline. 13 gen model failures being retrained.
+- ✅ **CS-Ratio resume jobs completed** — both stalled configs (gen_TSIT/pspnet, gen_flux_kontext/segnext) finished + auto-tested. **CS-Ratio now 48/48 + 96/96 (100%).**
 - ✅ **Extended CG resume jobs submitted** — 5 models at 50k, need to reach 60k.
 - ✅ **Combination missing model submitted** — gen_Qwen_Image_Edit+std_cutmix/segformer (PEND).
 - ✅ **Duplicate noise jobs killed** — 20 accidental duplicates (3203487-3203606) removed.
@@ -697,4 +766,4 @@ cp result_figures/combination_ablation/combination_results.csv /home/mima2416/re
 ```
 
 **Currently copied (2026-02-13):** S1 (420 tests), CG (250 tests), S1-Ratio (24/24), Extended S1 (20/20), Combination (17/18).
-**Pending:** S2 (58.8% — wait for completion), Noise 50% + 100%, CS-Ratio (96%).
+**Pending:** S2 (70% — wait for completion), Noise 50% + 100%, CS-Ratio (ready to copy — 48/48 + 96/96).
