@@ -12,10 +12,10 @@
 | mima2416 | Noise ablation (CG) | 1 | 0 | 1 |
 | mima2416 | From-scratch experiment | 13 | 87 | 100 |
 | **mima2416 subtotal** | | **14** | **87** | **101** |
-| chge7185 | ⚠️ DUPLICATE from-scratch | 6 | 81 | 87 |
+| chge7185 | Duplicate from-scratch (safe) | 6 | 81 | 87 |
 | **chge7185 subtotal** | | **6** | **81** | **87** |
 
-**⚠️ ACTION REQUIRED:** 87 duplicate from-scratch jobs on chge7185 (submitted after mima2416). Kill from chge7185 account: `bkill 0`
+**Note:** 87 duplicate from-scratch jobs on chge7185 are harmless — job scripts have pre-flight checkpoint check (exits if iter_40000.pth exists) + flock training lock (exits if another job is running). Duplicates will either fail lock or skip with "already exists". No action needed.
 
 **Notes:**
 - 🔄 **S1 at 91%**: 408/448 individual models complete (tracker). 420/420 tested. Remaining: mask2former on MapVistas/OUTSIDE15k.
@@ -89,8 +89,7 @@
 
 ### Suggested Next Steps (Priority Order)
 
-1. **⚠️ Kill chge7185 duplicates** — 87 duplicate from-scratch jobs on chge7185 will conflict with mima2416's. SSH as chge7185 and run `bkill 0`.
-2. **🚨 Verify noise results** — 52/53 noise jobs complete. Check completed job logs for "Injected ReplaceWithNoise into dataset pipeline" message. Run noise tests.
+1. **🚨 Verify noise results** — 52/53 noise jobs complete. Check completed job logs for "Injected ReplaceWithNoise into dataset pipeline" message. Run noise tests.
 3. **🆕 Monitor from-scratch experiment** — 100 jobs (13 RUN at 25-38%, 87 PEND). First completions in ~2.5h. Will reveal if augmentation gains persist without pretrained features.
 4. **Clean anomalies in test CSVs** — Remove 4 invalid gen_random_noise entries from CG CSV. Remove 26 legacy entries from S2 CSV. Investigate S2 iddaw/mask2former -11pp drops.
 5. **Copy CS-Ratio to IEEE repo** — 48/48 trained + 96/96 tested (ready now).
@@ -123,7 +122,7 @@
 **Commit:** `fbe8870` (from-scratch stage in batch_training_submission.py)
 **Progress (14:05):** 11/100 have checkpoints (5k-15k/40k). 13 RUN, 87 PEND. First completions expected ~16:30.
 
-**⚠️ DUPLICATE ISSUE:** 87 duplicate from-scratch jobs submitted on chge7185 (IDs 3577751+). They write to the same output directory and WILL CONFLICT. Must kill from chge7185 account: `bkill 0`.
+**⚠️ DUPLICATE NOTE:** 87 duplicate from-scratch jobs submitted on chge7185 (IDs 3577751+). These are **safe** — job scripts have checkpoint pre-flight check (exits if `iter_40000.pth` already exists) and `flock` training lock (exits if another job holds the lock). Duplicates will harmlessly exit on startup.
 
 **Note:** 2 standalone pspnet_r50 BDD10k jobs completed (80k iters, separate experiment). These use different LR schedules and are NOT part of the batch.
 
