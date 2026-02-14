@@ -1,28 +1,31 @@
 # PROVE Project TODO
 
-**Last Updated:** 2026-02-14 (12:20)
+**Last Updated:** 2026-02-14 (14:05)
 
 ---
 
-## 📊 Current Status (2026-02-14 12:20)
+## 📊 Current Status (2026-02-14 14:05)
 
 ### Queue Summary
 | User | Category | RUN | PEND | Total |
 |------|----------|----:|-----:|------:|
-| mima2416 | Noise ablation (resubmitted) | 5 | 0 | 5 |
-| mima2416 | From-scratch experiment | 7 | 91 | 98 |
-| mima2416 | Standalone scratch (pspnet, 80k) | 2 | 0 | 2 |
-| **mima2416 subtotal** | | **14** | **91** | **105** |
+| mima2416 | Noise ablation (CG) | 1 | 0 | 1 |
+| mima2416 | From-scratch experiment | 13 | 87 | 100 |
+| **mima2416 subtotal** | | **14** | **87** | **101** |
+| chge7185 | ⚠️ DUPLICATE from-scratch | 6 | 81 | 87 |
+| **chge7185 subtotal** | | **6** | **81** | **87** |
+
+**⚠️ ACTION REQUIRED:** 87 duplicate from-scratch jobs on chge7185 (submitted after mima2416). Kill from chge7185 account: `bkill 0`
 
 **Notes:**
-- 🔄 **S1 at 91%**: 408/448 individual models complete (tracker). 420/420 tested. Remaining: mask2former on MapVistas/OUTSIDE15k (on chge7185 queue).
-- 🔄 **S2 at 70%**: **280/400 complete** (was 235). **13 gen model failures** — all being retrained. Testing: **339 valid** (was 301), 8 missing.
+- 🔄 **S1 at 91%**: 408/448 individual models complete (tracker). 420/420 tested. Remaining: mask2former on MapVistas/OUTSIDE15k.
+- 🔄 **S2 at 70%**: **280/400 complete**. **13 gen model failures** — all being retrained. Testing: **339 valid**, 8 missing.
 - ✅ **CS-Ratio COMPLETE**: **48/48 trained + 96/96 tested (100%)**.
-- 🔄 **Combination at 94%**: 17/18 complete + tested. Last job status unknown.
-- ❌ **Noise RESUBMITTED (after bug fix)**: 53 jobs queued (5 RUN). Fix committed as `a48dd18`. See §CRITICAL BUG section below.
-- 🆕 **From-Scratch Experiment**: 100 jobs submitted (7 RUN, 91 PEND). segformer_mit-b3, all 26 strategies × 4 datasets, 40k iters, --no-pretrained. See §From-Scratch section.
+- 🔄 **Noise**: 52/53 finished (1 CG mask2former RUN). Previous noise results all invalid (bug `a48dd18`).
+- 🆕 **From-Scratch Experiment**: 100 jobs (13 RUN at 25-38%, 87 PEND). 11 have checkpoints. See §From-Scratch.
+- ✅ **Standalone pspnet scratch** (80k): baseline+noise BDD10k complete (iter_80000.pth).
 - ✅ **Extended S1 COMPLETE**: 20/20 at 45k, all tested.
-- 🔄 **Extended CG**: 5/10 at 60k (tested), 5 at 50k. 4 pspnet models running.
+- 🔄 **Extended CG**: 5/10 at 60k (tested), 5 at 50k.
 
 ---
 
@@ -35,11 +38,11 @@
 | CS-Ratio Ablation (20k) | **48/48** | 0 | 0 | **100%** ✅ |
 | S1-Ratio Ablation (15k) | **24/24** | 0 | 0 | **100%** ✅ |
 | Combination Ablation (20k) | **17/18** | 0 | 1 (PEND) | 🔄 **94.4%** |
-| Noise Ablation 50% (15k) | 0/24 | 24 PEND | 0 | 🔄 Resubmitted (fix a48dd18) |
-| Noise Ablation 100% (15k/20k) | 0/29 | 29 PEND | 0 | 🔄 Resubmitted (fix a48dd18) |
+| Noise Ablation 50% (15k) | 24/24 | 0 | 0 | 🔄 Training done, test pending |
+| Noise Ablation 100% (15k/20k) | 28/29 | 1 RUN | 0 | 🔄 1 CG mask2former left |
 | Extended S1 (45k) | **20/20** | 0 | 0 | **100%** ✅ |
 | Extended CG (60k) | **5/10** | 4 RUN | 1 | 🔄 **50%** |
-| From-Scratch (40k) | **0/100** | 7 RUN, 91 PEND | 2 | 🆕 **0%** → submitting |
+| From-Scratch (40k) | **0/100** | 13 RUN, 87 PEND | 0 | 🆕 **0%** → 25-38% progress |
 
 ### Testing Progress
 | Stage | Valid Tests | Trained | Notes |
@@ -86,14 +89,14 @@
 
 ### Suggested Next Steps (Priority Order)
 
-1. **🚨 Wait for noise resubmission** — 53 jobs queued. Verify first completed job log has "Injected ReplaceWithNoise into dataset pipeline" message.
-2. **🆕 Monitor from-scratch experiment** — 100 jobs (7 RUN, 91 PEND). Will reveal if augmentation gains persist without pretrained features.
-3. **Copy CS-Ratio to IEEE repo** — 48/48 trained + 96/96 tested (ready now).
-4. **Wait for S2 completion** — Then regenerate S2 leaderboard + copy to IEEE repo.
-5. **Wait for ExtCG** — 4 pspnet models running toward 60k → complete Extended CG ablation (10/10).
-6. ~~Wait for CS-Ratio~~ → ✅ **48/48 COMPLETE + 96/96 tested**.
-7. **Wait for Combination** — 1 job status unknown.
-8. **After noise completion:** Analyze 50% vs 100% noise vs gen_* (genuine results this time).
+1. **⚠️ Kill chge7185 duplicates** — 87 duplicate from-scratch jobs on chge7185 will conflict with mima2416's. SSH as chge7185 and run `bkill 0`.
+2. **🚨 Verify noise results** — 52/53 noise jobs complete. Check completed job logs for "Injected ReplaceWithNoise into dataset pipeline" message. Run noise tests.
+3. **🆕 Monitor from-scratch experiment** — 100 jobs (13 RUN at 25-38%, 87 PEND). First completions in ~2.5h. Will reveal if augmentation gains persist without pretrained features.
+4. **Clean anomalies in test CSVs** — Remove 4 invalid gen_random_noise entries from CG CSV. Remove 26 legacy entries from S2 CSV. Investigate S2 iddaw/mask2former -11pp drops.
+5. **Copy CS-Ratio to IEEE repo** — 48/48 trained + 96/96 tested (ready now).
+6. **Wait for S2 completion** — Then regenerate S2 leaderboard + copy to IEEE repo.
+7. **After noise completion:** Analyze 50% vs 100% noise vs gen_* (genuine results this time).
+8. **After from-scratch completion:** Compare from-scratch vs pretrained augmentation gains. If S1 gains (+2.84pp) compress significantly from scratch, pretrained features mask real augmentation impact.
 9. **After S2 completion:** Copy S2 results to IEEE publication repo.
 
 ---
@@ -118,8 +121,11 @@
 
 **Submitted:** 100 jobs (4 skipped — no generated images). Job IDs 3577430–3577529.
 **Commit:** `fbe8870` (from-scratch stage in batch_training_submission.py)
+**Progress (14:05):** 11/100 have checkpoints (5k-15k/40k). 13 RUN, 87 PEND. First completions expected ~16:30.
 
-**Note:** 2 standalone pspnet_r50 BDD10k jobs also running (80k iters, separate experiment — IDs 3577403, 3577404). These use different LR schedules and are NOT part of the batch.
+**⚠️ DUPLICATE ISSUE:** 87 duplicate from-scratch jobs submitted on chge7185 (IDs 3577751+). They write to the same output directory and WILL CONFLICT. Must kill from chge7185 account: `bkill 0`.
+
+**Note:** 2 standalone pspnet_r50 BDD10k jobs completed (80k iters, separate experiment). These use different LR schedules and are NOT part of the batch.
 
 ### mask2former on MapillaryVistas/OUTSIDE15k (§2)
 
