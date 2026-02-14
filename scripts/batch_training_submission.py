@@ -94,6 +94,7 @@ WEIGHTS_ROOT_CITYSCAPES_GEN = Path('/scratch/aaa_exchange/AWARE/WEIGHTS_CITYSCAP
 WEIGHTS_ROOT_CITYSCAPES_RATIO = Path('/scratch/aaa_exchange/AWARE/WEIGHTS_CITYSCAPES_RATIO')  # Cityscapes ratio ablation
 WEIGHTS_ROOT_NOISE_ABLATION = Path('/scratch/aaa_exchange/AWARE/WEIGHTS_NOISE_ABLATION')  # Noise ablation study
 WEIGHTS_ROOT_EXTENDED_ABLATION = Path('/scratch/aaa_exchange/AWARE/WEIGHTS_EXTENDED_ABLATION')  # Extended training ablation
+WEIGHTS_ROOT_FROM_SCRATCH = Path('/scratch/aaa_exchange/AWARE/WEIGHTS_FROM_SCRATCH')  # Training from scratch (no pretrained backbone)
 GENERATED_IMAGES_ROOT = Path('/scratch/aaa_exchange/AWARE/GENERATED_IMAGES')
 
 # All datasets
@@ -631,6 +632,8 @@ def get_weights_dir(
         base_root = WEIGHTS_ROOT_COMBINATION
     elif stage == 'noise-ablation':
         base_root = WEIGHTS_ROOT_NOISE_ABLATION
+    elif stage == 'from-scratch':
+        base_root = WEIGHTS_ROOT_FROM_SCRATCH
     elif stage == 'extended-s1':
         base_root = WEIGHTS_ROOT_EXTENDED_S1
     elif stage == 'extended-cg':
@@ -827,10 +830,14 @@ def generate_job_script(
         '--strategy', job.strategy,
     ]
     
-    # Add domain filter for Stage 1, ratio ablation, and noise ablation (not Stage 2 or Cityscapes)
-    if job.stage in [1, 'ratio', 'stage1-ratio', 'noise-ablation', 'extended-s1']:
+    # Add domain filter for Stage 1, ratio ablation, noise ablation, and from-scratch (not Stage 2 or Cityscapes)
+    if job.stage in [1, 'ratio', 'stage1-ratio', 'noise-ablation', 'extended-s1', 'from-scratch']:
         cmd_parts.extend(['--domain-filter', 'clear_day'])
     # Note: Stage 2 and Cityscapes do NOT use domain filter
+    
+    # Add --no-pretrained for from-scratch training
+    if job.stage == 'from-scratch':
+        cmd_parts.append('--no-pretrained')
     
     # Add ratio parameter for generative strategies
     if job.strategy.startswith('gen_'):
@@ -1265,10 +1272,10 @@ Examples:
     )
     
     # Validate and parse stage
-    stage_map = {'1': 1, '2': 2, 'ratio': 'ratio', 'cityscapes': 'cityscapes', 'cityscapes-gen': 'cityscapes-gen', 'cityscapes-ratio': 'cityscapes-ratio', 'stage1-ratio': 'stage1-ratio', 'combination': 'combination', 'noise-ablation': 'noise-ablation', 'extended-s1': 'extended-s1', 'extended-cg': 'extended-cg'}
+    stage_map = {'1': 1, '2': 2, 'ratio': 'ratio', 'cityscapes': 'cityscapes', 'cityscapes-gen': 'cityscapes-gen', 'cityscapes-ratio': 'cityscapes-ratio', 'stage1-ratio': 'stage1-ratio', 'combination': 'combination', 'noise-ablation': 'noise-ablation', 'extended-s1': 'extended-s1', 'extended-cg': 'extended-cg', 'from-scratch': 'from-scratch'}
     stage_input = str(args.stage).lower()
     if stage_input not in stage_map:
-        print(f"Error: Invalid stage '{args.stage}'. Must be 1, 2, 'ratio', 'cityscapes', 'cityscapes-gen', 'cityscapes-ratio', 'stage1-ratio', 'combination', 'noise-ablation', 'extended-s1', or 'extended-cg'")
+        print(f"Error: Invalid stage '{args.stage}'. Must be 1, 2, 'ratio', 'cityscapes', 'cityscapes-gen', 'cityscapes-ratio', 'stage1-ratio', 'combination', 'noise-ablation', 'extended-s1', 'extended-cg', or 'from-scratch'")
         return
     stage = stage_map.get(stage_input, args.stage if isinstance(args.stage, int) else stage_input)
     
@@ -1327,6 +1334,24 @@ Examples:
         datasets = [CITYSCAPES_DATASET]
         models = args.models or COMBINATION_MODELS
         # std_strategies will be iterated over in job generation
+    elif stage == 'from-scratch':
+        # From-scratch training: no pretrained backbone weights
+        # Tests whether augmentation gains are genuine or masked by pretrained features
+        if args.strategies is None:
+            if args.strategy_type == 'std':
+                strategies = STD_STRATEGIES
+            elif args.strategy_type == 'gen':
+                strategies = GEN_STRATEGIES
+            else:
+                strategies = ALL_STRATEGIES
+        else:
+            strategies = args.strategies
+        datasets = args.datasets or ALL_DATASETS
+        models = args.models or ['segformer_mit-b3']
+        if args.checkpoint_interval is None:
+            args.checkpoint_interval = 5000
+        if args.eval_interval is None:
+            args.eval_interval = 5000
     elif stage == 'noise-ablation':
         # Noise ablation: uses gen_random_noise strategy with baseline for comparison
         strategies = args.strategies or ['gen_random_noise', 'baseline']
@@ -1403,6 +1428,14 @@ Examples:
         print(f"  std_* strategies: {COMBINATION_STD_STRATEGIES}")
         print(f"  Models: {models}")
         print(f"  Total configurations: {len(COMBINATION_GEN_STRATEGIES)} × {len(COMBINATION_STD_STRATEGIES)} × {len(models)} = {len(COMBINATION_GEN_STRATEGIES)*len(COMBINATION_STD_STRATEGIES)*len(models)}")
+    elif stage == 'from-scratch':
+        print(f"  From-Scratch Training (no pretrained backbone)")
+        print(f"  Purpose: Test if augmentation gains are genuine or masked by pretrained features")
+        print(f"  Datasets: {datasets}")
+        print(f"  Models: {models}")
+        print(f"  Flag: --no-pretrained (backbone init_cfg = None)")
+        print(f"  Domain filter: clear_day (S1 style)")
+        print(f"  Total configurations: {len(datasets)} × {len(strategies)} × {len(models)} = {len(datasets)*len(strategies)*len(models)}")
     elif stage == 'noise-ablation':
         print(f"  Noise Ablation Study")
         print(f"  Purpose: Test if models learn from image content or label layouts")
@@ -1442,6 +1475,8 @@ Examples:
         effective_max_iters = EXTENDED_CG_MAX_ITERS
     elif stage == 'stage1-ratio':
         effective_max_iters = 15000  # Standard Stage 1 iterations
+    elif stage == 'from-scratch':
+        effective_max_iters = 40000  # From scratch needs more iterations (no pretrained backbone)
     else:
         effective_max_iters = 15000
     
