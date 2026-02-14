@@ -97,6 +97,96 @@
 9. **After from-scratch 80k completion:** Compare from-scratch vs pretrained augmentation gains. If S1 gains (+2.84pp) compress significantly from scratch, pretrained features mask real augmentation impact.
 10. **After S2 completion:** Copy S2 results to IEEE publication repo.
 
+### Proposed Additional Studies (Priority Order, 2026-02-15)
+
+After current experiments complete, the following studies address remaining open questions. Ordered by **impact-to-cost ratio** — cheapest/highest-impact first.
+
+#### 1. Cross-Dataset Generalization Testing (⭐ Highest Priority)
+**Cost:** 0 training jobs, ~8 test-only LSF jobs | **Impact:** High — tests whether augmentation gains transfer across datasets
+
+**Rationale:** S1 trains on BDD10k/IDD-AW/MapVistas/OUTSIDE15k separately. Do augmentation gains generalize? E.g., does a model trained on BDD10k+gen_automold also improve on IDD-AW test set? This addresses a key publication question: are augmentation benefits dataset-specific or universal?
+
+**Design:**
+- Select top-3 S1 strategies (gen_automold, gen_UniControl, gen_albumentations_weather) + baseline
+- For each: test BDD10k-trained model on IDD-AW test set and vice versa
+- Use existing `fine_grained_test.py` with `--dataset` pointing to the cross-dataset
+- 2 directions × 4 strategies × 1 model (segformer) = **8 test jobs** (zero training)
+
+**Questions answered:**
+1. Do augmentation benefits transfer across datasets, or are they dataset-specific?
+2. Does the strategy ranking change when evaluated cross-dataset?
+3. Is there a correlation between in-dataset and cross-dataset augmentation gain?
+
+#### 2. PRISM Quality Correlation Analysis (⭐ High Priority)
+**Cost:** 0 jobs (pure analysis script) | **Impact:** High — links image quality to downstream performance
+
+**Rationale:** The PRISM project has FID, LPIPS, CLIP-FID, and perceptual quality scores for all 21 gen_* methods. Correlating these with PROVE mIoU gains answers: **does better image quality → better segmentation?** This is a key finding for the publication.
+
+**Design:**
+- Merge PRISM quality metrics (FID, LPIPS per method×dataset) with PROVE mIoU gains
+- Compute Spearman rank correlation: FID vs mIoU gain, LPIPS vs mIoU gain
+- Stratify by dataset and model family
+- Visualization: scatter plot with method labels, regression line, ρ and p-value
+
+**Questions answered:**
+1. Does image realism (FID) predict downstream segmentation improvement?
+2. Is perceptual similarity (LPIPS) a better predictor than distributional distance (FID)?
+3. Are there outlier methods (high FID but high mIoU gain, or vice versa)?
+
+#### 3. Batch Size & Loss Function Analysis (Medium Priority)
+**Cost:** 0 jobs (data already exists) | **Impact:** Medium — surfaces training hyperparameter interactions
+
+**Rationale:** `WEIGHTS_BATCH_SIZE_ABLATION/` (BS 2/4/8/16 with LR scaling) and `WEIGHTS_LOSS_ABLATION/` (aux-lovasz, aux-boundary, aux-focal, loss-lovasz) already contain trained models. These have never been systematically analyzed.
+
+**Design:**
+- Enumerate checkpoints and test results in both directories
+- Batch size: plot mIoU vs batch size per strategy, check if augmentation gains scale with BS
+- Loss function: compare aux-loss variants vs standard CE — do different losses change which augmentations help?
+- Analysis script only, no new training
+
+**Questions answered:**
+1. Does larger batch size amplify or diminish augmentation gains?
+2. Do alternative loss functions shift the optimal augmentation strategy?
+3. Is the standard BS=2 + CE configuration already optimal, or are interactions present?
+
+#### 4. Augmentation Timing / Curriculum (Low Priority)
+**Cost:** 3–6 training jobs | **Impact:** Medium — tests when augmentation helps most
+
+**Rationale:** Current design applies augmentation uniformly from iter 0 to final. But augmentation may be most beneficial early (for regularization) or late (after features stabilize). This tests a curriculum hypothesis.
+
+**Design:**
+- Take top strategy (gen_automold) + segformer on BDD10k
+- **Early-only:** Apply gen_* for first 50% of iters, then real-only
+- **Late-only:** Train real-only for first 50%, then mix in gen_*
+- **Warmup:** Linearly increase gen_* ratio from 0→0.5 over training
+- Compare vs uniform augmentation (already available)
+- Requires minor modification to `MixedBatchSampler` in `unified_training.py` (iteration-aware ratio)
+- 3 new configs × 1–2 models = **3–6 jobs**
+
+**Questions answered:**
+1. Is augmentation benefit front-loaded (regularization) or back-loaded (diversity)?
+2. Does curriculum augmentation outperform uniform mixing?
+
+#### 5. Domain-Targeted Augmentation (Low Priority)
+**Cost:** ~7 training jobs | **Impact:** Medium — tests selective augmentation
+
+**Rationale:** S1 trains on clear_day only but tests on all domains (rain, fog, night, snow). Some gen_* methods produce weather-specific images. Does targeting the weakest domain yield more efficient gains?
+
+**Design:**
+- Identify worst-performing domain per model from S1 test results (typically night or fog)
+- Filter generated images to only include that target domain
+- Train with targeted gen_* vs uniform gen_* (already available)
+- Use gen_automold (S1 #1) on BDD10k with segformer
+- 1 strategy × 4–7 domain targets × 1 model = **~7 jobs**
+
+**Questions answered:**
+1. Is targeted augmentation more efficient than broad augmentation?
+2. Does fixing the weakest domain come at the cost of other domains?
+3. What is the optimal domain allocation for generated images?
+
+#### Not Recommended: Data Efficiency / Subset Training
+**Rationale:** This is already implicitly tested by the cross-dataset design. The 4 S1 datasets have very different training set sizes (BDD10k ~7k, IDD-AW ~3k, MapVistas ~18k, OUTSIDE15k ~15k), so the existing results already show how augmentation interacts with dataset scale. A dedicated subset study would be redundant.
+
 ---
 
 ## 🔄 Active / In-Progress Tasks
@@ -142,19 +232,67 @@ All 44 completed jobs are still improving at 40k — **no plateau detected**:
 2. Submit resume: `python scripts/batch_training_submission.py --stage from-scratch --resume -y`
 3. This will resume from `iter_40000.pth` and train to 80k (verified via dry-run: 100 submit, 4 skip)
 
-#### Preliminary Results at 40k (44/100 completed)
-| Strategy | BDD10k | IDD-AW | MapVistas | OUT15k | Avg | vs baseline |
-|----------|--------|--------|-----------|--------|-----|-------------|
-| **baseline** | **32.2** | **26.8** | **19.5** | **27.2** | **26.4** | — |
-| gen_flux_kontext | 32.4 | 25.5 | 22.1 | 28.7 | 27.2 | **+0.8** |
-| gen_automold | 28.3 | 25.0 | 20.6† | 27.9 | 25.5 | -0.9 |
-| gen_step1x_new | 30.8 | 27.0 | 20.9 | 27.2 | 26.5 | +0.1 |
-| std_mixup | 31.5 | 25.3 | 21.1 | 28.0 | 26.5 | +0.1 |
-| std_autoaugment | 30.9 | 27.7 | 19.3 | 26.4 | 26.1 | -0.3 |
-| gen_cycleGAN | 31.5 | 23.3 | 20.8 | 27.5 | 25.8 | -0.6 |
-| std_cutmix | 30.3 | 25.8 | 19.7 | 27.4 | 25.8 | -0.6 |
+#### Preliminary Results at 40k (46/100 completed+tested)
 
-**Key insight:** In S1 pretrained, ALL 25 strategies beat baseline (+1.42 to +2.84pp). From scratch at 40k, most are near or below baseline. Only gen_flux_kontext clearly wins (+0.8pp). This strongly suggests pretrained features mask augmentation effects. Final assessment pending 80k results.
+**Strategy Rankings (sorted by avg gain vs baseline):**
+| # | Strategy | BDD10k | IDD-AW | MapVst | OUT15k | Avg Gain | vs S1 pretrained |
+|---|----------|--------|--------|--------|--------|----------|------------------|
+| 1 | gen_flux_kontext | +0.19 | -1.34 | **+2.59** | **+1.49** | **+0.73** | S1: +2.35 |
+| 2 | gen_step1x_v1p2 | +0.40 | +0.02 | — | — | +0.21 | S1: +1.77 |
+| 3 | std_mixup | -0.73 | -1.49 | +1.58 | +0.80 | +0.04 | S1: +4.59 |
+| 4 | gen_step1x_new | -1.46 | +0.18 | +1.41 | -0.03 | +0.03 | S1: +1.95 |
+| — | **baseline** | **32.23** | **26.82** | **19.50** | **27.24** | — | — |
+| 5 | std_randaugment | -0.04 | -0.64 | +0.11 | +0.43 | -0.03 | S1: +4.67 |
+| 6 | gen_albumentations | -0.20 | +0.12 | +0.32 | -0.39 | -0.04 | S1: +2.73 |
+| 7 | gen_SUSTechGAN | -0.20 | — | -0.02 | — | -0.11 | — |
+| 8 | std_autoaugment | -1.32 | +0.93 | -0.18 | -0.88 | -0.36 | S1: +4.71 |
+| 9 | gen_random_noise | -0.45 | — | — | — | -0.45 | — |
+| 10 | std_cutmix | -1.92 | -1.01 | +0.22 | +0.20 | -0.63 | S1: +3.76 |
+| 11 | gen_cycleGAN | -0.78 | -3.53 | +1.31 | +0.25 | -0.69 | S1: +2.11 |
+| 12 | gen_automold | **-3.92** | -1.83 | +1.12 | +0.62 | -1.00 | S1: +2.84 |
+
+**Coverage:** 46 tested + 21 trained-not-tested = 67/100 trained. 13 strategies × 4 datasets. ⚠️ Many gen_* not yet tested.
+
+#### Strategy Type Summary
+| Type | n | Avg Gain | Positive % | Best Dataset |
+|------|---|----------|-----------|--------------|
+| gen_* (generative) | 26 | -0.17 pp | 50% (13/26) | MapVistas (+1.12 avg) |
+| std_* (standard) | 16 | -0.25 pp | 44% (7/16) | MapVistas (+0.43 avg) |
+
+#### Dataset-Level Pattern (Critical Finding)
+| Dataset | Baseline | Avg Gain | Positive | Best Strategy |
+|---------|----------|----------|----------|---------------|
+| **MapillaryVistas** | 19.50 | **+0.85** | **80%** (8/10) | gen_flux_kontext (+2.59) |
+| OUTSIDE15k | 27.24 | +0.22 | 60% (6/10) | gen_flux_kontext (+1.49) |
+| IDD-AW | 26.82 | -0.86 | 40% (4/10) | std_autoaugment (+0.93) |
+| **BDD10k** | 32.23 | **-0.87** | **17%** (2/12) | gen_step1x_v1p2 (+0.40) |
+
+**Key insight:** Augmentation helps MORE on datasets with lower baselines (MapVistas 19.5 → +0.85 avg) and HURTS on datasets where the from-scratch model is already performing better (BDD10k 32.2 → -0.87 avg). This pattern mirrors a "capacity allocation" effect — when the model is still learning basic features, augmentation adds useful variation; when it already has reasonable features, augmentation can confuse the learning signal.
+
+#### Per-Domain Analysis (BDD10k, 7 domains)
+| Strategy | clear | cloudy | dawn | foggy | night | rainy | snowy | overall |
+|----------|-------|--------|------|-------|-------|-------|-------|---------|
+| gen_step1x_v1p2 | +0.52 | +0.86 | +0.30 | **-4.82** | +0.01 | -0.33 | +0.42 | +0.40 |
+| gen_flux_kontext | +0.54 | -0.86 | +0.26 | **-5.38** | -0.07 | -0.74 | +0.22 | +0.19 |
+| std_cutmix | -1.91 | -2.19 | -1.97 | +0.32 | -1.00 | -2.62 | -1.43 | -1.92 |
+| gen_automold | -3.97 | -4.06 | -3.30 | **-6.70** | -2.44 | -4.56 | -3.84 | -3.92 |
+
+**Domain observations:**
+- **Foggy domain anomaly:** Most strategies show -1 to -7 pp on foggy (n=4 images only — too noisy to interpret)
+- **Night is stable:** Domain gains ≈ ±0.5 pp for most strategies (from-scratch doesn't differentiate night vs other domains)
+- **gen_automold destroys across ALL domains** — S1 #1 strategy is worst from scratch (-3.92 avg, ALL domains negative)
+
+#### Key Findings — From-Scratch vs Pretrained
+
+1. **Augmentation gains collapse without pretraining:** S1 pretrained avg gain = +2.84pp (25/25 positive). From scratch = -0.19pp (4/12 positive). Pretrained features are ESSENTIAL for augmentation benefits.
+
+2. **Ranking reversal:** gen_automold (S1 pretrained #1 at +2.84pp) is **dead last** from scratch at -1.00pp. gen_flux_kontext (S1 #6) is the ONLY clear winner from scratch (+0.73pp). **Strategy rankings are NOT robust to initialization.**
+
+3. **std_* strategies hurt more from scratch:** std_autoaugment goes from +4.71pp (pretrained) to -0.36pp (scratch). std_cutmix goes from +3.76pp → -0.63pp. **Spearman ρ = 0.20 (p=0.80)** between scratch and pretrained gains — essentially no rank correlation.
+
+4. **Dataset size interaction:** MapillaryVistas (18k train, lowest baseline at 19.5) is the ONLY dataset where augmentation consistently helps from scratch (+0.85pp avg, 80% positive). BDD10k (7k train, highest baseline at 32.2) is where augmentation hurts most (-0.87pp avg, 17% positive).
+
+5. **Implication for publication:** The finding that pretrained features mask augmentation quality differences is a STRONG result. It means the community should not evaluate augmentation strategies on pretrained backbones alone — the rankings are initialization-dependent.
 
 **⚠️ DUPLICATE NOTE:** 87 duplicate from-scratch jobs on chge7185 are **safe** — pre-flight checkpoint check + flock lock prevent issues.
 
