@@ -1,28 +1,26 @@
 # PROVE Project TODO
 
-**Last Updated:** 2026-02-14 (14:05)
+**Last Updated:** 2026-02-15 (00:00)
 
 ---
 
-## 📊 Current Status (2026-02-14 14:05)
+## 📊 Current Status (2026-02-15 00:00)
 
 ### Queue Summary
 | User | Category | RUN | PEND | Total |
 |------|----------|----:|-----:|------:|
-| mima2416 | Noise ablation (CG) | 1 | 0 | 1 |
-| mima2416 | From-scratch experiment | 13 | 87 | 100 |
-| **mima2416 subtotal** | | **14** | **87** | **101** |
-| chge7185 | Duplicate from-scratch (safe) | 6 | 81 | 87 |
-| **chge7185 subtotal** | | **6** | **81** | **87** |
+| mima2416 | From-scratch experiment (40k) | 15 | 42 | 57 |
+| **mima2416 subtotal** | | **15** | **42** | **57** |
+| chge7185 | Duplicate from-scratch (safe) | ~6 | ~81 | ~87 |
 
-**Note:** 87 duplicate from-scratch jobs on chge7185 are harmless — job scripts have pre-flight checkpoint check (exits if iter_40000.pth exists) + flock training lock (exits if another job is running). Duplicates will either fail lock or skip with "already exists". No action needed.
+**Note:** 87 duplicate from-scratch jobs on chge7185 are harmless — job scripts have pre-flight checkpoint check + flock training lock. Duplicates will auto-exit.
 
 **Notes:**
 - 🔄 **S1 at 91%**: 408/448 individual models complete (tracker). 420/420 tested. Remaining: mask2former on MapVistas/OUTSIDE15k.
 - 🔄 **S2 at 70%**: **280/400 complete**. **13 gen model failures** — all being retrained. Testing: **339 valid**, 8 missing.
 - ✅ **CS-Ratio COMPLETE**: **48/48 trained + 96/96 tested (100%)**.
 - 🔄 **Noise**: 52/53 finished (1 CG mask2former RUN). Previous noise results all invalid (bug `a48dd18`).
-- 🆕 **From-Scratch Experiment**: 100 jobs (13 RUN at 25-38%, 87 PEND). 11 have checkpoints. See §From-Scratch.
+- 🔄 **From-Scratch Experiment**: **44/100 completed+tested at 40k** (15 RUN, 42 PEND). **Convergence analysis → extending to 80k** (all 44 still improving at 40k, avg +0.79pp/5k step). See §From-Scratch.
 - ✅ **Standalone pspnet scratch** (80k): baseline+noise BDD10k complete (iter_80000.pth).
 - ✅ **Extended S1 COMPLETE**: 20/20 at 45k, all tested.
 - 🔄 **Extended CG**: 5/10 at 60k (tested), 5 at 50k.
@@ -42,7 +40,7 @@
 | Noise Ablation 100% (15k/20k) | 28/29 | 1 RUN | 0 | 🔄 1 CG mask2former left |
 | Extended S1 (45k) | **20/20** | 0 | 0 | **100%** ✅ |
 | Extended CG (60k) | **5/10** | 4 RUN | 1 | 🔄 **50%** |
-| From-Scratch (40k) | **0/100** | 13 RUN, 87 PEND | 0 | 🆕 **0%** → 25-38% progress |
+| From-Scratch (40k→80k) | **44/100** at 40k | 15 RUN, 42 PEND | 0 | 🔄 **44%** → extending to 80k |
 
 ### Testing Progress
 | Stage | Valid Tests | Trained | Notes |
@@ -90,19 +88,20 @@
 ### Suggested Next Steps (Priority Order)
 
 1. **🚨 Verify noise results** — 52/53 noise jobs complete. Check completed job logs for "Injected ReplaceWithNoise into dataset pipeline" message. Run noise tests.
-3. **🆕 Monitor from-scratch experiment** — 100 jobs (13 RUN at 25-38%, 87 PEND). First completions in ~2.5h. Will reveal if augmentation gains persist without pretrained features.
+3. **🔄 Monitor from-scratch experiment** — **44/100 completed at 40k**, extending to 80k after all finish. gen_flux_kontext best so far (+0.8pp avg vs baseline).
 4. **Clean anomalies in test CSVs** — Remove 4 invalid gen_random_noise entries from CG CSV. Remove 26 legacy entries from S2 CSV. Investigate S2 iddaw/mask2former -11pp drops.
 5. **Copy CS-Ratio to IEEE repo** — 48/48 trained + 96/96 tested (ready now).
 6. **Wait for S2 completion** — Then regenerate S2 leaderboard + copy to IEEE repo.
 7. **After noise completion:** Analyze 50% vs 100% noise vs gen_* (genuine results this time).
-8. **After from-scratch completion:** Compare from-scratch vs pretrained augmentation gains. If S1 gains (+2.84pp) compress significantly from scratch, pretrained features mask real augmentation impact.
-9. **After S2 completion:** Copy S2 results to IEEE publication repo.
+8. **After from-scratch 40k completion:** Submit 80k resume: `python scripts/batch_training_submission.py --stage from-scratch --resume -y`
+9. **After from-scratch 80k completion:** Compare from-scratch vs pretrained augmentation gains. If S1 gains (+2.84pp) compress significantly from scratch, pretrained features mask real augmentation impact.
+10. **After S2 completion:** Copy S2 results to IEEE publication repo.
 
 ---
 
 ## 🔄 Active / In-Progress Tasks
 
-### 🆕 From-Scratch Experiment (2026-02-14)
+### 🔄 From-Scratch Experiment (2026-02-14)
 
 **Purpose:** Test whether augmentation gains are genuine or masked by pretrained backbone features. If pretrained features dominate, augmentations may show smaller relative impact. Training from scratch removes this confound.
 
@@ -112,19 +111,54 @@
 | Model | segformer_mit-b3 only |
 | Datasets | BDD10k, IDD-AW, MapillaryVistas, OUTSIDE15k |
 | Strategies | All 26 (baseline + 4 std_* + 21 gen_*) |
-| Iterations | 40,000 |
+| Iterations | **40,000 → 80,000** (extended based on convergence analysis) |
 | Checkpoint/eval | Every 5,000 |
 | Domain filter | clear_day (S1 protocol) |
 | Backbone | `--no-pretrained` (init_cfg=None) |
 | Output | `/scratch/aaa_exchange/AWARE/WEIGHTS_FROM_SCRATCH/` |
 
 **Submitted:** 100 jobs (4 skipped — no generated images). Job IDs 3577430–3577529.
-**Commit:** `fbe8870` (from-scratch stage in batch_training_submission.py)
-**Progress (14:05):** 11/100 have checkpoints (5k-15k/40k). 13 RUN, 87 PEND. First completions expected ~16:30.
+**Commit:** `fbe8870` (from-scratch stage), `687fbee` (80k extension)
+**Progress (00:00):** **44/100 completed+tested at 40k**. 15 RUN, 42 PEND. Extending to 80k after all 40k finish.
 
-**⚠️ DUPLICATE NOTE:** 87 duplicate from-scratch jobs submitted on chge7185 (IDs 3577751+). These are **safe** — job scripts have checkpoint pre-flight check (exits if `iter_40000.pth` already exists) and `flock` training lock (exits if another job holds the lock). Duplicates will harmlessly exit on startup.
+#### Convergence Analysis (2026-02-15)
+All 44 completed jobs are still improving at 40k — **no plateau detected**:
+| Metric | Value |
+|--------|-------|
+| Avg mIoU gain 35k→40k | **+0.79pp** |
+| Avg mIoU gain 30k→40k | **+1.99pp** |
+| Jobs still improving (>0.3pp in last 5k) | **44/44 (100%)** |
 
-**Note:** 2 standalone pspnet_r50 BDD10k jobs completed (80k iters, separate experiment). These use different LR schedules and are NOT part of the batch.
+**Per-dataset average progression (mIoU):**
+| Dataset | 5k | 10k | 15k | 20k | 25k | 30k | 35k | 40k |
+|---------|-----|-----|-----|-----|-----|-----|-----|-----|
+| bdd10k | 22.5 | 23.2 | 24.9 | 26.2 | 27.4 | 29.3 | 30.3 | 31.4 |
+| iddaw | 16.5 | 18.1 | 19.1 | 21.2 | 22.4 | 24.5 | 25.5 | 26.0 |
+| mapillaryvistas | 10.4 | 11.9 | 13.7 | 15.2 | 16.4 | 18.1 | 19.6 | 20.3 |
+| outside15k | 19.4 | 20.4 | 21.5 | 22.9 | 24.1 | 25.3 | 26.8 | 27.5 |
+
+**80k Extension Plan:**
+1. Wait for all 100 jobs to complete at 40k
+2. Submit resume: `python scripts/batch_training_submission.py --stage from-scratch --resume -y`
+3. This will resume from `iter_40000.pth` and train to 80k (verified via dry-run: 100 submit, 4 skip)
+
+#### Preliminary Results at 40k (44/100 completed)
+| Strategy | BDD10k | IDD-AW | MapVistas | OUT15k | Avg | vs baseline |
+|----------|--------|--------|-----------|--------|-----|-------------|
+| **baseline** | **32.2** | **26.8** | **19.5** | **27.2** | **26.4** | — |
+| gen_flux_kontext | 32.4 | 25.5 | 22.1 | 28.7 | 27.2 | **+0.8** |
+| gen_automold | 28.3 | 25.0 | 20.6† | 27.9 | 25.5 | -0.9 |
+| gen_step1x_new | 30.8 | 27.0 | 20.9 | 27.2 | 26.5 | +0.1 |
+| std_mixup | 31.5 | 25.3 | 21.1 | 28.0 | 26.5 | +0.1 |
+| std_autoaugment | 30.9 | 27.7 | 19.3 | 26.4 | 26.1 | -0.3 |
+| gen_cycleGAN | 31.5 | 23.3 | 20.8 | 27.5 | 25.8 | -0.6 |
+| std_cutmix | 30.3 | 25.8 | 19.7 | 27.4 | 25.8 | -0.6 |
+
+**Key insight:** In S1 pretrained, ALL 25 strategies beat baseline (+1.42 to +2.84pp). From scratch at 40k, most are near or below baseline. Only gen_flux_kontext clearly wins (+0.8pp). This strongly suggests pretrained features mask augmentation effects. Final assessment pending 80k results.
+
+**⚠️ DUPLICATE NOTE:** 87 duplicate from-scratch jobs on chge7185 are **safe** — pre-flight checkpoint check + flock lock prevent issues.
+
+**Note:** 2 standalone pspnet_r50 BDD10k jobs completed (80k iters, separate experiment). Different LR schedules, NOT part of the batch.
 
 ### mask2former on MapillaryVistas/OUTSIDE15k (§2)
 
