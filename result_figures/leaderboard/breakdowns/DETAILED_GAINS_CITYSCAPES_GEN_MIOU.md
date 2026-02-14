@@ -4,10 +4,11 @@
 
 | Strategy | Type | cityscapes | Δcityscapes | acdc | Δacdc | Avg |
 |---|---|---:|---:|---:|---:|---:|
+| gen_random_noise | Generative | 63.7 | +1.3 | 45.0 | +2.0 | +1.68 |
 | gen_Img2Img | Generative | 62.4 | +0.1 | 43.3 | +0.4 | +0.22 |
 | gen_augmenters | Generative | 62.5 | +0.2 | 43.1 | +0.1 | +0.18 |
-| gen_Qwen_Image_Edit | Generative | 62.1 | -0.2 | 43.2 | +0.2 | +0.02 |
 | gen_Attribute_Hallucination | Generative | 62.2 | -0.1 | 43.1 | +0.1 | +0.03 |
+| gen_Qwen_Image_Edit | Generative | 62.1 | -0.2 | 43.2 | +0.2 | +0.02 |
 | baseline | Baseline | 62.3 | +0.0 | 43.0 | +0.0 | +0.00 |
 | gen_VisualCloze | Generative | 62.3 | +0.0 | 42.8 | -0.2 | -0.06 |
 | gen_CUT | Generative | 62.0 | -0.3 | 43.1 | +0.1 | -0.11 |
@@ -15,9 +16,9 @@
 | gen_step1x_v1p2 | Generative | 62.2 | -0.1 | 42.7 | -0.3 | -0.20 |
 | std_cutmix | Standard Aug | 62.1 | -0.2 | 42.8 | -0.2 | -0.19 |
 | gen_cycleGAN | Generative | 62.1 | -0.2 | 42.7 | -0.3 | -0.21 |
-| std_mixup | Standard Aug | 61.9 | -0.4 | 42.8 | -0.1 | -0.28 |
-| gen_automold | Generative | 61.7 | -0.6 | 43.0 | +0.0 | -0.29 |
 | std_randaugment | Standard Aug | 62.2 | -0.1 | 42.5 | -0.5 | -0.29 |
+| gen_automold | Generative | 61.7 | -0.6 | 43.0 | +0.0 | -0.29 |
+| std_mixup | Standard Aug | 61.9 | -0.4 | 42.8 | -0.1 | -0.28 |
 | gen_cyclediffusion | Generative | 62.0 | -0.3 | 42.6 | -0.4 | -0.31 |
 | std_autoaugment | Standard Aug | 61.7 | -0.6 | 42.9 | -0.0 | -0.32 |
 | gen_Weather_Effect_Generator | Generative | 61.7 | -0.6 | 42.8 | -0.1 | -0.38 |
@@ -52,6 +53,7 @@
 | gen_cycleGAN                 | Generative   | -           |   57.95 |   27.14 |   45.28 |   43.95 | -            |         43.58 | -     |
 | gen_cyclediffusion           | Generative   | -           |   57.86 |   27.35 |   44.74 |   43.81 | -            |         43.44 | -     |
 | gen_flux_kontext             | Generative   | -           |   57.64 |   27.49 |   45.39 |   43.54 | -            |         43.52 | -     |
+| gen_random_noise             | Generative   | -           |   59.56 |   28.17 |   46.56 |   46.47 | -            |         45.19 | -     |
 | gen_stargan_v2               | Generative   | -           |   56.67 |   26.71 |   44.72 |   43.62 | -            |         42.93 | -     |
 | gen_step1x_new               | Generative   | -           |   56.11 |   25.82 |   45.85 |   44.01 | -            |         42.95 | -     |
 | gen_step1x_v1p2              | Generative   | -           |   57.42 |   26.98 |   45.37 |   43.56 | -            |         43.33 | -     |

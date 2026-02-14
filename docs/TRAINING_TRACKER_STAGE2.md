@@ -1,6 +1,6 @@
 # Training Tracker - Stage 2 (All Domains)
 
-**Last Updated:** 2026-02-13 15:47
+**Last Updated:** 2026-02-13 23:15
 
 ---
 
@@ -23,17 +23,17 @@
 
 | Category | Configs | Complete (4/4) | Partial | Running | Pending | Failed |
 |----------|---------|----------------|---------|---------|---------|--------|
-| **Generative (gen_*)** | 80 | 38 | 18 | 11 | 11 | 2 |
-| **Standard (std_*)** | 20 | 9 | 2 | 1 | 8 | 0 |
-| **TOTAL** | 100 | 47 | 20 | 12 | 19 | 2 |
+| **Generative (gen_*)** | 80 | 54 | 10 | 6 | 7 | 3 |
+| **Standard (std_*)** | 20 | 9 | 0 | 3 | 8 | 0 |
+| **TOTAL** | 100 | 63 | 10 | 9 | 15 | 3 |
 
 ### Individual Model Trainings
 
 | Category | Total Models | ✅ Complete | 🔄 Running | ⏳ Pending | ❌ Failed |
 |----------|-------------|-------------|------------|-----------|----------|
-| **Generative (gen_*)** | 320 | 192 | 18 | 102 | 8 |
-| **Standard (std_*)** | 80 | 43 | 1 | 36 | 0 |
-| **TOTAL** | 400 | 235 | 19 | 138 | 8 |
+| **Generative (gen_*)** | 320 | 235 | 10 | 62 | 13 |
+| **Standard (std_*)** | 80 | 45 | 3 | 32 | 0 |
+| **TOTAL** | 400 | 280 | 13 | 94 | 13 |
 
 ### Generative Image Augmentation Strategies (❌ INVALID)
 
@@ -68,4 +68,4 @@
 | std_minimal | ⏳ | ⏳ | ⏳ | ⏳ |  |
 | std_photometric_distort | ⏳ | ⏳ | ⏳ | ⏳ |  |
 | std_autoaugment | ✅ | ✅ | ✅ | ✅ |  |
-| std_randaugment | 2/4 | 2/4 | ✅ | ✅ |  |
+| std_randaugment | 🔄 | 🔄 | ✅ | ✅ |  |

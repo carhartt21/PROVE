@@ -132,6 +132,7 @@ class UnifiedTrainer:
         gpu_ids: List[int] = None,
         distributed: bool = False,
         use_native_classes: bool = True,
+        no_pretrained: bool = False,
     ):
         self.dataset = dataset
         self.model = model
@@ -160,6 +161,7 @@ class UnifiedTrainer:
         self.gpu_ids = gpu_ids or [0]
         self.distributed = distributed
         self.use_native_classes = use_native_classes
+        self.no_pretrained = no_pretrained
         
         # Initialize config builder
         self.config_builder = UnifiedTrainingConfig(cache_dir=cache_dir)
@@ -216,6 +218,19 @@ class UnifiedTrainer:
         config['seed'] = self.seed
         config['deterministic'] = self.deterministic
         config['gpu_ids'] = self.gpu_ids
+        
+        # Strip pretrained backbone weights if --no-pretrained is set
+        if self.no_pretrained:
+            if 'model' in config:
+                model_cfg = config['model']
+                # Remove backbone init_cfg (used by most models)
+                if 'backbone' in model_cfg and 'init_cfg' in model_cfg['backbone']:
+                    model_cfg['backbone']['init_cfg'] = None
+                    print("[NO-PRETRAINED] Removed backbone init_cfg (training from scratch)")
+                # Remove top-level 'pretrained' key (used by HRNet)
+                if 'pretrained' in model_cfg:
+                    model_cfg['pretrained'] = None
+                    print("[NO-PRETRAINED] Removed model pretrained path (training from scratch)")
         
         # Override learning rate if specified
         if self.lr is not None:
@@ -1451,6 +1466,9 @@ Examples:
                        help='Save validation visualizations (Input | GT | Prediction side-by-side)')
     parser.add_argument('--max-val-samples', type=int, default=5,
                        help='Maximum number of validation samples to visualize per epoch')
+    parser.add_argument('--no-pretrained', action='store_true',
+                       help='Train from scratch without pretrained backbone weights '
+                            '(removes ImageNet/other pretrained init_cfg from backbone)')
     parser.add_argument('--gpu-ids', type=int, nargs='+', default=[0],
                        help='GPU IDs to use')
     parser.add_argument('--distributed', action='store_true',
@@ -1691,6 +1709,7 @@ def main():
         gpu_ids=args.gpu_ids,
         distributed=args.distributed,
         use_native_classes=args.use_native_classes,
+        no_pretrained=args.no_pretrained,
     )
     
     # Config only mode
