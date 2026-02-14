@@ -528,16 +528,21 @@ else:
     
     # For noise ablation, inject ReplaceWithNoise into the train pipeline
     if is_noise_ablation:
-        # Insert ReplaceWithNoise after LoadImageFromFile in the pipeline
-        pipeline = cfg.train_pipeline if hasattr(cfg, 'train_pipeline') else cfg.train_dataloader.dataset.get('pipeline', [])
+        # BUG FIX: Must inject into cfg.train_dataloader.dataset.pipeline (the actual
+        # pipeline used by the dataset), NOT just cfg.train_pipeline (a top-level config
+        # attribute that is a separate object after Config.fromfile() resolves variable refs).
+        # Previously only cfg.train_pipeline was modified, which had no effect on the dataset.
+        dataset_pipeline = cfg.train_dataloader.dataset.pipeline
         new_pipeline = []
-        for transform in pipeline:
+        for transform in dataset_pipeline:
             new_pipeline.append(transform)
             if isinstance(transform, dict) and transform.get('type') == 'LoadImageFromFile':
                 new_pipeline.append(dict(type='ReplaceWithNoise', noise_type='uniform'))
+        # Update BOTH the dataset pipeline (critical) and top-level (for consistency)
+        cfg.train_dataloader.dataset.pipeline = new_pipeline
         if hasattr(cfg, 'train_pipeline'):
             cfg.train_pipeline = new_pipeline
-        print(f"Injected ReplaceWithNoise into train pipeline ({{len(new_pipeline)}} transforms)")
+        print(f"Injected ReplaceWithNoise into dataset pipeline ({{len(new_pipeline)}} transforms)")
     
     # Build the runner first to get the real dataset initialized
     runner = Runner.from_cfg(cfg)
