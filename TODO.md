@@ -1,26 +1,26 @@
 # PROVE Project TODO
 
-**Last Updated:** 2026-02-14 (03:50)
+**Last Updated:** 2026-02-14 (12:20)
 
 ---
 
-## 📊 Current Status (2026-02-14 03:50)
+## 📊 Current Status (2026-02-14 12:20)
 
 ### Queue Summary
 | User | Category | RUN | PEND | Total |
 |------|----------|----:|-----:|------:|
-| chge7185 | S2 (incl failed retrain) | 6 | 12 | 18 |
-| **chge7185 subtotal** | | **6** | **12** | **18** |
-| mima2416 | S2 (completing) | 26 | 0 | 26 |
-| mima2416 | Noise ablation (resubmitted) | 0 | 53 | 53 |
-| **mima2416 subtotal** | | **26** | **53** | **79** |
+| mima2416 | Noise ablation (resubmitted) | 5 | 0 | 5 |
+| mima2416 | From-scratch experiment | 7 | 91 | 98 |
+| mima2416 | Standalone scratch (pspnet, 80k) | 2 | 0 | 2 |
+| **mima2416 subtotal** | | **14** | **91** | **105** |
 
 **Notes:**
 - 🔄 **S1 at 91%**: 408/448 individual models complete (tracker). 420/420 tested. Remaining: mask2former on MapVistas/OUTSIDE15k (on chge7185 queue).
-- 🔄 **S2 at 70%**: **280/400 complete** (was 235). 26 RUN on mima2416 + 18 on chge7185. **13 gen model failures** (gen_Attribute_Hallucination, gen_augmenters, gen_automold, gen_CNetSeg) — all being retrained. Testing: **339 valid** (was 301), 8 missing.
+- 🔄 **S2 at 70%**: **280/400 complete** (was 235). **13 gen model failures** — all being retrained. Testing: **339 valid** (was 301), 8 missing.
 - ✅ **CS-Ratio COMPLETE**: **48/48 trained + 96/96 tested (100%)**.
-- 🔄 **Combination at 94%**: 17/18 complete + tested. Last job status unknown (pending S2 jobs were killed).
-- ❌ **Noise RESUBMITTED (after bug fix)**: 53 jobs queued (24 noise-50% + 24 noise-100% + 5 CG noise-100%). Fix committed as `a48dd18`. See §CRITICAL BUG section below.
+- 🔄 **Combination at 94%**: 17/18 complete + tested. Last job status unknown.
+- ❌ **Noise RESUBMITTED (after bug fix)**: 53 jobs queued (5 RUN). Fix committed as `a48dd18`. See §CRITICAL BUG section below.
+- 🆕 **From-Scratch Experiment**: 100 jobs submitted (7 RUN, 91 PEND). segformer_mit-b3, all 26 strategies × 4 datasets, 40k iters, --no-pretrained. See §From-Scratch section.
 - ✅ **Extended S1 COMPLETE**: 20/20 at 45k, all tested.
 - 🔄 **Extended CG**: 5/10 at 60k (tested), 5 at 50k. 4 pspnet models running.
 
@@ -39,6 +39,7 @@
 | Noise Ablation 100% (15k/20k) | 0/29 | 29 PEND | 0 | 🔄 Resubmitted (fix a48dd18) |
 | Extended S1 (45k) | **20/20** | 0 | 0 | **100%** ✅ |
 | Extended CG (60k) | **5/10** | 4 RUN | 1 | 🔄 **50%** |
+| From-Scratch (40k) | **0/100** | 7 RUN, 91 PEND | 2 | 🆕 **0%** → submitting |
 
 ### Testing Progress
 | Stage | Valid Tests | Trained | Notes |
@@ -85,18 +86,40 @@
 
 ### Suggested Next Steps (Priority Order)
 
-1. **🚨 Wait for noise resubmission** — 53 jobs queued (24 noise-50% + 24 noise-100% + 5 CG noise-100%). Verify first completed job log has "Injected ReplaceWithNoise into dataset pipeline" message.
-2. **Copy CS-Ratio to IEEE repo** — 48/48 trained + 96/96 tested (ready now).
-3. **Wait for S2 completion** — 26 RUN (mima2416) + 18 (chge7185). Then regenerate S2 leaderboard + copy to IEEE repo.
-4. **Wait for ExtCG** — 4 pspnet models running toward 60k → complete Extended CG ablation (10/10).
-5. ~~Wait for CS-Ratio~~ → ✅ **48/48 COMPLETE + 96/96 tested**.
-6. **Wait for Combination** — 1 job status unknown (check if it survived pending kills).
-7. **After noise completion:** Analyze 50% vs 100% noise vs gen_* (genuine results this time).
-8. **After S2 completion:** Copy S2 results to IEEE publication repo.
+1. **🚨 Wait for noise resubmission** — 53 jobs queued. Verify first completed job log has "Injected ReplaceWithNoise into dataset pipeline" message.
+2. **🆕 Monitor from-scratch experiment** — 100 jobs (7 RUN, 91 PEND). Will reveal if augmentation gains persist without pretrained features.
+3. **Copy CS-Ratio to IEEE repo** — 48/48 trained + 96/96 tested (ready now).
+4. **Wait for S2 completion** — Then regenerate S2 leaderboard + copy to IEEE repo.
+5. **Wait for ExtCG** — 4 pspnet models running toward 60k → complete Extended CG ablation (10/10).
+6. ~~Wait for CS-Ratio~~ → ✅ **48/48 COMPLETE + 96/96 tested**.
+7. **Wait for Combination** — 1 job status unknown.
+8. **After noise completion:** Analyze 50% vs 100% noise vs gen_* (genuine results this time).
+9. **After S2 completion:** Copy S2 results to IEEE publication repo.
 
 ---
 
 ## 🔄 Active / In-Progress Tasks
+
+### 🆕 From-Scratch Experiment (2026-02-14)
+
+**Purpose:** Test whether augmentation gains are genuine or masked by pretrained backbone features. If pretrained features dominate, augmentations may show smaller relative impact. Training from scratch removes this confound.
+
+**Configuration:**
+| Parameter | Value |
+|-----------|-------|
+| Model | segformer_mit-b3 only |
+| Datasets | BDD10k, IDD-AW, MapillaryVistas, OUTSIDE15k |
+| Strategies | All 26 (baseline + 4 std_* + 21 gen_*) |
+| Iterations | 40,000 |
+| Checkpoint/eval | Every 5,000 |
+| Domain filter | clear_day (S1 protocol) |
+| Backbone | `--no-pretrained` (init_cfg=None) |
+| Output | `/scratch/aaa_exchange/AWARE/WEIGHTS_FROM_SCRATCH/` |
+
+**Submitted:** 100 jobs (4 skipped — no generated images). Job IDs 3577430–3577529.
+**Commit:** `fbe8870` (from-scratch stage in batch_training_submission.py)
+
+**Note:** 2 standalone pspnet_r50 BDD10k jobs also running (80k iters, separate experiment — IDs 3577403, 3577404). These use different LR schedules and are NOT part of the batch.
 
 ### mask2former on MapillaryVistas/OUTSIDE15k (§2)
 
