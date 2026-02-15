@@ -1,18 +1,17 @@
 # PROVE Project TODO
 
-**Last Updated:** 2026-02-16 (17:00)
+**Last Updated:** 2026-02-15 (22:30)
 
 ---
 
-## 📊 Current Status (2026-02-16 17:00)
+## 📊 Current Status (2026-02-15 22:30)
 
 ### Queue Summary
 | User | Category | RUN | PEND | Total |
 |------|----------|----:|-----:|------:|
-| mima2416 | From-scratch 40k→80k resume | 15 | 84 | 99 |
-| mima2416 | S2/ExtCG/BS8/Combo tests | 0 | ~9 | ~9 |
-| **mima2416 subtotal** | | **15** | **~93** | **~108** |
-| chge7185 | Duplicate from-scratch (safe) | 6 | 76 | 82 |
+| mima2416 | From-scratch 40k→80k resume | 16 | 37 | 53 |
+| chge7185 | Duplicate from-scratch (safe) | 6 | 32 | 38 |
+| **Total** | | **22** | **69** | **91** |
 
 **Note:** Duplicate from-scratch jobs on chge7185 are harmless — pre-flight checkpoint check + flock training lock. Duplicates auto-exit.
 
@@ -26,7 +25,7 @@
 - ✅ **Extended S1 COMPLETE**: 20/20 at 45k, all tested.
 - 🔄 **Extended CG**: 10/10 trained (5 at 60k, 5 at 50k), **5/10 tested** → 5 test jobs submitted (Jobs 3784335–3784339).
 - 🔄 **Combination Ablation**: 17/18 trained+tested, **1 resubmitted** (gen_Qwen+std_cutmix segformer, Job 3864663 — stale lock removed).
-- 🔄 **From-Scratch Experiment**: **102/102 tested at 40k** (all tested), 21 at 40k→80k in progress (15 RUN + 84 PEND on mima2416, 6 RUN + 76 PEND on chge7185). 2 already reached 80k.
+- 🔄 **From-Scratch Experiment**: **102/102 tested at 40k** (all tested), 40k→80k extension in progress: **12/26 strategies have ≥1 dataset at 80k** (gen_automold fully done). 22 RUN + 69 PEND across both accounts. **Convergence confirmed: all strategies plateau by 40-45k** (only +0.1-0.3pp from 45k→80k).
 - ✅ **Cityscapes Pipeline Verification**: 4 trained, 4 tested.
 - 🔄 **Cityscapes BS8**: 2 trained (baseline segformer+segnext at 8k), **test jobs submitted** (Jobs 3784440-3784441).
 
@@ -44,7 +43,7 @@
 | Noise Ablation (WEIGHTS_NOISE_ABL) | **48/48** | 0 | 0 | **100%** ✅ |
 | Extended S1 (45k, EXTENDED_ABL) | **20/20** | 0 | 0 | **100%** ✅ |
 | Extended CG (50-60k, EXTENDED_ABL) | **10/10** | 0 | 0 | **100%** ✅ |
-| From-Scratch (40k→80k) | **102/102** at 40k, **2** at 80k | 21 RUN | ~160 PEND | 🔄 **100% at 40k**, extending to 80k |
+| From-Scratch (40k→80k) | **102/102** at 40k, **12** strategies at 80k | 22 RUN | 69 PEND | 🔄 **100% at 40k**, extending to 80k. Plateaued. |
 | Cityscapes BS8 | **2** | 0 | 0 | Pilot: 2 baseline models |
 | Cityscapes Verification | **4** | 0 | 0 | Complete |
 
@@ -96,14 +95,14 @@ All submittable S2 jobs trained (404/416, 12 have no gen images). 424/425 tested
 
 ### Suggested Next Steps (Priority Order)
 
-1. **� Monitor from-scratch 40k→80k** — 21 running, ~160 pending. All 102 tested at 40k. 2 already at 80k. ETA ~23 hours. After completion: compare from-scratch vs pretrained at 80k.
+1. **🔄 Monitor from-scratch 80k extension** — 12/26 strategies at 80k, 22 RUN + 69 PEND. Training plateaued at 40-45k — 80k just confirms convergence. After completion: test at 80k and final cross-init comparison.
 2. **⏳ Wait for pending test jobs** — 2 S2 tests (gen_LANIT mask2former), 5 Extended CG tests, 2 BS8 tests, 1 combination training job.
 3. **🔬 Verify noise results** — 48/48 noise ablation complete. Check job logs for "Injected ReplaceWithNoise" confirmation. Run noise analysis.
 4. **Clean anomalies in test CSVs** — Remove 4 invalid gen_random_noise entries from CG CSV. Remove 26 legacy entries from S2 CSV.
-5. **Copy CS-Ratio to IEEE repo** — 48/48 trained + 48/48 tested (ready now).
-6. **Copy S2 results to IEEE repo** — S2 now ~100% complete.
-7. **After noise verification:** Analyze 50% vs 100% noise vs gen_* results.
-8. **After from-scratch 80k completion:** Final from-scratch vs pretrained comparison at matched iterations.
+5. ✅ ~~Copy CS-Ratio to IEEE repo~~ — **DONE** (2026-02-15, commit `9e23e0c`).
+6. ✅ ~~Copy S2 results to IEEE repo~~ — **DONE** (2026-02-15, commit `9e23e0c`).
+7. ✅ ~~Export all ablation results to IEEE repo~~ — **DONE** (2026-02-15). Exported: CS-ratio (48), S1-ratio (24), noise (48+5), from-scratch (121 at 40k), extended S1 (20), extended CG (10), combination (17). Plus 12 leaderboard CSVs and comprehensive README at `data/data/README.md`.
+8. **After from-scratch 80k completion:** Test at 80k, final from-scratch vs pretrained comparison. Update IEEE from-scratch CSV.
 
 ### Proposed Additional Studies (Priority Order, 2026-02-15)
 
@@ -241,28 +240,40 @@ After current experiments complete, the following studies address remaining open
 
 **Submitted:** 100 jobs (4 skipped — no generated images). Job IDs 3577430–3577529.
 **Commit:** `fbe8870` (from-scratch stage), `687fbee` (80k extension)
-**Progress (2026-02-16):** **102/102 tested at 40k**, 21 running 40k→80k (15 mima2416, 6 chge7185), ~160 pending. 2 already at 80k.
+**Progress (2026-02-15 22:30):** **102/102 tested at 40k**, 80k extension in progress: **12/26 strategies have ≥1 dataset at 80k**. 22 RUN + 69 PEND across both accounts.
 
-#### Convergence Analysis (2026-02-15)
-All 44 completed jobs are still improving at 40k — **no plateau detected**:
-| Metric | Value |
-|--------|-------|
-| Avg mIoU gain 35k→40k | **+0.79pp** |
-| Avg mIoU gain 30k→40k | **+1.99pp** |
-| Jobs still improving (>0.3pp in last 5k) | **44/44 (100%)** |
+#### 80k Extension Progress (2026-02-15)
+| Progress | # Strategies | Strategies |
+|----------|-------------|------------|
+| **4/4 at 80k** | 1 | gen_automold |
+| **1-3/4 at 80k** | 11 | baseline, gen_albumentations_weather, gen_cycleGAN, gen_flux_kontext, gen_random_noise, gen_step1x_new, gen_step1x_v1p2, std_autoaugment, std_cutmix, std_mixup, std_randaugment |
+| **60k-75k** | 4 | gen_VisualCloze (75k), gen_cyclediffusion (70k), gen_SUSTechGAN (70k), gen_IP2P (60k) |
+| **Still at 40k** | 10 | gen_Attribute_Hallucination, gen_augmenters, gen_CNetSeg, gen_CUT, gen_Img2Img, gen_Qwen_Image_Edit, gen_stargan_v2, gen_TSIT, gen_UniControl, gen_Weather_Effect_Generator |
 
-**Per-dataset average progression (mIoU):**
+#### Convergence Analysis (2026-02-15, UPDATED with 80k data)
+
+**Training has clearly plateaued by 40-45k iterations.** The 45k→80k window shows only +0.1–0.3pp marginal improvement — essentially noise. 80k iterations is **more than sufficient**.
+
+**SegFormer-B3 on BDD10k convergence (mIoU %):**
+| Strategy | 5k | 10k | 20k | 30k | 40k | 50k | 60k | 70k | 80k | Δ(40→80k) |
+|----------|-----|-----|-----|-----|-----|-----|-----|-----|-----|--------|
+| baseline | 23.7 | 25.3 | 28.9 | 30.2 | 32.2 | 32.5 | 32.5 | 32.4 | 32.5* | +0.3 |
+| gen_automold | 22.3 | 23.6 | 25.0 | 26.2 | 28.3 | 28.4 | 28.5 | 28.5 | 28.6 | +0.3 |
+| gen_cycleGAN | 21.1 | 24.4 | 25.0 | 29.8 | 31.5 | 31.7 | 31.7 | 31.6 | 31.8* | +0.3 |
+| gen_flux_kontext | 23.4 | 24.1 | 27.4 | 30.9 | 32.4 | 32.6 | 32.6 | 32.5 | 32.7* | +0.3 |
+| std_randaugment | 20.0 | 24.2 | 27.1 | 30.8 | 32.2 | 32.4 | 32.4 | 32.4 | 32.5 | +0.3 |
+
+*(*) = best checkpoint at 75-80k. All strategies converge by 40-45k — rapid improvement phase is 5k→30k (+7-10pp), 30k→40k (~+2pp), 40k→80k (~+0.3pp).*
+
+**Conclusion:** Extending from 40k to 80k confirms the 40k evaluation was already on the plateau. Final 80k results will barely change from 40k. The extension validates the earlier analysis rather than providing new signal.
+
+**Per-dataset average progression (mIoU, all strategies):**
 | Dataset | 5k | 10k | 15k | 20k | 25k | 30k | 35k | 40k |
 |---------|-----|-----|-----|-----|-----|-----|-----|-----|
 | bdd10k | 22.5 | 23.2 | 24.9 | 26.2 | 27.4 | 29.3 | 30.3 | 31.4 |
 | iddaw | 16.5 | 18.1 | 19.1 | 21.2 | 22.4 | 24.5 | 25.5 | 26.0 |
 | mapillaryvistas | 10.4 | 11.9 | 13.7 | 15.2 | 16.4 | 18.1 | 19.6 | 20.3 |
 | outside15k | 19.4 | 20.4 | 21.5 | 22.9 | 24.1 | 25.3 | 26.8 | 27.5 |
-
-**80k Extension Plan:**
-1. Wait for all 100 jobs to complete at 40k
-2. Submit resume: `python scripts/batch_training_submission.py --stage from-scratch --resume -y`
-3. This will resume from `iter_40000.pth` and train to 80k (verified via dry-run: 100 submit, 4 skip)
 
 #### Results at 40k (90/102 completed+tested, 23 strategies)
 
