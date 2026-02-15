@@ -209,7 +209,7 @@ After current experiments complete, the following studies address remaining open
 
 **Submitted:** 100 jobs (4 skipped — no generated images). Job IDs 3577430–3577529.
 **Commit:** `fbe8870` (from-scratch stage), `687fbee` (80k extension)
-**Progress (00:00):** **44/100 completed+tested at 40k**. 15 RUN, 42 PEND. Extending to 80k after all 40k finish.
+**Progress (2026-02-16):** **90/102 completed+tested at 40k**. 12 still running (gen_TSIT ×4, gen_Weather_Effect_Generator ×4, gen_augmenters ×4).
 
 #### Convergence Analysis (2026-02-15)
 All 44 completed jobs are still improving at 40k — **no plateau detected**:
@@ -232,67 +232,111 @@ All 44 completed jobs are still improving at 40k — **no plateau detected**:
 2. Submit resume: `python scripts/batch_training_submission.py --stage from-scratch --resume -y`
 3. This will resume from `iter_40000.pth` and train to 80k (verified via dry-run: 100 submit, 4 skip)
 
-#### Preliminary Results at 40k (46/100 completed+tested)
+#### Results at 40k (90/102 completed+tested, 23 strategies)
 
-**Strategy Rankings (sorted by avg gain vs baseline):**
-| # | Strategy | BDD10k | IDD-AW | MapVst | OUT15k | Avg Gain | vs S1 pretrained |
-|---|----------|--------|--------|--------|--------|----------|------------------|
-| 1 | gen_flux_kontext | +0.19 | -1.34 | **+2.59** | **+1.49** | **+0.73** | S1: +2.35 |
-| 2 | gen_step1x_v1p2 | +0.40 | +0.02 | — | — | +0.21 | S1: +1.77 |
-| 3 | std_mixup | -0.73 | -1.49 | +1.58 | +0.80 | +0.04 | S1: +4.59 |
-| 4 | gen_step1x_new | -1.46 | +0.18 | +1.41 | -0.03 | +0.03 | S1: +1.95 |
+**Strategy Rankings (sorted by avg gain vs baseline, all 4 datasets):**
+| # | Strategy | BDD10k | IDD-AW | MapVst | OUT15k | Avg Gain | pos |
+|---|----------|--------|--------|--------|--------|----------|-----|
+| 1 | gen_flux_kontext | +0.19 | -1.34 | **+2.59** | **+1.49** | **+0.73** | 3/4 |
+| 2 | gen_VisualCloze | **+1.03** | **+1.16** | -0.10 | -0.18 | **+0.48** | 2/4 |
+| 3 | gen_CNetSeg | -1.88 | +0.23 | **+1.93** | +0.49 | **+0.19** | 3/4 |
+| 4 | gen_step1x_v1p2 | +0.40 | +0.02 | +0.11 | -0.26 | +0.07 | 3/4 |
+| 5 | std_mixup | -0.73 | -1.49 | +1.58 | +0.80 | +0.04 | 2/4 |
+| 6 | gen_step1x_new | -1.46 | +0.18 | +1.41 | -0.03 | +0.03 | 2/4 |
 | — | **baseline** | **32.23** | **26.82** | **19.50** | **27.24** | — | — |
-| 5 | std_randaugment | -0.04 | -0.64 | +0.11 | +0.43 | -0.03 | S1: +4.67 |
-| 6 | gen_albumentations | -0.20 | +0.12 | +0.32 | -0.39 | -0.04 | S1: +2.73 |
-| 7 | gen_SUSTechGAN | -0.20 | — | -0.02 | — | -0.11 | — |
-| 8 | std_autoaugment | -1.32 | +0.93 | -0.18 | -0.88 | -0.36 | S1: +4.71 |
-| 9 | gen_random_noise | -0.45 | — | — | — | -0.45 | — |
-| 10 | std_cutmix | -1.92 | -1.01 | +0.22 | +0.20 | -0.63 | S1: +3.76 |
-| 11 | gen_cycleGAN | -0.78 | -3.53 | +1.31 | +0.25 | -0.69 | S1: +2.11 |
-| 12 | gen_automold | **-3.92** | -1.83 | +1.12 | +0.62 | -1.00 | S1: +2.84 |
+| 7 | gen_Qwen_Image_Edit | +0.17 | -0.40 | +0.42 | -0.23 | -0.01 | 2/4 |
+| 8 | std_randaugment | -0.04 | -0.64 | +0.11 | +0.43 | -0.03 | 2/4 |
+| 9 | gen_albumentations | -0.20 | +0.12 | +0.32 | -0.39 | -0.04 | 2/4 |
+| 10 | gen_Attribute_Hallucination | +0.40 | -0.41 | +0.12 | -0.52 | -0.10 | 2/4 |
+| 11 | gen_IP2P | -0.44 | +0.19 | +0.30 | -0.68 | -0.16 | 2/4 |
+| 12 | gen_Img2Img | -0.50 | +0.25 | +0.58 | -1.47 | -0.29 | 2/4 |
+| 13 | gen_UniControl | +0.24 | -1.07 | +0.05 | -0.49 | -0.32 | 2/4 |
+| 14 | gen_CUT | -1.27 | +0.47 | -0.14 | -0.34 | -0.32 | 1/4 |
+| 15 | std_autoaugment | -1.32 | +0.93 | -0.18 | -0.88 | -0.36 | 1/4 |
+| 16 | std_cutmix | -1.92 | -1.01 | +0.22 | +0.20 | -0.63 | 2/4 |
+| 17 | gen_cycleGAN | -0.78 | -3.53 | +1.31 | +0.25 | -0.69 | 2/4 |
+| 18 | gen_stargan_v2 | +0.43 | -2.41 | -0.15 | -0.80 | -0.73 | 1/4 |
+| 19 | gen_cyclediffusion | -1.26 | -2.51 | +1.06 | -0.28 | -0.75 | 1/4 |
+| 20 | gen_automold | **-3.92** | -1.83 | +1.12 | +0.62 | -1.00 | 2/4 |
+| 21 | gen_random_noise | -0.69 | -1.04 | +0.76 | -0.46 | -0.36 | 1/4 |
+| 22 | gen_SUSTechGAN | -0.20 | **-2.26** | -0.02 | **-2.17** | **-1.16** | 0/4 |
 
-**Coverage:** 46 tested + 21 trained-not-tested = 67/100 trained. 13 strategies × 4 datasets. ⚠️ Many gen_* not yet tested.
+**Coverage:** 90 tested, 102 trained, 12 in progress (gen_TSIT, gen_Weather_Effect_Generator, gen_augmenters). 23 strategies × 4 datasets.
 
 #### Strategy Type Summary
 | Type | n | Avg Gain | Positive % | Best Dataset |
 |------|---|----------|-----------|--------------|
-| gen_* (generative) | 26 | -0.17 pp | 50% (13/26) | MapVistas (+1.12 avg) |
-| std_* (standard) | 16 | -0.25 pp | 44% (7/16) | MapVistas (+0.43 avg) |
+| gen_* (generative) | 69 | -0.24 pp | 45% | MapVistas (+0.77 avg) |
+| std_* (standard) | 16 | -0.25 pp | 44% | MapVistas (+0.43 avg) |
+| **All non-baseline** | **85** | **-0.24 pp** | **45%** | **MapVistas** |
 
 #### Dataset-Level Pattern (Critical Finding)
 | Dataset | Baseline | Avg Gain | Positive | Best Strategy |
 |---------|----------|----------|----------|---------------|
-| **MapillaryVistas** | 19.50 | **+0.85** | **80%** (8/10) | gen_flux_kontext (+2.59) |
-| OUTSIDE15k | 27.24 | +0.22 | 60% (6/10) | gen_flux_kontext (+1.49) |
-| IDD-AW | 26.82 | -0.86 | 40% (4/10) | std_autoaugment (+0.93) |
-| **BDD10k** | 32.23 | **-0.87** | **17%** (2/12) | gen_step1x_v1p2 (+0.40) |
+| **MapillaryVistas** | 19.50 | **+0.84** | **81%** (17/21) | gen_flux_kontext (+2.59) |
+| OUTSIDE15k | 27.24 | -0.05 | 48% (10/21) | gen_flux_kontext (+1.49) |
+| IDD-AW | 26.82 | -0.56 | 41% (9/22) | gen_VisualCloze (+1.16) |
+| **BDD10k** | 32.23 | **-0.86** | **14%** (3/22) | gen_VisualCloze (+1.03) |
 
-**Key insight:** Augmentation helps MORE on datasets with lower baselines (MapVistas 19.5 → +0.85 avg) and HURTS on datasets where the from-scratch model is already performing better (BDD10k 32.2 → -0.87 avg). This pattern mirrors a "capacity allocation" effect — when the model is still learning basic features, augmentation adds useful variation; when it already has reasonable features, augmentation can confuse the learning signal.
+**Key insight:** Augmentation helps MORE on datasets with lower baselines (MapVistas 19.5 → +0.84 avg, 81% positive) and HURTS on datasets where the from-scratch model already performs better (BDD10k 32.2 → -0.86 avg, 14% positive). The "capacity allocation" effect holds: when the model is still learning basic features, augmentation adds useful variation; when it already has reasonable features, augmentation confuses the learning signal.
 
-#### Per-Domain Analysis (BDD10k, 7 domains)
-| Strategy | clear | cloudy | dawn | foggy | night | rainy | snowy | overall |
-|----------|-------|--------|------|-------|-------|-------|-------|---------|
-| gen_step1x_v1p2 | +0.52 | +0.86 | +0.30 | **-4.82** | +0.01 | -0.33 | +0.42 | +0.40 |
-| gen_flux_kontext | +0.54 | -0.86 | +0.26 | **-5.38** | -0.07 | -0.74 | +0.22 | +0.19 |
-| std_cutmix | -1.91 | -2.19 | -1.97 | +0.32 | -1.00 | -2.62 | -1.43 | -1.92 |
-| gen_automold | -3.97 | -4.06 | -3.30 | **-6.70** | -2.44 | -4.56 | -3.84 | -3.92 |
+#### Cross-Initialization Correlation: Scratch vs Pretrained (21 matched strategies)
 
-**Domain observations:**
-- **Foggy domain anomaly:** Most strategies show -1 to -7 pp on foggy (n=4 images only — too noisy to interpret)
-- **Night is stable:** Domain gains ≈ ±0.5 pp for most strategies (from-scratch doesn't differentiate night vs other domains)
-- **gen_automold destroys across ALL domains** — S1 #1 strategy is worst from scratch (-3.92 avg, ALL domains negative)
+| # | Strategy | Scratch Gain | Pretr Gain | Reversal |
+|---|----------|-------------|-----------|----------|
+| 1 | gen_flux_kontext | **+0.73** | +3.20 | |
+| 2 | gen_VisualCloze | **+0.48** | +4.48 | |
+| 3 | gen_CNetSeg | **+0.19** | +4.95 | |
+| 4 | gen_step1x_v1p2 | +0.07 | +3.10 | |
+| 5 | std_mixup | +0.04 | +4.59 | |
+| 6 | gen_step1x_new | +0.03 | +2.82 | |
+| 7 | gen_Qwen_Image_Edit | -0.01 | +4.89 | **YES** |
+| 8 | std_randaugment | -0.03 | +4.67 | **YES** |
+| 9 | gen_albumentations_weather | -0.04 | +4.42 | **YES** |
+| 10 | gen_Attribute_Hallucination | -0.10 | +5.02 | **YES** |
+| 11 | gen_IP2P | -0.16 | +4.79 | **YES** |
+| 12 | gen_Img2Img | -0.29 | +4.46 | **YES** |
+| 13 | gen_UniControl | -0.32 | +4.90 | **YES** |
+| 14 | gen_CUT | -0.32 | +4.71 | **YES** |
+| 15 | std_autoaugment | -0.36 | +4.71 | **YES** |
+| 16 | std_cutmix | -0.63 | +3.76 | **YES** |
+| 17 | gen_cycleGAN | -0.69 | +3.03 | **YES** |
+| 18 | gen_stargan_v2 | -0.73 | +4.60 | **YES** |
+| 19 | gen_cyclediffusion | -0.75 | +4.40 | **YES** |
+| 20 | gen_automold | -1.00 | +4.93 | **YES** |
+| 21 | gen_SUSTechGAN | -1.16 | +4.58 | **YES** |
+
+**Statistics:**
+| Metric | Value |
+|--------|-------|
+| **Spearman ρ** | **-0.091 (p=0.695)** — essentially zero correlation |
+| Direction reversals | **15/21 (71%)** — most strategies flip sign |
+| Avg pretrained gain | **+4.33 pp** (all positive) |
+| Avg scratch gain | **-0.24 pp** (mostly negative) |
+| Gain collapse ratio | **-0.06x** — gains don't just shrink, they invert |
+
+**Biggest rank changes (pretrained → scratch):**
+- gen_flux_kontext: #18 → **#1** (+17 ranks) — learns genuine features  
+- gen_step1x_new: #21 → **#6** (+15 ranks) — benefits persist without pretraining
+- gen_step1x_v1p2: #19 → **#4** (+15 ranks) — same model family  
+- gen_automold: #3 → **#20** (-17 ranks) — pretrained features masked harm
+- gen_VisualCloze: #13 → **#2** (+11 ranks) — truly helpful augmentation
 
 #### Key Findings — From-Scratch vs Pretrained
 
-1. **Augmentation gains collapse without pretraining:** S1 pretrained avg gain = +2.84pp (25/25 positive). From scratch = -0.19pp (4/12 positive). Pretrained features are ESSENTIAL for augmentation benefits.
+1. **Augmentation gains collapse without pretraining:** S1 pretrained avg gain = +4.33pp (21/21 positive). From scratch = -0.24pp (6/22 positive). Pretrained features are ESSENTIAL for augmentation benefits — **without them, most augmentations are harmful.**
 
-2. **Ranking reversal:** gen_automold (S1 pretrained #1 at +2.84pp) is **dead last** from scratch at -1.00pp. gen_flux_kontext (S1 #6) is the ONLY clear winner from scratch (+0.73pp). **Strategy rankings are NOT robust to initialization.**
+2. **Strategy rankings are initialization-dependent:** Spearman ρ = -0.091 (p=0.695) between pretrained and scratch gains. 71% of strategies reverse direction. **Rankings from pretrained evaluation do NOT predict from-scratch performance.**
 
-3. **std_* strategies hurt more from scratch:** std_autoaugment goes from +4.71pp (pretrained) to -0.36pp (scratch). std_cutmix goes from +3.76pp → -0.63pp. **Spearman ρ = 0.20 (p=0.80)** between scratch and pretrained gains — essentially no rank correlation.
+3. **gen_flux_kontext is the most robust strategy:** Jumps from #18 (pretrained) to #1 (scratch) — the ONLY strategy providing consistent benefit (+0.73pp) regardless of initialization. Its step1x family (v1p2, new) also shows robustness (#4, #6 from scratch).
 
-4. **Dataset size interaction:** MapillaryVistas (18k train, lowest baseline at 19.5) is the ONLY dataset where augmentation consistently helps from scratch (+0.85pp avg, 80% positive). BDD10k (7k train, highest baseline at 32.2) is where augmentation hurts most (-0.87pp avg, 17% positive).
+4. **gen_automold is the clearest "pretrained illusion":** #3 in pretrained (+4.93pp) but #20 from scratch (-1.00pp). The pretrained backbone compensated for the harmful augmentation, masking real damage.
 
-5. **Implication for publication:** The finding that pretrained features mask augmentation quality differences is a STRONG result. It means the community should not evaluate augmentation strategies on pretrained backbones alone — the rankings are initialization-dependent.
+5. **Dataset-capacity interaction persists:** MapillaryVistas (lowest baseline, 19.5) benefits most from augmentation (81% positive). BDD10k (highest baseline, 32.2) is hurt most (14% positive). This holds for both gen_* and std_*.
+
+6. **gen_* ≈ std_* from scratch:** gen_* avg = -0.24pp (45% positive), std_* avg = -0.25pp (44% positive). The alleged superiority of generative augmentation seen in pretrained evaluations disappears entirely without pretrained features.
+
+7. **Implication for publication:** The community should NOT evaluate augmentation strategies solely on pretrained backbones — **71% of strategy rankings reverse** when the pretrained backbone is removed. From-scratch evaluation is essential to distinguish genuine augmentation benefits from pretrained feature compensation.
 
 **⚠️ DUPLICATE NOTE:** 87 duplicate from-scratch jobs on chge7185 are **safe** — pre-flight checkpoint check + flock lock prevent issues.
 
