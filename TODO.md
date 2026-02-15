@@ -1,82 +1,91 @@
 # PROVE Project TODO
 
-**Last Updated:** 2026-02-15 (00:00)
+**Last Updated:** 2026-02-16 (17:00)
 
 ---
 
-## 📊 Current Status (2026-02-15 00:00)
+## 📊 Current Status (2026-02-16 17:00)
 
 ### Queue Summary
 | User | Category | RUN | PEND | Total |
 |------|----------|----:|-----:|------:|
-| mima2416 | From-scratch experiment (40k) | 15 | 42 | 57 |
-| **mima2416 subtotal** | | **15** | **42** | **57** |
-| chge7185 | Duplicate from-scratch (safe) | ~6 | ~81 | ~87 |
+| mima2416 | From-scratch 40k→80k resume | 15 | 84 | 99 |
+| mima2416 | S2/ExtCG/BS8/Combo tests | 0 | ~9 | ~9 |
+| **mima2416 subtotal** | | **15** | **~93** | **~108** |
+| chge7185 | Duplicate from-scratch (safe) | 6 | 76 | 82 |
 
-**Note:** 87 duplicate from-scratch jobs on chge7185 are harmless — job scripts have pre-flight checkpoint check + flock training lock. Duplicates will auto-exit.
+**Note:** Duplicate from-scratch jobs on chge7185 are harmless — pre-flight checkpoint check + flock training lock. Duplicates auto-exit.
 
 **Notes:**
-- 🔄 **S1 at 91%**: 408/448 individual models complete (tracker). 420/420 tested. Remaining: mask2former on MapVistas/OUTSIDE15k.
-- 🔄 **S2 at 70%**: **280/400 complete**. **13 gen model failures** — all being retrained. Testing: **339 valid**, 8 missing.
-- ✅ **CS-Ratio COMPLETE**: **48/48 trained + 96/96 tested (100%)**.
-- 🔄 **Noise**: 52/53 finished (1 CG mask2former RUN). Previous noise results all invalid (bug `a48dd18`).
-- 🔄 **From-Scratch Experiment**: **44/100 completed+tested at 40k** (15 RUN, 42 PEND). **Convergence analysis → extending to 80k** (all 44 still improving at 40k, avg +0.79pp/5k step). See §From-Scratch.
-- ✅ **Standalone pspnet scratch** (80k): baseline+noise BDD10k complete (iter_80000.pth).
+- ✅ **S1 COMPLETE**: 414/416 trained (2 no gen images), **420/420 tested (100%)**.
+- ✅ **S2 COMPLETE**: 404/416 trained (12 no gen images), **424/425 tested** (2 just submitted, 1 no checkpoint). Batch script: 0 remaining to submit.
+- ✅ **CG COMPLETE**: 100/100 trained, **250/250 tested (100%)**.
+- ✅ **CS-Ratio COMPLETE**: **48/48 trained + 48/48 tested (100%)**.
+- ✅ **S1-Ratio COMPLETE**: **24/24 trained + 24/24 tested (100%)**.
+- ✅ **Noise Ablation COMPLETE**: **48/48 trained+tested** in WEIGHTS_NOISE_ABLATION (24 ratio0p00 + 24 ratio0p50). 5 CG noise models also trained+tested. Previous noise results retracted (bug `a48dd18`).
 - ✅ **Extended S1 COMPLETE**: 20/20 at 45k, all tested.
-- 🔄 **Extended CG**: 5/10 at 60k (tested), 5 at 50k.
+- 🔄 **Extended CG**: 10/10 trained (5 at 60k, 5 at 50k), **5/10 tested** → 5 test jobs submitted (Jobs 3784335–3784339).
+- 🔄 **Combination Ablation**: 17/18 trained+tested, **1 resubmitted** (gen_Qwen+std_cutmix segformer, Job 3864663 — stale lock removed).
+- 🔄 **From-Scratch Experiment**: **102/102 tested at 40k** (all tested), 21 at 40k→80k in progress (15 RUN + 84 PEND on mima2416, 6 RUN + 76 PEND on chge7185). 2 already reached 80k.
+- ✅ **Cityscapes Pipeline Verification**: 4 trained, 4 tested.
+- 🔄 **Cityscapes BS8**: 2 trained (baseline segformer+segnext at 8k), **test jobs submitted** (Jobs 3784440-3784441).
 
 ---
 
 ### Training Progress
 | Stage | Complete (models) | In-Progress | Pending | Coverage |
 |-------|-------------------|-------------|---------|----------|
-| Stage 1 (15k) | **408/448** | 6 | 34 | **91.1%** |
-| Stage 2 (15k) | **280/400** | 14+13 fail retrain | 94 | 🔄 **70.0%** → ~97% |
+| Stage 1 (15k) | **414/416** | 0 | 0 | **100%** ✅ (2 no gen images) |
+| Stage 2 (15k) | **404/416** | 0 | 0 | **100%** ✅ (12 no gen images) |
 | CG total (20k) | **100/100** | 0 | 0 | **100%** ✅ |
 | CS-Ratio Ablation (20k) | **48/48** | 0 | 0 | **100%** ✅ |
 | S1-Ratio Ablation (15k) | **24/24** | 0 | 0 | **100%** ✅ |
-| Combination Ablation (20k) | **17/18** | 0 | 1 (PEND) | 🔄 **94.4%** |
-| Noise Ablation 50% (15k) | 24/24 | 0 | 0 | 🔄 Training done, test pending |
-| Noise Ablation 100% (15k/20k) | 28/29 | 1 RUN | 0 | 🔄 1 CG mask2former left |
-| Extended S1 (45k) | **20/20** | 0 | 0 | **100%** ✅ |
-| Extended CG (60k) | **5/10** | 4 RUN | 1 | 🔄 **50%** |
-| From-Scratch (40k→80k) | **44/100** at 40k | 15 RUN, 42 PEND | 0 | 🔄 **44%** → extending to 80k |
+| Combination Ablation (20k) | **17/18** | 1 PEND | 0 | 🔄 **94.4%** (Job 3864663) |
+| Noise Ablation (WEIGHTS_NOISE_ABL) | **48/48** | 0 | 0 | **100%** ✅ |
+| Extended S1 (45k, EXTENDED_ABL) | **20/20** | 0 | 0 | **100%** ✅ |
+| Extended CG (50-60k, EXTENDED_ABL) | **10/10** | 0 | 0 | **100%** ✅ |
+| From-Scratch (40k→80k) | **102/102** at 40k, **2** at 80k | 21 RUN | ~160 PEND | 🔄 **100% at 40k**, extending to 80k |
+| Cityscapes BS8 | **2** | 0 | 0 | Pilot: 2 baseline models |
+| Cityscapes Verification | **4** | 0 | 0 | Complete |
 
 ### Testing Progress
 | Stage | Valid Tests | Trained | Notes |
 |-------|------------|---------|-------|
-| Stage 1 | **420** | 408 | **100% coverage** ✅ |
-| Stage 2 | **339** | 280 | Auto-test on completion, **8 missing** |
+| Stage 1 | **420** | 414 | **100% coverage** ✅ |
+| Stage 2 | **424** | 404 | ✅ (2 PEND, 1 untestable) |
 | CG | **250** | 100 | **100%** ✅ (Cityscapes + ACDC per model) |
-| CS-Ratio | **96** | 48 | **100%** ✅ (Cityscapes + ACDC per model) |
+| CS-Ratio | **48** | 48 | **100%** ✅ |
 | S1-Ratio | **24** | 24 | **100%** ✅ |
-| Combination | **17** | 17 | **100%** ✅ |
-| Noise 50% | ❌ INVALID | — | Bug: pipeline injection (resubmitted 24 jobs) |
-| Noise 100% | ❌ INVALID | — | Bug: pipeline injection (resubmitted 29 jobs) |
+| Combination | **17** | 17 | **100%** ✅ (1 untrained) |
+| Noise Ablation | **48** | 48 | **100%** ✅ |
 | Extended S1 | **20** | 20 | **100%** ✅ |
-| Extended CG | **5** | 5 | **100%** of completed ✅ (auto-tested) |
+| Extended CG | **5/10** | 10 | **5 test jobs submitted** (PEND) |
+| Cityscapes BS8 | **0/2** | 2 | **2 test jobs submitted** (PEND) |
+| From-Scratch | **102** (40k) | 102 | All 40k tested, extending to 80k |
 
 ### 100% Coverage Plan
 
-#### S1 Path to 100% — IN PROGRESS 🔄
-| Step | Items | Status | Notes |
-|------|-------|--------|-------|
-| 1. S1 testing of trained models | **420/420** | ✅ **100%** | 0 missing |
-| 2. Remaining S1 training | 40 configs | 🔄 6 RUN, 34 PEND | mask2former on MapVistas/OUTSIDE15k + remaining gen_* |
-| 3. Submit tests for new completions | Auto | ⏳ After step 2 | `auto_submit_tests.py --stage 1` |
+#### S1 — COMPLETE ✅
+All submittable S1 jobs trained (414/416, 2 have no gen images). All 420 tests complete.
 
-### Strategy Leaderboard Highlights (2026-02-13 23:12)
+#### S2 — COMPLETE ✅
+All submittable S2 jobs trained (404/416, 12 have no gen images). 424/425 tested (2 PEND, 1 untestable — no iter_80000).
+
+#### CG — COMPLETE ✅
+100/100 trained, 250/250 tested.
+
+### Strategy Leaderboard Highlights (2026-02-16)
 | Stage | Top Strategy | mIoU | Baseline mIoU | Strategies > Baseline | Results |
 |-------|-------------|------|---------------|----------------------|--------|
-| Stage 1 | gen_automold | **40.45%** | 37.61% | **25/25 (all!)** | 417 |
-| Stage 1 #2 | gen_UniControl | 40.37% | 37.61% | — | 417 |
-| Stage 1 #3 | gen_albumentations_weather | 40.35% | 37.61% | — | 417 |
-| Stage 2 | gen_LANIT | **41.76%** | 40.85% | **6/25** | 344 |
-| Stage 2 #2 | gen_step1x_new | 41.11% | 40.85% | — | 344 |
-| Stage 2 #3 | gen_flux_kontext | 41.11% | 40.85% | — | 344 |
-| CG overall | gen_Img2Img | **52.87%** | 52.65% | **5/25** | 254 |
-| CG #2 | gen_augmenters | 52.82% | 52.65% | — | 254 |
-| CG #3 | gen_Qwen_Image_Edit | 52.67% | 52.65% | — | 254 |
+| Stage 1 | gen_automold | **40.45%** | 37.61% | **25/25 (all!)** | 420 |
+| Stage 1 #2 | gen_UniControl | 40.37% | 37.61% | — | 420 |
+| Stage 1 #3 | gen_albumentations_weather | 40.35% | 37.61% | — | 420 |
+| Stage 2 | gen_LANIT | **41.76%** | 40.85% | **6/25** | ~424 |
+| Stage 2 #2 | gen_step1x_new | 41.11% | 40.85% | — | ~424 |
+| Stage 2 #3 | gen_flux_kontext | 41.11% | 40.85% | — | ~424 |
+| CG overall | gen_Img2Img | **52.87%** | 52.65% | **4/25** | 250 |
+| CG #2 | gen_augmenters | 52.82% | 52.65% | — | 250 |
+| CG #3 | gen_Qwen_Image_Edit | 52.67% | 52.65% | — | 250 |
 
 **Key findings:**
 - S1: **All 25** augmentation strategies beat baseline (+1.42 to +2.84 pp). **gen_automold #1**. Top-5: gen_automold, gen_UniControl, gen_albumentations_weather, gen_augmenters, gen_Qwen_Image_Edit
@@ -87,15 +96,14 @@
 
 ### Suggested Next Steps (Priority Order)
 
-1. **🚨 Verify noise results** — 52/53 noise jobs complete. Check completed job logs for "Injected ReplaceWithNoise into dataset pipeline" message. Run noise tests.
-3. **🔄 Monitor from-scratch experiment** — **44/100 completed at 40k**, extending to 80k after all finish. gen_flux_kontext best so far (+0.8pp avg vs baseline).
-4. **Clean anomalies in test CSVs** — Remove 4 invalid gen_random_noise entries from CG CSV. Remove 26 legacy entries from S2 CSV. Investigate S2 iddaw/mask2former -11pp drops.
-5. **Copy CS-Ratio to IEEE repo** — 48/48 trained + 96/96 tested (ready now).
-6. **Wait for S2 completion** — Then regenerate S2 leaderboard + copy to IEEE repo.
-7. **After noise completion:** Analyze 50% vs 100% noise vs gen_* (genuine results this time).
-8. **After from-scratch 40k completion:** Submit 80k resume: `python scripts/batch_training_submission.py --stage from-scratch --resume -y`
-9. **After from-scratch 80k completion:** Compare from-scratch vs pretrained augmentation gains. If S1 gains (+2.84pp) compress significantly from scratch, pretrained features mask real augmentation impact.
-10. **After S2 completion:** Copy S2 results to IEEE publication repo.
+1. **� Monitor from-scratch 40k→80k** — 21 running, ~160 pending. All 102 tested at 40k. 2 already at 80k. ETA ~23 hours. After completion: compare from-scratch vs pretrained at 80k.
+2. **⏳ Wait for pending test jobs** — 2 S2 tests (gen_LANIT mask2former), 5 Extended CG tests, 2 BS8 tests, 1 combination training job.
+3. **🔬 Verify noise results** — 48/48 noise ablation complete. Check job logs for "Injected ReplaceWithNoise" confirmation. Run noise analysis.
+4. **Clean anomalies in test CSVs** — Remove 4 invalid gen_random_noise entries from CG CSV. Remove 26 legacy entries from S2 CSV.
+5. **Copy CS-Ratio to IEEE repo** — 48/48 trained + 48/48 tested (ready now).
+6. **Copy S2 results to IEEE repo** — S2 now ~100% complete.
+7. **After noise verification:** Analyze 50% vs 100% noise vs gen_* results.
+8. **After from-scratch 80k completion:** Final from-scratch vs pretrained comparison at matched iterations.
 
 ### Proposed Additional Studies (Priority Order, 2026-02-15)
 
@@ -189,6 +197,30 @@ After current experiments complete, the following studies address remaining open
 
 ---
 
+### 📂 WEIGHTS Directory Inventory (2026-02-16 Audit)
+
+| Directory | Purpose | Trained | Tested | Status |
+|-----------|---------|---------|--------|--------|
+| `WEIGHTS/` | Stage 1 (clear_day) | 414/416 | 420/420 | ✅ Complete |
+| `WEIGHTS_STAGE_2/` | Stage 2 (all domains) | 404/416 | 424/425 | ✅ Complete |
+| `WEIGHTS_CITYSCAPES_GEN/` | CG (Cityscapes replication) | 100/100 | 250/250 | ✅ Complete |
+| `WEIGHTS_CITYSCAPES_RATIO/` | CS-Ratio ablation | 48/48 | 48/48 | ✅ Complete |
+| `WEIGHTS_STAGE1_RATIO/` | S1-Ratio ablation | 24/24 | 24/24 | ✅ Complete |
+| `WEIGHTS_NOISE_ABLATION/` | Noise ablation (fixed) | 48/48 | 48/48 | ✅ Complete |
+| `WEIGHTS_EXTENDED_ABLATION/stage1` | Extended S1 (15k→45k) | 20/20 | 20/20 | ✅ Complete |
+| `WEIGHTS_EXTENDED_ABLATION/cityscapes_gen` | Extended CG (20k→50-60k) | 10/10 | 5/10 | 🔄 5 tests submitted |
+| `WEIGHTS_COMBINATION_ABLATION/` | Combination (gen+std) | 17/18 | 17/17 | 🔄 1 training resubmitted |
+| `WEIGHTS_FROM_SCRATCH/` | From-scratch experiment | 102/102 | 102/102 | 🔄 Extending to 80k |
+| `WEIGHTS_CITYSCAPES/` | Pipeline verification | 4/4 | 4/4 | ✅ Complete |
+| `WEIGHTS_CITYSCAPES_BS8/` | BS8 pilot | 2/2 | 0/2 | 🔄 2 tests submitted |
+| `WEIGHTS_EXTENDED/` | Old extended study (90k+) | 7/12 | 8/— | ⚠️ Legacy (superseded by EXTENDED_ABLATION) |
+| `WEIGHTS_RATIO_ABLATION/` | Old ratio experiment | 2/— | 2/— | ⚠️ Legacy (superseded by STAGE1_RATIO) |
+| `WEIGHTS_BATCH_SIZE_ABLATION/` | Batch size ablation | 0 | 0 | ⚠️ Setup only, no checkpoints |
+| `WEIGHTS_LOSS_ABLATION/` | Loss function ablation | 0 | 0 | ⚠️ Setup only, no checkpoints |
+| `WEIGHTS_EXTENDED_CG/` | (never used) | — | — | ⚠️ Empty, data is in EXTENDED_ABLATION/cityscapes_gen |
+
+---
+
 ## 🔄 Active / In-Progress Tasks
 
 ### 🔄 From-Scratch Experiment (2026-02-14)
@@ -209,7 +241,7 @@ After current experiments complete, the following studies address remaining open
 
 **Submitted:** 100 jobs (4 skipped — no generated images). Job IDs 3577430–3577529.
 **Commit:** `fbe8870` (from-scratch stage), `687fbee` (80k extension)
-**Progress (2026-02-16):** **90/102 completed+tested at 40k**. 12 still running (gen_TSIT ×4, gen_Weather_Effect_Generator ×4, gen_augmenters ×4).
+**Progress (2026-02-16):** **102/102 tested at 40k**, 21 running 40k→80k (15 mima2416, 6 chge7185), ~160 pending. 2 already at 80k.
 
 #### Convergence Analysis (2026-02-15)
 All 44 completed jobs are still improving at 40k — **no plateau detected**:
