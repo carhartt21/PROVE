@@ -1,33 +1,33 @@
 # PROVE Project TODO
 
-**Last Updated:** 2026-02-15 (22:30)
+**Last Updated:** 2026-02-17 (22:45)
 
 ---
 
-## 📊 Current Status (2026-02-15 22:30)
+## 📊 Current Status (2026-02-17 22:45)
 
 ### Queue Summary
 | User | Category | RUN | PEND | Total |
 |------|----------|----:|-----:|------:|
-| mima2416 | From-scratch 40k→80k resume | 16 | 37 | 53 |
-| chge7185 | Duplicate from-scratch (safe) | 6 | 32 | 38 |
-| **Total** | | **22** | **69** | **91** |
+| mima2416 | From-Scratch Ratio=0.0 | **0** | **80** | **80** |
+| **Total** | | **0** | **80** | **80** |
 
-**Note:** Duplicate from-scratch jobs on chge7185 are harmless — pre-flight checkpoint check + flock training lock. Duplicates auto-exit.
+**🔄 From-Scratch Ratio=0.0 training.** 80 gen_* jobs submitted (100% generated images, no real data). 20 gen strategies × 4 datasets × 1 model (segformer_mit-b3). 40k iterations. Job IDs 4139825–4139988.
 
 **Notes:**
 - ✅ **S1 COMPLETE**: 414/416 trained (2 no gen images), **420/420 tested (100%)**.
-- ✅ **S2 COMPLETE**: 404/416 trained (12 no gen images), **424/425 tested** (2 just submitted, 1 no checkpoint). Batch script: 0 remaining to submit.
+- ✅ **S2 COMPLETE**: 404/416 trained (12 no gen images), **433 tested (100%)**. 20 legacy ratio1p0 entries cleaned from CSV.
 - ✅ **CG COMPLETE**: 100/100 trained, **250/250 tested (100%)**.
 - ✅ **CS-Ratio COMPLETE**: **48/48 trained + 48/48 tested (100%)**.
 - ✅ **S1-Ratio COMPLETE**: **24/24 trained + 24/24 tested (100%)**.
-- ✅ **Noise Ablation COMPLETE**: **48/48 trained+tested** in WEIGHTS_NOISE_ABLATION (24 ratio0p00 + 24 ratio0p50). 5 CG noise models also trained+tested. Previous noise results retracted (bug `a48dd18`).
+- ✅ **Noise Ablation COMPLETE + VERIFIED**: **48/48 trained+tested** in WEIGHTS_NOISE_ABLATION (24 ratio0p00 + 24 ratio0p50). 5 CG noise models also trained+tested. All 53 logs confirm `Injected ReplaceWithNoise into dataset pipeline`. Previous noise results retracted (bug `a48dd18`).
 - ✅ **Extended S1 COMPLETE**: 20/20 at 45k, all tested.
-- 🔄 **Extended CG**: 10/10 trained (5 at 60k, 5 at 50k), **5/10 tested** → 5 test jobs submitted (Jobs 3784335–3784339).
-- 🔄 **Combination Ablation**: 17/18 trained+tested, **1 resubmitted** (gen_Qwen+std_cutmix segformer, Job 3864663 — stale lock removed).
-- 🔄 **From-Scratch Experiment**: **102/102 tested at 40k** (all tested), 40k→80k extension in progress: **12/26 strategies have ≥1 dataset at 80k** (gen_automold fully done). 22 RUN + 69 PEND across both accounts. **Convergence confirmed: all strategies plateau by 40-45k** (only +0.1-0.3pp from 45k→80k).
+- ✅ **Extended CG COMPLETE**: 10/10 trained + **10/10 tested (100%)**.
+- ✅ **Combination Ablation COMPLETE**: **18/18 trained + 18/18 tested (100%)**.
+- ✅ **From-Scratch Experiment FINALIZED**: **102/102 trained + tested at 40k**. 80k extension reached 29/102 before wall-clock exits — **40k adopted as final evaluation point** (convergence confirmed: +0.1-0.3pp from 40k→80k, plateau at 40-45k). 0 RUN, 0 PEND.
 - ✅ **Cityscapes Pipeline Verification**: 4 trained, 4 tested.
-- 🔄 **Cityscapes BS8**: 2 trained (baseline segformer+segnext at 8k), **test jobs submitted** (Jobs 3784440-3784441).
+- ✅ **Cityscapes BS8 COMPLETE**: 2 trained + **2 tested (100%)**.
+- 🔄 **Loss Ablation Tests**: 18 test jobs submitted (Jobs 3979412-3979429). Re-testing aux-lovasz at latest ckpts (30k-80k, was 10k) + testing aux-boundary (6 new). 3 models × 2 loss variants × {baseline + 2 gen strategies} × 2 stages. Script: `scripts/submit_loss_ablation_tests.py`.
 
 ---
 
@@ -39,28 +39,29 @@
 | CG total (20k) | **100/100** | 0 | 0 | **100%** ✅ |
 | CS-Ratio Ablation (20k) | **48/48** | 0 | 0 | **100%** ✅ |
 | S1-Ratio Ablation (15k) | **24/24** | 0 | 0 | **100%** ✅ |
-| Combination Ablation (20k) | **17/18** | 1 PEND | 0 | 🔄 **94.4%** (Job 3864663) |
+| Combination Ablation (20k) | **18/18** | 0 | 0 | **100%** ✅ |
 | Noise Ablation (WEIGHTS_NOISE_ABL) | **48/48** | 0 | 0 | **100%** ✅ |
 | Extended S1 (45k, EXTENDED_ABL) | **20/20** | 0 | 0 | **100%** ✅ |
 | Extended CG (50-60k, EXTENDED_ABL) | **10/10** | 0 | 0 | **100%** ✅ |
-| From-Scratch (40k→80k) | **102/102** at 40k, **12** strategies at 80k | 22 RUN | 69 PEND | 🔄 **100% at 40k**, extending to 80k. Plateaued. |
-| Cityscapes BS8 | **2** | 0 | 0 | Pilot: 2 baseline models |
+| From-Scratch (40k, FINAL) | **102/102** at 40k (29 also at 80k) | 0 | 0 | ✅ **Finalized at 40k** |
+| Cityscapes BS8 | **2** | 0 | 0 | ✅ Pilot complete |
 | Cityscapes Verification | **4** | 0 | 0 | Complete |
 
 ### Testing Progress
 | Stage | Valid Tests | Trained | Notes |
 |-------|------------|---------|-------|
 | Stage 1 | **420** | 414 | **100% coverage** ✅ |
-| Stage 2 | **424** | 404 | ✅ (2 PEND, 1 untestable) |
+| Stage 2 | **433** | 404 | **100% coverage** ✅ |
 | CG | **250** | 100 | **100%** ✅ (Cityscapes + ACDC per model) |
 | CS-Ratio | **48** | 48 | **100%** ✅ |
 | S1-Ratio | **24** | 24 | **100%** ✅ |
-| Combination | **17** | 17 | **100%** ✅ (1 untrained) |
+| Combination | **18** | 18 | **100%** ✅ |
 | Noise Ablation | **48** | 48 | **100%** ✅ |
 | Extended S1 | **20** | 20 | **100%** ✅ |
-| Extended CG | **5/10** | 10 | **5 test jobs submitted** (PEND) |
-| Cityscapes BS8 | **0/2** | 2 | **2 test jobs submitted** (PEND) |
-| From-Scratch | **102** (40k) | 102 | All 40k tested, extending to 80k |
+| Extended CG | **10/10** | 10 | **100%** ✅ |
+| Cityscapes BS8 | **2/2** | 2 | **100%** ✅ |
+| Loss Ablation | **11** (old @10k) → 🔄 **18 PEND** | ~20 | Retesting aux-lovasz + new aux-boundary |
+| From-Scratch | **102** (40k) | 102 | ✅ All 40k tested. Finalized at 40k. |
 
 ### 100% Coverage Plan
 
@@ -95,14 +96,18 @@ All submittable S2 jobs trained (404/416, 12 have no gen images). 424/425 tested
 
 ### Suggested Next Steps (Priority Order)
 
-1. **🔄 Monitor from-scratch 80k extension** — 12/26 strategies at 80k, 22 RUN + 69 PEND. Training plateaued at 40-45k — 80k just confirms convergence. After completion: test at 80k and final cross-init comparison.
-2. **⏳ Wait for pending test jobs** — 2 S2 tests (gen_LANIT mask2former), 5 Extended CG tests, 2 BS8 tests, 1 combination training job.
-3. **🔬 Verify noise results** — 48/48 noise ablation complete. Check job logs for "Injected ReplaceWithNoise" confirmation. Run noise analysis.
-4. **Clean anomalies in test CSVs** — Remove 4 invalid gen_random_noise entries from CG CSV. Remove 26 legacy entries from S2 CSV.
+1. ✅ ~~Monitor from-scratch 80k extension~~ — **FINALIZED at 40k** (2026-02-16). 102/102 tested. 29/102 reached 80k before wall-clock exits. Convergence confirmed at 40-45k — 40k adopted as final evaluation point.
+2. ✅ ~~Wait for pending test jobs~~ — **ALL COMPLETE** (2026-02-16): S2 433 tested, Extended CG 10/10, BS8 2/2, Combination 18/18.
+3. ✅ ~~Verify noise results~~ — **VERIFIED** (2026-02-16). All 53 logs confirm `Injected ReplaceWithNoise into dataset pipeline`. Noise analysis: avg +2.72pp, 10/16 positive.
+4. ✅ ~~Clean anomalies in test CSVs~~ — **DONE** (2026-02-16). Removed 20 legacy ratio1p0 entries from S2 CSV (428→408). CG noise entries valid (post-fix).
 5. ✅ ~~Copy CS-Ratio to IEEE repo~~ — **DONE** (2026-02-15, commit `9e23e0c`).
 6. ✅ ~~Copy S2 results to IEEE repo~~ — **DONE** (2026-02-15, commit `9e23e0c`).
 7. ✅ ~~Export all ablation results to IEEE repo~~ — **DONE** (2026-02-15). Exported: CS-ratio (48), S1-ratio (24), noise (48+5), from-scratch (121 at 40k), extended S1 (20), extended CG (10), combination (17). Plus 12 leaderboard CSVs and comprehensive README at `data/data/README.md`.
-8. **After from-scratch 80k completion:** Test at 80k, final from-scratch vs pretrained comparison. Update IEEE from-scratch CSV.
+8. ✅ ~~After from-scratch 80k completion~~ — **Finalized at 40k** (2026-02-16). 40k results are the official from-scratch evaluation point. Convergence confirmed.
+9. ✅ ~~Export newly completed results to IEEE repo~~ — **DONE** (2026-02-16, commits `50d6cfa`, `040a396`). Exported: S2 cleaned CSV (430 lines), Combination (18/18), Extended CG (10/10), BS8 (2), From-scratch finalized (102 at 40k), Leaderboard breakdowns (12 CSVs), Updated data README.
+10. **Run proposed additional studies** — See §Proposed Additional Studies below. Top priority: Cross-Dataset Generalization Testing (0 training, 8 test jobs) and PRISM Quality Correlation Analysis (0 jobs, pure analysis).
+11. 🔄 **Loss Ablation Testing** — Submitted 18 test jobs (2026-02-16 17:04). 3 models (deeplabv3plus_r50, pspnet_r50, segformer_mit-b5) × 2 loss variants (aux-lovasz, aux-boundary) × baseline + gen_stargan_v2 + gen_step1x_new × 2 stages. ETA: ~30 min per job. Results will go in `WEIGHTS_LOSS_ABLATION/`. After completion: export to IEEE repo as loss_ablation_results.csv.
+12. 🔄 **From-Scratch Ratio=0.0 (100% Generated)** — Submitted 80 jobs (2026-02-17 22:45). 20 gen_* strategies × 4 datasets × 1 model (segformer_mit-b3). Trains from scratch with 100% generated images (ratio=0.0, no real images). Tests whether generated images alone can teach a model from scratch. 4 skipped (gen_LANIT — no generated images). Job IDs 4139825–4139988. Output: `WEIGHTS_FROM_SCRATCH/{strategy}/{dataset}/segformer_mit-b3_ratio0p00/`. 40k iterations (matches existing from-scratch evaluation point). After completion: compare vs ratio=0.50 and baseline results.
 
 ### Proposed Additional Studies (Priority Order, 2026-02-15)
 
@@ -196,7 +201,7 @@ After current experiments complete, the following studies address remaining open
 
 ---
 
-### 📂 WEIGHTS Directory Inventory (2026-02-16 Audit)
+### 📂 WEIGHTS Directory Inventory (2026-02-17 Audit)
 
 | Directory | Purpose | Trained | Tested | Status |
 |-----------|---------|---------|--------|--------|
@@ -207,11 +212,12 @@ After current experiments complete, the following studies address remaining open
 | `WEIGHTS_STAGE1_RATIO/` | S1-Ratio ablation | 24/24 | 24/24 | ✅ Complete |
 | `WEIGHTS_NOISE_ABLATION/` | Noise ablation (fixed) | 48/48 | 48/48 | ✅ Complete |
 | `WEIGHTS_EXTENDED_ABLATION/stage1` | Extended S1 (15k→45k) | 20/20 | 20/20 | ✅ Complete |
-| `WEIGHTS_EXTENDED_ABLATION/cityscapes_gen` | Extended CG (20k→50-60k) | 10/10 | 5/10 | 🔄 5 tests submitted |
-| `WEIGHTS_COMBINATION_ABLATION/` | Combination (gen+std) | 17/18 | 17/17 | 🔄 1 training resubmitted |
-| `WEIGHTS_FROM_SCRATCH/` | From-scratch experiment | 102/102 | 102/102 | 🔄 Extending to 80k |
+| `WEIGHTS_EXTENDED_ABLATION/cityscapes_gen` | Extended CG (20k→50-60k) | 10/10 | 10/10 | ✅ Complete |
+| `WEIGHTS_COMBINATION_ABLATION/` | Combination (gen+std) | 18/18 | 18/18 | ✅ Complete |
+| `WEIGHTS_FROM_SCRATCH/` | From-scratch (ratio=0.50) | 102/102 | 102/102 | ✅ Finalized at 40k (29 also at 80k) |
+| `WEIGHTS_FROM_SCRATCH/` | From-scratch (ratio=0.00) | 0/80 | 0/80 | 🔄 80 jobs submitted (2026-02-17) |
 | `WEIGHTS_CITYSCAPES/` | Pipeline verification | 4/4 | 4/4 | ✅ Complete |
-| `WEIGHTS_CITYSCAPES_BS8/` | BS8 pilot | 2/2 | 0/2 | 🔄 2 tests submitted |
+| `WEIGHTS_CITYSCAPES_BS8/` | BS8 pilot | 2/2 | 2/2 | ✅ Complete |
 | `WEIGHTS_EXTENDED/` | Old extended study (90k+) | 7/12 | 8/— | ⚠️ Legacy (superseded by EXTENDED_ABLATION) |
 | `WEIGHTS_RATIO_ABLATION/` | Old ratio experiment | 2/— | 2/— | ⚠️ Legacy (superseded by STAGE1_RATIO) |
 | `WEIGHTS_BATCH_SIZE_ABLATION/` | Batch size ablation | 0 | 0 | ⚠️ Setup only, no checkpoints |
@@ -240,15 +246,44 @@ After current experiments complete, the following studies address remaining open
 
 **Submitted:** 100 jobs (4 skipped — no generated images). Job IDs 3577430–3577529.
 **Commit:** `fbe8870` (from-scratch stage), `687fbee` (80k extension)
-**Progress (2026-02-15 22:30):** **102/102 tested at 40k**, 80k extension in progress: **12/26 strategies have ≥1 dataset at 80k**. 22 RUN + 69 PEND across both accounts.
+**Progress (2026-02-16 14:45):** **102/102 tested at 40k** — FINALIZED. 80k extension reached 29/102 before wall-clock exits. **40k adopted as final evaluation point** — convergence confirmed (plateau at 40-45k, only +0.1-0.3pp beyond). 0 RUN, 0 PEND.
 
-#### 80k Extension Progress (2026-02-15)
-| Progress | # Strategies | Strategies |
-|----------|-------------|------------|
-| **4/4 at 80k** | 1 | gen_automold |
-| **1-3/4 at 80k** | 11 | baseline, gen_albumentations_weather, gen_cycleGAN, gen_flux_kontext, gen_random_noise, gen_step1x_new, gen_step1x_v1p2, std_autoaugment, std_cutmix, std_mixup, std_randaugment |
-| **60k-75k** | 4 | gen_VisualCloze (75k), gen_cyclediffusion (70k), gen_SUSTechGAN (70k), gen_IP2P (60k) |
-| **Still at 40k** | 10 | gen_Attribute_Hallucination, gen_augmenters, gen_CNetSeg, gen_CUT, gen_Img2Img, gen_Qwen_Image_Edit, gen_stargan_v2, gen_TSIT, gen_UniControl, gen_Weather_Effect_Generator |
+### 🔄 From-Scratch Ratio=0.0 Experiment (2026-02-17)
+
+**Purpose:** Test whether generated images alone (without any real data) can teach a model from scratch. With ratio=0.0, training uses 100% generated images and 0% real images. Compares against ratio=0.50 (existing) and baseline (real-only) results.
+
+**Configuration:**
+| Parameter | Value |
+|-----------|-------|
+| Model | segformer_mit-b3 only |
+| Datasets | BDD10k, IDD-AW, MapillaryVistas, OUTSIDE15k |
+| Strategies | 20 gen_* strategies (gen_LANIT skipped — no images) |
+| Ratio | 0.0 (100% generated, 0% real) |
+| Iterations | 40,000 |
+| Checkpoint/eval | Every 5,000 |
+| Domain filter | clear_day (S1 protocol) |
+| Backbone | `--no-pretrained` (init_cfg=None) |
+| Output | `WEIGHTS_FROM_SCRATCH/{strategy}/{dataset}/segformer_mit-b3_ratio0p00/` |
+
+**Submitted:** 80 jobs (4 skipped — gen_LANIT no generated images). Job IDs 4139825–4139988.
+**Progress (2026-02-17 22:45):** 0 RUN, 80 PEND.
+
+**Research Questions:**
+1. Can a model learn useful features from generated images alone (no real data)?
+2. How does ratio=0.0 performance compare to ratio=0.50 (mixed) and baseline (real-only)?
+3. Which gen_* strategies produce images that are most useful as standalone training data?
+4. Is there a correlation between gen image quality (FID/LPIPS) and standalone trainability?
+
+#### 80k Extension Progress (2026-02-16, FINAL — wall-clock exits, 40k adopted)
+
+80k checkpoint coverage: **29/102** (28%). All jobs exited due to wall clock limits. Since convergence is confirmed at 40k-45k (+0.1-0.3pp beyond), **40k is the final evaluation point**.
+
+| Coverage | # Models |
+|----------|---------|
+| iter_40000 | **102/102** (100%) ✅ — FINAL |
+| iter_45000 | 81/102 (79%) |
+| iter_50000 | 66/102 (65%) |
+| iter_80000 | 29/102 (28%) |
 
 #### Convergence Analysis (2026-02-15, UPDATED with 80k data)
 
@@ -271,7 +306,7 @@ After current experiments complete, the following studies address remaining open
 | Dataset | 5k | 10k | 15k | 20k | 25k | 30k | 35k | 40k |
 |---------|-----|-----|-----|-----|-----|-----|-----|-----|
 | bdd10k | 22.5 | 23.2 | 24.9 | 26.2 | 27.4 | 29.3 | 30.3 | 31.4 |
-| iddaw | 16.5 | 18.1 | 19.1 | 21.2 | 22.4 | 24.5 | 25.5 | 26.0 |
+| iddaw | 16.5 | 18.1 | 19.1 | 1.2 | 22.4 | 24.5 | 25.5 | 26.0 |
 | mapillaryvistas | 10.4 | 11.9 | 13.7 | 15.2 | 16.4 | 18.1 | 19.6 | 20.3 |
 | outside15k | 19.4 | 20.4 | 21.5 | 22.9 | 24.1 | 25.3 | 26.8 | 27.5 |
 
@@ -825,7 +860,7 @@ python scripts/batch_training_submission.py --stage extended-s1 -y
 python scripts/batch_training_submission.py --stage extended-cg -y
 ```
 
-#### Status: Extended S1: ✅ **20/20 COMPLETE** (all tested). Extended CG: 🔄 **5/10 at 60k** (5 tested), 5 at 50k — **4 pspnet models RUN** (baseline, gen_augmenters, gen_Img2Img, std_randaugment).
+#### Status: Extended S1: ✅ **20/20 COMPLETE** (all tested). Extended CG: ✅ **10/10 COMPLETE** (all tested).
 
 ### Old Ablation Studies (Reference Only)
 
@@ -876,6 +911,13 @@ The generated image training pipeline has **3 layers**:
 ---
 
 ## ✅ Completed Tasks Archive
+
+### 2026-02-16
+- ✅ **All pending tests COMPLETE** — Extended CG 10/10 tested (was 5/10), BS8 2/2 tested (was 0/2), Combination 18/18 trained+tested (was 17/18), S2 433 tested (was 424).
+- ✅ **Noise ablation VERIFIED** — All 53 logs (48 WEIGHTS_NOISE_ABLATION + 5 CG) confirm `Injected ReplaceWithNoise into dataset pipeline`. Fix working correctly.
+- ✅ **S2 CSV cleaned** — Removed 20 legacy `ratio1p0` entries (428→408 lines). CG noise entries (10) confirmed valid post-fix.
+- ✅ **Trackers + leaderboards updated** — All stages: training tracker, testing tracker, and strategy leaderboards refreshed.
+- ✅ **From-scratch 80k progress** — 14/27 strategies have ≥1 dataset at 80k. 15 jobs RUN, 0 PEND (was 22 RUN + 69 PEND). gen_automold fully at 80k. gen_SUSTechGAN near completion (70-75k).
 
 ### 2026-02-14
 - ✅ **CRITICAL BUG FOUND & FIXED** — `ReplaceWithNoise` injected into wrong config attribute (`cfg.train_pipeline` instead of `cfg.train_dataloader.dataset.pipeline`). All 49 noise training runs were invalid (models trained on real images). Fix committed (`a48dd18`).
