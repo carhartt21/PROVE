@@ -39,8 +39,9 @@ from tqdm import tqdm
 script_dir = Path(__file__).parent.absolute()
 sys.path.insert(0, str(script_dir))
 
-# Import custom transforms before MMSeg
+# Import custom transforms and losses before MMSeg
 import custom_transforms
+import custom_losses  # Registers SegBoundaryLoss, BoundaryLossIgnoreWeight etc.
 
 from mmengine.config import Config
 from mmengine.dataset import Compose
