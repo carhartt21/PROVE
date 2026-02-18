@@ -390,7 +390,7 @@ def get_effective_max_iters(
     elif stage == 'extended-cg':
         return EXTENDED_CG_MAX_ITERS   # 60k (3x standard CG)
     elif stage == 'from-scratch':
-        return 80000  # 80k iters — extended from 40k based on convergence analysis (all jobs still improving at 40k)
+        return 40000  # 40k iters for from-scratch training
     else:
         # Stage 1, Stage 2, ratio ablation all use 15k iters
         return 15000  # 15k iters at BS=16 (~98% of final mIoU)
@@ -1478,7 +1478,7 @@ Examples:
     elif stage == 'stage1-ratio':
         effective_max_iters = 15000  # Standard Stage 1 iterations
     elif stage == 'from-scratch':
-        effective_max_iters = 80000  # Extended from 40k based on convergence analysis (all jobs still improving at 40k)
+        effective_max_iters = 40000  # 40k iters for from-scratch training
     else:
         effective_max_iters = 15000
     
