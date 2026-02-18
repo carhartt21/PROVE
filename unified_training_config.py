@@ -1729,6 +1729,7 @@ class UnifiedTrainingConfig:
             # Multi-scale resize: essential for segmentation performance
             dict(type='RandomResize', scale=(2048, 1024), ratio_range=(0.5, 2.0), keep_ratio=True),
             dict(type='RandomCrop', crop_size=crop_size, cat_max_ratio=0.75),
+            dict(type='Pad', size=crop_size, pad_val=dict(img=0, seg=255)),
             dict(type='RandomFlip', prob=0.5),
             dict(type='PhotoMetricDistortion'),
             dict(type='PackSegInputs'),
@@ -1767,6 +1768,7 @@ class UnifiedTrainingConfig:
             # Multi-scale resize: essential for segmentation performance
             dict(type='RandomResize', scale=(2048, 1024), ratio_range=(0.5, 2.0), keep_ratio=True),
             dict(type='RandomCrop', crop_size=crop_size, cat_max_ratio=0.75),
+            dict(type='Pad', size=crop_size, pad_val=dict(img=0, seg=255)),
             dict(type='RandomFlip', prob=0.5),
             dict(type='PhotoMetricDistortion'),
             dict(type='PackSegInputs'),
@@ -1804,6 +1806,7 @@ class UnifiedTrainingConfig:
             # Multi-scale resize: essential for segmentation performance
             dict(type='RandomResize', scale=(2048, 1024), ratio_range=(0.5, 2.0), keep_ratio=True),
             dict(type='RandomCrop', crop_size=crop_size, cat_max_ratio=0.75),
+            dict(type='Pad', size=crop_size, pad_val=dict(img=0, seg=255)),
             dict(type='RandomFlip', prob=0.5),
             dict(type='PhotoMetricDistortion'),
             dict(type='PackSegInputs'),
@@ -1850,6 +1853,7 @@ class UnifiedTrainingConfig:
             # Multi-scale resize: essential for segmentation performance
             dict(type='RandomResize', scale=(2048, 1024), ratio_range=(0.5, 2.0), keep_ratio=True),
             dict(type='RandomCrop', crop_size=crop_size, cat_max_ratio=0.75),
+            dict(type='Pad', size=crop_size, pad_val=dict(img=0, seg=255)),
             dict(type='RandomFlip', prob=0.5),
             dict(type='PhotoMetricDistortion'),
             dict(type='PackSegInputs'),
