@@ -4,9 +4,9 @@
 
 **Metric**: mIoU (Mean Intersection over Union)
 
-**Last Updated**: 2026-02-13 23:12
+**Last Updated**: 2026-02-16 15:24
 **Baseline mIoU**: 52.65%
-**Total Results**: 254 test results from 26 strategies
+**Total Results**: 260 test results from 26 strategies
 
 ---
 
@@ -16,11 +16,10 @@ Sorted by mIoU. Gain = improvement over baseline. Domain Gap = Normal mIoU - Adv
 
 | Strategy | Type | mIoU | Std | Gain | Normal mIoU | Adverse mIoU | Domain Gap | Num Tests |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| gen_random_noise | Generative | 54.33 | 10.83 | 1.68 | 63.65 | 45.01 | 18.65 | 4 |
 | gen_Img2Img | Generative | 52.87 | 11.44 | 0.22 | 62.39 | 43.35 | 19.05 | 10 |
 | gen_augmenters | Generative | 52.82 | 11.92 | 0.18 | 62.54 | 43.11 | 19.43 | 10 |
-| gen_Attribute_Hallucination | Generative | 52.67 | 11.43 | 0.03 | 62.22 | 43.12 | 19.1 | 10 |
 | gen_Qwen_Image_Edit | Generative | 52.67 | 11.23 | 0.02 | 62.12 | 43.22 | 18.91 | 10 |
+| gen_Attribute_Hallucination | Generative | 52.67 | 11.43 | 0.03 | 62.22 | 43.12 | 19.1 | 10 |
 | baseline | Baseline | 52.65 | 11.49 | 0.0 | 62.3 | 42.99 | 19.32 | 10 |
 | gen_VisualCloze | Generative | 52.58 | 11.8 | -0.06 | 62.35 | 42.81 | 19.53 | 10 |
 | gen_CUT | Generative | 52.53 | 11.62 | -0.11 | 61.99 | 43.08 | 18.91 | 10 |
@@ -38,6 +37,7 @@ Sorted by mIoU. Gain = improvement over baseline. Domain Gap = Normal mIoU - Adv
 | gen_UniControl | Generative | 52.22 | 11.3 | -0.43 | 61.63 | 42.8 | 18.83 | 10 |
 | gen_TSIT | Generative | 52.2 | 11.76 | -0.44 | 61.92 | 42.49 | 19.43 | 10 |
 | gen_CNetSeg | Generative | 52.19 | 11.26 | -0.46 | 61.77 | 42.6 | 19.17 | 10 |
+| gen_random_noise | Generative | 52.06 | 11.45 | -0.59 | 61.8 | 42.31 | 19.49 | 10 |
 | gen_stargan_v2 | Generative | 52.04 | 11.64 | -0.61 | 61.87 | 42.2 | 19.67 | 10 |
 | gen_albumentations_weather | Generative | 52.03 | 11.56 | -0.61 | 61.76 | 42.3 | 19.46 | 10 |
 | gen_IP2P | Generative | 51.84 | 12.12 | -0.8 | 61.99 | 41.69 | 20.3 | 10 |
@@ -50,11 +50,10 @@ mIoU performance on each dataset.
 
 | Strategy | Type | cityscapes | cityscapes_gain | acdc | acdc_gain |
 | --- | --- | --- | --- | --- | --- |
-| gen_random_noise | Generative | 63.65 | +1.35 | 45.01 | +2.02 |
 | gen_Img2Img | Generative | 62.39 | +0.09 | 43.35 | +0.36 |
 | gen_augmenters | Generative | 62.54 | +0.23 | 43.11 | +0.12 |
-| gen_Attribute_Hallucination | Generative | 62.22 | -0.08 | 43.12 | +0.14 |
 | gen_Qwen_Image_Edit | Generative | 62.12 | -0.18 | 43.22 | +0.23 |
+| gen_Attribute_Hallucination | Generative | 62.22 | -0.08 | 43.12 | +0.14 |
 | baseline | Baseline | 62.30 | +0.00 | 42.99 | +0.00 |
 | gen_VisualCloze | Generative | 62.35 | +0.04 | 42.81 | -0.17 |
 | gen_CUT | Generative | 61.99 | -0.32 | 43.08 | +0.09 |
@@ -72,6 +71,7 @@ mIoU performance on each dataset.
 | gen_UniControl | Generative | 61.63 | -0.67 | 42.80 | -0.19 |
 | gen_TSIT | Generative | 61.92 | -0.39 | 42.49 | -0.50 |
 | gen_CNetSeg | Generative | 61.77 | -0.53 | 42.60 | -0.38 |
+| gen_random_noise | Generative | 61.80 | -0.50 | 42.31 | -0.67 |
 | gen_stargan_v2 | Generative | 61.87 | -0.43 | 42.20 | -0.78 |
 | gen_albumentations_weather | Generative | 61.76 | -0.54 | 42.30 | -0.69 |
 | gen_IP2P | Generative | 61.99 | -0.31 | 41.69 | -1.29 |
@@ -102,7 +102,7 @@ mIoU performance on each weather domain. Normal = clear_day. Adverse = foggy, ni
 | gen_cycleGAN | Generative | - | 57.95 | 27.14 | 45.28 | 43.95 | - | 43.58 | - |
 | gen_cyclediffusion | Generative | - | 57.86 | 27.35 | 44.74 | 43.81 | - | 43.44 | - |
 | gen_flux_kontext | Generative | - | 57.64 | 27.49 | 45.39 | 43.54 | - | 43.52 | - |
-| gen_random_noise | Generative | - | 59.56 | 28.17 | 46.56 | 46.47 | - | 45.19 | - |
+| gen_random_noise | Generative | - | 56.43 | 26.92 | 45.16 | 42.79 | - | 42.83 | - |
 | gen_stargan_v2 | Generative | - | 56.67 | 26.71 | 44.72 | 43.62 | - | 42.93 | - |
 | gen_step1x_new | Generative | - | 56.11 | 25.82 | 45.85 | 44.01 | - | 42.95 | - |
 | gen_step1x_v1p2 | Generative | - | 57.42 | 26.98 | 45.37 | 43.56 | - | 43.33 | - |
@@ -118,11 +118,10 @@ mIoU performance on each model architecture. Gain columns show improvement over 
 
 | Strategy | Type | deeplabv3plus_r50 | deeplabv3plus_r50_gain | mask2former_swin-b | mask2former_swin-b_gain | pspnet_r50 | pspnet_r50_gain | segformer_mit-b3 | segformer_mit-b3_gain | segnext_mscan-b | segnext_mscan-b_gain |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| gen_random_noise | Generative | - | - | - | - | - | - | 55.02 | +0.53 | 53.64 | -0.97 |
 | gen_Img2Img | Generative | 46.58 | -0.53 | 60.25 | +0.20 | 47.60 | +0.64 | 54.89 | +0.40 | 55.03 | +0.42 |
 | gen_augmenters | Generative | 46.04 | -1.08 | 61.06 | +1.01 | 46.89 | -0.07 | 55.55 | +1.05 | 54.57 | -0.03 |
-| gen_Attribute_Hallucination | Generative | 46.83 | -0.29 | 60.68 | +0.63 | 47.48 | +0.52 | 54.14 | -0.35 | 54.22 | -0.39 |
 | gen_Qwen_Image_Edit | Generative | 46.70 | -0.42 | 59.42 | -0.63 | 47.47 | +0.51 | 54.87 | +0.38 | 54.89 | +0.28 |
+| gen_Attribute_Hallucination | Generative | 46.83 | -0.29 | 60.68 | +0.63 | 47.48 | +0.52 | 54.14 | -0.35 | 54.22 | -0.39 |
 | baseline | Baseline | 47.12 | +0.00 | 60.05 | +0.00 | 46.96 | +0.00 | 54.49 | +0.00 | 54.61 | +0.00 |
 | gen_VisualCloze | Generative | 46.44 | -0.68 | 60.70 | +0.65 | 46.73 | -0.24 | 54.57 | +0.08 | 54.47 | -0.14 |
 | gen_CUT | Generative | 45.61 | -1.51 | 61.36 | +1.31 | 47.46 | +0.50 | 53.60 | -0.89 | 54.63 | +0.02 |
@@ -140,6 +139,7 @@ mIoU performance on each model architecture. Gain columns show improvement over 
 | gen_UniControl | Generative | 46.56 | -0.56 | 59.50 | -0.55 | 46.55 | -0.42 | 54.32 | -0.17 | 54.16 | -0.45 |
 | gen_TSIT | Generative | 45.41 | -1.71 | 60.56 | +0.51 | 47.18 | +0.21 | 53.71 | -0.78 | 54.17 | -0.44 |
 | gen_CNetSeg | Generative | 47.03 | -0.08 | 59.20 | -0.85 | 47.30 | +0.33 | 53.08 | -1.41 | 54.33 | -0.28 |
+| gen_random_noise | Generative | 46.63 | -0.48 | 59.13 | -0.92 | 47.11 | +0.14 | 53.91 | -0.58 | 53.51 | -1.10 |
 | gen_stargan_v2 | Generative | 46.35 | -0.76 | 59.21 | -0.84 | 46.84 | -0.13 | 54.30 | -0.19 | 53.49 | -1.12 |
 | gen_albumentations_weather | Generative | 46.05 | -1.07 | 59.00 | -1.04 | 46.60 | -0.37 | 54.39 | -0.10 | 54.13 | -0.48 |
 | gen_IP2P | Generative | 45.86 | -1.25 | 60.10 | +0.05 | 46.29 | -0.68 | 53.84 | -0.65 | 53.12 | -1.49 |

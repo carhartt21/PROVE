@@ -1,9 +1,8 @@
 Strategy,Type,mIoU,Std,Gain,Normal mIoU,Adverse mIoU,Domain Gap,Num Tests
-gen_random_noise,Generative,54.33,10.83,1.68,63.65,45.01,18.65,4
 gen_Img2Img,Generative,52.87,11.44,0.22,62.39,43.35,19.05,10
 gen_augmenters,Generative,52.82,11.92,0.18,62.54,43.11,19.43,10
-gen_Attribute_Hallucination,Generative,52.67,11.43,0.03,62.22,43.12,19.1,10
 gen_Qwen_Image_Edit,Generative,52.67,11.23,0.02,62.12,43.22,18.91,10
+gen_Attribute_Hallucination,Generative,52.67,11.43,0.03,62.22,43.12,19.1,10
 baseline,Baseline,52.65,11.49,0.0,62.3,42.99,19.32,10
 gen_VisualCloze,Generative,52.58,11.8,-0.06,62.35,42.81,19.53,10
 gen_CUT,Generative,52.53,11.62,-0.11,61.99,43.08,18.91,10
@@ -21,6 +20,7 @@ gen_SUSTechGAN,Generative,52.24,11.27,-0.41,61.78,42.7,19.08,10
 gen_UniControl,Generative,52.22,11.3,-0.43,61.63,42.8,18.83,10
 gen_TSIT,Generative,52.2,11.76,-0.44,61.92,42.49,19.43,10
 gen_CNetSeg,Generative,52.19,11.26,-0.46,61.77,42.6,19.17,10
+gen_random_noise,Generative,52.06,11.45,-0.59,61.8,42.31,19.49,10
 gen_stargan_v2,Generative,52.04,11.64,-0.61,61.87,42.2,19.67,10
 gen_albumentations_weather,Generative,52.03,11.56,-0.61,61.76,42.3,19.46,10
 gen_IP2P,Generative,51.84,12.12,-0.8,61.99,41.69,20.3,10

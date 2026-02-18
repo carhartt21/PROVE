@@ -1,9 +1,8 @@
 Strategy,Type,cityscapes,cityscapes_gain,acdc,acdc_gain
-gen_random_noise,Generative,63.65,+1.35,45.01,+2.02
 gen_Img2Img,Generative,62.39,+0.09,43.35,+0.36
 gen_augmenters,Generative,62.54,+0.23,43.11,+0.12
-gen_Attribute_Hallucination,Generative,62.22,-0.08,43.12,+0.14
 gen_Qwen_Image_Edit,Generative,62.12,-0.18,43.22,+0.23
+gen_Attribute_Hallucination,Generative,62.22,-0.08,43.12,+0.14
 baseline,Baseline,62.30,+0.00,42.99,+0.00
 gen_VisualCloze,Generative,62.35,+0.04,42.81,-0.17
 gen_CUT,Generative,61.99,-0.32,43.08,+0.09
@@ -21,6 +20,7 @@ gen_SUSTechGAN,Generative,61.78,-0.53,42.70,-0.29
 gen_UniControl,Generative,61.63,-0.67,42.80,-0.19
 gen_TSIT,Generative,61.92,-0.39,42.49,-0.50
 gen_CNetSeg,Generative,61.77,-0.53,42.60,-0.38
+gen_random_noise,Generative,61.80,-0.50,42.31,-0.67
 gen_stargan_v2,Generative,61.87,-0.43,42.20,-0.78
 gen_albumentations_weather,Generative,61.76,-0.54,42.30,-0.69
 gen_IP2P,Generative,61.99,-0.31,41.69,-1.29

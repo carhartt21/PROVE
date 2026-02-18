@@ -26,8 +26,8 @@ gen_Qwen_Image_Edit+std_autoaugment:
 
 gen_Qwen_Image_Edit+std_cutmix:
   Type: Generative + Standard
-  Results: 1
-  Mean mIoU: 58.38
+  Results: 2
+  Mean mIoU: 61.29
 
 gen_Qwen_Image_Edit+std_mixup:
   Type: Generative + Standard
@@ -54,17 +54,17 @@ gen_augmenters+std_mixup:
 ----------------------------------------
                            Strategy  N_Results  Mean_mIoU  Std_mIoU      Combination_Type         Component_1     Component_2  Best_Component_mIoU  Improvement_vs_Best  Synergy
              gen_Img2Img+std_cutmix          2  61.386774  4.184097 Generative + Standard         gen_Img2Img      std_cutmix            60.624384             0.762390 Positive
+     gen_Qwen_Image_Edit+std_cutmix          2  61.291719  4.123199 Generative + Standard gen_Qwen_Image_Edit      std_cutmix            60.863161             0.428558 Positive
           gen_augmenters+std_cutmix          2  61.118269  4.327073 Generative + Standard      gen_augmenters      std_cutmix            60.807983             0.310287 Positive
         gen_Img2Img+std_autoaugment          2  60.426556  4.887285 Generative + Standard         gen_Img2Img std_autoaugment            60.556612            -0.130056 Negative
 gen_Qwen_Image_Edit+std_autoaugment          2  60.244631  4.803456 Generative + Standard gen_Qwen_Image_Edit std_autoaugment            60.863161            -0.618530 Negative
      gen_augmenters+std_autoaugment          2  60.035507  5.068595 Generative + Standard      gen_augmenters std_autoaugment            60.605140            -0.569633 Negative
-     gen_Qwen_Image_Edit+std_cutmix          1  58.376177       NaN Generative + Standard gen_Qwen_Image_Edit      std_cutmix            57.870500             0.505676 Positive
            gen_augmenters+std_mixup          2  57.620393  5.544677 Generative + Standard      gen_augmenters       std_mixup            60.546113            -2.925720 Negative
       gen_Qwen_Image_Edit+std_mixup          2  57.503912  4.591411 Generative + Standard gen_Qwen_Image_Edit       std_mixup            60.863161            -3.359249 Negative
               gen_Img2Img+std_mixup          2  57.400822  5.305393 Generative + Standard         gen_Img2Img       std_mixup            60.556612            -3.155790 Negative
 
 3. SYNERGY ANALYSIS
 ----------------------------------------
-Positive synergy: 6
+Positive synergy: 7
 Neutral: 0
 Negative synergy: 11

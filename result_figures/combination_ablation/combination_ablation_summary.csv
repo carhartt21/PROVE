@@ -1,10 +1,10 @@
 Strategy,N_Results,Mean_mIoU,Std_mIoU,Combination_Type,Component_1,Component_2,Best_Component_mIoU,Improvement_vs_Best,Synergy
 gen_Img2Img+std_cutmix,2,61.38677405050477,4.184096530211595,Generative + Standard,gen_Img2Img,std_cutmix,60.624384380877416,0.7623896696273604,Positive
+gen_Qwen_Image_Edit+std_cutmix,2,61.291718636141724,4.123199096105892,Generative + Standard,gen_Qwen_Image_Edit,std_cutmix,60.86316102789437,0.42855760824735256,Positive
 gen_augmenters+std_cutmix,2,61.11826937639756,4.327072643812692,Generative + Standard,gen_augmenters,std_cutmix,60.80798286502781,0.3102865113697568,Positive
 gen_Img2Img+std_autoaugment,2,60.426556444102346,4.887284668499487,Generative + Standard,gen_Img2Img,std_autoaugment,60.556612239809596,-0.13005579570725345,Negative
 gen_Qwen_Image_Edit+std_autoaugment,2,60.244631364820044,4.803456315443218,Generative + Standard,gen_Qwen_Image_Edit,std_autoaugment,60.86316102789437,-0.6185296630743267,Negative
 gen_augmenters+std_autoaugment,2,60.03550680878685,5.06859496885572,Generative + Standard,gen_augmenters,std_autoaugment,60.60514015371902,-0.5696333449321749,Negative
-gen_Qwen_Image_Edit+std_cutmix,1,58.376176595103004,,Generative + Standard,gen_Qwen_Image_Edit,std_cutmix,57.87050014359093,0.5056764515120733,Positive
 gen_augmenters+std_mixup,2,57.62039295097705,5.544676609259963,Generative + Standard,gen_augmenters,std_mixup,60.54611285507302,-2.925719904095974,Negative
 gen_Qwen_Image_Edit+std_mixup,2,57.50391204421989,4.591410834095771,Generative + Standard,gen_Qwen_Image_Edit,std_mixup,60.86316102789437,-3.3592489836744868,Negative
 gen_Img2Img+std_mixup,2,57.40082217035995,5.305393432438008,Generative + Standard,gen_Img2Img,std_mixup,60.556612239809596,-3.155790069449644,Negative
