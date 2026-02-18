@@ -2674,6 +2674,11 @@ class UnifiedTrainingConfig:
         # This is essential for good performance
         pipeline.extend([
             dict(type='RandomCrop', crop_size=crop_size, cat_max_ratio=0.75),
+            # Defensive padding: ensures all samples are exactly crop_size after RandomCrop.
+            # When RandomResize produces images close to crop_size, rounding can occasionally
+            # yield dimensions slightly below crop_size, causing batch collation failures.
+            # Pad uses ignore_index=255 for seg maps so padded regions don't affect training.
+            dict(type='Pad', size=crop_size, pad_val=dict(img=0, seg=255)),
             dict(type='RandomFlip', prob=0.5),
         ])
         
@@ -2701,11 +2706,40 @@ class UnifiedTrainingConfig:
         
         config['train_pipeline'] = pipeline
         
-        # Test pipeline (no augmentation)
+        # Test/validation pipeline (no augmentation)
+        # IMPORTANT: LoadAnnotations comes AFTER Resize so that gt_seg_map stays at
+        # original resolution. The model's postprocess_result resizes predictions back
+        # to ori_shape, so gt must also be at ori_shape for correct metric computation.
         test_pipeline = [
             dict(type='LoadImageFromFile'),
-            dict(type='LoadAnnotations'),  # reduce_zero_label set in dataset config
         ]
+        
+        # Validation resize: resize the image BEFORE loading annotations
+        # This ensures only the image is resized; gt_seg_map stays at original resolution
+        if dataset == 'Cityscapes':
+            # Cityscapes native resolution: 2048x1024 (width x height)
+            test_pipeline.append(dict(type='Resize', scale=(2048, 1024), keep_ratio=True))
+        elif dataset in ('ACDC',):
+            # ACDC native resolution: 1920x1080 (width x height)
+            test_pipeline.append(dict(type='Resize', scale=(2048, 1024), keep_ratio=True))
+        elif dataset in ('BDD10k', 'BDD100k'):
+            # BDD10k test images are 910x512 - resize to 512x512 for model input
+            test_pipeline.append(dict(type='Resize', scale=(512, 512), keep_ratio=False))
+        elif dataset in ('MapillaryVistas', 'Mapillary'):
+            # MapillaryVistas test images vary - resize to 512x512 for model input
+            test_pipeline.append(dict(type='Resize', scale=(512, 512), keep_ratio=False))
+        elif dataset in ('OUTSIDE15k',):
+            # OUTSIDE15k has various image sizes - resize to 512x512 for model input
+            test_pipeline.append(dict(type='Resize', scale=(512, 512), keep_ratio=False))
+        elif dataset in ('IDD-AW',):
+            # IDD-AW has varying widths (642-1092) x 512 - resize to 512x512 for model input
+            test_pipeline.append(dict(type='Resize', scale=(512, 512), keep_ratio=False))
+        else:
+            # Default: use Cityscapes-like resolution for unknown datasets
+            test_pipeline.append(dict(type='Resize', scale=(2048, 1024), keep_ratio=True))
+        
+        # Now load annotations (gt_seg_map stays at original resolution)
+        test_pipeline.append(dict(type='LoadAnnotations'))
         
         # Handle label format conversion based on dataset (same as train pipeline)
         if is_mapillary:
@@ -2725,34 +2759,6 @@ class UnifiedTrainingConfig:
         elif needs_mapillary_transform:
             # Convert Mapillary native IDs (0-65) to Cityscapes 19 trainIDs
             test_pipeline.append(dict(type='MapillaryToTrainId'))
-        # NOTE: IDD-AW no longer needs IddawLabelClamp - masks have correct trainIds
-        
-        # Validation resize: Use dataset-specific full resolution for proper evaluation
-        # The model outputs predictions at full resolution which must match the label size
-        # NOTE: Training uses crops (512x512) but validation should use full images
-        # CRITICAL: FINAL_SPLITS test images are 512x512 for most datasets, except ACDC (1920x1080)
-        if dataset == 'Cityscapes':
-            # Cityscapes native resolution: 2048x1024 (width x height)
-            test_pipeline.append(dict(type='Resize', scale=(2048, 1024), keep_ratio=True))
-        elif dataset in ('ACDC',):
-            # ACDC native resolution: 1920x1080 (width x height)
-            test_pipeline.append(dict(type='Resize', scale=(2048, 1024), keep_ratio=True))
-        elif dataset in ('BDD10k', 'BDD100k'):
-            # BDD10k test images in FINAL_SPLITS are 512x512 - keep at native resolution
-            test_pipeline.append(dict(type='Resize', scale=(512, 512), keep_ratio=False))
-        elif dataset in ('MapillaryVistas', 'Mapillary'):
-            # MapillaryVistas test images are 512x512 - keep at native resolution
-            # to match training crop size and avoid shape mismatch in validation
-            test_pipeline.append(dict(type='Resize', scale=(512, 512), keep_ratio=False))
-        elif dataset in ('OUTSIDE15k',):
-            # OUTSIDE15k has various image sizes - use 512x512 to match training
-            test_pipeline.append(dict(type='Resize', scale=(512, 512), keep_ratio=False))
-        elif dataset in ('IDD-AW',):
-            # IDD-AW test images in FINAL_SPLITS are 512x512 - keep at native resolution
-            test_pipeline.append(dict(type='Resize', scale=(512, 512), keep_ratio=False))
-        else:
-            # Default: use Cityscapes-like resolution for unknown datasets
-            test_pipeline.append(dict(type='Resize', scale=(2048, 1024), keep_ratio=True))
         
         if task == 'segmentation':
             test_pipeline.append(dict(type='PackSegInputs'))

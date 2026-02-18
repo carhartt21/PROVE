@@ -1,18 +1,62 @@
 # PROVE Project TODO
 
-**Last Updated:** 2026-02-18 (08:00)
+**Last Updated:** 2026-02-18 (13:15)
 
 ---
 
-## 📊 Current Status (2026-02-18 08:00)
+## 📊 Current Status (2026-02-18 13:15)
 
 ### Queue Summary
 | User | Category | RUN | PEND | Total |
 |------|----------|----:|-----:|------:|
-| mima2416 | From-Scratch Ratio=0.0 (resubmit) | **0** | **80** | **80** |
-| **Total** | | **0** | **80** | **80** |
+| mima2416 | From-Scratch Ratio=0.0 (resubmit) | **0** | **3** | **3** |
+| mima2416 | S1 PSPNet BDD10k retrain (3rd attempt) | **0** | **1** | **1** |
+| mima2416 | S2 baseline retrains (2nd attempt, both fixes) | **0** | **4** | **4** |
+| **Total** | | **0** | **8** | **8** |
 
-**🔄 From-Scratch Ratio=0.0 training (RESUBMITTED).** Previous 80 jobs (IDs 4139825–4139988) ALL FAILED due to missing `seg_fields` in generated data entries — labels were not cropped by `RandomCrop`, causing tensor size mismatches. Fix applied to `unified_training.py` (added `'seg_fields': []` to generated entries). 80 jobs resubmitted with fix. Job IDs 4193360–4193439.
+**🔄 From-Scratch Ratio=0.0 training (RESUBMITTED).** Previous 80 jobs (IDs 4139825–4139988) ALL FAILED due to missing `seg_fields` in generated data entries — labels were not cropped by `RandomCrop`, causing tensor size mismatches. Fix applied to `unified_training.py` (added `'seg_fields': []` to generated entries). 80 jobs resubmitted with fix. Job IDs 4193360–4193439. Most have completed; 3 still PEND.
+
+**🔧 Broken Pipeline Retrain — ROUND 2 (5 jobs, both fixes applied).** Original pipeline bug found models trained Jan 30 before fix commits (`beaf354`, `a4614c3`). First retrain attempt uncovered TWO ADDITIONAL BUGS (see details below). All failed directories cleaned; 5 jobs resubmitted with all fixes:
+- **S1:** Job **4197877** — `baseline/bdd10k/pspnet_r50`
+- **S2:** Job **4198037** — `baseline/bdd10k/deeplabv3plus_r50`
+- **S2:** Job **4198062** — `baseline/bdd10k/pspnet_r50`
+- **S2:** Job **4198081** — `baseline/iddaw/deeplabv3plus_r50`
+- **S2:** Job **4198099** — `baseline/iddaw/pspnet_r50`
+- Also cleaned 2 legacy `segformer_mit-b5` Stage 2 dirs (~11GB)
+
+#### 🔧 Bug Fix Timeline (2026-02-18)
+
+**Bug 1: BDD10k Portrait Images (data fix)**
+2 training images in `train/images/BDD10k/clear_day/` were portrait (512×910) while all 2370 labels are landscape (910×512). Caused `RuntimeError: stack expects each tensor to be equal size` during batch collation.
+- `80a9e37d-e4548ac1.jpg`: rotated 90° CW (512×910 → 910×512)
+- `9342e334-33d167eb.jpg`: rotated 90° CW (512×910 → 910×512)
+- Verified: no other portrait images remain in any BDD10k or IDD-AW domain subdirectory.
+
+**Bug 2: Missing defensive Pad after RandomCrop (code fix in `unified_training_config.py`)**
+S2 BDD10k jobs (4196821–4196822) crashed with `RuntimeError: stack expects each tensor to be equal size, got [1,512,512] vs [1,218,512]`. Added defensive `Pad(size=crop_size, pad_val=dict(img=0, seg=255))` after `RandomCrop` in `_add_training_pipeline()`. This ensures images are always at least crop_size after random crop, preventing batch collation failures on edge cases.
+- Train pipeline now: `... → RandomCrop → Pad(size=crop_size) → RandomFlip → ...`
+
+**Bug 3: Test pipeline gt_seg_map resize mismatch (code fix in `unified_training_config.py`)**
+S2 IDD-AW jobs (4196823–4196824) and S1 BDD10k job (4196840) crashed during VALIDATION with `IndexError: mask shape [512,512] does not match tensor shape [512,910]`. Root cause: test pipeline had `LoadAnnotations` BEFORE `Resize`, which resized BOTH image AND gt_seg_map. But MMSeg's `postprocess_result` resizes predictions back to `ori_shape`, creating a shape mismatch against the (also resized) gt. Fix: reordered test pipeline to put `LoadAnnotations` AFTER `Resize` so only the image is resized while gt stays at original resolution.
+- Test pipeline was: `LoadImageFromFile → LoadAnnotations → label_transforms → Resize → PackSegInputs`
+- Test pipeline now: `LoadImageFromFile → Resize → LoadAnnotations → label_transforms → PackSegInputs`
+- ⚠️ **Impact on existing models:** All existing models were TRAINED with the old test pipeline. Their **validation mIoU during training** may be slightly different from what fine_grained_test.py reports (since during-training validation computed metrics on resized gt). However, final saved checkpoints (iter_15000/iter_80000) are unaffected — only the in-training val metric display was impacted, NOT the model weights. All production test results from `fine_grained_test.py` use their own test pipeline and are unaffected.
+
+#### 🔧 Failed Job History (for reference)
+| Job ID | Type | Error | Root Cause | Status |
+|--------|------|-------|------------|--------|
+| 4195005 | S1 BDD10k PSPNet | `RuntimeError: tensor size [1,382,512]` | Portrait BDD10k images | Fixed (Bug 1) |
+| 4196821 | S2 BDD10k DeepLabV3+ | `RuntimeError: tensor size [1,218,512]` | Missing Pad after RandomCrop | Fixed (Bug 2) |
+| 4196822 | S2 BDD10k PSPNet | `RuntimeError: tensor size [1,218,512]` | Missing Pad after RandomCrop | Fixed (Bug 2) |
+| 4196823 | S2 IDD-AW DeepLabV3+ | `IndexError: mask shape mismatch` | Test pipeline gt resize | Fixed (Bug 3) |
+| 4196824 | S2 IDD-AW PSPNet | `IndexError: mask shape mismatch` | Test pipeline gt resize | Fixed (Bug 3) |
+| 4196840 | S1 BDD10k PSPNet (2nd) | `IndexError: mask shape mismatch` | Test pipeline gt resize | Fixed (Bug 3) |
+
+#### ⚠️ Stale Config Audit (2026-02-18)
+**Root cause:** Commits `beaf354` (Jan 31) and `a4614c3` (Feb 1) fixed the training pipeline, but some models were trained before these fixes.
+**Stage 1:** 1 broken config found and retrained (PSPNet BDD10k). All other S1 configs verified clean.
+**Stage 2:** 4 broken configs found and retrained (deeplabv3plus_r50 + pspnet_r50 for BDD10k + IDD-AW). All other S2 configs verified clean.
+**Cityscapes/Other:** No broken configs found.
 
 **Notes:**
 - ✅ **S1 COMPLETE**: 414/416 trained (2 no gen images), **420/420 tested (100%)**.
