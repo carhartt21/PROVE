@@ -607,6 +607,7 @@ else:
                 generated_data_list.append({{
                     'img_path': original_path,  # Load original for shape; will be replaced with noise
                     'seg_map_path': label_path,
+                    'seg_fields': [],  # Required by mmseg LoadAnnotations and RandomCrop
                     'reduce_zero_label': original_dataset_cfg.get('reduce_zero_label', False),
                     '_is_generated': True,
                     '_replace_with_noise': True,  # Flag for ReplaceWithNoise transform
@@ -618,6 +619,7 @@ else:
                 generated_data_list.append({{
                     'img_path': gen_path,
                     'seg_map_path': label_path,
+                    'seg_fields': [],  # Required by mmseg LoadAnnotations and RandomCrop
                     'reduce_zero_label': original_dataset_cfg.get('reduce_zero_label', False),
                     '_is_generated': True,
                     '_condition': target_domain,

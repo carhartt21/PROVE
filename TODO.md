@@ -1,18 +1,18 @@
 # PROVE Project TODO
 
-**Last Updated:** 2026-02-17 (22:45)
+**Last Updated:** 2026-02-18 (08:00)
 
 ---
 
-## 📊 Current Status (2026-02-17 22:45)
+## 📊 Current Status (2026-02-18 08:00)
 
 ### Queue Summary
 | User | Category | RUN | PEND | Total |
 |------|----------|----:|-----:|------:|
-| mima2416 | From-Scratch Ratio=0.0 | **0** | **80** | **80** |
+| mima2416 | From-Scratch Ratio=0.0 (resubmit) | **0** | **80** | **80** |
 | **Total** | | **0** | **80** | **80** |
 
-**🔄 From-Scratch Ratio=0.0 training.** 80 gen_* jobs submitted (100% generated images, no real data). 20 gen strategies × 4 datasets × 1 model (segformer_mit-b3). 40k iterations. Job IDs 4139825–4139988.
+**🔄 From-Scratch Ratio=0.0 training (RESUBMITTED).** Previous 80 jobs (IDs 4139825–4139988) ALL FAILED due to missing `seg_fields` in generated data entries — labels were not cropped by `RandomCrop`, causing tensor size mismatches. Fix applied to `unified_training.py` (added `'seg_fields': []` to generated entries). 80 jobs resubmitted with fix. Job IDs 4193360–4193439.
 
 **Notes:**
 - ✅ **S1 COMPLETE**: 414/416 trained (2 no gen images), **420/420 tested (100%)**.
@@ -44,6 +44,7 @@
 | Extended S1 (45k, EXTENDED_ABL) | **20/20** | 0 | 0 | **100%** ✅ |
 | Extended CG (50-60k, EXTENDED_ABL) | **10/10** | 0 | 0 | **100%** ✅ |
 | From-Scratch (40k, FINAL) | **102/102** at 40k (29 also at 80k) | 0 | 0 | ✅ **Finalized at 40k** |
+| From-Scratch Ratio=0.0 (40k) | **0/80** | 80 | 0 | 🔄 Resubmitted with seg_fields fix |
 | Cityscapes BS8 | **2** | 0 | 0 | ✅ Pilot complete |
 | Cityscapes Verification | **4** | 0 | 0 | Complete |
 
