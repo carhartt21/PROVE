@@ -1,0 +1,56 @@
+# PROVE Pipeline - Mamba/Conda Environment
+# Conda environment for PROVE: Pipeline for Recognition & Object Vision Evaluation
+#
+# Create with: mamba env create -f environment.yml
+# Activate with: mamba activate prove
+# Update with: mamba env update -f environment.yml
+
+name: prove
+channels:
+  - pytorch
+  - nvidia
+  - conda-forge
+  - defaults
+
+dependencies:
+  # Python version
+  - python=3.10
+  
+  # Core PyTorch with CUDA support (H100 requires PyTorch 2.4+)
+  # Using CUDA 12.1 or 12.4 for H100 (sm_90) support
+  - pytorch>=2.4.0
+  - torchvision>=0.19.0
+  - pytorch-cuda=12.1
+  
+  # OpenMMLab - MMCV with precompiled CUDA extensions (via conda)
+  # Note: MMCV 2.1.0 is compatible with mmsegmentation 1.2.2 and mmdet 3.3.0
+  - mmcv=2.1.0
+  
+  # Scientific computing
+  - numpy>=1.24.0
+  - scipy>=1.10.0
+  - pillow>=9.0.0
+  
+  # Image processing
+  - opencv>=4.7.0
+  
+  # Data handling
+  - pyyaml>=6.0
+  - tqdm>=4.65.0
+  - termcolor>=2.2.0
+  
+  # Logging and monitoring
+  - tensorboard>=2.12.0
+  
+  # Development tools
+  - pytest>=7.0.0
+  - black>=23.0.0
+  - flake8>=6.0.0
+  - isort>=5.12.0
+  
+  # Jupyter support (optional)
+  - jupyter
+  - ipykernel
+  
+  # Pip (for later pip installations)
+  - pip

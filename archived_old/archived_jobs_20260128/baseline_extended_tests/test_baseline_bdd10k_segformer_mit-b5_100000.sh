@@ -1,0 +1,41 @@
+#!/bin/bash
+#BSUB -J test_baseline_bdd10k_segformer_mit_b5_100k
+#BSUB -o ${HOME}/repositories/PROVE/logs/test_baseline_bdd10k_segformer_mit_b5_100k_%J.out
+#BSUB -e ${HOME}/repositories/PROVE/logs/test_baseline_bdd10k_segformer_mit_b5_100k_%J.err
+#BSUB -q BatchGPU
+#BSUB -W 2:00
+#BSUB -n 4
+#BSUB -R "rusage[mem=32000]"
+#BSUB -R "span[hosts=1]"
+#BSUB -gpu "num=1:mode=exclusive_process:gmem=24G"
+
+# Test baseline extended training checkpoint
+# Dataset: BDD10k
+# Model: segformer_mit-b5
+# Iteration: 100000
+
+source ${HOME}/miniconda3/etc/profile.d/conda.sh
+conda activate prove
+
+cd ${HOME}/repositories/PROVE
+
+echo "=========================================="
+echo "Testing baseline extended checkpoint"
+echo "=========================================="
+echo "Dataset: BDD10k"
+echo "Model: segformer_mit-b5"
+echo "Iteration: 100000"
+echo "Checkpoint: ${AWARE_DATA_ROOT}/WEIGHTS_EXTENDED/baseline/bdd10k/segformer_mit-b5/iter_100000.pth"
+echo "Output: ${AWARE_DATA_ROOT}/WEIGHTS_EXTENDED/baseline/bdd10k/segformer_mit-b5/test_results_detailed/iter_100000"
+echo "=========================================="
+
+# Create output directory
+mkdir -p "${AWARE_DATA_ROOT}/WEIGHTS_EXTENDED/baseline/bdd10k/segformer_mit-b5/test_results_detailed/iter_100000"
+
+python fine_grained_test.py \
+    --config "${AWARE_DATA_ROOT}/WEIGHTS_EXTENDED/baseline/bdd10k/segformer_mit-b5/training_config.py" \
+    --checkpoint "${AWARE_DATA_ROOT}/WEIGHTS_EXTENDED/baseline/bdd10k/segformer_mit-b5/iter_100000.pth" \
+    --dataset BDD10k \
+    --output-dir "${AWARE_DATA_ROOT}/WEIGHTS_EXTENDED/baseline/bdd10k/segformer_mit-b5/test_results_detailed/iter_100000"
+
+echo "Testing complete!"
