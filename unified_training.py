@@ -46,7 +46,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 import warnings
 warnings.filterwarnings('ignore', category=UserWarning, module='mmseg')
 
-from unified_training_config import (
+from utils.unified_training_config import (
     UnifiedTrainingConfig,
     DATASET_CONFIGS,
     SEGMENTATION_MODELS,
@@ -413,9 +413,9 @@ import sys
 sys.path.insert(0, "{Path(__file__).parent}")
 
 # Import custom transforms and datasets to register them BEFORE loading config
-import custom_transforms  # Registers ReduceToSingleChannel transform
+from utils import custom_transforms  # Registers ReduceToSingleChannel transform
 import unified_datasets   # Registers MapillaryLabelTransform, CityscapesLabelTransform
-import custom_losses      # Registers custom loss wrappers
+from utils import custom_losses      # Registers custom loss wrappers
 
 # Import StandardAugmentationHook to register it with MMEngine
 try:
@@ -456,13 +456,13 @@ import sys
 sys.path.insert(0, "{Path(__file__).parent}")
 
 # Import custom transforms and datasets to register them BEFORE loading config
-import custom_transforms  # Registers ReduceToSingleChannel transform
+from utils import custom_transforms  # Registers ReduceToSingleChannel transform
 import unified_datasets   # Registers MapillaryLabelTransform, CityscapesLabelTransform
 import generated_images_dataset  # Registers GeneratedAugmentedDataset
-import custom_losses      # Registers custom loss wrappers
+from utils import custom_losses      # Registers custom loss wrappers
 
 # Import MixedDataLoader components
-from mixed_dataloader import MixedDataLoader, BatchSplitSampler
+from utils.mixed_dataloader import MixedDataLoader, BatchSplitSampler
 
 # Import StandardAugmentationHook to register it with MMEngine
 try:
@@ -1029,9 +1029,9 @@ import sys
 sys.path.insert(0, "{Path(__file__).parent}")
 
 # Import custom transforms and datasets to register them BEFORE loading config
-import custom_transforms
+from utils import custom_transforms
 import unified_datasets
-import custom_losses
+from utils import custom_losses
 
 # Import StandardAugmentationHook to register it with MMEngine
 try:

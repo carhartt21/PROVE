@@ -1,8 +1,32 @@
+<p align="center">
+  <img src="assets/PROVE.png" alt="PROVE Logo" width="400">
+</p>
+
 # PROVE: Pipeline for Recognition & Object Vision Evaluation
+
+[![Project Page](https://img.shields.io/badge/Project-AWARE-blue)](https://aware.github.io)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+
+## Citation
+
+If you use this code in your research, please cite:
+
+```bibtex
+@article{AWARE2026,
+  title     = {TODO: Paper Title},
+  author    = {TODO: Authors},
+  journal   = {IEEE Access},
+  year      = {2026},
+  doi       = {TODO: DOI}
+}
+```
 
 ## Overview
 
-PROVE (Pipeline for Recognition & Object Vision Evaluation) is a comprehensive, streamlined pipeline for training and testing object detection and semantic segmentation approaches using the MMDetection framework. The pipeline provides standardized configuration management and supports multiple dataset formats with easy reproducibility.
+PROVE (Pipeline for Recognition & Object Vision Evaluation) is a comprehensive, streamlined pipeline for training and testing semantic segmentation approaches using the MMSegmentation framework. This repository is part of the [AWARE project](https://aware.github.io), which evaluates domain adaptation through weather-based data augmentation.
+
+**Related Repositories:**
+- [PRISM](https://github.com/carhartt21/PRISM) - Image quality evaluation metrics pipeline
 
 ## Features
 
@@ -110,6 +134,29 @@ print(f'MMCV: {mmcv.__version__}')
 print(f'MMSeg: {mmseg.__version__}')
 print(f'MMDet: {mmdet.__version__}')
 "
+```
+
+## Repository Structure
+
+```
+PROVE/
+├── prove.py                  # Main CLI entry point
+├── unified_training.py       # Unified training pipeline
+├── prove_config.py           # Configuration management
+├── config_paths.py           # Path configuration (edit for your setup)
+├── utils/                    # Utility modules
+│   ├── custom_transforms.py  # Data augmentation transforms
+│   ├── custom_losses.py      # Custom loss functions
+│   ├── unified_datasets.py   # Dataset loaders
+│   ├── mixed_dataloader.py   # Real/generated image mixing
+│   └── label_unification.py  # Cross-dataset label mapping
+├── tools/                    # Utility scripts
+│   ├── standard_augmentations.py
+│   └── tsne_domain_gap.py
+├── scripts/                  # Batch processing scripts
+├── cityscapes_replication/   # Cityscapes training configs
+│   └── configs/              # Model configurations
+└── docs/                     # Documentation
 ```
 
 ## Quick Start

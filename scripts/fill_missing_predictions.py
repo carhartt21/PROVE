@@ -142,8 +142,8 @@ import cv2
 from pathlib import Path
 
 sys.path.insert(0, "{PROJECT_ROOT}")
-import custom_transforms
-import custom_losses
+from utils import custom_transforms
+from utils import custom_losses
 
 from mmengine.config import Config
 from mmengine.model.utils import revert_sync_batchnorm
