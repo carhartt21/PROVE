@@ -55,8 +55,8 @@ sys.path.insert(0, str(PROJECT_ROOT))
 # Configuration
 # ============================================================================
 
-DATA_ROOT = Path(os.environ.get('PROVE_DATA_ROOT', '${AWARE_DATA_ROOT}/FINAL_SPLITS'))
-WEIGHTS_ROOT = Path(os.environ.get('PROVE_WEIGHTS_ROOT', '${AWARE_DATA_ROOT}/WEIGHTS'))
+DATA_ROOT = Path(os.environ.get('PROVE_DATA_ROOT', '${PROVE_ROOT}/FINAL_SPLITS'))
+WEIGHTS_ROOT = Path(os.environ.get('PROVE_WEIGHTS_ROOT', '${PROVE_ROOT}/WEIGHTS'))
 OUTPUT_ROOT = WEIGHTS_ROOT / 'domain_adaptation_ablation'
 
 # Source datasets for training

@@ -16,7 +16,7 @@ from pathlib import Path
 
 # Resolve paths
 PROVE_ROOT = Path(__file__).resolve().parent.parent
-SCRATCH_ROOT = Path("${AWARE_DATA_ROOT}")
+SCRATCH_ROOT = Path("${PROVE_ROOT}")
 
 
 def get_export_manifest(include_stats: bool = False, include_fid: bool = False) -> list[dict]:

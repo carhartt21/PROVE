@@ -10,7 +10,7 @@
 
 set -euo pipefail
 
-BASE="${AWARE_DATA_ROOT}/GENERATED_IMAGES"
+BASE="${PROVE_ROOT}/GENERATED_IMAGES"
 DRY_RUN=false
 if [[ "${1:-}" == "--dry-run" ]]; then
     DRY_RUN=true

@@ -29,12 +29,12 @@ PROVE evaluates semantic segmentation models under adverse weather conditions us
 
 **External Data Paths:**
 ```
-${AWARE_DATA_ROOT}/WEIGHTS/           # Stage 1 weights
-${AWARE_DATA_ROOT}/WEIGHTS_STAGE_2/   # Stage 2 weights
-${AWARE_DATA_ROOT}/WEIGHTS_CITYSCAPES/      # Cityscapes pipeline verification
-${AWARE_DATA_ROOT}/WEIGHTS_RATIO_ABLATION/  # Ratio ablation study
-${AWARE_DATA_ROOT}/WEIGHTS_EXTENDED/        # Extended training study
-${AWARE_DATA_ROOT}/WEIGHTS_LOSS_ABLATION/   # Loss function ablation (aux-lovasz, aux-boundary, aux-focal, loss-lovasz)
+${PROVE_ROOT}/WEIGHTS/           # Stage 1 weights
+${PROVE_ROOT}/WEIGHTS_STAGE_2/   # Stage 2 weights
+${PROVE_ROOT}/WEIGHTS_CITYSCAPES/      # Cityscapes pipeline verification
+${PROVE_ROOT}/WEIGHTS_RATIO_ABLATION/  # Ratio ablation study
+${PROVE_ROOT}/WEIGHTS_EXTENDED/        # Extended training study
+${PROVE_ROOT}/WEIGHTS_LOSS_ABLATION/   # Loss function ablation (aux-lovasz, aux-boundary, aux-focal, loss-lovasz)
 ```
 
 **Core Data Flow:**
@@ -49,7 +49,7 @@ unified_training.py → unified_training_config.py → MMSegmentation training
 ## Critical Conventions
 
 ### ⚠️ Filesystem Rules
-- **NEVER write temporary files to `/tmp`** — the `/tmp` partition has very limited space and fills up easily on the cluster. Use the project directory or `${AWARE_DATA_ROOT}/` for any temporary file writes.
+- **NEVER write temporary files to `/tmp`** — the `/tmp` partition has very limited space and fills up easily on the cluster. Use the project directory or `${PROVE_ROOT}/` for any temporary file writes.
 
 ### ⚠️ Label Handling (Common Bug Source)
 - **mmcv.imfrombytes() returns BGR**, not RGB - always account for channel order
@@ -258,7 +258,7 @@ for k, v in ckpt.get('state_dict', ckpt).items():
 
 ### Analyze all test results
 ```bash
-python test_result_analyzer.py --root ${AWARE_DATA_ROOT}/WEIGHTS --comprehensive
+python test_result_analyzer.py --root ${PROVE_ROOT}/WEIGHTS --comprehensive
 ```
 
 ### Test results format (results.json)

@@ -161,6 +161,141 @@ PROVE/
 
 ## Quick Start
 
+### Getting Started with Standard Datasets
+
+PROVE supports two dataset layout modes:
+
+| Layout | Description | Use Case |
+|--------|-------------|----------|
+| **`standard`** | Original dataset directory structure | Using datasets as downloaded (MapillaryVistas, Cityscapes, BDD, ACDC) |
+| **`stratified`** | Domain-stratified layout from [SWIFT](https://github.com/carhartt21/SWIFT) | Per-domain weather evaluation, domain filtering |
+
+#### Standard Layout (No Domain Stratification Required)
+
+You can use PROVE directly with standard datasets without any domain stratification preprocessing. Set the dataset root via environment variable and use `--dataset-layout standard`:
+
+```bash
+# Set your data root (parent directory containing dataset folders)
+export PROVE_DATA_ROOT=/path/to/your/data
+
+# Or set per-dataset roots
+export PROVE_MAPILLARY_ROOT=/path/to/mapillary_vistas
+export PROVE_CITYSCAPES_ROOT=/path/to/cityscapes
+export PROVE_BDD_ROOT=/path/to/bdd100k
+export PROVE_ACDC_ROOT=/path/to/ACDC
+```
+
+**Expected standard directory structures:**
+
+```
+# MapillaryVistas (v2.0)
+mapillary_vistas/
+├── training/
+│   ├── images/          # .jpg images
+│   └── v2.0/
+│       └── labels/      # .png label masks
+└── validation/
+    ├── images/
+    └── v2.0/
+        └── labels/
+
+# Cityscapes
+cityscapes/
+├── leftImg8bit/
+│   ├── train/{city}/    # *_leftImg8bit.png
+│   └── val/{city}/
+└── gtFine/
+    ├── train/{city}/    # *_gtFine_labelTrainIds.png
+    └── val/{city}/
+
+# BDD10k
+bdd100k/
+├── images/10k/
+│   ├── train/           # .jpg images
+│   └── val/
+└── labels/sem_seg/masks/
+    ├── train/           # .png label masks
+    └── val/
+
+# ACDC
+ACDC/
+├── rgb_anon/
+│   ├── train/           # .png images (may have subdirectories)
+│   └── val/
+└── gt/
+    ├── train/           # .png label masks
+    └── val/
+```
+
+**Training on MapillaryVistas (standard layout):**
+
+```bash
+# Train with native 66 classes
+python unified_training.py \
+    --dataset MapillaryVistas \
+    --model deeplabv3plus_r50 \
+    --strategy baseline \
+    --dataset-layout standard
+
+# Train with Cityscapes 19-class mapping
+python unified_training.py \
+    --dataset MapillaryVistas \
+    --model deeplabv3plus_r50 \
+    --strategy baseline \
+    --dataset-layout standard \
+    --no-native-classes
+```
+
+**Training on Cityscapes (standard layout):**
+
+```bash
+python unified_training.py \
+    --dataset Cityscapes \
+    --model segformer_mit-b3 \
+    --strategy baseline \
+    --dataset-layout standard
+```
+
+**Testing with standard layout:**
+
+```bash
+python tools/fine_grained_test.py \
+    --config /path/to/config.py \
+    --checkpoint /path/to/checkpoint.pth \
+    --dataset MapillaryVistas \
+    --data-root /path/to/mapillary_vistas \
+    --output-dir results/mapillary_test \
+    --dataset-layout standard
+```
+
+> **Note:** Per-domain weather evaluation (e.g., separate metrics for foggy, rainy, night) requires domain-stratified data. Use [SWIFT](https://github.com/carhartt21/SWIFT) to create domain-stratified splits from standard datasets, then use `--dataset-layout stratified` (the default).
+
+#### Stratified Layout (Domain-Stratified via SWIFT)
+
+For weather-domain evaluation, PROVE uses domain-stratified datasets created by [SWIFT](https://github.com/carhartt21/SWIFT). This is the default layout (`--dataset-layout stratified`).
+
+```
+FINAL_SPLITS/
+├── train/
+│   ├── images/{DATASET}/{condition}/   # e.g., ACDC/clear_day/, ACDC/foggy/
+│   └── labels/{DATASET}/{condition}/
+└── test/
+    ├── images/{DATASET}/{condition}/
+    └── labels/{DATASET}/{condition}/
+```
+
+With stratified data, you can train on specific domains and evaluate per-domain robustness:
+
+```bash
+# Stage 1: Train only on clear-day images (cross-domain robustness)
+python unified_training.py --dataset ACDC --model deeplabv3plus_r50 \
+    --strategy baseline --domain-filter clear_day
+
+# Stage 2: Train on all domains
+python unified_training.py --dataset ACDC --model deeplabv3plus_r50 \
+    --strategy baseline
+```
+
 ### 1. Training with Unified System (Recommended)
 
 PROVE now includes a unified training system that simplifies configuration management and supports mixed real/generated image training:
@@ -213,6 +348,7 @@ python unified_training.py --list
 | `--std-strategy` | Standard augmentation to combine with main strategy (see Combined Strategies) | None |
 | `--real-gen-ratio` | Ratio of real to generated images (0.0 to 1.0) | 1.0 |
 | `--domain-filter` | Filter training data to specific domain (e.g., clear_day for Stage 1 training) | None |
+| `--dataset-layout` | Dataset directory layout: `standard` (original) or `stratified` (SWIFT domain-split) | stratified |
 | `--work-dir` | Output directory for checkpoints and logs | Auto-generated |
 | `--cache-dir` | Directory for caching pretrained weights and checkpoints | ~/.cache/torch |
 | `--load-from` | Path to pretrained weights to initialize model | None |
@@ -1048,9 +1184,9 @@ cityscapes/
     └── test/
 ```
 
-#### PROVE Data Structure (AWARE Format)
+#### PROVE Data Structure (Stratified / SWIFT Format)
 
-The PROVE pipeline expects data in the following structure:
+The domain-stratified layout is used when `--dataset-layout stratified` (default). This structure is produced by [SWIFT](https://github.com/carhartt21/SWIFT) for per-domain weather evaluation. For using datasets in their original structure, see [Getting Started with Standard Datasets](#getting-started-with-standard-datasets).
 
 ```
 FINAL_SPLITS/
@@ -1416,8 +1552,8 @@ Total: 26 methods, 3 missing manifests
 ```
 
 **Environment Variables:**
-- `PROVE_GEN_ROOT`: Base directory for generated images (default: `${AWARE_DATA_ROOT}/GENERATED_IMAGES`)
-- `PROVE_DATA_ROOT`: Base directory for original images (default: `${AWARE_DATA_ROOT}/FINAL_SPLITS`)
+- `PROVE_GEN_ROOT`: Base directory for generated images (default: `${PROVE_ROOT}/GENERATED_IMAGES`)
+- `PROVE_DATA_ROOT`: Base directory for original images (default: `${PROVE_ROOT}/FINAL_SPLITS`)
 
 ### Weights Directory Analyzer
 

@@ -5,7 +5,7 @@ NOTE: SegNeXt is not officially benchmarked on Cityscapes.
 """
 
 dataset_type = 'CityscapesDataset'
-data_root = '${AWARE_DATA_ROOT}/CITYSCAPES'
+data_root = '${PROVE_ROOT}/CITYSCAPES'
 crop_size = (512, 512)
 
 train_pipeline = [

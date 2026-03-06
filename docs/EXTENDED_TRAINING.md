@@ -120,8 +120,8 @@ The ablation uses the 5 best performing strategies based on average mIoU across 
 | `--gpu-mode <mode>` | GPU mode (shared/exclusive_process) | shared |
 | `--num-cpus <n>` | Number of CPUs per job | 8 |
 | `--limit <n>` | Limit number of jobs to submit | - |
-| `--weights-root <path>` | Source weights directory | ${AWARE_DATA_ROOT}/WEIGHTS |
-| `--output-root <path>` | Output weights directory | ${AWARE_DATA_ROOT}/WEIGHTS_EXTENDED |
+| `--weights-root <path>` | Source weights directory | ${PROVE_ROOT}/WEIGHTS |
+| `--output-root <path>` | Output weights directory | ${PROVE_ROOT}/WEIGHTS_EXTENDED |
 
 ## How It Works
 
@@ -140,7 +140,7 @@ The ablation uses the 5 best performing strategies based on average mIoU across 
 
 Extended weights are saved to:
 ```
-${AWARE_DATA_ROOT}/WEIGHTS_EXTENDED/
+${PROVE_ROOT}/WEIGHTS_EXTENDED/
 ├── gen_LANIT/
 │   ├── acdc/
 │   │   ├── deeplabv3plus_r50/
@@ -259,7 +259,7 @@ The script requires existing checkpoints to resume from. Ensure the source weigh
 
 ```bash
 # Check if checkpoints exist
-ls ${AWARE_DATA_ROOT}/WEIGHTS/gen_LANIT/acdc/deeplabv3plus_r50/iter_*.pth
+ls ${PROVE_ROOT}/WEIGHTS/gen_LANIT/acdc/deeplabv3plus_r50/iter_*.pth
 ```
 
 ### Job skipped (already at max_iters)
@@ -268,7 +268,7 @@ If a model has already been trained to or beyond the target iteration, it will b
 
 ```bash
 # Check current checkpoint
-ls -la ${AWARE_DATA_ROOT}/WEIGHTS/gen_LANIT/acdc/deeplabv3plus_r50/iter_*.pth
+ls -la ${PROVE_ROOT}/WEIGHTS/gen_LANIT/acdc/deeplabv3plus_r50/iter_*.pth
 ```
 
 ## See Also

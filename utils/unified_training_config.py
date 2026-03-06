@@ -60,10 +60,10 @@ except ImportError:
 # ============================================================================
 
 # Base paths - can be overridden via environment variables
-DEFAULT_DATA_ROOT = os.environ.get('PROVE_DATA_ROOT', '${AWARE_DATA_ROOT}/FINAL_SPLITS')
-DEFAULT_GEN_ROOT = os.environ.get('PROVE_GEN_ROOT', '${AWARE_DATA_ROOT}/GENERATED_IMAGES')
-DEFAULT_WEIGHTS_ROOT = os.environ.get('PROVE_WEIGHTS_ROOT', '${AWARE_DATA_ROOT}/WEIGHTS')
-DEFAULT_WEIGHTS_ROOT_STAGE2 = os.environ.get('PROVE_WEIGHTS_ROOT_STAGE2', '${AWARE_DATA_ROOT}/WEIGHTS_STAGE_2')
+DEFAULT_DATA_ROOT = os.environ.get('PROVE_DATA_ROOT', '${PROVE_ROOT}/FINAL_SPLITS')
+DEFAULT_GEN_ROOT = os.environ.get('PROVE_GEN_ROOT', '${PROVE_ROOT}/GENERATED_IMAGES')
+DEFAULT_WEIGHTS_ROOT = os.environ.get('PROVE_WEIGHTS_ROOT', '${PROVE_ROOT}/WEIGHTS')
+DEFAULT_WEIGHTS_ROOT_STAGE2 = os.environ.get('PROVE_WEIGHTS_ROOT_STAGE2', '${PROVE_ROOT}/WEIGHTS_STAGE_2')
 DEFAULT_CONFIG_ROOT = os.environ.get('PROVE_CONFIG_ROOT', './multi_model_configs')
 
 # Adverse weather conditions
@@ -104,6 +104,10 @@ DATA_RESTORATION_MODELS = [
 # Dataset Configurations
 # ============================================================================
 
+# Valid dataset layout modes
+DATASET_LAYOUTS = ('standard', 'stratified')
+
+
 @dataclass
 class DatasetConfig:
     """Configuration for a specific dataset"""
@@ -121,6 +125,7 @@ class DatasetConfig:
     num_classes: int = 19
     classes: tuple = field(default_factory=tuple)
     img_suffix: str = '.png'  # Image file extension (labels always use .png)
+    seg_map_suffix: str = '.png'  # Label file extension
     
 
 # Cityscapes-style classes (used by most segmentation datasets)
@@ -166,7 +171,7 @@ BDD100K_DET_CLASSES = (
 
 
 # Updated DATASET_CONFIGS matching actual data structure at:
-# ${AWARE_DATA_ROOT}/FINAL_SPLITS/{train,test}/{images,labels}/{DATASET}/{condition}/
+# ${PROVE_ROOT}/FINAL_SPLITS/{train,test}/{images,labels}/{DATASET}/{condition}/
 DATASET_CONFIGS = {
     'ACDC': DatasetConfig(
         name='ACDC',
@@ -258,7 +263,7 @@ DATASET_CONFIGS = {
         name='Cityscapes',
         task='segmentation',
         format='cityscapes_native',  # Special format - uses MMSeg native handling
-        data_root='${AWARE_DATA_ROOT}/CITYSCAPES',  # Override default data root
+        data_root='${PROVE_ROOT}/CITYSCAPES',  # Override default data root
         train_img_dir='leftImg8bit/train',
         train_ann_dir='gtFine/train',
         val_img_dir='leftImg8bit/val',
@@ -268,6 +273,106 @@ DATASET_CONFIGS = {
         num_classes=19,
         classes=CITYSCAPES_CLASSES,
         img_suffix='_leftImg8bit.png',  # Cityscapes has specific naming pattern
+    ),
+}
+
+
+# ============================================================================
+# Standard (Non-Stratified) Dataset Configurations
+# ============================================================================
+# These configs are for using datasets in their original directory layout,
+# without domain stratification from SWIFT (https://github.com/carhartt21/SWIFT).
+#
+# Set the PROVE_DATA_ROOT environment variable or pass --data-root to point
+# to a parent directory containing the dataset folders.
+#
+# Expected layout per dataset:
+#
+#   MapillaryVistas:
+#     <data_root>/mapillary_vistas/training/images/
+#     <data_root>/mapillary_vistas/training/v2.0/labels/
+#     <data_root>/mapillary_vistas/validation/images/
+#     <data_root>/mapillary_vistas/validation/v2.0/labels/
+#
+#   Cityscapes:
+#     <data_root>/cityscapes/leftImg8bit/{train,val}/
+#     <data_root>/cityscapes/gtFine/{train,val}/
+#
+#   BDD10k:
+#     <data_root>/bdd100k/images/10k/{train,val}/
+#     <data_root>/bdd100k/labels/sem_seg/masks/{train,val}/
+#
+#   ACDC:
+#     <data_root>/ACDC/rgb_anon/{train,val}/
+#     <data_root>/ACDC/gt/{train,val}/
+#
+# Override individual dataset roots with dataset-specific env vars, e.g.:
+#   PROVE_MAPILLARY_ROOT, PROVE_CITYSCAPES_ROOT, etc.
+
+def _get_standard_data_root():
+    """Get the base data root for standard datasets."""
+    return os.environ.get('PROVE_DATA_ROOT', '/data')
+
+STANDARD_DATASET_CONFIGS = {
+    'MapillaryVistas': DatasetConfig(
+        name='MapillaryVistas',
+        task='segmentation',
+        format='cityscapes',
+        data_root=os.environ.get('PROVE_MAPILLARY_ROOT', ''),
+        train_img_dir='training/images',
+        train_ann_dir='training/v2.0/labels',
+        val_img_dir='validation/images',
+        val_ann_dir='validation/v2.0/labels',
+        test_img_dir='validation/images',
+        test_ann_dir='validation/v2.0/labels',
+        num_classes=66,  # Native 66 classes
+        classes=MAPILLARY_CLASSES,
+        img_suffix='.jpg',
+    ),
+    'Cityscapes': DatasetConfig(
+        name='Cityscapes',
+        task='segmentation',
+        format='cityscapes_native',
+        data_root=os.environ.get('PROVE_CITYSCAPES_ROOT', ''),
+        train_img_dir='leftImg8bit/train',
+        train_ann_dir='gtFine/train',
+        val_img_dir='leftImg8bit/val',
+        val_ann_dir='gtFine/val',
+        test_img_dir='leftImg8bit/val',
+        test_ann_dir='gtFine/val',
+        num_classes=19,
+        classes=CITYSCAPES_CLASSES,
+        img_suffix='_leftImg8bit.png',
+    ),
+    'BDD10k': DatasetConfig(
+        name='BDD10k',
+        task='segmentation',
+        format='cityscapes',
+        data_root=os.environ.get('PROVE_BDD_ROOT', ''),
+        train_img_dir='images/10k/train',
+        train_ann_dir='labels/sem_seg/masks/train',
+        val_img_dir='images/10k/val',
+        val_ann_dir='labels/sem_seg/masks/val',
+        test_img_dir='images/10k/val',
+        test_ann_dir='labels/sem_seg/masks/val',
+        num_classes=19,
+        classes=CITYSCAPES_CLASSES,
+        img_suffix='.jpg',
+    ),
+    'ACDC': DatasetConfig(
+        name='ACDC',
+        task='segmentation',
+        format='cityscapes',
+        data_root=os.environ.get('PROVE_ACDC_ROOT', ''),
+        train_img_dir='rgb_anon/train',
+        train_ann_dir='gt/train',
+        val_img_dir='rgb_anon/val',
+        val_ann_dir='gt/val',
+        test_img_dir='rgb_anon/val',
+        test_ann_dir='gt/val',
+        num_classes=19,
+        classes=CITYSCAPES_CLASSES,
+        img_suffix='.png',
     ),
 }
 
@@ -551,7 +656,7 @@ MODEL_DEFINITIONS = {
             'frozen_stages': -1,
             'init_cfg': {
                 'type': 'Pretrained',
-                'checkpoint': '${AWARE_DATA_ROOT}/pretrained/swin/swin_base_patch4_window12_384_22k_20220317-e5c09f74.pth',
+                'checkpoint': '${PROVE_ROOT}/pretrained/swin/swin_base_patch4_window12_384_22k_20220317-e5c09f74.pth',
             },
         },
         'decode_head': {
@@ -1246,6 +1351,7 @@ class UnifiedTrainingConfig:
         custom_conditions: Optional[List[str]] = None,
         domain_filter: Optional[str] = None,
         use_native_classes: bool = False,
+        dataset_layout: str = 'stratified',
     ) -> Dict[str, Any]:
         """
         Build a complete training configuration.
@@ -1264,10 +1370,16 @@ class UnifiedTrainingConfig:
             custom_conditions: Optional custom list of weather conditions
             domain_filter: Optional domain to filter training data (e.g., 'clear_day')
                           When specified, only images from this domain subdirectory
-                          will be used for training.
+                          will be used for training. Only applicable with dataset_layout='stratified'.
             use_native_classes: If True, train with native class labels for MapillaryVistas
                                (66 classes) or OUTSIDE15k (24 classes) instead of converting
                                to Cityscapes 19 classes. Only applicable for these datasets.
+            dataset_layout: Dataset directory layout to use:
+                           - 'stratified': Domain-stratified layout from SWIFT
+                             (FINAL_SPLITS/{train,test}/{images,labels}/{DATASET}/{condition}/)
+                           - 'standard': Original dataset directory layout
+                             (e.g., MapillaryVistas: training/images/, training/v2.0/labels/)
+                           Default: 'stratified'
             
         Returns:
             Complete configuration dictionary
@@ -1275,9 +1387,28 @@ class UnifiedTrainingConfig:
         Raises:
             ValueError: If inputs are invalid or no generated images available for dataset
         """
+        # Validate dataset_layout
+        if dataset_layout not in DATASET_LAYOUTS:
+            raise ValueError(f"Unknown dataset_layout: {dataset_layout}. Available: {DATASET_LAYOUTS}")
+        
+        # Select the appropriate dataset config registry
+        if dataset_layout == 'standard':
+            dataset_registry = STANDARD_DATASET_CONFIGS
+            if domain_filter:
+                print(f"[WARN] --domain-filter is ignored with --dataset-layout standard "
+                      f"(no domain subdirectories in standard layout)")
+                domain_filter = None
+        else:
+            dataset_registry = DATASET_CONFIGS
+        
         # Validate inputs
-        if dataset not in DATASET_CONFIGS:
-            raise ValueError(f"Unknown dataset: {dataset}. Available: {list(DATASET_CONFIGS.keys())}")
+        if dataset not in dataset_registry:
+            available = list(dataset_registry.keys())
+            layout_hint = ""
+            if dataset_layout == 'standard':
+                layout_hint = (f"\nNote: Using 'standard' layout. Available datasets: {available}\n"
+                              f"For more datasets, use '--dataset-layout stratified' with SWIFT-stratified data.")
+            raise ValueError(f"Unknown dataset: {dataset}. Available: {available}{layout_hint}")
         if model not in ALL_MODELS:
             raise ValueError(f"Unknown model: {model}. Available: {list(ALL_MODELS.keys())}")
         if strategy not in AUGMENTATION_STRATEGIES:
@@ -1291,7 +1422,12 @@ class UnifiedTrainingConfig:
             if std_aug.type != 'batch_augment':
                 raise ValueError(f"std_strategy must be a standard augmentation (std_*), got: {std_strategy}")
         
-        dataset_cfg = DATASET_CONFIGS[dataset]
+        dataset_cfg = dataset_registry[dataset]
+        
+        # Log the dataset layout being used
+        if dataset_layout == 'standard':
+            print(f"[INFO] Using standard (non-stratified) dataset layout for {dataset}")
+            print(f"[INFO] Data root: {dataset_cfg.data_root or self.data_root}")
         model_cfg = ALL_MODELS[model]
         aug_strategy = AUGMENTATION_STRATEGIES[strategy]
         
@@ -2341,7 +2477,8 @@ class UnifiedTrainingConfig:
         """
         
         # Use data_root from dataset config if specified, otherwise use default
-        # This allows Cityscapes to use its own path (${AWARE_DATA_ROOT}/CITYSCAPES)
+        # This allows Cityscapes to use its own path and standard layout datasets
+        # to use per-dataset roots via environment variables
         if dataset_cfg.data_root and dataset_cfg.data_root != DEFAULT_DATA_ROOT:
             data_root = dataset_cfg.data_root
             print(f"[INFO] Using dataset-specific data_root: {data_root}")
@@ -3111,6 +3248,10 @@ Examples:
     parser.add_argument('--domain-filter', type=str, default=None,
                        help='Filter training data to specific domain (e.g., clear_day). '
                             'Only images from this domain subdirectory will be used.')
+    parser.add_argument('--dataset-layout', type=str, default='stratified',
+                       choices=['standard', 'stratified'],
+                       help='Dataset directory layout: "standard" for original dataset structure, '
+                            '"stratified" for SWIFT domain-stratified layout. Default: stratified')
     parser.add_argument('--output', '-o', type=str, help='Output config file path')
     parser.add_argument('--output-dir', type=str, default='./multi_model_configs',
                        help='Output directory for generated configs')
@@ -3131,12 +3272,15 @@ def main():
     config_builder = UnifiedTrainingConfig()
     
     if args.list:
+        # Show datasets for the selected layout
+        dataset_registry = STANDARD_DATASET_CONFIGS if args.dataset_layout == 'standard' else DATASET_CONFIGS
         options = config_builder.get_available_options()
         print("PROVE Unified Training Configuration - Available Options")
+        print(f"(Dataset layout: {args.dataset_layout})")
         print("=" * 60)
         print("\nDatasets:")
-        for ds in options['datasets']:
-            task = DATASET_CONFIGS[ds].task
+        for ds in dataset_registry:
+            task = dataset_registry[ds].task
             print(f"  - {ds} ({task})")
         print("\nSegmentation Models:")
         for m in options['segmentation_models']:
@@ -3161,7 +3305,8 @@ def main():
         print("=" * 60)
         
         generated = 0
-        for dataset_name, dataset_cfg in DATASET_CONFIGS.items():
+        dataset_registry = STANDARD_DATASET_CONFIGS if args.dataset_layout == 'standard' else DATASET_CONFIGS
+        for dataset_name, dataset_cfg in dataset_registry.items():
             # Get models for this task
             if dataset_cfg.task == 'segmentation':
                 models = SEGMENTATION_MODELS.keys()
@@ -3177,6 +3322,7 @@ def main():
                         real_gen_ratio=args.real_gen_ratio,
                         custom_conditions=args.conditions,
                         domain_filter=args.domain_filter,
+                        dataset_layout=args.dataset_layout,
                     )
                     
                     # Determine output path
@@ -3205,6 +3351,7 @@ def main():
         real_gen_ratio=args.real_gen_ratio,
         custom_conditions=args.conditions,
         domain_filter=args.domain_filter,
+        dataset_layout=args.dataset_layout,
     )
     
     if args.print:

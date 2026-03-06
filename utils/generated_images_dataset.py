@@ -472,7 +472,7 @@ if __name__ == "__main__":
     import argparse
     
     parser = argparse.ArgumentParser(description="Generated Images Dataset Utility")
-    parser.add_argument('--gen-root', default='${AWARE_DATA_ROOT}/GENERATED_IMAGES',
+    parser.add_argument('--gen-root', default='${PROVE_ROOT}/GENERATED_IMAGES',
                        help='Root directory of generated images')
     parser.add_argument('--list-models', action='store_true',
                        help='List available generative models')

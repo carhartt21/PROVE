@@ -7,7 +7,7 @@ Updated to include: SegFormer MIT-B3, HRNet HR48, OCRNet HR48, and SegNeXt.
 from pathlib import Path
 
 OUTPUT_DIR = Path('${HOME}/repositories/PROVE/cityscapes_replication/configs')
-DATA_ROOT = '${AWARE_DATA_ROOT}/CITYSCAPES'
+DATA_ROOT = '${PROVE_ROOT}/CITYSCAPES'
 
 # Common settings
 COMMON_RUNTIME = '''

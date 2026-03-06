@@ -192,7 +192,7 @@ python scripts/batch_training_submission.py --stage 1 --limit 10
 After training, outputs are organized as:
 
 ```
-${AWARE_DATA_ROOT}/WEIGHTS/
+${PROVE_ROOT}/WEIGHTS/
 ├── baseline/
 │   ├── bdd10k/
 │   │   ├── deeplabv3plus_r50/
@@ -218,9 +218,9 @@ The system respects the following environment variables:
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `PROVE_DATA_ROOT` | Root directory for datasets | `${AWARE_DATA_ROOT}/FINAL_SPLITS` |
-| `PROVE_GEN_ROOT` | Root directory for generated images | `${AWARE_DATA_ROOT}/GENERATED_IMAGES` |
-| `PROVE_WEIGHTS_ROOT` | Root directory for model weights | `${AWARE_DATA_ROOT}/WEIGHTS` |
+| `PROVE_DATA_ROOT` | Root directory for datasets | `${PROVE_ROOT}/FINAL_SPLITS` |
+| `PROVE_GEN_ROOT` | Root directory for generated images | `${PROVE_ROOT}/GENERATED_IMAGES` |
+| `PROVE_WEIGHTS_ROOT` | Root directory for model weights | `${PROVE_ROOT}/WEIGHTS` |
 | `PROVE_CONFIG_ROOT` | Root directory for config files | `./multi_model_configs` |
 
 ## Migration from Old Config System

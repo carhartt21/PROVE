@@ -92,7 +92,7 @@ If replication fails (achieves ~45% mIoU similar to PROVE):
 
 ## Data Location
 
-Cityscapes data is at: `${AWARE_DATA_ROOT}/CITYSCAPES/`
+Cityscapes data is at: `${PROVE_ROOT}/CITYSCAPES/`
 - Images: `leftImg8bit/{train,val,test}/`
 - Labels: `gtFine/{train,val,test}/`
 

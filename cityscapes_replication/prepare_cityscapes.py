@@ -8,7 +8,7 @@ expects labelTrainIds (0-18, 255 for ignore).
 This script converts labelIds.png → labelTrainIds.png for all splits.
 
 Usage:
-    python prepare_cityscapes.py --data-root ${AWARE_DATA_ROOT}/CITYSCAPES
+    python prepare_cityscapes.py --data-root ${PROVE_ROOT}/CITYSCAPES
 """
 
 import argparse
@@ -89,7 +89,7 @@ def convert_label_to_train(label_path: Path) -> tuple:
 def main():
     parser = argparse.ArgumentParser(description='Prepare Cityscapes labelTrainIds')
     parser.add_argument('--data-root', type=str, 
-                       default='${AWARE_DATA_ROOT}/CITYSCAPES',
+                       default='${PROVE_ROOT}/CITYSCAPES',
                        help='Path to Cityscapes data root')
     parser.add_argument('--workers', type=int, default=8,
                        help='Number of parallel workers')

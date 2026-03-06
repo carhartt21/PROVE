@@ -24,9 +24,9 @@ import signal
 from pathlib import Path
 from datetime import datetime, timedelta
 
-SCRIPT_DIR = Path("${AWARE_DATA_ROOT}/SAMPLE_EXTRACTION/inference_scripts")
-LOG_DIR = Path("${AWARE_DATA_ROOT}/SAMPLE_EXTRACTION/logs/local")
-PRED_ROOT = Path("${AWARE_DATA_ROOT}/SAMPLE_EXTRACTION/testing_samples")
+SCRIPT_DIR = Path("${PROVE_ROOT}/SAMPLE_EXTRACTION/inference_scripts")
+LOG_DIR = Path("${PROVE_ROOT}/SAMPLE_EXTRACTION/logs/local")
+PRED_ROOT = Path("${PROVE_ROOT}/SAMPLE_EXTRACTION/testing_samples")
 
 
 def count_completed_in_batch(script_path):

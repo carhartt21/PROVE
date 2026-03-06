@@ -395,7 +395,7 @@ def create_legend_figure(output_path: str) -> None:
 def main():
     parser = argparse.ArgumentParser(description='Visualize Standard Augmentation Strategies')
     parser.add_argument('--data-root', type=str, 
-                        default='${AWARE_DATA_ROOT}/FINAL_SPLITS',
+                        default='${PROVE_ROOT}/FINAL_SPLITS',
                         help='Path to dataset root')
     parser.add_argument('--output-dir', type=str, 
                         default='result_figures/std_augmentation_visualization',

@@ -8,7 +8,7 @@ Models: SegFormer MIT-B3, HRNet HR48, OCRNet HR48, DeepLabV3+ R50, PSPNet R50, S
 from pathlib import Path
 
 OUTPUT_DIR = Path('${HOME}/repositories/PROVE/cityscapes_replication/configs')
-DATA_ROOT = '${AWARE_DATA_ROOT}/CITYSCAPES'
+DATA_ROOT = '${PROVE_ROOT}/CITYSCAPES'
 
 # Common crop size for ALL models
 CROP_SIZE = (512, 512)

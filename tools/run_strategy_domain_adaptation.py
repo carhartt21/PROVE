@@ -28,7 +28,7 @@ def main():
     )
     parser.add_argument('--strategy', required=True, 
                         help='Strategy name (e.g., gen_NST, gen_cycleGAN)')
-    parser.add_argument('--weights-root', default='${AWARE_DATA_ROOT}/WEIGHTS',
+    parser.add_argument('--weights-root', default='${PROVE_ROOT}/WEIGHTS',
                         help='Root directory for model weights')
     parser.add_argument('--include-clearday', action='store_true',
                         help='Also evaluate _clear_day variants if available')

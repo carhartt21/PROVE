@@ -15,7 +15,7 @@ Usage:
     python tsne_domain_gap.py \\
         --checkpoint-baseline /path/to/baseline.pth \\
         --checkpoint-augmented /path/to/augmented.pth \\
-        --data-root ${AWARE_DATA_ROOT}/FINAL_SPLITS \\
+        --data-root ${PROVE_ROOT}/FINAL_SPLITS \\
         --model-type deeplabv3plus \\
         --output ./tsne_plots
 """
@@ -900,7 +900,7 @@ Examples:
   python tsne_domain_gap.py \\
       --checkpoint-baseline ./checkpoints/baseline.pth \\
       --checkpoint-augmented ./checkpoints/augmented.pth \\
-      --data-root ${AWARE_DATA_ROOT}/FINAL_SPLITS/ACDC
+      --data-root ${PROVE_ROOT}/FINAL_SPLITS/ACDC
 
   # With custom parameters
   python tsne_domain_gap.py \\

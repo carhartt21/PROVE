@@ -1,8 +1,8 @@
 #!/bin/bash
 #BSUB -J prove_cs_segnext_b_bs16
 #BSUB -q BatchGPU
-#BSUB -o ${AWARE_DATA_ROOT}/WEIGHTS_CITYSCAPES/baseline/cityscapes/segnext_mscan-b/train_%J.out
-#BSUB -e ${AWARE_DATA_ROOT}/WEIGHTS_CITYSCAPES/baseline/cityscapes/segnext_mscan-b/train_%J.err
+#BSUB -o ${PROVE_ROOT}/WEIGHTS_CITYSCAPES/baseline/cityscapes/segnext_mscan-b/train_%J.out
+#BSUB -e ${PROVE_ROOT}/WEIGHTS_CITYSCAPES/baseline/cityscapes/segnext_mscan-b/train_%J.err
 #BSUB -n 8
 #BSUB -R "rusage[mem=48000]"
 #BSUB -R "span[hosts=1]"
@@ -22,7 +22,7 @@ echo "FIX APPLIED: Validation uses full resolution (2048x1024)"
 echo "=============================================="
 
 # Create output directory
-mkdir -p ${AWARE_DATA_ROOT}/WEIGHTS_CITYSCAPES/baseline/cityscapes/segnext_mscan-b
+mkdir -p ${PROVE_ROOT}/WEIGHTS_CITYSCAPES/baseline/cityscapes/segnext_mscan-b
 
 # Run training with custom iterations
 python unified_training.py \
@@ -32,6 +32,6 @@ python unified_training.py \
     --max-iters 20000 \
     --checkpoint-interval 2000 \
     --eval-interval 2000 \
-    --work-dir "${AWARE_DATA_ROOT}/WEIGHTS_CITYSCAPES/baseline/cityscapes/segnext_mscan-b"
+    --work-dir "${PROVE_ROOT}/WEIGHTS_CITYSCAPES/baseline/cityscapes/segnext_mscan-b"
 
 echo "Training completed"

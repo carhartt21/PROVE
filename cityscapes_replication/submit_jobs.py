@@ -16,7 +16,7 @@ from datetime import datetime
 
 # Configuration
 CONFIG_DIR = Path('/home/chge7185/repositories/PROVE/cityscapes_replication/configs')
-WORK_DIR_BASE = Path('${AWARE_DATA_ROOT}/CITYSCAPES_REPLICATION')
+WORK_DIR_BASE = Path('${PROVE_ROOT}/CITYSCAPES_REPLICATION')
 CONDA_ENV = 'prove'
 REPO_DIR = Path('/home/chge7185/repositories/PROVE')
 

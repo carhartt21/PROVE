@@ -66,13 +66,13 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 # Base paths
 WEIGHTS_ROOTS = {
-    1: Path('${AWARE_DATA_ROOT}/WEIGHTS'),
-    2: Path('${AWARE_DATA_ROOT}/WEIGHTS_STAGE_2'),
-    'cityscapes': Path('${AWARE_DATA_ROOT}/WEIGHTS_CITYSCAPES'),
-    'cityscapes-gen': Path('${AWARE_DATA_ROOT}/WEIGHTS_CITYSCAPES_GEN'),
+    1: Path('${PROVE_ROOT}/WEIGHTS'),
+    2: Path('${PROVE_ROOT}/WEIGHTS_STAGE_2'),
+    'cityscapes': Path('${PROVE_ROOT}/WEIGHTS_CITYSCAPES'),
+    'cityscapes-gen': Path('${PROVE_ROOT}/WEIGHTS_CITYSCAPES_GEN'),
 }
 
-DATA_ROOT = '${AWARE_DATA_ROOT}/FINAL_SPLITS'
+DATA_ROOT = '${PROVE_ROOT}/FINAL_SPLITS'
 LOG_DIR = PROJECT_ROOT / 'logs'
 
 # All models (excluding deeplabv3plus_r50 and hrnet_hr48 from active training)

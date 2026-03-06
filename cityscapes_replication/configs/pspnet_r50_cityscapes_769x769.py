@@ -4,7 +4,7 @@ Expected mIoU: 78.55%
 """
 
 dataset_type = 'CityscapesDataset'
-data_root = '${AWARE_DATA_ROOT}/CITYSCAPES'
+data_root = '${PROVE_ROOT}/CITYSCAPES'
 crop_size = (769, 769)
 
 train_pipeline = [

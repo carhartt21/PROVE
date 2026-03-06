@@ -11,13 +11,13 @@ PROVE uses **two different locking mechanisms**:
 ### 1. File-Based Locks (`.training_lock`)
 
 Used by the retrain shell scripts (e.g., `scripts/retrain_jobs/*.sh`). These locks are:
-- Created in each model's weights directory (e.g., `${AWARE_DATA_ROOT}/WEIGHTS/{strategy}/{dataset}_cd/{model}/.training_lock`)
+- Created in each model's weights directory (e.g., `${PROVE_ROOT}/WEIGHTS/{strategy}/{dataset}_cd/{model}/.training_lock`)
 - Contain the PID of the training process
 - Automatically removed when training completes (via `trap` in bash)
 
 ### 2. fcntl-Based Locks (`TrainingLock` class)
 
-A Python class using `fcntl` file locks, stored in `${AWARE_DATA_ROOT}/training_locks/`. These locks are:
+A Python class using `fcntl` file locks, stored in `${PROVE_ROOT}/training_locks/`. These locks are:
 - Process-safe (kernel-level locking)
 - Automatically released when the process exits
 - Include metadata (job ID, hostname, timestamp)
@@ -45,10 +45,10 @@ python training_lock.py list --no-verify-pid
 === File-based locks (.training_lock) (3) ===
   - gen_VisualCloze/idd-aw/segformer_mit-b5_ratio0p50 [UNKNOWN - remote process]
     PID: 2233310, Started: 2026-01-12T16:49:29.536651
-    Lock file: ${AWARE_DATA_ROOT}/WEIGHTS/gen_VisualCloze/idd-aw_cd/segformer_mit-b5_ratio0p50/.training_lock
+    Lock file: ${PROVE_ROOT}/WEIGHTS/gen_VisualCloze/idd-aw_cd/segformer_mit-b5_ratio0p50/.training_lock
   - photometric_distort/idd-aw/deeplabv3plus_r50 [ACTIVE]
     PID: 1277413, Started: 2026-01-12T16:52:55.136674
-    Lock file: ${AWARE_DATA_ROOT}/WEIGHTS/photometric_distort/idd-aw_cd/deeplabv3plus_r50/.training_lock
+    Lock file: ${PROVE_ROOT}/WEIGHTS/photometric_distort/idd-aw_cd/deeplabv3plus_r50/.training_lock
 
 Total locks: 3
 ```
@@ -93,7 +93,7 @@ Returns exit code 0 if safe to proceed, 1 if locked.
 
 ```bash
 #!/bin/bash
-WEIGHTS_PATH="${AWARE_DATA_ROOT}/WEIGHTS/{strategy}/{dataset}_cd/{model}"
+WEIGHTS_PATH="${PROVE_ROOT}/WEIGHTS/{strategy}/{dataset}_cd/{model}"
 LOCK_FILE="${WEIGHTS_PATH}/.training_lock"
 
 # Create lock directory

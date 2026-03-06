@@ -133,6 +133,7 @@ class UnifiedTrainer:
         distributed: bool = False,
         use_native_classes: bool = True,
         no_pretrained: bool = False,
+        dataset_layout: str = 'stratified',
     ):
         self.dataset = dataset
         self.model = model
@@ -162,6 +163,7 @@ class UnifiedTrainer:
         self.distributed = distributed
         self.use_native_classes = use_native_classes
         self.no_pretrained = no_pretrained
+        self.dataset_layout = dataset_layout
         
         # Initialize config builder
         self.config_builder = UnifiedTrainingConfig(cache_dir=cache_dir)
@@ -201,6 +203,7 @@ class UnifiedTrainer:
             domain_filter=self.domain_filter,
             custom_training_config=custom_training_config,
             use_native_classes=self.use_native_classes,
+            dataset_layout=self.dataset_layout,
         )
         
         # Override work_dir if specified
@@ -1132,9 +1135,9 @@ def generate_lsf_script(
     
     # Determine work directory based on strategy
     if strategy == 'baseline' or not strategy.startswith('gen_'):
-        weights_base = "${AWARE_DATA_ROOT}/WEIGHTS_STAGE_2"
+        weights_base = "${PROVE_ROOT}/WEIGHTS_STAGE_2"
     else:
-        weights_base = "${AWARE_DATA_ROOT}/WEIGHTS_STAGE_2"
+        weights_base = "${PROVE_ROOT}/WEIGHTS_STAGE_2"
     
     # Model directory: only add ratio suffix for generative strategies with ratio != 1.0
     if strategy.startswith('gen_') and real_gen_ratio != 1.0:
@@ -1432,6 +1435,12 @@ Examples:
                        help='Ratio of real images (0.0-1.0)')
     parser.add_argument('--domain-filter', type=str, default=None,
                        help='Filter training data to specific domain (e.g., clear_day)')
+    parser.add_argument('--dataset-layout', type=str, default='stratified',
+                       choices=['standard', 'stratified'],
+                       help='Dataset directory layout: "standard" for original dataset structure '
+                            '(e.g., MapillaryVistas training/images/), "stratified" for '
+                            'SWIFT domain-stratified layout (FINAL_SPLITS/{train,test}/...). '
+                            'Default: stratified')
     parser.add_argument('--conditions', type=str, nargs='+',
                        help='Weather conditions to use')
     parser.add_argument('--no-native-classes', dest='use_native_classes', action='store_false', default=True,
@@ -1712,6 +1721,7 @@ def main():
         distributed=args.distributed,
         use_native_classes=args.use_native_classes,
         no_pretrained=args.no_pretrained,
+        dataset_layout=args.dataset_layout,
     )
     
     # Config only mode

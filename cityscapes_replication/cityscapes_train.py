@@ -98,8 +98,8 @@ MODELS = {
 # LSF job template
 LSF_TEMPLATE = """#!/bin/bash
 #BSUB -J cityscapes_{model_name}
-#BSUB -o ${AWARE_DATA_ROOT}/CITYSCAPES_REPLICATION/{model_name}/lsf_%J.out
-#BSUB -e ${AWARE_DATA_ROOT}/CITYSCAPES_REPLICATION/{model_name}/lsf_%J.err
+#BSUB -o ${PROVE_ROOT}/CITYSCAPES_REPLICATION/{model_name}/lsf_%J.out
+#BSUB -e ${PROVE_ROOT}/CITYSCAPES_REPLICATION/{model_name}/lsf_%J.err
 #BSUB -q BatchGPU
 #BSUB -n 8
 #BSUB -R "span[hosts=1]"
@@ -115,7 +115,7 @@ conda activate prove
 cd ${HOME}/repositories/mmsegmentation
 
 # Create output directory
-mkdir -p ${AWARE_DATA_ROOT}/CITYSCAPES_REPLICATION/{model_name}
+mkdir -p ${PROVE_ROOT}/CITYSCAPES_REPLICATION/{model_name}
 
 # Run training with distributed launcher
 PYTHONPATH="$(dirname $0)/..:$PYTHONPATH" \\
@@ -124,10 +124,10 @@ python -m torch.distributed.launch \\
     --master_port={port} \\
     tools/train.py \\
     {config} \\
-    --work-dir ${AWARE_DATA_ROOT}/CITYSCAPES_REPLICATION/{model_name} \\
+    --work-dir ${PROVE_ROOT}/CITYSCAPES_REPLICATION/{model_name} \\
     --launcher pytorch \\
     --cfg-options \\
-        data_root=${AWARE_DATA_ROOT}/CITYSCAPES_DATA
+        data_root=${PROVE_ROOT}/CITYSCAPES_DATA
 
 echo "Training complete for {model_name}"
 """

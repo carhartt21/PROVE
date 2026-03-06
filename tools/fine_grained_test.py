@@ -750,7 +750,8 @@ def run_fine_grained_test(
     dataset_name: str,
     data_root: str,
     test_split: str = 'test',
-    batch_size: int = 4
+    batch_size: int = 4,
+    dataset_layout: str = 'stratified',
 ) -> Dict[str, Any]:
     """Run fine-grained testing with per-domain and per-class results.
     
@@ -765,6 +766,7 @@ def run_fine_grained_test(
         data_root: Root directory of test data
         test_split: Which split to use (test/val)
         batch_size: Number of images per batch for inference (default: 4)
+        dataset_layout: 'stratified' (SWIFT domain-stratified) or 'standard' (original layout)
     """
     
     # Normalize dataset name to match folder structure in FINAL_SPLITS
@@ -864,7 +866,12 @@ def run_fine_grained_test(
     pipeline = Compose(test_pipeline)
     
     # Process each domain
-    test_domains = domains if domains else ['all']
+    # Standard layout: no domain subdirectories, test all data at once
+    if dataset_layout == 'standard':
+        test_domains = ['all']
+        print(f"[INFO] Using standard (non-stratified) dataset layout — no per-domain breakdown")
+    else:
+        test_domains = domains if domains else ['all']
     
     for domain in test_domains:
         print(f"\n{'='*60}")
@@ -872,7 +879,21 @@ def run_fine_grained_test(
         print('='*60)
         
         # Get image and label paths for this domain (use folder_name for correct case)
-        if domain == 'all':
+        if dataset_layout == 'standard':
+            # Standard layout: images and labels are directly under data_root
+            # with dataset-specific subdirectories (e.g., validation/images/)
+            # The data_root should point to the dataset root directory
+            _standard_test_dirs = {
+                'MapillaryVistas': ('validation/images', 'validation/v2.0/labels'),
+                'Cityscapes': ('leftImg8bit/val', 'gtFine/val'),
+                'BDD10k': ('images/10k/val', 'labels/sem_seg/masks/val'),
+                'ACDC': ('rgb_anon/val', 'gt/val'),
+            }
+            img_subdir, label_subdir = _standard_test_dirs.get(
+                folder_name, (f'{test_split}/images', f'{test_split}/labels'))
+            img_dir = Path(data_root) / img_subdir
+            label_dir = Path(data_root) / label_subdir
+        elif domain == 'all':
             img_dir = Path(data_root) / test_split / 'images' / folder_name
             label_dir = Path(data_root) / test_split / 'labels' / folder_name
         else:
@@ -883,8 +904,11 @@ def run_fine_grained_test(
             print(f"  Skipping: folder not found at {img_dir}")
             continue
         
-        # Get all images
-        img_files = sorted(list(img_dir.glob('*.png')) + list(img_dir.glob('*.jpg')))
+        # Get all images (use recursive glob for standard layout which may have subdirectories)
+        if dataset_layout == 'standard':
+            img_files = sorted(list(img_dir.rglob('*.png')) + list(img_dir.rglob('*.jpg')))
+        else:
+            img_files = sorted(list(img_dir.glob('*.png')) + list(img_dir.glob('*.jpg')))
         if not img_files:
             print(f"  Skipping: no images found")
             continue
@@ -904,23 +928,33 @@ def run_fine_grained_test(
         # Collect valid image-label pairs
         valid_pairs = []
         for img_path in img_files:
-            label_path = label_dir / img_path.name
+            # For standard layout with recursive glob, preserve relative directory structure
+            if dataset_layout == 'standard':
+                rel_path = img_path.relative_to(img_dir)
+                label_path = label_dir / rel_path
+            else:
+                label_path = label_dir / img_path.name
             if not label_path.exists():
                 # Try stem + extension
                 for ext in ['.png', '.jpg']:
-                    label_path = label_dir / (img_path.stem + ext)
-                    if label_path.exists():
+                    candidate = label_path.parent / (img_path.stem + ext)
+                    if candidate.exists():
+                        label_path = candidate
                         break
             if not label_path.exists():
                 # Cityscapes-specific naming: image has _leftImg8bit, label has _gtFine_labelIds
                 if '_leftImg8bit' in img_path.name:
                     cs_label_name = img_path.name.replace('_leftImg8bit', '_gtFine_labelIds')
-                    label_path = label_dir / cs_label_name
+                    label_path = label_path.parent / cs_label_name
+                    if not label_path.exists():
+                        # Also try _gtFine_labelTrainIds for standard Cityscapes
+                        cs_trainid_name = img_path.name.replace('_leftImg8bit', '_gtFine_labelTrainIds')
+                        label_path = label_path.parent / cs_trainid_name
             if not label_path.exists():
                 # ACDC-specific naming: image has _rgb_anon, label has _gt_labelIds
                 if '_rgb_anon' in img_path.name:
                     acdc_label_name = img_path.name.replace('_rgb_anon', '_gt_labelIds')
-                    label_path = label_dir / acdc_label_name
+                    label_path = label_path.parent / acdc_label_name
             if label_path.exists():
                 valid_pairs.append((img_path, label_path))
         
@@ -1085,12 +1119,16 @@ def main():
     parser.add_argument('--checkpoint', required=True, help='Path to checkpoint file')
     parser.add_argument('--output-dir', required=True, help='Output directory')
     parser.add_argument('--dataset', required=True, help='Dataset name (ACDC, BDD10k, etc.)')
-    parser.add_argument('--data-root', default='${AWARE_DATA_ROOT}/FINAL_SPLITS',
+    parser.add_argument('--data-root', default='${PROVE_ROOT}/FINAL_SPLITS',
                        help='Data root directory')
     parser.add_argument('--test-split', default='test', choices=['val', 'test'],
                        help='Test split to use')
     parser.add_argument('--batch-size', type=int, default=10,
                        help='Batch size for inference (default: 10). Larger = faster but uses more GPU memory.')
+    parser.add_argument('--dataset-layout', type=str, default='stratified',
+                       choices=['standard', 'stratified'],
+                       help='Dataset directory layout: "standard" for original dataset structure, '
+                            '"stratified" for SWIFT domain-stratified layout. Default: stratified')
     
     args = parser.parse_args()
     
@@ -1101,7 +1139,8 @@ def main():
         dataset_name=args.dataset,
         data_root=args.data_root,
         test_split=args.test_split,
-        batch_size=args.batch_size
+        batch_size=args.batch_size,
+        dataset_layout=args.dataset_layout,
     )
 
 

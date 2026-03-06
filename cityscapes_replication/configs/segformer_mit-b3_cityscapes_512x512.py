@@ -4,7 +4,7 @@ Crop size: 512x512 (smaller than standard 1024x1024 for comparison with PROVE)
 """
 
 dataset_type = 'CityscapesDataset'
-data_root = '${AWARE_DATA_ROOT}/CITYSCAPES'
+data_root = '${PROVE_ROOT}/CITYSCAPES'
 crop_size = (512, 512)
 
 train_pipeline = [

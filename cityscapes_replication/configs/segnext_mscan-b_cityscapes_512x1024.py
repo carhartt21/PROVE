@@ -6,7 +6,7 @@ Expected Cityscapes: ~78-80% mIoU (estimated)
 """
 
 dataset_type = 'CityscapesDataset'
-data_root = '${AWARE_DATA_ROOT}/CITYSCAPES'
+data_root = '${PROVE_ROOT}/CITYSCAPES'
 crop_size = (512, 1024)  # Standard Cityscapes crop size
 
 train_pipeline = [

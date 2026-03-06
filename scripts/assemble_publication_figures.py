@@ -44,7 +44,7 @@ import matplotlib.patches as mpatches
 # CONFIGURATION
 # ============================================================================
 
-SAMPLE_ROOT = Path('${AWARE_DATA_ROOT}/SAMPLE_EXTRACTION')
+SAMPLE_ROOT = Path('${PROVE_ROOT}/SAMPLE_EXTRACTION')
 IEEE_FIGURES = Path('${HOME}/repositories/-IEEE-Access-01-26-Data-Augmentation/figures/exploration/qualitative')
 
 DATASETS = ['BDD10k', 'IDD-AW', 'MapillaryVistas', 'OUTSIDE15k']

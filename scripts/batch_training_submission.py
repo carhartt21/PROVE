@@ -86,16 +86,16 @@ from training_lock import TrainingLock
 # ============================================================================
 
 # Base paths
-WEIGHTS_ROOT_STAGE1 = Path('${AWARE_DATA_ROOT}/WEIGHTS')
-WEIGHTS_ROOT_STAGE2 = Path('${AWARE_DATA_ROOT}/WEIGHTS_STAGE_2')
-WEIGHTS_ROOT_RATIO_ABLATION = Path('${AWARE_DATA_ROOT}/WEIGHTS_RATIO_ABLATION')
-WEIGHTS_ROOT_CITYSCAPES = Path('${AWARE_DATA_ROOT}/WEIGHTS_CITYSCAPES')  # Pipeline verification
-WEIGHTS_ROOT_CITYSCAPES_GEN = Path('${AWARE_DATA_ROOT}/WEIGHTS_CITYSCAPES_GEN')  # Cityscapes gen evaluation
-WEIGHTS_ROOT_CITYSCAPES_RATIO = Path('${AWARE_DATA_ROOT}/WEIGHTS_CITYSCAPES_RATIO')  # Cityscapes ratio ablation
-WEIGHTS_ROOT_NOISE_ABLATION = Path('${AWARE_DATA_ROOT}/WEIGHTS_NOISE_ABLATION')  # Noise ablation study
-WEIGHTS_ROOT_EXTENDED_ABLATION = Path('${AWARE_DATA_ROOT}/WEIGHTS_EXTENDED_ABLATION')  # Extended training ablation
-WEIGHTS_ROOT_FROM_SCRATCH = Path('${AWARE_DATA_ROOT}/WEIGHTS_FROM_SCRATCH')  # Training from scratch (no pretrained backbone)
-GENERATED_IMAGES_ROOT = Path('${AWARE_DATA_ROOT}/GENERATED_IMAGES')
+WEIGHTS_ROOT_STAGE1 = Path('${PROVE_ROOT}/WEIGHTS')
+WEIGHTS_ROOT_STAGE2 = Path('${PROVE_ROOT}/WEIGHTS_STAGE_2')
+WEIGHTS_ROOT_RATIO_ABLATION = Path('${PROVE_ROOT}/WEIGHTS_RATIO_ABLATION')
+WEIGHTS_ROOT_CITYSCAPES = Path('${PROVE_ROOT}/WEIGHTS_CITYSCAPES')  # Pipeline verification
+WEIGHTS_ROOT_CITYSCAPES_GEN = Path('${PROVE_ROOT}/WEIGHTS_CITYSCAPES_GEN')  # Cityscapes gen evaluation
+WEIGHTS_ROOT_CITYSCAPES_RATIO = Path('${PROVE_ROOT}/WEIGHTS_CITYSCAPES_RATIO')  # Cityscapes ratio ablation
+WEIGHTS_ROOT_NOISE_ABLATION = Path('${PROVE_ROOT}/WEIGHTS_NOISE_ABLATION')  # Noise ablation study
+WEIGHTS_ROOT_EXTENDED_ABLATION = Path('${PROVE_ROOT}/WEIGHTS_EXTENDED_ABLATION')  # Extended training ablation
+WEIGHTS_ROOT_FROM_SCRATCH = Path('${PROVE_ROOT}/WEIGHTS_FROM_SCRATCH')  # Training from scratch (no pretrained backbone)
+GENERATED_IMAGES_ROOT = Path('${PROVE_ROOT}/GENERATED_IMAGES')
 
 # All datasets
 ALL_DATASETS = ['BDD10k', 'IDD-AW', 'MapillaryVistas', 'OUTSIDE15k']
@@ -157,7 +157,7 @@ CITYSCAPES_RATIO_VALUES = [0.0, 0.25, 0.75]
 # - More challenging domains (BDD10k, IDD-AW) with real-world variation
 
 # Path for Stage 1 ratio ablation results
-WEIGHTS_ROOT_STAGE1_RATIO = Path('${AWARE_DATA_ROOT}/WEIGHTS_STAGE1_RATIO')
+WEIGHTS_ROOT_STAGE1_RATIO = Path('${PROVE_ROOT}/WEIGHTS_STAGE1_RATIO')
 
 # Focus on datasets with best signal (highest spreads in Stage 1 analysis)
 STAGE1_RATIO_DATASETS = [
@@ -193,7 +193,7 @@ STAGE1_RATIO_VALUES = [0.0, 0.25, 0.75]
 # - gen_* chosen from top cross-stage performers representing different families
 # - std_* chosen for consistency (all-positive per-dataset gains, low cross-model variance)
 
-WEIGHTS_ROOT_COMBINATION = Path('${AWARE_DATA_ROOT}/WEIGHTS_COMBINATION_ABLATION')
+WEIGHTS_ROOT_COMBINATION = Path('${PROVE_ROOT}/WEIGHTS_COMBINATION_ABLATION')
 
 # Top gen_* from cross-stage S1+CG analysis (different families)
 COMBINATION_GEN_STRATEGIES = [
@@ -902,7 +902,7 @@ def generate_job_script(
             --checkpoint "$CHECKPOINT" {backslash}
             --output-dir "$ACDC_TEST_OUTPUT" {backslash}
             --dataset ACDC {backslash}
-            --data-root "${AWARE_DATA_ROOT}/FINAL_SPLITS" {backslash}
+            --data-root "${PROVE_ROOT}/FINAL_SPLITS" {backslash}
             --test-split "test" {backslash}
             --batch-size 10
         
@@ -973,7 +973,7 @@ if [ -f "$CHECKPOINT" ]; then
 fi
 
 # Acquire training lock
-LOCK_DIR="${AWARE_DATA_ROOT}/training_locks"
+LOCK_DIR="${PROVE_ROOT}/training_locks"
 mkdir -p $LOCK_DIR
 LOCK_FILE="$LOCK_DIR/{stage_prefix}{job.strategy}{std_suffix}_{job.dataset.lower().replace('-', '_')}_{job.model}{ratio_suffix}{aux_suffix}.lock"
 
@@ -1032,7 +1032,7 @@ if [ $TRAIN_EXIT_CODE -eq 0 ]; then
         
         # All datasets use FINAL_SPLITS structure for fine-grained testing
         # Cityscapes test set in FINAL_SPLITS has city-based subfolders (frankfurt, lindau, munster)
-        DATA_ROOT="${AWARE_DATA_ROOT}/FINAL_SPLITS"
+        DATA_ROOT="${PROVE_ROOT}/FINAL_SPLITS"
         TEST_SPLIT="test"
         
         python {PROJECT_ROOT}/fine_grained_test.py \\

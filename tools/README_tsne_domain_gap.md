@@ -15,7 +15,7 @@ Analyzes domain gap reduction between clear-day and adverse weather conditions u
 python tools/tsne_domain_gap.py \
     --checkpoint-baseline ./checkpoints/baseline.pth \
     --checkpoint-augmented ./checkpoints/augmented.pth \
-    --data-root ${AWARE_DATA_ROOT}/FINAL_SPLITS/ACDC \
+    --data-root ${PROVE_ROOT}/FINAL_SPLITS/ACDC \
     --model-type deeplabv3plus \
     --output ./tsne_output
 ```

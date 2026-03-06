@@ -38,10 +38,10 @@ The core testing script performs evaluation with per-domain and per-class breakd
 
 ```bash
 python fine_grained_test.py \
-    --config ${AWARE_DATA_ROOT}/WEIGHTS/baseline/bdd10k/pspnet_r50/training_config.py \
-    --checkpoint ${AWARE_DATA_ROOT}/WEIGHTS/baseline/bdd10k/pspnet_r50/iter_80000.pth \
+    --config ${PROVE_ROOT}/WEIGHTS/baseline/bdd10k/pspnet_r50/training_config.py \
+    --checkpoint ${PROVE_ROOT}/WEIGHTS/baseline/bdd10k/pspnet_r50/iter_80000.pth \
     --dataset BDD10k \
-    --output-dir ${AWARE_DATA_ROOT}/WEIGHTS/baseline/bdd10k/pspnet_r50/test_results_detailed
+    --output-dir ${PROVE_ROOT}/WEIGHTS/baseline/bdd10k/pspnet_r50/test_results_detailed
 ```
 
 ### Options

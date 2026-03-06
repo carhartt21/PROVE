@@ -98,16 +98,16 @@ SUPPORTED_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.tiff', '.tif', '.bmp', '.webp
 # Default paths (from environment or hardcoded)
 DEFAULT_GENERATED_BASE = Path(os.environ.get(
     'PROVE_GEN_ROOT', 
-    '${AWARE_DATA_ROOT}/GENERATED_IMAGES'
+    '${PROVE_ROOT}/GENERATED_IMAGES'
 ))
 DEFAULT_ORIGINAL_DIR = Path(os.environ.get(
     'PROVE_DATA_ROOT',
-    '${AWARE_DATA_ROOT}/FINAL_SPLITS'
+    '${PROVE_ROOT}/FINAL_SPLITS'
 )) / 'train' / 'images'
 
 # Additional original image directories for datasets not in FINAL_SPLITS
 ADDITIONAL_ORIGINAL_DIRS = [
-    Path('${AWARE_DATA_ROOT}/CITYSCAPES/leftImg8bit/train'),
+    Path('${PROVE_ROOT}/CITYSCAPES/leftImg8bit/train'),
 ]
 
 # =============================================================================

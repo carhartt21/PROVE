@@ -16,8 +16,8 @@ ${HOME}/repositories/PROVE/          # Repository root
 ├── fine_grained_test.py                    # Main testing script
 └── unified_training_config.py              # Configuration builder
 
-${AWARE_DATA_ROOT}/WEIGHTS/        # Stage 1 models (clear_day training)
-${AWARE_DATA_ROOT}/WEIGHTS_STAGE_2/# Stage 2 models (all_domains training)
+${PROVE_ROOT}/WEIGHTS/        # Stage 1 models (clear_day training)
+${PROVE_ROOT}/WEIGHTS_STAGE_2/# Stage 2 models (all_domains training)
 ```
 
 ### Training Stages
@@ -247,7 +247,7 @@ for key in state_dict:
 
 ### Analyze Test Results
 ```bash
-python test_result_analyzer.py --root ${AWARE_DATA_ROOT}/WEIGHTS --comprehensive
+python test_result_analyzer.py --root ${PROVE_ROOT}/WEIGHTS --comprehensive
 ```
 
 ---

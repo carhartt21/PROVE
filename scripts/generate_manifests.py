@@ -21,9 +21,9 @@ from datetime import datetime
 from typing import Dict, List, Tuple, Optional
 
 # Configuration
-GENERATED_IMAGES_BASE = Path("${AWARE_DATA_ROOT}/GENERATED_IMAGES")
-ORIGINAL_DIR = "${AWARE_DATA_ROOT}/FINAL_SPLITS/train/images"
-TARGET_DIR = "${AWARE_DATA_ROOT}/AWACS/train"
+GENERATED_IMAGES_BASE = Path("${PROVE_ROOT}/GENERATED_IMAGES")
+ORIGINAL_DIR = "${PROVE_ROOT}/FINAL_SPLITS/train/images"
+TARGET_DIR = "${PROVE_ROOT}/AWACS/train"
 
 # Known domains (standard weather domains)
 KNOWN_DOMAINS = ['clear_day', 'cloudy', 'dawn_dusk', 'foggy', 'night', 'rainy', 'snowy']

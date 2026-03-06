@@ -467,7 +467,7 @@ WEIGHTS_EXTENDED/{strategy}/{dataset}/{model}/iter_160000.pth
 ### 4.1 Directory Overview
 
 ```
-${AWARE_DATA_ROOT}/
+${PROVE_ROOT}/
 ├── FINAL_SPLITS/                    # Dataset splits
 │   ├── {dataset}/
 │   │   ├── train/
